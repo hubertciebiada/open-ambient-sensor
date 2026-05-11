@@ -3358,7 +3358,7 @@
 			(justify left)
 		)
 	)
-	(property "Value" "AO3415A"
+	(property "Value" "DMP4015SK3"
 		(at 118.11 88.9 0)
 		(effects
 			(font
@@ -3431,7 +3431,7 @@
 			(justify left)
 		)
 	)
-	(property "Value" "PTC 500mA / 30V"
+	(property "Value" "PTC 750mA / 60V"
 		(at 119.38 77.47 0)
 		(effects
 			(font

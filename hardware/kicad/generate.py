@@ -4664,10 +4664,10 @@ def gen_power_sch() -> str:
                      └── J1.2 (GND), J1.3 (PE) — drop down to their own flags
 
     The TVS D1 sits BEFORE Q1 in the chain (tap point on the J1.1 → Q1.S
-    wire). A surge that exceeds Q1's Vds_max (40V on AO3415A) would
+    wire). A surge that exceeds Q1's Vds_max (-40V on DMP4015SK3) would
     destroy Q1 before its reverse-polarity function could engage, so D1
     must clamp upstream of Q1. SMBJ24A clamps at ~38.9V at 1A peak,
-    leaving ~1.1V margin below Q1's absolute maximum.
+    leaving comfortable margin below Q1's absolute maximum.
 
     Layout (page-absolute mm, KiCad +Y is down on screen):
 
@@ -4720,7 +4720,7 @@ def gen_power_sch() -> str:
     PIN3_Y = J1_Y + 2.54     # 99.06 — PE
     PIN_X  = J1_X + 5.08     # 92.71 — pin tips on right side of mirrored body
 
-    # ----- Q1: P-MOSFET reverse-polarity (AO3415A), angle=0, no mirror -----
+    # ----- Q1: P-MOSFET reverse-polarity (DMP4015SK3), angle=0, no mirror -----
     # With angle=0, pin schematic positions are:
     #   D = (Q1_X + 2.54, Q1_Y - 5.08)   TOP-right    → goes UP to F1 → +24V
     #   G = (Q1_X - 5.08, Q1_Y)          LEFT side   → drops DOWN to R1
@@ -4735,13 +4735,15 @@ def gen_power_sch() -> str:
     Q1_S_X = Q1_X + 2.54     # 115.57
     Q1_S_Y = Q1_Y + 5.08     # 93.98 — matches PIN1_Y; same horizontal row as J1.1
 
-    # ----- F1: PTC polyfuse (Bourns MF-MSMF050-2 candidate), angle=0 -----
+    # ----- F1: PTC polyfuse (Bourns MF-RHT075/60-2 candidate), angle=0 -----
     # In series between Q1.D and the +24V power flag.
     # With angle=0:
     #   F1.1 (top)    = (F1_X, F1_Y - 3.81)
     #   F1.2 (bottom) = (F1_X, F1_Y + 3.81)
     # Provides resettable overcurrent protection on the protected +24V rail.
-    # Sized for ~200 mA average / 500 mA peak normal load, trips around 1 A.
+    # 750 mA hold current gives ~2x margin over the ~350 mA combined load
+    # while still well below the 1.5 A trip threshold. 60V rating provides
+    # comfortable margin over the SMBJ24A surge-clamp ceiling (38.9V).
     F1_X = Q1_D_X            # 115.57 — same vertical column as Q1.D
     F1_Y = 76.2
     F1_TOP_Y = F1_Y - 3.81   # 72.39
@@ -4822,12 +4824,12 @@ def gen_power_sch() -> str:
     #
     # Placed in its OWN column at X=142.24, 26.67 mm (= 10.5 grid steps)
     # to the right of F1's column (X=115.57). The wide horizontal gap
-    # is needed because F1's Value text "PTC 500mA / 30V" is left-
+    # is needed because F1's Value text "PTC 750mA / 60V" is left-
     # justified at X=119.38 and renders ~17 mm wide, reaching to ~X=137
     # at the displayed character spacing — placing C1's Value text any
-    # closer (e.g. at X=137.16) caused the "30V" of F1 and "100uF" of
-    # C1 to visibly touch in the rendered PNG. The extra 7.62 mm of
-    # column spacing gives a clear visual gap.
+    # closer (e.g. at X=137.16) caused the F1 voltage suffix and the
+    # "100uF" of C1 to visibly touch in the rendered PNG. The extra
+    # 7.62 mm of column spacing gives a clear visual gap.
     #
     # C1.top is at the SAME Y as F1.top (72.39), so the +24V tap wire
     # is a single horizontal segment from F1.top to C1.top. The F1.top
@@ -5026,35 +5028,45 @@ def gen_power_sch() -> str:
 
     # ----- D1: TVS surge-clamp diode (SMBJ24A), unidirectional, SMB package -----
     # Tap point is BEFORE Q1 on the unprotected VIN net — Q1's Vds_max is
-    # only 40V and a transient above that would destroy Q1 before its
-    # reverse-polarity function could engage. SMBJ24A clamps at Vc=38.9V
-    # at 1A peak (10/1000 us), holding VIN below Q1's absolute maximum
-    # with ~1.1V margin. Vrwm=24V matches the nominal supply; Vbr_min=26.7V
-    # so the diode is off at the working point and consumes ~uA leakage.
-    # Peak pulse power 600W. F1 (PTC) downstream catches the sustained
-    # over-current that follows a clamped event.
+    # -40V on DMP4015SK3, and a transient above that would destroy Q1
+    # before its reverse-polarity function could engage. SMBJ24A clamps
+    # at Vc=38.9V at 1A peak (10/1000 us), holding VIN below Q1's
+    # absolute maximum with comfortable margin. Vrwm=24V matches the
+    # nominal supply; Vbr_min=26.7V so the diode is off at the working
+    # point and consumes ~uA leakage. Peak pulse power 600W. F1 (PTC)
+    # downstream catches the sustained over-current that follows a
+    # clamped event.
     parts.append(_sch_diode_tvs(
         x=D1_X, y=D1_Y, angle=90,
         reference="D1", value="SMBJ24A", uuid_tag="d1",
     ))
 
-    # ----- Q1: P-MOSFET reverse-polarity protection (AO3415A) -----
+    # ----- Q1: P-MOSFET reverse-polarity protection (DMP4015SK3) -----
     # Source = J1.1 (unprotected input), Drain = +24V protected rail.
     # When input polarity is correct, the body diode conducts initially, then
     # R1 pulls the gate to GND -> Vgs ~ -24 V turns the channel fully on,
     # shorting out the body diode for low conduction loss.
+    # DMP4015SK3 from Diodes Incorporated: Vds_max = -40V (margin over the
+    # 38.9V SMBJ24A clamp), Vgs_max = +/-20V (tolerates the full -24V gate
+    # drive cleanly), Id_max = -5A, RDS(on) ~70mOhm at Vgs=-10V, SOT-23-3
+    # package. JLCPCB Extended Parts Library.
     parts.append(_sch_q_pmos(
         x=Q1_X, y=Q1_Y, angle=0,
-        reference="Q1", value="AO3415A", uuid_tag="q1",
+        reference="Q1", value="DMP4015SK3", uuid_tag="q1",
     ))
 
-    # ----- F1: PTC polyfuse, 500 mA hold / 30 V -----
-    # Candidate parts: Bourns MF-MSMF050-2 or Littelfuse 1812L050PR.
-    # Final footprint (likely 1812 SMD) TBD in PCB-layout chunk; verify
-    # JLCPCB Basic Library availability on order day.
+    # ----- F1: PTC polyfuse, 750 mA hold / 60 V -----
+    # Candidate part: Bourns MF-RHT075/60-2 (750 mA hold, 1.5 A trip,
+    # 60 V max, 1812 SMD). The 60V rating provides comfortable margin
+    # over the SMBJ24A surge-clamp ceiling (38.9V) — critical if Q1
+    # fails short and the clamp voltage appears across F1. The 750 mA
+    # hold current widens the safety margin against C1 (100 uF)
+    # cold-start inrush while staying within the ~350 mA combined
+    # load budget. Final footprint (1812 SMD) TBD in PCB-layout chunk;
+    # verify JLCPCB stock on order day.
     parts.append(_sch_polyfuse(
         x=F1_X, y=F1_Y, angle=0,
-        reference="F1", value="PTC 500mA / 30V", uuid_tag="f1",
+        reference="F1", value="PTC 750mA / 60V", uuid_tag="f1",
     ))
 
     # ----- R1: 100 kΩ gate-GND pulldown -----
