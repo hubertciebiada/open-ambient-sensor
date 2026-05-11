@@ -27,6 +27,14 @@ HERE = Path(__file__).parent
 # -----------------------------------------------------------------------------
 # Geometry (mm)
 # -----------------------------------------------------------------------------
+# Page setup: A4 = 297 x 210 mm. Origin (0,0) in KiCad page space is the
+# top-left corner of the sheet, so we centre the PCB on the page. The
+# aux_axis_origin and grid_origin are also set to the PCB centre so the
+# user-facing coordinate display in pcbnew still reads (0, 0) at the
+# geometric centre of the board.
+PAGE_CENTRE_X = 148.5              # A4 width / 2
+PAGE_CENTRE_Y = 105.0              # A4 height / 2
+
 R_OUTLINE = 60.0                   # PCB outline radius
 CHORD = 82.6                       # flat chord length
 HALF_CHORD = CHORD / 2.0
@@ -57,6 +65,14 @@ GEN_VERSION = "10.0"
 def fmt(x: float) -> str:
     """KiCad-style coordinate: up to 6 decimals, no trailing zeros required."""
     return f"{x:.6f}".rstrip("0").rstrip(".")
+
+def fx(x: float) -> str:
+    """Format X with PCB-centre-to-page-centre offset."""
+    return fmt(x + PAGE_CENTRE_X)
+
+def fy(y: float) -> str:
+    """Format Y with PCB-centre-to-page-centre offset."""
+    return fmt(y + PAGE_CENTRE_Y)
 
 def U() -> str:
     """Generate a v4 UUID for KiCad entities."""
@@ -202,21 +218,23 @@ def gen_pcb() -> str:
         \t\t(pad_to_mask_clearance 0)
         \t\t(allow_soldermask_bridges_in_footprints no)
         \t\t(tenting front back)
+        \t\t(aux_axis_origin {fmt(PAGE_CENTRE_X)} {fmt(PAGE_CENTRE_Y)})
+        \t\t(grid_origin {fmt(PAGE_CENTRE_X)} {fmt(PAGE_CENTRE_Y)})
         \t)""")
 
-    # Edge.Cuts outline (arc + chord)
+    # Edge.Cuts outline (arc + chord); offset to page centre
     outline = textwrap.dedent(f"""\
         \t(gr_arc
-        \t\t(start {fmt(p_start[0])} {fmt(p_start[1])})
-        \t\t(mid {fmt(p_mid[0])} {fmt(p_mid[1])})
-        \t\t(end {fmt(p_end[0])} {fmt(p_end[1])})
+        \t\t(start {fx(p_start[0])} {fy(p_start[1])})
+        \t\t(mid {fx(p_mid[0])} {fy(p_mid[1])})
+        \t\t(end {fx(p_end[0])} {fy(p_end[1])})
         \t\t(stroke (width {fmt(EDGE_CUTS_WIDTH)}) (type solid))
         \t\t(layer "Edge.Cuts")
         \t\t(uuid "{U()}")
         \t)
         \t(gr_line
-        \t\t(start {fmt(p_end[0])} {fmt(p_end[1])})
-        \t\t(end {fmt(p_start[0])} {fmt(p_start[1])})
+        \t\t(start {fx(p_end[0])} {fy(p_end[1])})
+        \t\t(end {fx(p_start[0])} {fy(p_start[1])})
         \t\t(stroke (width {fmt(EDGE_CUTS_WIDTH)}) (type solid))
         \t\t(layer "Edge.Cuts")
         \t\t(uuid "{U()}")
@@ -230,7 +248,7 @@ def gen_pcb() -> str:
             \t(footprint "oas:MountingHole_3.8mm_M3"
             \t\t(layer "F.Cu")
             \t\t(uuid "{U()}")
-            \t\t(at {fmt(x)} {fmt(y)})
+            \t\t(at {fx(x)} {fy(y)})
             \t\t(descr "M3 mounting hole, Ø3.8 mm per SZOMK AK-N-94 spec")
             \t\t(attr through_hole exclude_from_pos_files exclude_from_bom)
             \t\t(property "Reference" "{ref}"
