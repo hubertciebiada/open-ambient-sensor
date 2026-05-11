@@ -2271,6 +2271,338 @@ POWER_LIB_SYMBOLS = """\
 \t\t\t\t)
 \t\t\t)
 \t\t\t(embedded_fonts no)
+\t\t)
+\t\t(symbol "Device:C"
+\t\t\t(pin_numbers
+\t\t\t\t(hide yes)
+\t\t\t)
+\t\t\t(pin_names
+\t\t\t\t(offset 0.254)
+\t\t\t)
+\t\t\t(exclude_from_sim no)
+\t\t\t(in_bom yes)
+\t\t\t(on_board yes)
+\t\t\t(in_pos_files yes)
+\t\t\t(duplicate_pin_numbers_are_jumpers no)
+\t\t\t(property "Reference" "C"
+\t\t\t\t(at 0.635 2.54 0)
+\t\t\t\t(show_name no)
+\t\t\t\t(do_not_autoplace no)
+\t\t\t\t(effects
+\t\t\t\t\t(font
+\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t)
+\t\t\t\t\t(justify left)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(property "Value" "C"
+\t\t\t\t(at 0.635 -2.54 0)
+\t\t\t\t(show_name no)
+\t\t\t\t(do_not_autoplace no)
+\t\t\t\t(effects
+\t\t\t\t\t(font
+\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t)
+\t\t\t\t\t(justify left)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(property "Footprint" ""
+\t\t\t\t(at 0.9652 -3.81 0)
+\t\t\t\t(show_name no)
+\t\t\t\t(do_not_autoplace no)
+\t\t\t\t(hide yes)
+\t\t\t\t(effects
+\t\t\t\t\t(font
+\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(property "Datasheet" ""
+\t\t\t\t(at 0 0 0)
+\t\t\t\t(show_name no)
+\t\t\t\t(do_not_autoplace no)
+\t\t\t\t(hide yes)
+\t\t\t\t(effects
+\t\t\t\t\t(font
+\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(property "Description" "Unpolarized capacitor"
+\t\t\t\t(at 0 0 0)
+\t\t\t\t(show_name no)
+\t\t\t\t(do_not_autoplace no)
+\t\t\t\t(hide yes)
+\t\t\t\t(effects
+\t\t\t\t\t(font
+\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(property "ki_keywords" "cap capacitor"
+\t\t\t\t(at 0 0 0)
+\t\t\t\t(show_name no)
+\t\t\t\t(do_not_autoplace no)
+\t\t\t\t(hide yes)
+\t\t\t\t(effects
+\t\t\t\t\t(font
+\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(property "ki_fp_filters" "C_*"
+\t\t\t\t(at 0 0 0)
+\t\t\t\t(show_name no)
+\t\t\t\t(do_not_autoplace no)
+\t\t\t\t(hide yes)
+\t\t\t\t(effects
+\t\t\t\t\t(font
+\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(symbol "C_0_1"
+\t\t\t\t(polyline
+\t\t\t\t\t(pts
+\t\t\t\t\t\t(xy -2.032 0.762) (xy 2.032 0.762)
+\t\t\t\t\t)
+\t\t\t\t\t(stroke
+\t\t\t\t\t\t(width 0.508)
+\t\t\t\t\t\t(type default)
+\t\t\t\t\t)
+\t\t\t\t\t(fill
+\t\t\t\t\t\t(type none)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t\t(polyline
+\t\t\t\t\t(pts
+\t\t\t\t\t\t(xy -2.032 -0.762) (xy 2.032 -0.762)
+\t\t\t\t\t)
+\t\t\t\t\t(stroke
+\t\t\t\t\t\t(width 0.508)
+\t\t\t\t\t\t(type default)
+\t\t\t\t\t)
+\t\t\t\t\t(fill
+\t\t\t\t\t\t(type none)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(symbol "C_1_1"
+\t\t\t\t(pin passive line
+\t\t\t\t\t(at 0 3.81 270)
+\t\t\t\t\t(length 2.794)
+\t\t\t\t\t(name ""
+\t\t\t\t\t\t(effects
+\t\t\t\t\t\t\t(font
+\t\t\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t\t\t)
+\t\t\t\t\t\t)
+\t\t\t\t\t)
+\t\t\t\t\t(number "1"
+\t\t\t\t\t\t(effects
+\t\t\t\t\t\t\t(font
+\t\t\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t\t\t)
+\t\t\t\t\t\t)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t\t(pin passive line
+\t\t\t\t\t(at 0 -3.81 90)
+\t\t\t\t\t(length 2.794)
+\t\t\t\t\t(name ""
+\t\t\t\t\t\t(effects
+\t\t\t\t\t\t\t(font
+\t\t\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t\t\t)
+\t\t\t\t\t\t)
+\t\t\t\t\t)
+\t\t\t\t\t(number "2"
+\t\t\t\t\t\t(effects
+\t\t\t\t\t\t\t(font
+\t\t\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t\t\t)
+\t\t\t\t\t\t)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(embedded_fonts no)
+\t\t)
+\t\t(symbol "Device:C_Polarized"
+\t\t\t(pin_numbers
+\t\t\t\t(hide yes)
+\t\t\t)
+\t\t\t(pin_names
+\t\t\t\t(offset 0.254)
+\t\t\t)
+\t\t\t(exclude_from_sim no)
+\t\t\t(in_bom yes)
+\t\t\t(on_board yes)
+\t\t\t(in_pos_files yes)
+\t\t\t(duplicate_pin_numbers_are_jumpers no)
+\t\t\t(property "Reference" "C"
+\t\t\t\t(at 0.635 2.54 0)
+\t\t\t\t(show_name no)
+\t\t\t\t(do_not_autoplace no)
+\t\t\t\t(effects
+\t\t\t\t\t(font
+\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t)
+\t\t\t\t\t(justify left)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(property "Value" "C_Polarized"
+\t\t\t\t(at 0.635 -2.54 0)
+\t\t\t\t(show_name no)
+\t\t\t\t(do_not_autoplace no)
+\t\t\t\t(effects
+\t\t\t\t\t(font
+\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t)
+\t\t\t\t\t(justify left)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(property "Footprint" ""
+\t\t\t\t(at 0.9652 -3.81 0)
+\t\t\t\t(show_name no)
+\t\t\t\t(do_not_autoplace no)
+\t\t\t\t(hide yes)
+\t\t\t\t(effects
+\t\t\t\t\t(font
+\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(property "Datasheet" ""
+\t\t\t\t(at 0 0 0)
+\t\t\t\t(show_name no)
+\t\t\t\t(do_not_autoplace no)
+\t\t\t\t(hide yes)
+\t\t\t\t(effects
+\t\t\t\t\t(font
+\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(property "Description" "Polarized capacitor"
+\t\t\t\t(at 0 0 0)
+\t\t\t\t(show_name no)
+\t\t\t\t(do_not_autoplace no)
+\t\t\t\t(hide yes)
+\t\t\t\t(effects
+\t\t\t\t\t(font
+\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(property "ki_keywords" "cap capacitor"
+\t\t\t\t(at 0 0 0)
+\t\t\t\t(show_name no)
+\t\t\t\t(do_not_autoplace no)
+\t\t\t\t(hide yes)
+\t\t\t\t(effects
+\t\t\t\t\t(font
+\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(property "ki_fp_filters" "CP_*"
+\t\t\t\t(at 0 0 0)
+\t\t\t\t(show_name no)
+\t\t\t\t(do_not_autoplace no)
+\t\t\t\t(hide yes)
+\t\t\t\t(effects
+\t\t\t\t\t(font
+\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(symbol "C_Polarized_0_1"
+\t\t\t\t(rectangle
+\t\t\t\t\t(start -2.286 0.508)
+\t\t\t\t\t(end 2.286 1.016)
+\t\t\t\t\t(stroke
+\t\t\t\t\t\t(width 0)
+\t\t\t\t\t\t(type default)
+\t\t\t\t\t)
+\t\t\t\t\t(fill
+\t\t\t\t\t\t(type none)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t\t(polyline
+\t\t\t\t\t(pts
+\t\t\t\t\t\t(xy -1.778 2.286) (xy -0.762 2.286)
+\t\t\t\t\t)
+\t\t\t\t\t(stroke
+\t\t\t\t\t\t(width 0)
+\t\t\t\t\t\t(type default)
+\t\t\t\t\t)
+\t\t\t\t\t(fill
+\t\t\t\t\t\t(type none)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t\t(polyline
+\t\t\t\t\t(pts
+\t\t\t\t\t\t(xy -1.27 2.794) (xy -1.27 1.778)
+\t\t\t\t\t)
+\t\t\t\t\t(stroke
+\t\t\t\t\t\t(width 0)
+\t\t\t\t\t\t(type default)
+\t\t\t\t\t)
+\t\t\t\t\t(fill
+\t\t\t\t\t\t(type none)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t\t(rectangle
+\t\t\t\t\t(start 2.286 -0.508)
+\t\t\t\t\t(end -2.286 -1.016)
+\t\t\t\t\t(stroke
+\t\t\t\t\t\t(width 0)
+\t\t\t\t\t\t(type default)
+\t\t\t\t\t)
+\t\t\t\t\t(fill
+\t\t\t\t\t\t(type outline)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(symbol "C_Polarized_1_1"
+\t\t\t\t(pin passive line
+\t\t\t\t\t(at 0 3.81 270)
+\t\t\t\t\t(length 2.794)
+\t\t\t\t\t(name ""
+\t\t\t\t\t\t(effects
+\t\t\t\t\t\t\t(font
+\t\t\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t\t\t)
+\t\t\t\t\t\t)
+\t\t\t\t\t)
+\t\t\t\t\t(number "1"
+\t\t\t\t\t\t(effects
+\t\t\t\t\t\t\t(font
+\t\t\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t\t\t)
+\t\t\t\t\t\t)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t\t(pin passive line
+\t\t\t\t\t(at 0 -3.81 90)
+\t\t\t\t\t(length 2.794)
+\t\t\t\t\t(name ""
+\t\t\t\t\t\t(effects
+\t\t\t\t\t\t\t(font
+\t\t\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t\t\t)
+\t\t\t\t\t\t)
+\t\t\t\t\t)
+\t\t\t\t\t(number "2"
+\t\t\t\t\t\t(effects
+\t\t\t\t\t\t\t(font
+\t\t\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t\t\t)
+\t\t\t\t\t\t)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(embedded_fonts no)
 \t\t)"""
 
 
@@ -2754,8 +3086,103 @@ def _sch_diode_tvs(
         \t)""")
 
 
+def _sch_capacitor(
+    lib_id: str, x: float, y: float, angle: int,
+    reference: str, value: str, uuid_tag: str,
+) -> str:
+    """Emit a capacitor (Device:C or Device:C_Polarized) symbol instance.
+
+    Both stock symbols share the same property/pin layout — pin 1 at lib
+    (0, +3.81) and pin 2 at lib (0, -3.81), with Reference text at lib
+    (0.635, +2.54) and Value text at lib (0.635, -2.54), both left-justified.
+
+    With angle=0, lib pin positions map to schematic as:
+      Pin 1 (top):    (x, y - 3.81)
+      Pin 2 (bottom): (x, y + 3.81)
+
+    For Device:C_Polarized the pin 1 is the ANODE (+, top in default
+    orientation) and pin 2 is the CATHODE (-, bottom). The filled
+    rectangle on the bottom plate marks the cathode side.
+    """
+    sym_uuid = U("sym:" + uuid_tag)
+    pin1_uuid = U("sym-pin:" + uuid_tag + "-1")
+    pin2_uuid = U("sym-pin:" + uuid_tag + "-2")
+    sheet_path = f"/{ROOT_SHEET_UUID}/{SHEET_BLOCK_UUIDS['power']}"
+    return textwrap.dedent(f"""\
+        \t(symbol
+        \t\t(lib_id "{lib_id}")
+        \t\t(at {fmt(x)} {fmt(y)} {angle})
+        \t\t(unit 1)
+        \t\t(exclude_from_sim no)
+        \t\t(in_bom yes)
+        \t\t(on_board yes)
+        \t\t(dnp no)
+        \t\t(fields_autoplaced yes)
+        \t\t(uuid "{sym_uuid}")
+        \t\t(property "Reference" "{reference}"
+        \t\t\t(at {fmt(x + 2.54)} {fmt(y - 1.27)} 0)
+        \t\t\t(effects
+        \t\t\t\t(font
+        \t\t\t\t\t(size 1.27 1.27)
+        \t\t\t\t)
+        \t\t\t\t(justify left)
+        \t\t\t)
+        \t\t)
+        \t\t(property "Value" "{value}"
+        \t\t\t(at {fmt(x + 2.54)} {fmt(y + 1.27)} 0)
+        \t\t\t(effects
+        \t\t\t\t(font
+        \t\t\t\t\t(size 1.27 1.27)
+        \t\t\t\t)
+        \t\t\t\t(justify left)
+        \t\t\t)
+        \t\t)
+        \t\t(property "Footprint" ""
+        \t\t\t(at {fmt(x)} {fmt(y)} 0)
+        \t\t\t(effects
+        \t\t\t\t(font
+        \t\t\t\t\t(size 1.27 1.27)
+        \t\t\t\t)
+        \t\t\t\t(hide yes)
+        \t\t\t)
+        \t\t)
+        \t\t(property "Datasheet" ""
+        \t\t\t(at {fmt(x)} {fmt(y)} 0)
+        \t\t\t(effects
+        \t\t\t\t(font
+        \t\t\t\t\t(size 1.27 1.27)
+        \t\t\t\t)
+        \t\t\t\t(hide yes)
+        \t\t\t)
+        \t\t)
+        \t\t(property "Description" ""
+        \t\t\t(at {fmt(x)} {fmt(y)} 0)
+        \t\t\t(effects
+        \t\t\t\t(font
+        \t\t\t\t\t(size 1.27 1.27)
+        \t\t\t\t)
+        \t\t\t\t(hide yes)
+        \t\t\t)
+        \t\t)
+        \t\t(pin "1"
+        \t\t\t(uuid "{pin1_uuid}")
+        \t\t)
+        \t\t(pin "2"
+        \t\t\t(uuid "{pin2_uuid}")
+        \t\t)
+        \t\t(instances
+        \t\t\t(project "oas"
+        \t\t\t\t(path "{sheet_path}"
+        \t\t\t\t\t(reference "{reference}")
+        \t\t\t\t\t(unit 1)
+        \t\t\t\t)
+        \t\t\t)
+        \t\t)
+        \t)""")
+
+
 def gen_power_sch() -> str:
-    """Power sub-sheet — J1 input + D1 surge clamp + Q1 reverse-polarity + R1 pulldown + F1 polyfuse.
+    """Power sub-sheet — J1 input + D1 surge clamp + Q1 reverse-polarity + R1 pulldown + F1 polyfuse + C1/C2 caps.
 
     Power flow runs LEFT-TO-RIGHT and UPWARD on screen:
 
@@ -2794,6 +3221,18 @@ def gen_power_sch() -> str:
           right of the symbol) so they never stack vertically with the
           power-flag's Value-text. This was the bug causing label overlap
           in the previous layout.
+        - C1 (bulk electrolytic, 100uF 50V) sits in its OWN column to the
+          right of F1, tapping the protected +24V rail at the F1.top pin
+          and dropping to a local GND symbol. The horizontal +24V tap wire
+          terminates at the F1.top pin, where the f1-to-junc24v wire
+          continues upward to the +24V flag — a junction dot marks the
+          three-way connection.
+        - C2 (Y2 ceramic, 10nF Y2) closes the EMI loop between circuit
+          GND and the PE conductor. Placed in clear space LEFT of the
+          GND flag column with C2.top wired horizontally east to the
+          Earth_Protective flag pin and C2.bot wired south-then-east to
+          the existing GND horizontal at COL_GND. A junction dot at
+          (COL_GND, GND_HORIZ_Y) marks the three-way GND tap.
     """
     file_uuid = SHEET_FILE_UUIDS["power"]
     sheet_path = f"/{ROOT_SHEET_UUID}/{SHEET_BLOCK_UUIDS['power']}"
@@ -2905,6 +3344,60 @@ def gen_power_sch() -> str:
     FLAG_GND_Y = 132.08      # GND symbol, 5.08 mm below the sentinel
     FLAG_R1_GND_Y = 116.84   # second GND symbol below R1.bot
 
+    # ----- C1: bulk electrolytic capacitor (100uF 50V), angle=0 -----
+    # C_Polarized: pin 1 (top, ANODE +) on the protected +24V rail,
+    # pin 2 (bottom, CATHODE -) to GND. 50 V rating gives margin over
+    # both the 24 V nominal and the SMBJ24A's 38.9 V surge-clamp voltage.
+    # 100 uF is sized for ~500 mA peak load — enough hold-up for sub-ms
+    # transients (WS2812 white-bright, radar refresh, MCU TX bursts).
+    #
+    # Placed in its OWN column at X=142.24, 26.67 mm (= 10.5 grid steps)
+    # to the right of F1's column (X=115.57). The wide horizontal gap
+    # is needed because F1's Value text "PTC 500mA / 30V" is left-
+    # justified at X=119.38 and renders ~17 mm wide, reaching to ~X=137
+    # at the displayed character spacing — placing C1's Value text any
+    # closer (e.g. at X=137.16) caused the "30V" of F1 and "100uF" of
+    # C1 to visibly touch in the rendered PNG. The extra 7.62 mm of
+    # column spacing gives a clear visual gap.
+    #
+    # C1.top is at the SAME Y as F1.top (72.39), so the +24V tap wire
+    # is a single horizontal segment from F1.top to C1.top. The F1.top
+    # pin then has three connections (F1 body, f1-to-junc24v upward,
+    # f1-to-c1 rightward) — a junction dot at (F1_X, F1_TOP_Y) marks it.
+    C1_X = 142.24
+    C1_Y = 76.2
+    C1_TOP_Y = C1_Y - 3.81   # 72.39 — matches F1_TOP_Y
+    C1_BOT_Y = C1_Y + 3.81   # 80.01
+    # GND symbol for C1.bottom — independent column, separated >5 cm
+    # vertically from any other GND label so its "GND" text cannot
+    # collide with neighbouring symbols.
+    C1_GND_Y = 83.82         # 1.5 grid steps below C1.bot
+
+    # ----- C2: Y2 ceramic capacitor (10nF Y2), angle=0 -----
+    # Closes the EMI loop between circuit GND and the PE conductor.
+    # Y2 safety class is mandatory for any GND-to-PE cap — rated for
+    # ~1.5 kV impulse withstand, fails open-circuit (not short, which
+    # would defeat the protective-earth function).
+    #
+    # Placed in clear space LEFT of the GND flag column. C2_X is set
+    # so the value-text labels of C2 stay clear of the Earth_Protective
+    # symbol's value-text ("Earth_Protective" at (82.55, 123.19),
+    # spanning ~X=75.4 to ~X=89.7). C2 sits at X=60.96 — left of that
+    # band by ~14 mm.
+    #
+    # Pin 1 (top) connects to the Earth_Protective net via a horizontal
+    # wire at Y=FLAG_PE_Y (115.57), terminating at the PE flag's symbol
+    # pin. Pin 2 (bottom) connects to the global GND net via a short
+    # vertical drop to the existing GND horizontal at Y=GND_HORIZ_Y
+    # (127.0). A new horizontal wire extends from (C2_X, GND_HORIZ_Y)
+    # east to (COL_GND, GND_HORIZ_Y) where it meets the existing
+    # gnd-vert-low/gnd-horiz-left L-corner, producing a 3-way GND tap
+    # that requires its own junction dot.
+    C2_X = 60.96
+    C2_Y = 119.38
+    C2_TOP_Y = C2_Y - 3.81   # 115.57 — matches FLAG_PE_Y (PE flag pin row)
+    C2_BOT_Y = C2_Y + 3.81   # 123.19
+
     # ----- Wires -----
     parts: list[str] = []
 
@@ -2951,12 +3444,35 @@ def gen_power_sch() -> str:
     parts.append(_sch_wire(COL_PE, PE_TURN_Y, COL_PE, JUNC_PE_Y, "pe-vert-mid"))
     parts.append(_sch_wire(COL_PE, JUNC_PE_Y, COL_PE, FLAG_PE_Y, "pe-vert-low"))
 
+    # C1: +24V rail tap from F1.top → C1.top, then C1.bot → C1-local GND.
+    # The F1.top pin becomes a 3-way (F1 body, vertical wire upward to the
+    # +24V flag, horizontal wire rightward to C1) — a junction dot below
+    # marks the T-connection.
+    parts.append(_sch_wire(F1_X, F1_TOP_Y, C1_X, C1_TOP_Y, "f1top-to-c1"))
+    parts.append(_sch_wire(C1_X, C1_BOT_Y, C1_X, C1_GND_Y, "c1bot-to-gnd"))
+
+    # C2: PE flag pin → C2.top via a horizontal wire at Y=FLAG_PE_Y.
+    # C2.bot → existing GND horizontal at Y=GND_HORIZ_Y via a short
+    # vertical drop, then a horizontal segment east to (COL_GND, GND_HORIZ_Y)
+    # which is the existing gnd-horiz-left/gnd-vert-low corner — adding a
+    # third wire here turns it into a T-junction (needs junction dot).
+    parts.append(_sch_wire(C2_X, C2_TOP_Y, COL_PE, FLAG_PE_Y, "c2top-to-pe"))
+    parts.append(_sch_wire(C2_X, C2_BOT_Y, C2_X, GND_HORIZ_Y, "c2bot-to-gnd-vert"))
+    parts.append(_sch_wire(C2_X, GND_HORIZ_Y, COL_GND, GND_HORIZ_Y, "c2-to-gnd-horiz"))
+
     # ----- Junctions (T-branch points where PWR_FLAG sentinels join wires) -----
     parts.append(_sch_junction(COL_24V, JUNC_24V_Y, "24v"))
     parts.append(_sch_junction(COL_GND, JUNC_GND_Y, "gnd"))
     parts.append(_sch_junction(COL_PE,  JUNC_PE_Y,  "pe"))
     # T-branch where D1's top pin taps the J1 → Q1 VIN wire.
     parts.append(_sch_junction(D1_X, PIN1_Y, "vin-d1"))
+    # T-branch where C1's +24V tap meets the F1.top → +24V flag wire at
+    # the F1 pin location.
+    parts.append(_sch_junction(F1_X, F1_TOP_Y, "vin-c1"))
+    # T-branch where C2's GND tap meets the existing GND horizontal at
+    # the COL_GND corner (where gnd-horiz-left ends and gnd-vert-low
+    # starts; the third wire is C2's new c2-to-gnd-horiz).
+    parts.append(_sch_junction(COL_GND, GND_HORIZ_Y, "gnd-c2"))
 
     # ----- J1 symbol (Phoenix MSTBA 2,5/3-G-5,08, mirror_y so pins face right) -----
     j1_uuid = U("sym:j1")
@@ -3078,7 +3594,35 @@ def gen_power_sch() -> str:
         reference="R1", value="100k", uuid_tag="r1",
     ))
 
-    # ----- Power flag symbols (+24V, GND, Earth_Protective, R1-GND) -----
+    # ----- C1: bulk electrolytic, 100 uF / 50 V -----
+    # Polarized — pin 1 (top) is the ANODE (+), wired to the protected +24V
+    # rail at F1.top. Pin 2 (bottom) is the CATHODE (-), wired to GND.
+    # Buffers transient load steps (WS2812 white-bright, radar refreshes,
+    # MCU TX bursts) and absorbs ripple from the upstream supply. 50 V
+    # rating gives margin over both the 24 V nominal and the SMBJ24A's
+    # 38.9 V surge-clamp voltage.
+    parts.append(_sch_capacitor(
+        lib_id="Device:C_Polarized",
+        x=C1_X, y=C1_Y, angle=0,
+        reference="C1", value="100uF 50V", uuid_tag="c1",
+    ))
+
+    # ----- C2: Y2 safety-class ceramic, 10 nF -----
+    # Non-polarized. Pin 1 (top) on the Earth_Protective net, pin 2 (bottom)
+    # on global GND. Closes the conducted-EMI loop between circuit GND and
+    # the chassis PE conductor so high-frequency switching noise from the
+    # downstream bucks returns to chassis ground through this cap rather
+    # than escaping along the supply leads. Y2 class is mandatory for any
+    # cap connecting circuit GND to PE — rated for ~1.5 kV impulse withstand,
+    # fails open-circuit (not short, which would defeat the protective
+    # earth function).
+    parts.append(_sch_capacitor(
+        lib_id="Device:C",
+        x=C2_X, y=C2_Y, angle=0,
+        reference="C2", value="10nF Y2", uuid_tag="c2",
+    ))
+
+    # ----- Power flag symbols (+24V, GND, Earth_Protective, R1-GND, D1-GND, C1-GND) -----
     # +24V flag with text "+24V" placed ABOVE the triangle (standard).
     # value_offset_y matches the +24V lib's default Value position
     # (lib (0, +3.556) → schem (0, -3.556)) so the text sits just above
@@ -3124,6 +3668,15 @@ def gen_power_sch() -> str:
         reference="#PWR05",
         value_offset_x=0.0, value_offset_y=3.81,
         uuid_tag="pwr05-gnd-d1",
+    ))
+    # GND for C1.bottom (bulk-cap cathode) — same net as #PWR02 via the
+    # global power label. No PWR_FLAG sentinel (same reason as above).
+    parts.append(_sch_power_flag(
+        lib_id="power:GND", value="GND",
+        x=C1_X, y=C1_GND_Y, angle=0,
+        reference="#PWR06",
+        value_offset_x=0.0, value_offset_y=3.81,
+        uuid_tag="pwr06-gnd-c1",
     ))
 
     # ----- PWR_FLAG sentinels -----
