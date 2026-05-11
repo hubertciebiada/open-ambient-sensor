@@ -7,17 +7,19 @@
 	(tags "mounting hole 3.8mm m3 szomk ak-n-94")
 	(attr through_hole exclude_from_pos_files exclude_from_bom)
 	(property "Reference" "REF**"
-		(at 0 -4.5 0)
+		(at 0 0 0)
 		(unlocked yes)
 		(layer "F.SilkS")
-		(uuid "515eac50-b01a-4d2d-bf75-b899b4246dcb")
+		(hide yes)
+		(uuid "395d799c-da88-4269-a75e-cf398c516cea")
 		(effects (font (size 1 1) (thickness 0.15)))
 	)
 	(property "Value" "MountingHole_3.8mm_M3"
-		(at 0 4.5 0)
+		(at 0 0 0)
 		(unlocked yes)
 		(layer "F.Fab")
-		(uuid "eba126ce-66e3-46fe-93b0-2e74e642b906")
+		(hide yes)
+		(uuid "2342bcd9-5d60-4524-b8c2-82e12bfdd27a")
 		(effects (font (size 1 1) (thickness 0.15)))
 	)
 	(property "Footprint" ""
@@ -25,7 +27,7 @@
 		(unlocked yes)
 		(layer "F.Fab")
 		(hide yes)
-		(uuid "bd4fca11-dbf4-4483-91e8-84e60b47c184")
+		(uuid "c19b9489-6549-41ae-994c-4b33cbde0423")
 		(effects (font (size 1.27 1.27)))
 	)
 	(property "Datasheet" ""
@@ -33,7 +35,7 @@
 		(unlocked yes)
 		(layer "F.Fab")
 		(hide yes)
-		(uuid "fc7cc7a0-ba4b-4135-8fd0-2c18b5b95d65")
+		(uuid "a98e1bd2-a987-4e74-895c-875f59232b0c")
 		(effects (font (size 1.27 1.27)))
 	)
 	(property "Description" "Mounting Hole, Ø3.8 mm, for M3 screw (per SZOMK AK-N-94)"
@@ -41,7 +43,7 @@
 		(unlocked yes)
 		(layer "F.Fab")
 		(hide yes)
-		(uuid "661535ed-6153-4808-ba4d-9d832a70d6d0")
+		(uuid "921fb6f2-8170-4c53-84f0-ebff09289852")
 		(effects (font (size 1.27 1.27)))
 	)
 	(fp_circle
@@ -50,7 +52,7 @@
 		(stroke (width 0.05) (type solid))
 		(fill no)
 		(layer "F.CrtYd")
-		(uuid "4ddd8759-ab6f-4fe6-936a-844664ea4e20")
+		(uuid "a40001bc-0521-4f13-bad1-143f3d4eae6b")
 	)
 	(fp_circle
 		(center 0 0)
@@ -58,7 +60,7 @@
 		(stroke (width 0.1) (type solid))
 		(fill no)
 		(layer "F.Fab")
-		(uuid "7b4562b2-4b90-4f6a-ac75-fc3a96f6c04f")
+		(uuid "e8950830-c2f0-4b7f-860b-2e63df2a14d4")
 	)
 	(pad "" thru_hole circle
 		(at 0 0)
@@ -66,6 +68,6 @@
 		(drill 3.8)
 		(layers "*.Cu" "*.Mask")
 		(remove_unused_layers no)
-		(uuid "c10a45d6-2662-4663-8afd-30fc265cb225")
+		(uuid "ea68f6ba-e523-4d55-9f95-f42c9b2f8eb7")
 	)
 )
