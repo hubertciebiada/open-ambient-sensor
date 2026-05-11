@@ -42,6 +42,23 @@ Pull-ups: **4.7 kΩ on the MCU side**.
 
 **TODO:** validate against ESP32-C6 SuperMini strap/boot pin constraints.
 
+## PCB sector layout
+
+Treat the PCB as a clock face. Three angular sectors, viewed from the front:
+
+| Sector | Clock hours | Quadrant | Contents |
+|---|---|---|---|
+| **POWER** | 09:00 → 12:00 | upper-left | terminal J1, P-MOSFET reverse-polarity protection, PTC fuse, TVS diode, bulk cap, Y-cap, buck 24V→5V, buck 5V→3.3V |
+| **MCU + logic** | 12:00 → 03:00 | upper-right | ESP32-C6 SuperMini, USB-C diagnostic port, SWD header, decoupling caps |
+| **SENSORS** | 03:00 → 09:00 | bottom half (180°) | SEN66 JST-GH connector (sensor on cover), LD2410 connector, VEML7700, WS2812 status LED, NT3H2211 + NFC trace antenna |
+
+Power flows **clockwise** from the central cable entry, so traces and rails never need to cross sector boundaries. Each schematic hierarchical sheet (`power.kicad_sch`, `mcu.kicad_sch`, `sensors.kicad_sch`) maps onto one sector — placement is then trivial.
+
+The layout is visualised on `Dwgs.User`:
+- Three radial separator lines (dashed) at 12:00, 03:00, and 09:00 azimuths from the cable hole to the PCB edge.
+- Three sector labels: "POWER", "MCU", "SENSORS" in the midpoint of each arc.
+- These markers are not plotted to gerbers — they exist only as a placement guide in pcbnew.
+
 ## Thermal / layout strategy
 
 - **PCB outline:** Ø120 mm D-shape, flat chord 82.65 mm on the bottom edge (arc R=60 mm; full precision 82.6545 mm from manufacturer DXF)

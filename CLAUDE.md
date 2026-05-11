@@ -133,6 +133,22 @@ Additional features:
 | Flashing | Native USB-C on ESP32-C6 | USB 2.0 | tentative |
 | Debug | SWD / UART header (unpopulated by default) | — | tentative |
 
+### PCB sector layout (clock-face convention)
+
+The PCB is divided into three angular sectors viewed from the front:
+
+| Sector | Clock hours | Quadrant in KiCad coords | Contents |
+|---|---|---|---|
+| **POWER** | 09:00 → 12:00 | upper-left (X < 0, Y < 0) | terminal block J1, reverse-polarity protection, PTC fuse, TVS, bulk cap, Y-cap, bucks 24→5V→3.3V |
+| **MCU + logic** | 12:00 → 03:00 | upper-right (X > 0, Y < 0) | ESP32-C6 SuperMini, USB-C, SWD header, decoupling caps |
+| **SENSORS** | 03:00 → 09:00 | bottom half (Y > 0) | SEN66 JST-GH connector, LD2410 connector, VEML7700, WS2812, NT3H2211 + NFC antenna, status LED |
+
+Power flow runs **clockwise** (24 V enters through the centre → POWER sector → MCU sector → SENSORS sector) so signal paths and power rails never need to cross sector boundaries.
+
+The `power.kicad_sch`, `mcu.kicad_sch`, `sensors.kicad_sch`, and `io.kicad_sch` hierarchical sheets mirror this layout — each schematic sheet maps directly to one sector on the PCB.
+
+Three radial separator lines (12:00, 03:00, 09:00 azimuths) plus sector labels are drawn on `Dwgs.User` as a visual aid in pcbnew (not plotted to gerbers). The cable pass-through hole at the centre is the natural "0:00 position" — 24 V enters here.
+
 ### Architectural decisions (current)
 - **SEN66 mounts on the enclosure cover**, NOT on the PCB. Reason: SEN66 height (21.5 mm) exceeds front-side component limit (17 mm). Connected to PCB via short JST GH 6-pin cable (~50 mm).
 - **Sensor zone below electronics** (PCB flat on bottom edge). Reason: natural convection lifts heat from MCU / power section upward, away from the SEN66 air intake.

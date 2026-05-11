@@ -77,6 +77,51 @@
 	(layer "Edge.Cuts")
 	(uuid "e280a9ab-5937-5ac3-8323-b3b9bb4c09e3")
 )
+(gr_line
+	(start 148.5 98.5)
+	(end 148.5 45.5)
+	(stroke (width 0.15) (type dash))
+	(layer "Dwgs.User")
+	(uuid "582b740f-bfaa-565b-a7db-4ec4a7789027")
+)
+(gr_line
+	(start 155 105)
+	(end 208 105)
+	(stroke (width 0.15) (type dash))
+	(layer "Dwgs.User")
+	(uuid "5400d3d1-dc84-591b-a0c2-49f69ed26af4")
+)
+(gr_line
+	(start 142 105)
+	(end 89 105)
+	(stroke (width 0.15) (type dash))
+	(layer "Dwgs.User")
+	(uuid "1dba4a01-ee48-5d6c-af43-1a34320f4351")
+)
+(gr_text "POWER"
+	(at 128.70101 85.20101 0)
+	(layer "Dwgs.User")
+	(uuid "3d88bdcd-2037-599e-96e6-3dd20584b203")
+	(effects
+		(font (size 4 4) (thickness 0.4))
+	)
+)
+(gr_text "MCU"
+	(at 168.29899 85.20101 0)
+	(layer "Dwgs.User")
+	(uuid "e1a19fa4-9f93-5439-a30a-b49f0f51a233")
+	(effects
+		(font (size 4 4) (thickness 0.4))
+	)
+)
+(gr_text "SENSORS"
+	(at 148.5 133 0)
+	(layer "Dwgs.User")
+	(uuid "60e68cb9-3b23-5210-b874-1e9ac281ab43")
+	(effects
+		(font (size 4 4) (thickness 0.4))
+	)
+)
 (gr_rect
 	(start 114.7 136.494)
 	(end 126.7 147.498)

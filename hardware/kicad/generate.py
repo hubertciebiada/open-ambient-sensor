@@ -59,6 +59,18 @@ HOLE_DIAMETER = 3.8                # Ø3.8 mm per manufacturer DXF
 # would just be floating copper.
 COURTYARD_RADIUS = HOLE_DIAMETER * 0.75   # ~1.5× hole diameter
 
+# -----------------------------------------------------------------------------
+# Clock-face sector layout
+# -----------------------------------------------------------------------------
+# Treat the PCB as a clock face:
+#   09:00 → 12:00  (left-top quadrant)   = POWER
+#   12:00 → 03:00  (right-top quadrant)  = MCU + logic
+#   03:00 → 09:00  (bottom half, 180°)   = SENSORS
+# Power flow runs clockwise so signal paths never need to cross sector lines.
+# Drawn on Dwgs.User as 3 radial separators + 3 sector labels (not plotted).
+SECTOR_LABEL_RADIUS = 28   # mm from centre — where labels sit
+SECTOR_LABEL_HEIGHT = 4.0  # mm — text size
+
 # Cable pass-through hole in the centre of the PCB.
 # 24 V (and optional PE) wires enter the case from the rear (electrical box
 # behind the unit) and pass through this hole to a terminal block mounted on
@@ -301,6 +313,50 @@ def gen_cutouts() -> tuple[str, str]:
     return "\n".join(keepouts), "\n".join(markers)
 
 
+def gen_sectors() -> str:
+    """Return Dwgs.User entities outlining the three PCB sectors.
+
+    The PCB is treated as a clock face:
+      09→12  POWER (left-top quadrant)
+      12→03  MCU   (right-top quadrant)
+      03→09  SENSORS (bottom half, 180°)
+    Three radial separators (at 12, 03, 09 o'clock) plus a label per sector.
+    """
+    def clock_xy(hour: float, radius: float) -> tuple[float, float]:
+        """Map clock hour (0..12) and radius to PCB-local (x, y)."""
+        angle = math.radians(hour / 12.0 * 360.0)
+        return (radius * math.sin(angle), -radius * math.cos(angle))
+
+    items = []
+    # Three radial separator lines, each from the cable-hole edge to the PCB outline.
+    for hour in (0.0, 3.0, 9.0):
+        sx, sy = clock_xy(hour, CABLE_HOLE_DIAMETER / 2 + 0.5)
+        ex, ey = clock_xy(hour, R_OUTLINE - 0.5)
+        items.append(textwrap.dedent(f"""\
+            \t(gr_line
+            \t\t(start {fx(sx)} {fy(sy)})
+            \t\t(end {fx(ex)} {fy(ey)})
+            \t\t(stroke (width 0.15) (type dash))
+            \t\t(layer "Dwgs.User")
+            \t\t(uuid "{U('sector_line:'+str(hour))}")
+            \t)"""))
+
+    # Sector labels at the middle of each arc segment.
+    for hour, name in [(10.5, "POWER"), (1.5, "MCU"), (6.0, "SENSORS")]:
+        cx, cy = clock_xy(hour, SECTOR_LABEL_RADIUS)
+        items.append(textwrap.dedent(f"""\
+            \t(gr_text "{name}"
+            \t\t(at {fx(cx)} {fy(cy)} 0)
+            \t\t(layer "Dwgs.User")
+            \t\t(uuid "{U('sector_label:'+name)}")
+            \t\t(effects
+            \t\t\t(font (size {fmt(SECTOR_LABEL_HEIGHT)} {fmt(SECTOR_LABEL_HEIGHT)}) (thickness 0.4))
+            \t\t)
+            \t)"""))
+
+    return "\n".join(items)
+
+
 # -----------------------------------------------------------------------------
 # 2) PCB file
 # -----------------------------------------------------------------------------
@@ -464,6 +520,7 @@ def gen_pcb() -> str:
         footprints.append(fp)
 
     keepouts, markers = gen_cutouts()
+    sectors = gen_sectors()
 
     body = textwrap.dedent(f"""\
         (kicad_pcb
@@ -481,7 +538,7 @@ def gen_pcb() -> str:
         {setup}
         \t(net 0 "")
         {outline}
-        """) + markers + "\n" + "\n".join(footprints) + "\n" + keepouts + "\n)\n"
+        """) + sectors + "\n" + markers + "\n" + "\n".join(footprints) + "\n" + keepouts + "\n)\n"
     return body
 
 # -----------------------------------------------------------------------------
