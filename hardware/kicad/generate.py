@@ -1940,6 +1940,171 @@ POWER_LIB_SYMBOLS = """\
 \t\t\t\t)
 \t\t\t)
 \t\t\t(embedded_fonts no)
+\t\t)
+\t\t(symbol "Device:Polyfuse"
+\t\t\t(pin_numbers
+\t\t\t\t(hide yes)
+\t\t\t)
+\t\t\t(pin_names
+\t\t\t\t(offset 0)
+\t\t\t)
+\t\t\t(exclude_from_sim no)
+\t\t\t(in_bom yes)
+\t\t\t(on_board yes)
+\t\t\t(in_pos_files yes)
+\t\t\t(duplicate_pin_numbers_are_jumpers no)
+\t\t\t(property "Reference" "F"
+\t\t\t\t(at -2.54 0 90)
+\t\t\t\t(show_name no)
+\t\t\t\t(do_not_autoplace no)
+\t\t\t\t(effects
+\t\t\t\t\t(font
+\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(property "Value" "Polyfuse"
+\t\t\t\t(at 2.54 0 90)
+\t\t\t\t(show_name no)
+\t\t\t\t(do_not_autoplace no)
+\t\t\t\t(effects
+\t\t\t\t\t(font
+\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(property "Footprint" ""
+\t\t\t\t(at 1.27 -5.08 0)
+\t\t\t\t(show_name no)
+\t\t\t\t(do_not_autoplace no)
+\t\t\t\t(hide yes)
+\t\t\t\t(effects
+\t\t\t\t\t(font
+\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t)
+\t\t\t\t\t(justify left)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(property "Datasheet" ""
+\t\t\t\t(at 0 0 0)
+\t\t\t\t(show_name no)
+\t\t\t\t(do_not_autoplace no)
+\t\t\t\t(hide yes)
+\t\t\t\t(effects
+\t\t\t\t\t(font
+\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(property "Description" "Resettable fuse, polymeric positive temperature coefficient"
+\t\t\t\t(at 0 0 0)
+\t\t\t\t(show_name no)
+\t\t\t\t(do_not_autoplace no)
+\t\t\t\t(hide yes)
+\t\t\t\t(effects
+\t\t\t\t\t(font
+\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(property "ki_keywords" "resettable fuse PTC PPTC polyfuse polyswitch"
+\t\t\t\t(at 0 0 0)
+\t\t\t\t(show_name no)
+\t\t\t\t(do_not_autoplace no)
+\t\t\t\t(hide yes)
+\t\t\t\t(effects
+\t\t\t\t\t(font
+\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(property "ki_fp_filters" "*polyfuse* *PTC*"
+\t\t\t\t(at 0 0 0)
+\t\t\t\t(show_name no)
+\t\t\t\t(do_not_autoplace no)
+\t\t\t\t(hide yes)
+\t\t\t\t(effects
+\t\t\t\t\t(font
+\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(symbol "Polyfuse_0_1"
+\t\t\t\t(polyline
+\t\t\t\t\t(pts
+\t\t\t\t\t\t(xy -1.524 2.54) (xy -1.524 1.524) (xy 1.524 -1.524) (xy 1.524 -2.54)
+\t\t\t\t\t)
+\t\t\t\t\t(stroke
+\t\t\t\t\t\t(width 0)
+\t\t\t\t\t\t(type default)
+\t\t\t\t\t)
+\t\t\t\t\t(fill
+\t\t\t\t\t\t(type none)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t\t(rectangle
+\t\t\t\t\t(start -0.762 2.54)
+\t\t\t\t\t(end 0.762 -2.54)
+\t\t\t\t\t(stroke
+\t\t\t\t\t\t(width 0.254)
+\t\t\t\t\t\t(type default)
+\t\t\t\t\t)
+\t\t\t\t\t(fill
+\t\t\t\t\t\t(type none)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t\t(polyline
+\t\t\t\t\t(pts
+\t\t\t\t\t\t(xy 0 2.54) (xy 0 -2.54)
+\t\t\t\t\t)
+\t\t\t\t\t(stroke
+\t\t\t\t\t\t(width 0)
+\t\t\t\t\t\t(type default)
+\t\t\t\t\t)
+\t\t\t\t\t(fill
+\t\t\t\t\t\t(type none)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(symbol "Polyfuse_1_1"
+\t\t\t\t(pin passive line
+\t\t\t\t\t(at 0 3.81 270)
+\t\t\t\t\t(length 1.27)
+\t\t\t\t\t(name ""
+\t\t\t\t\t\t(effects
+\t\t\t\t\t\t\t(font
+\t\t\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t\t\t)
+\t\t\t\t\t\t)
+\t\t\t\t\t)
+\t\t\t\t\t(number "1"
+\t\t\t\t\t\t(effects
+\t\t\t\t\t\t\t(font
+\t\t\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t\t\t)
+\t\t\t\t\t\t)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t\t(pin passive line
+\t\t\t\t\t(at 0 -3.81 90)
+\t\t\t\t\t(length 1.27)
+\t\t\t\t\t(name ""
+\t\t\t\t\t\t(effects
+\t\t\t\t\t\t\t(font
+\t\t\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t\t\t)
+\t\t\t\t\t\t)
+\t\t\t\t\t)
+\t\t\t\t\t(number "2"
+\t\t\t\t\t\t(effects
+\t\t\t\t\t\t\t(font
+\t\t\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t\t\t)
+\t\t\t\t\t\t)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(embedded_fonts no)
 \t\t)"""
 
 
@@ -2230,117 +2395,264 @@ def _sch_resistor(
         \t)""")
 
 
+def _sch_polyfuse(
+    x: float, y: float, angle: int, reference: str, value: str, uuid_tag: str,
+) -> str:
+    """Emit a polyfuse (Device:Polyfuse) symbol instance.
+
+    With angle=0, lib pin positions map to schematic as:
+      Pin 1 (top):    (x, y - 3.81)
+      Pin 2 (bottom): (x, y + 3.81)
+
+    Reference text is placed to the left of the symbol, value text to the
+    right, matching the stock symbol convention (which has Reference at
+    lib (-2.54, 0, 90) and Value at lib (2.54, 0, 90)).
+    """
+    sym_uuid = U("sym:" + uuid_tag)
+    pin1_uuid = U("sym-pin:" + uuid_tag + "-1")
+    pin2_uuid = U("sym-pin:" + uuid_tag + "-2")
+    sheet_path = f"/{ROOT_SHEET_UUID}/{SHEET_BLOCK_UUIDS['power']}"
+    return textwrap.dedent(f"""\
+        \t(symbol
+        \t\t(lib_id "Device:Polyfuse")
+        \t\t(at {fmt(x)} {fmt(y)} {angle})
+        \t\t(unit 1)
+        \t\t(exclude_from_sim no)
+        \t\t(in_bom yes)
+        \t\t(on_board yes)
+        \t\t(dnp no)
+        \t\t(fields_autoplaced yes)
+        \t\t(uuid "{sym_uuid}")
+        \t\t(property "Reference" "{reference}"
+        \t\t\t(at {fmt(x + 3.81)} {fmt(y - 1.27)} 0)
+        \t\t\t(effects
+        \t\t\t\t(font
+        \t\t\t\t\t(size 1.27 1.27)
+        \t\t\t\t)
+        \t\t\t\t(justify left)
+        \t\t\t)
+        \t\t)
+        \t\t(property "Value" "{value}"
+        \t\t\t(at {fmt(x + 3.81)} {fmt(y + 1.27)} 0)
+        \t\t\t(effects
+        \t\t\t\t(font
+        \t\t\t\t\t(size 1.27 1.27)
+        \t\t\t\t)
+        \t\t\t\t(justify left)
+        \t\t\t)
+        \t\t)
+        \t\t(property "Footprint" ""
+        \t\t\t(at {fmt(x)} {fmt(y)} 0)
+        \t\t\t(effects
+        \t\t\t\t(font
+        \t\t\t\t\t(size 1.27 1.27)
+        \t\t\t\t)
+        \t\t\t\t(hide yes)
+        \t\t\t)
+        \t\t)
+        \t\t(property "Datasheet" ""
+        \t\t\t(at {fmt(x)} {fmt(y)} 0)
+        \t\t\t(effects
+        \t\t\t\t(font
+        \t\t\t\t\t(size 1.27 1.27)
+        \t\t\t\t)
+        \t\t\t\t(hide yes)
+        \t\t\t)
+        \t\t)
+        \t\t(property "Description" ""
+        \t\t\t(at {fmt(x)} {fmt(y)} 0)
+        \t\t\t(effects
+        \t\t\t\t(font
+        \t\t\t\t\t(size 1.27 1.27)
+        \t\t\t\t)
+        \t\t\t\t(hide yes)
+        \t\t\t)
+        \t\t)
+        \t\t(pin "1"
+        \t\t\t(uuid "{pin1_uuid}")
+        \t\t)
+        \t\t(pin "2"
+        \t\t\t(uuid "{pin2_uuid}")
+        \t\t)
+        \t\t(instances
+        \t\t\t(project "oas"
+        \t\t\t\t(path "{sheet_path}"
+        \t\t\t\t\t(reference "{reference}")
+        \t\t\t\t\t(unit 1)
+        \t\t\t\t)
+        \t\t\t)
+        \t\t)
+        \t)""")
+
+
 def gen_power_sch() -> str:
-    """Power sub-sheet — J1 input terminal + reverse-polarity protection (Q1, R1).
+    """Power sub-sheet — J1 input + reverse-polarity Q1 + R1 pulldown + F1 polyfuse.
+
+    Power flow runs LEFT-TO-RIGHT and UPWARD on screen:
+
+        J1 (input) → Q1.S → Q1.D → F1 → +24V (protected rail, exits up-right)
+                     │
+                     Q1.G → R1 → GND (gate pulldown, drops down to its own GND flag)
+
+        J1.2 (GND) → drops down to its own GND flag
+        J1.3 (PE)  → drops down to its own Earth_Protective flag
 
     Layout (page-absolute mm, KiCad +Y is down on screen):
 
-        +24V@(91.44, 76.2)               GND@(78.74, 104.14)   Earth_Protective@(83.82, 106.68)
-            |                                  |                       |
-        PWR_FLAG@(91.44, 81.28)             PWR_FLAG@               PWR_FLAG@
-        (rot 0, flag graphic up)            (78.74, 99.06)          (83.82, 101.6)
-            |                                  |                       |
-            ─── Q1.D ─── Q1 PMOS ─── Q1.S ─── J1.1 (96.52, 93.98)
-        Q1.G@(83.82, 88.9)                  J1.2 (96.52, 96.52)    J1.3 (96.52, 99.06)
-            |
-            └─ R1.top (73.66, 91.44)
-               R1 100k pulldown
-               R1.bot (73.66, 99.06)
-                  |
-               GND@(73.66, 101.6)
-
-    The reverse-polarity P-MOSFET Q1 (AO3415A) sits between J1.1 and the
-    protected +24V rail. Source = unprotected input (J1.1), Drain = +24V.
-    R1 (100 kΩ) pulls Q1.gate to GND so Vgs ≈ -24 V turns the channel on
-    when polarity is correct.
-
-    J1 itself sits at (101.6, 96.52). For each pin (GND, PE) a horizontal
-    wire goes LEFT to its own per-net column, then a vertical wire to the
-    flag's anchor point; a junction marks the PWR_FLAG sentinel tap-off.
-    +24V is on Q1.D instead of J1.1, so the +24V flag column is at Q1.D's
-    x position (91.44).
+        - J1 placed on the LEFT (mirror_y so pins face RIGHT into the circuit)
+        - Q1 placed to the right of J1, angle=0:
+            Q1.D on top  → wire goes UP through F1 to the +24V power flag
+            Q1.S on bottom-right (Y aligns with J1.1)
+            Q1.G on left side → wire drops DOWN to R1 (crossing J1.1 row
+                                without a junction — KiCad convention)
+        - R1 below Q1.G, vertical orientation; R1.bot → dedicated GND flag
+        - F1 above Q1.D, vertical Polyfuse
+        - +24V flag, GND flag, Earth_Protective flag — each in its own column
+          with ≥15 mm horizontal spacing between independent columns so the
+          value-text labels of adjacent symbols cannot overlap.
+        - PWR_FLAG sentinels are placed on each power net AT a junction
+          on the main wire, with their Value-text offset SIDEWAYS (to the
+          right of the symbol) so they never stack vertically with the
+          power-flag's Value-text. This was the bug causing label overlap
+          in the previous layout.
     """
     file_uuid = SHEET_FILE_UUIDS["power"]
     sheet_path = f"/{ROOT_SHEET_UUID}/{SHEET_BLOCK_UUIDS['power']}"
 
-    # J1 placement and pin Y coordinates.
-    J1_X = 101.6
+    # ----- J1: Phoenix MSTBA 2,5/3-G-5,08 (5.08 mm pitch) -----
+    # mirror_y so the pin tips exit to the RIGHT of the body, putting J1
+    # visually on the LEFT side of the schematic with the circuit growing
+    # to its right.
+    J1_X = 87.63
     J1_Y = 96.52
-    PIN1_Y = J1_Y - 2.54     # 93.98 — +24V (unprotected, local to J1.1 -> Q1.S)
+    # With mirror_y applied to a symbol at angle=0, the lib pin at
+    # (-5.08, +2.54) maps to schematic position (J1_X + 5.08, J1_Y - 2.54).
+    # i.e. pin 1 tip is to the right of and above the body anchor.
+    PIN1_Y = J1_Y - 2.54     # 93.98 — +24V_unprotected
     PIN2_Y = J1_Y            # 96.52 — GND
     PIN3_Y = J1_Y + 2.54     # 99.06 — PE
-    PIN_X  = J1_X - 5.08     # 96.52 — pin tips on J1 symbol's left side
+    PIN_X  = J1_X + 5.08     # 92.71 — pin tips on right side of mirrored body
 
-    # Q1 placement (P-MOSFET, body centred at this point, angle=0).
-    # With angle=0 the lib +y axis maps to schematic -y, so pin schematic
-    # positions are:  D = (Q1_X+2.54, Q1_Y-5.08), G = (Q1_X-5.08, Q1_Y),
-    # S = (Q1_X+2.54, Q1_Y+5.08).
-    Q1_X = 88.9
+    # ----- Q1: P-MOSFET reverse-polarity (AO3415A), angle=0, no mirror -----
+    # With angle=0, pin schematic positions are:
+    #   D = (Q1_X + 2.54, Q1_Y - 5.08)   TOP-right    → goes UP to F1 → +24V
+    #   G = (Q1_X - 5.08, Q1_Y)          LEFT side   → drops DOWN to R1
+    #   S = (Q1_X + 2.54, Q1_Y + 5.08)   BOTTOM-right → wires to J1.1
+    # Y is set so Q1.S aligns with J1.1's row (PIN1_Y = 93.98).
+    Q1_X = 113.03
     Q1_Y = 88.9
-    Q1_D_X = Q1_X + 2.54     # 91.44
+    Q1_D_X = Q1_X + 2.54     # 115.57
     Q1_D_Y = Q1_Y - 5.08     # 83.82
-    Q1_G_X = Q1_X - 5.08     # 83.82
+    Q1_G_X = Q1_X - 5.08     # 107.95
     Q1_G_Y = Q1_Y            # 88.9
-    Q1_S_X = Q1_X + 2.54     # 91.44
-    Q1_S_Y = Q1_Y + 5.08     # 93.98  — matches PIN1_Y; same horizontal row as J1.1
+    Q1_S_X = Q1_X + 2.54     # 115.57
+    Q1_S_Y = Q1_Y + 5.08     # 93.98 — matches PIN1_Y; same horizontal row as J1.1
 
-    # R1 placement (100k pulldown, angle=0).
-    # Pin 1 (top) = (R1_X, R1_Y-3.81), pin 2 (bottom) = (R1_X, R1_Y+3.81).
-    R1_X = 73.66
-    R1_Y = 95.25
-    R1_TOP_Y = R1_Y - 3.81   # 91.44
-    R1_BOT_Y = R1_Y + 3.81   # 99.06
+    # ----- F1: PTC polyfuse (Bourns MF-MSMF050-2 candidate), angle=0 -----
+    # In series between Q1.D and the +24V power flag.
+    # With angle=0:
+    #   F1.1 (top)    = (F1_X, F1_Y - 3.81)
+    #   F1.2 (bottom) = (F1_X, F1_Y + 3.81)
+    # Provides resettable overcurrent protection on the protected +24V rail.
+    # Sized for ~200 mA average / 500 mA peak normal load, trips around 1 A.
+    F1_X = Q1_D_X            # 115.57 — same vertical column as Q1.D
+    F1_Y = 76.2
+    F1_TOP_Y = F1_Y - 3.81   # 72.39
+    F1_BOT_Y = F1_Y + 3.81   # 80.01
 
-    # Per-net column X for the flag stacks.
-    COL_24V = Q1_D_X         # 91.44 — protected rail lives on Q1.D wire
-    COL_GND = 78.74
-    COL_PE  = 83.82
-    COL_R1_GND = R1_X        # 73.66 — second GND symbol for R1.bottom
+    # ----- R1: 100k gate-GND pulldown, angle=0 -----
+    # Sits directly below Q1.G; the wire Q1.G -> R1.top is a single vertical
+    # segment. This vertical wire CROSSES J1.1's horizontal wire at
+    # (Q1_G_X, PIN1_Y) without a junction — standard schematic convention
+    # for non-connected crossings.
+    R1_X = Q1_G_X            # 107.95
+    R1_Y = 109.22
+    R1_TOP_Y = R1_Y - 3.81   # 105.41
+    R1_BOT_Y = R1_Y + 3.81   # 113.03
 
-    # Y coordinates for each flag / PWR_FLAG sentinel pair.
-    # Spacing FLAG-to-PWR_FLAG is 5.08 mm (Part A cosmetic fix — was 2.54,
-    # which left the symbols' value-text labels overlapping in eeschema).
-    JUNC_24V_Y = 81.28       # PWR_FLAG sentinel + junction on Q1.D wire
-    FLAG_24V_Y = 76.2        # +24V triangle, 5.08 mm further from Q1.D
-    JUNC_GND_Y = 99.06       # PWR_FLAG sentinel on GND column (below J1.2)
-    FLAG_GND_Y = 104.14      # GND symbol, 5.08 mm below PWR_FLAG
-    JUNC_PE_Y  = 101.6       # PWR_FLAG sentinel on PE column (below J1.3)
-    FLAG_PE_Y  = 106.68      # PE symbol, 5.08 mm below PWR_FLAG
+    # ----- Per-net flag columns -----
+    # +24V flag column: Q1.D / F1 column at X=115.57.
+    # R1-GND flag column: directly below Q1.G / R1 at X=107.95.
+    # PE flag column: shifted slightly LEFT of J1.3's pin tip (X=82.55)
+    #   so the PE drop wire and PE PWR_FLAG sentinel sit clear of J1's
+    #   body and don't share a column with any other flag.
+    # GND flag column: far to the LEFT of J1 (X=67.31). The GND wire hops
+    #   one grid step right of the J1 pin tips, drops to a Y BELOW the PE
+    #   flag, then runs LEFT to its own column.
+    # Column spacing rationale:
+    #   - GND flag X=67.31, PE flag X=82.55: 15.24 mm gap (≥15 mm rule)
+    #   - PE flag X=82.55, R1_GND flag X=107.95: 25.40 mm gap
+    #   - R1_GND X=107.95, +24V flag X=115.57: 7.62 mm gap. This narrow gap
+    #     is acceptable because the R1_GND flag (Y ≈ 117) and the +24V flag
+    #     (Y ≈ 62) are separated by >50 mm vertically — their value-text
+    #     labels are nowhere near each other on screen.
+    COL_24V    = Q1_D_X      # 115.57
+    COL_R1_GND = R1_X        # 107.95
+    COL_PE     = 82.55       # 5.08 mm left of J1.3 pin tip (PIN_X=92.71)
+    COL_GND    = 67.31       # far left of J1
 
-    parts: list[str] = []
+    # Flag stack Y coordinates. Spacing FLAG-to-PWR_FLAG (sentinel) = 5.08 mm.
+    JUNC_24V_Y = 67.31       # PWR_FLAG sentinel sits at this junction
+    FLAG_24V_Y = 62.23       # +24V triangle, 5.08 mm above the sentinel
+    # PE wire: drops from J1.3 down to PE_TURN_Y, runs LEFT to COL_PE, then
+    # DOWN through the PE PWR_FLAG sentinel to the Earth_Protective symbol.
+    PE_TURN_Y  = 105.41      # Y at which PE wire turns from down to left
+    JUNC_PE_Y  = 110.49      # PE PWR_FLAG sentinel — on the PE vertical drop
+    FLAG_PE_Y  = 115.57      # Earth_Protective symbol, 5.08 mm below sentinel
+    # GND wire: hops right of J1 pins, drops past PE flag's body AND its
+    # value-text label ("Earth_Protective" at Y≈123), runs LEFT in clear
+    # space, then DOWN through its own PWR_FLAG sentinel to the GND symbol.
+    GND_HORIZ_Y = 127.00     # horizontal leg of GND wire, clear of PE flag area
+    JUNC_GND_Y = GND_HORIZ_Y # GND PWR_FLAG sentinel sits here, on the leg
+    FLAG_GND_Y = 132.08      # GND symbol, 5.08 mm below the sentinel
+    FLAG_R1_GND_Y = 116.84   # second GND symbol below R1.bot
 
     # ----- Wires -----
-    # J1.1 (unprotected) -> Q1.S: short horizontal hop, no flag, local net.
+    parts: list[str] = []
+
+    # J1.1 (unprotected +24V) → Q1.S: horizontal wire across the schematic.
     parts.append(_sch_wire(PIN_X, PIN1_Y, Q1_S_X, Q1_S_Y, "vin-horiz"))
 
-    # Q1.D -> +24V flag column: vertical, with a junction at PWR_FLAG height
-    # so the sentinel can tap off without an extra branch wire.
-    parts.append(_sch_wire(Q1_D_X, Q1_D_Y, COL_24V, JUNC_24V_Y, "24v-vert-low"))
-    parts.append(_sch_wire(COL_24V, JUNC_24V_Y, COL_24V, FLAG_24V_Y, "24v-vert-high"))
+    # Q1.D → F1.bot: short vertical hop.
+    parts.append(_sch_wire(Q1_D_X, Q1_D_Y, F1_X, F1_BOT_Y, "q1d-to-f1"))
+    # F1.top → +24V junction (where PWR_FLAG sentinel taps off).
+    parts.append(_sch_wire(F1_X, F1_TOP_Y, COL_24V, JUNC_24V_Y, "f1-to-junc24v"))
+    # +24V junction → +24V flag.
+    parts.append(_sch_wire(COL_24V, JUNC_24V_Y, COL_24V, FLAG_24V_Y, "junc24v-to-flag"))
 
-    # Q1.G -> R1.top: horizontal then vertical (simple L-bend, no junction).
-    parts.append(_sch_wire(Q1_G_X, Q1_G_Y, R1_X, Q1_G_Y, "q1g-horiz"))
-    parts.append(_sch_wire(R1_X, Q1_G_Y, R1_X, R1_TOP_Y, "q1g-vert"))
+    # Q1.G → R1.top: single vertical wire (crosses J1.1's row without a dot).
+    parts.append(_sch_wire(Q1_G_X, Q1_G_Y, R1_X, R1_TOP_Y, "q1g-to-r1"))
 
-    # R1.bottom -> dedicated GND symbol (shares the GND global net).
-    parts.append(_sch_wire(R1_X, R1_BOT_Y, COL_R1_GND, 101.6, "r1gnd-vert"))
+    # R1.bot → R1-GND flag (no junction, no PWR_FLAG sentinel — GND is global
+    # and the J1.2 stack already supplies the sentinel for ERC).
+    parts.append(_sch_wire(R1_X, R1_BOT_Y, COL_R1_GND, FLAG_R1_GND_Y, "r1bot-to-r1gnd"))
 
-    # GND row (J1.2 -> column 78.74 -> flag below)
-    parts.append(_sch_wire(PIN_X, PIN2_Y, COL_GND, PIN2_Y, "gnd-horiz"))
-    parts.append(_sch_wire(COL_GND, PIN2_Y, COL_GND, JUNC_GND_Y, "gnd-vert-high"))
-    parts.append(_sch_wire(COL_GND, JUNC_GND_Y, COL_GND, FLAG_GND_Y, "gnd-vert-low"))
+    # J1.2 GND wire: hop one grid step RIGHT of J1's pin tips (clearing the
+    # J1.3 pin-tip column so the wire doesn't short into PE), drop DOWN past
+    # J1's body and PE flag's body, run LEFT to COL_GND, then DOWN through
+    # the GND PWR_FLAG sentinel to the GND symbol.
+    GND_HOP_X = PIN_X + 2.54   # 95.25 — temporary drop column for J1.2
+    parts.append(_sch_wire(PIN_X, PIN2_Y, GND_HOP_X, PIN2_Y, "gnd-pin-hop"))
+    parts.append(_sch_wire(GND_HOP_X, PIN2_Y, GND_HOP_X, GND_HORIZ_Y, "gnd-vert-drop"))
+    parts.append(_sch_wire(GND_HOP_X, GND_HORIZ_Y, COL_GND, GND_HORIZ_Y, "gnd-horiz-left"))
+    parts.append(_sch_wire(COL_GND, GND_HORIZ_Y, COL_GND, FLAG_GND_Y, "gnd-vert-low"))
 
-    # PE row (J1.3 -> column 83.82 -> flag below)
-    parts.append(_sch_wire(PIN_X, PIN3_Y, COL_PE, PIN3_Y, "pe-horiz"))
-    parts.append(_sch_wire(COL_PE, PIN3_Y, COL_PE, JUNC_PE_Y, "pe-vert-high"))
+    # J1.3 PE wire: drop DOWN below J1 body, turn LEFT to COL_PE, drop DOWN
+    # through the PE PWR_FLAG sentinel to Earth_Protective. PE drops at
+    # X=PIN_X (just to the right of J1's body) so it doesn't cross J1's
+    # rectangle; the LEFT turn happens at PE_TURN_Y which is well below
+    # J1's body bottom (Y=100.33).
+    parts.append(_sch_wire(PIN_X, PIN3_Y, PIN_X, PE_TURN_Y, "pe-vert-drop"))
+    parts.append(_sch_wire(PIN_X, PE_TURN_Y, COL_PE, PE_TURN_Y, "pe-horiz-left"))
+    parts.append(_sch_wire(COL_PE, PE_TURN_Y, COL_PE, JUNC_PE_Y, "pe-vert-mid"))
     parts.append(_sch_wire(COL_PE, JUNC_PE_Y, COL_PE, FLAG_PE_Y, "pe-vert-low"))
 
-    # ----- Junctions (T-branch points where PWR_FLAG joins the column wire) -----
+    # ----- Junctions (T-branch points where PWR_FLAG sentinels join wires) -----
     parts.append(_sch_junction(COL_24V, JUNC_24V_Y, "24v"))
     parts.append(_sch_junction(COL_GND, JUNC_GND_Y, "gnd"))
     parts.append(_sch_junction(COL_PE,  JUNC_PE_Y,  "pe"))
 
-    # ----- J1 symbol (Phoenix MSTBA 2,5/3-G-5,08, 5.08 mm pitch) -----
+    # ----- J1 symbol (Phoenix MSTBA 2,5/3-G-5,08, mirror_y so pins face right) -----
     j1_uuid = U("sym:j1")
     j1_pin1_uuid = U("sym-pin:j1-1")
     j1_pin2_uuid = U("sym-pin:j1-2")
@@ -2349,6 +2661,7 @@ def gen_power_sch() -> str:
         \t(symbol
         \t\t(lib_id "Connector:Screw_Terminal_01x03")
         \t\t(at {fmt(J1_X)} {fmt(J1_Y)} 0)
+        \t\t(mirror y)
         \t\t(unit 1)
         \t\t(exclude_from_sim no)
         \t\t(in_bom yes)
@@ -2357,21 +2670,21 @@ def gen_power_sch() -> str:
         \t\t(fields_autoplaced yes)
         \t\t(uuid "{j1_uuid}")
         \t\t(property "Reference" "J1"
-        \t\t\t(at {fmt(J1_X + 2.54)} {fmt(J1_Y - 7.62)} 0)
+        \t\t\t(at {fmt(J1_X - 2.54)} {fmt(J1_Y - 7.62)} 0)
         \t\t\t(effects
         \t\t\t\t(font
         \t\t\t\t\t(size 1.27 1.27)
         \t\t\t\t)
-        \t\t\t\t(justify left)
+        \t\t\t\t(justify right)
         \t\t\t)
         \t\t)
         \t\t(property "Value" "Phoenix_MSTBA_2,5/3-G-5,08"
-        \t\t\t(at {fmt(J1_X + 2.54)} {fmt(J1_Y - 5.08)} 0)
+        \t\t\t(at {fmt(J1_X - 2.54)} {fmt(J1_Y - 5.08)} 0)
         \t\t\t(effects
         \t\t\t\t(font
         \t\t\t\t\t(size 1.27 1.27)
         \t\t\t\t)
-        \t\t\t\t(justify left)
+        \t\t\t\t(justify right)
         \t\t\t)
         \t\t)
         \t\t(property "Footprint" ""
@@ -2421,7 +2734,7 @@ def gen_power_sch() -> str:
         \t)"""))
 
     # ----- Q1: P-MOSFET reverse-polarity protection (AO3415A) -----
-    # Source = J1.1 (unprotected input), Drain = +24V (protected rail).
+    # Source = J1.1 (unprotected input), Drain = +24V protected rail.
     # When input polarity is correct, the body diode conducts initially, then
     # R1 pulls the gate to GND -> Vgs ~ -24 V turns the channel fully on,
     # shorting out the body diode for low conduction loss.
@@ -2430,70 +2743,93 @@ def gen_power_sch() -> str:
         reference="Q1", value="AO3415A", uuid_tag="q1",
     ))
 
+    # ----- F1: PTC polyfuse, 500 mA hold / 30 V -----
+    # Candidate parts: Bourns MF-MSMF050-2 or Littelfuse 1812L050PR.
+    # Final footprint (likely 1812 SMD) TBD in PCB-layout chunk; verify
+    # JLCPCB Basic Library availability on order day.
+    parts.append(_sch_polyfuse(
+        x=F1_X, y=F1_Y, angle=0,
+        reference="F1", value="PTC 500mA / 30V", uuid_tag="f1",
+    ))
+
     # ----- R1: 100 kΩ gate-GND pulldown -----
     parts.append(_sch_resistor(
         x=R1_X, y=R1_Y, angle=0,
         reference="R1", value="100k", uuid_tag="r1",
     ))
 
-    # ----- Power flag symbols (+24V, GND, Earth_Protective, R1-side GND) -----
+    # ----- Power flag symbols (+24V, GND, Earth_Protective, R1-GND) -----
+    # +24V flag with text "+24V" placed ABOVE the triangle (standard).
+    # value_offset_y matches the +24V lib's default Value position
+    # (lib (0, +3.556) → schem (0, -3.556)) so the text sits just above
+    # the triangle's vertex without overlapping it.
     parts.append(_sch_power_flag(
         lib_id="power:+24V", value="+24V",
         x=COL_24V, y=FLAG_24V_Y, angle=0,
         reference="#PWR01",
-        value_offset_x=0.0, value_offset_y=-2.54,   # label above the triangle
+        value_offset_x=0.0, value_offset_y=-3.556,
         uuid_tag="pwr01-24v",
     ))
+    # GND flag (J1.2). Value-text BELOW.
     parts.append(_sch_power_flag(
         lib_id="power:GND", value="GND",
         x=COL_GND, y=FLAG_GND_Y, angle=0,
         reference="#PWR02",
-        value_offset_x=0.0, value_offset_y=3.81,    # label below the symbol
+        value_offset_x=0.0, value_offset_y=3.81,
         uuid_tag="pwr02-gnd",
     ))
+    # Earth_Protective flag (J1.3). Value-text BELOW (offset y=7.62 to
+    # clear the symbol's Ø2.54 mm circle below the bar).
     parts.append(_sch_power_flag(
         lib_id="power:Earth_Protective", value="Earth_Protective",
         x=COL_PE, y=FLAG_PE_Y, angle=0,
         reference="#PWR03",
-        value_offset_x=0.0, value_offset_y=7.62,    # label below the Ø2.54 circle
+        value_offset_x=0.0, value_offset_y=7.62,
         uuid_tag="pwr03-pe",
     ))
     # GND for R1.bottom — same net as #PWR02 via the global power label.
     parts.append(_sch_power_flag(
         lib_id="power:GND", value="GND",
-        x=COL_R1_GND, y=101.6, angle=0,
+        x=COL_R1_GND, y=FLAG_R1_GND_Y, angle=0,
         reference="#PWR04",
         value_offset_x=0.0, value_offset_y=3.81,
         uuid_tag="pwr04-gnd-r1",
     ))
 
-    # ----- PWR_FLAG sentinels (one per power net: +24V, GND, PE) -----
-    # On the +24V net the PWR_FLAG sentinel sits on Q1.D's vertical wire
-    # at JUNC_24V_Y. With angle 0 the flag graphic extends UP (toward the
-    # +24V triangle above it).
+    # ----- PWR_FLAG sentinels -----
+    # Each sentinel's "PWR_FLAG" value-text is offset SIDEWAYS (positive X)
+    # so it sits next to the symbol rather than above it — this is the fix
+    # for the label overlap that was visible in the previous render where
+    # PWR_FLAG text was directly under the power-symbol's Value-text.
+    PF_TEXT_OFFSET = 5.08    # mm horizontal offset of "PWR_FLAG" text from symbol
+    # +24V net sentinel: graphic UP (angle=0) toward the +24V triangle above.
     parts.append(_sch_power_flag(
         lib_id="power:PWR_FLAG", value="PWR_FLAG",
         x=COL_24V, y=JUNC_24V_Y, angle=0,
         reference="#FLG01",
-        value_offset_x=0.0, value_offset_y=-3.81,
+        value_offset_x=PF_TEXT_OFFSET, value_offset_y=-2.54,
         uuid_tag="flg01-24v",
     ))
-    # GND and PE: PWR_FLAG rotated 180° so its graphic extends DOWN toward
-    # the flag symbol (which is below the pin row on screen).
+    # GND net sentinel: graphic DOWN (angle=180) toward the GND symbol below.
     parts.append(_sch_power_flag(
         lib_id="power:PWR_FLAG", value="PWR_FLAG",
         x=COL_GND, y=JUNC_GND_Y, angle=180,
         reference="#FLG02",
-        value_offset_x=0.0, value_offset_y=-3.81,
+        value_offset_x=PF_TEXT_OFFSET, value_offset_y=2.54,
         uuid_tag="flg02-gnd",
     ))
+    # PE net sentinel: graphic DOWN.
     parts.append(_sch_power_flag(
         lib_id="power:PWR_FLAG", value="PWR_FLAG",
         x=COL_PE, y=JUNC_PE_Y, angle=180,
         reference="#FLG03",
-        value_offset_x=0.0, value_offset_y=-3.81,
+        value_offset_x=PF_TEXT_OFFSET, value_offset_y=2.54,
         uuid_tag="flg03-pe",
     ))
+    # NOTE: no PWR_FLAG sentinel on the R1-GND drop — GND is a global net
+    # and FLG02 (on J1.2's drop) already supplies the "power source" marker
+    # for ERC. Adding a second PWR_FLAG on the same GND net would create a
+    # "Power output to Power output" connection error.
 
     body = "\n".join(parts)
     return textwrap.dedent(f"""\

@@ -12,7 +12,14 @@ Single entry point for rebuilding the entire KiCad project from sources:
   3. Render — produce committable PNG / SVG previews into renders/:
         2d-top.{svg,png}        Top-side production view
         2d-cutouts.{svg,png}    Edge.Cuts + Dwgs.User keepout markers
+        2d-bottom.{svg,png}     Bottom-side production view (mirrored)
         3d-top.png              3D raytraced render
+        3d-iso.png              3D isometric render with shadow plane
+        sch-root.{svg,png}      Root schematic (4 sub-sheet blocks)
+        sch-power.{svg,png}     Power sub-sheet
+        sch-mcu.{svg,png}       MCU sub-sheet
+        sch-sensors.{svg,png}   Sensors sub-sheet
+        sch-io.{svg,png}        IO sub-sheet
 
 Workflow: when you want to change PCB geometry / stackup / layout
 constants, edit `generate.py` and run THIS script (regenerate.py).
@@ -95,8 +102,8 @@ def main() -> None:
         str(SCH),
     ])
 
-    # 3) 2D SVG renders (Edge.Cuts always included)
-    step("3/4  Rendering 2D previews (SVG)")
+    # 3a) 2D PCB SVG renders (Edge.Cuts always included)
+    step("3/5  Rendering 2D PCB previews (SVG)")
     svg_targets = [
         ("2d-top",      "Edge.Cuts,F.Cu,F.Mask,F.SilkS,F.CrtYd,F.Fab"),
         ("2d-cutouts",  "Edge.Cuts,F.Cu,Dwgs.User"),
@@ -119,8 +126,48 @@ def main() -> None:
         run(cmd, hide_output=True)
         print(f"  wrote {out.name}")
 
+    # 3b) Schematic SVG renders
+    # kicad-cli sch export svg writes one SVG per schematic file into the
+    # output directory, naming it after the input file's stem (e.g. power.svg).
+    # We render each hierarchical sub-sheet directly (passing its file) so we
+    # get one clean SVG per sub-sheet, then rename to sch-<name>.svg so the
+    # output set is consistent and gitignore-friendly.
+    step("4/5  Rendering schematic previews (SVG)")
+    sch_targets = [
+        ("sch-root",    HERE / "oas.kicad_sch"),
+        ("sch-power",   HERE / "power.kicad_sch"),
+        ("sch-mcu",     HERE / "mcu.kicad_sch"),
+        ("sch-sensors", HERE / "sensors.kicad_sch"),
+        ("sch-io",      HERE / "io.kicad_sch"),
+    ]
+    for out_name, src in sch_targets:
+        # Render into a temp subdir then move the produced file into renders/
+        # under the desired sch-<name>.svg filename. The temp dir is prefixed
+        # with `_` so it stays gitignored along with the DRC/ERC reports.
+        tmp_dir = RENDERS / f"_{out_name}-tmp"
+        tmp_dir.mkdir(exist_ok=True)
+        run([
+            kcli, "sch", "export", "svg",
+            "--output", str(tmp_dir),
+            "--exclude-drawing-sheet",
+            "--no-background-color",
+            str(src),
+        ], hide_output=True)
+        produced = tmp_dir / f"{src.stem}.svg"
+        final = RENDERS / f"{out_name}.svg"
+        # Use replace() which atomically overwrites the destination on
+        # Windows (Path.rename() can fail if final.exists() and a viewer
+        # has it locked; replace() retries / overwrites in one call).
+        produced.replace(final)
+        # Clean up the temp dir (kicad-cli created only one file)
+        try:
+            tmp_dir.rmdir()
+        except OSError:
+            pass
+        print(f"  wrote {final.name}")
+
     # 4) Convert SVGs to PNG + 3D render
-    step("4/4  PNG conversion + 3D render")
+    step("5/5  PNG conversion + 3D render")
     try:
         import cairosvg
     except ImportError:
