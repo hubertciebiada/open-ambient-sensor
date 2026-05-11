@@ -20,6 +20,8 @@ When KiCad opens the PCB the first time it may ask you to migrate the project �
   - H1: (+47.631, +27.500) — bottom-right
   - H2: (−47.631, +27.500) — bottom-left
   - H3: (0, −55.000) — top (opposite the chord)
+- **5× connector cutout keepout zones** on F.Cu + B.Cu blocking tracks, vias, pads, copperpour and footprints — one per case-wall cutout. See [`../case/README.md`](../case/README.md#connector-cutouts-in-the-case-wall-along-the-flat-chord) for the exact dimensions.
+- **5× rectangle markers on `Dwgs.User`** labelled `C1…C5` with their size — visual reference for connector placement in pcbnew (this layer is not plotted).
 - **Stackup:** 2-layer, FR-4 1.6 mm, 1 oz (35 µm) copper, white solder mask, black silkscreen, HASL lead-free finish.
 - **JLCPCB-compatible design rules:** min trace/space 0.15 mm, min via 0.5 mm Ø / 0.3 mm drill, min hole 0.3 mm, edge clearance 0.3 mm.
 

@@ -57,6 +57,32 @@ HOLE_DIAMETER = 3.8                # Ø3.8 mm per manufacturer DXF
 PAD_DIAMETER = HOLE_DIAMETER + 2 * 1.35   # annular ring 1.35 mm
 
 # -----------------------------------------------------------------------------
+# Connector cutouts in the enclosure wall along the flat chord
+# -----------------------------------------------------------------------------
+# The SZOMK AK-N-94 has 5 rectangular cutouts in the case wall at the flat
+# chord position. Connectors mounted on the PCB extend through these cutouts.
+# Coordinates below are in PCB-local space (origin = centre of PCB outline),
+# transformed from the manufacturer DXF:
+#   X_pcb = X_dxf - 831.436;  Y_pcb = Y_dxf - 979.389
+#
+# C2/C3/C4 extend beyond the chord (clipped here to Y_max = Y_chord since
+# the keepout zone must stay inside the PCB outline). C1 and C5 sit fully
+# inside the PCB.
+#
+# Names are tentative — final assignment (USB-C, terminal 24V, JST-GH to
+# SEN66, SWD, Qwiic) will be decided during schematic + layout.
+#
+# Format: (label, x_min, x_max, y_min_inside_pcb, y_max_at_or_through_chord)
+CUTOUTS = [
+    # name, x_min, x_max, y_min, y_max  (PCB-local mm, +Y = toward chord)
+    ("C1", -33.800, -21.800, +31.494, +42.498),   # 12 × 11 mm,    fully inside PCB
+    ("C2", -16.800,  -1.100, +27.198, +Y_CHORD),  # 15.7 × 19.3 mm, clipped at chord (would extend +3 mm beyond)
+    ("C3",  +4.900, +13.900, +28.998, +Y_CHORD),  # 9 × 15.5 mm,   clipped at chord (would extend +1 mm beyond)
+    ("C4", +18.900, +22.900, +34.998, +Y_CHORD),  # 4 × 9 mm,      clipped at chord (would extend +0.5 mm; has language tab Ø3 mm in case wall)
+    ("C5", +27.900, +35.400, +36.494, +42.494),   # 7.5 × 6 mm,    fully inside PCB
+]
+
+# -----------------------------------------------------------------------------
 # KiCad 10 format constants
 # -----------------------------------------------------------------------------
 PCB_VERSION = 20260206
@@ -172,6 +198,89 @@ def gen_mounting_hole_footprint() -> str:
         \t)
         )
         """)
+
+# -----------------------------------------------------------------------------
+# 1b) Cutout keepout zones + Dwgs.User markers
+# -----------------------------------------------------------------------------
+def gen_cutouts() -> tuple[str, str]:
+    """Return (keepout_zones_block, dwgsuser_markers_block).
+
+    For each cutout in CUTOUTS we generate:
+      - a (zone (keepout ...)) on F.Cu + B.Cu — blocks tracks, vias, pads,
+        copperpour and footprints in that rectangle
+      - a (gr_rect) on Dwgs.User showing the exact case-wall opening
+      - a (gr_text) labelling it for visual reference
+    """
+    keepouts = []
+    markers = []
+    for name, x1, x2, y1, y2 in CUTOUTS:
+        # PCB-local coords -> page-offset coords
+        X1, X2 = fx(x1), fx(x2)
+        Y1, Y2 = fy(y1), fy(y2)
+        cx_local = (x1 + x2) / 2
+        cy_local = (y1 + y2) / 2
+        size_x = abs(x2 - x1)
+        size_y = abs(y2 - y1)
+
+        keepouts.append(textwrap.dedent(f"""\
+            \t(zone
+            \t\t(net 0)
+            \t\t(net_name "")
+            \t\t(layers "F.Cu" "B.Cu")
+            \t\t(uuid "{U('keepout:'+name)}")
+            \t\t(name "Connector_Cutout_{name}")
+            \t\t(hatch edge 0.508)
+            \t\t(connect_pads
+            \t\t\t(clearance 0.508)
+            \t\t)
+            \t\t(min_thickness 0.254)
+            \t\t(filled_areas_thickness no)
+            \t\t(keepout
+            \t\t\t(tracks not_allowed)
+            \t\t\t(vias not_allowed)
+            \t\t\t(pads not_allowed)
+            \t\t\t(copperpour not_allowed)
+            \t\t\t(footprints not_allowed)
+            \t\t)
+            \t\t(placement
+            \t\t\t(enabled no)
+            \t\t\t(sheetname "")
+            \t\t)
+            \t\t(fill
+            \t\t\t(thermal_gap 0.508)
+            \t\t\t(thermal_bridge_width 0.508)
+            \t\t)
+            \t\t(polygon
+            \t\t\t(pts
+            \t\t\t\t(xy {X1} {Y1})
+            \t\t\t\t(xy {X2} {Y1})
+            \t\t\t\t(xy {X2} {Y2})
+            \t\t\t\t(xy {X1} {Y2})
+            \t\t\t)
+            \t\t)
+            \t)"""))
+
+        # Dwgs.User marker: rectangle outline + label
+        markers.append(textwrap.dedent(f"""\
+            \t(gr_rect
+            \t\t(start {X1} {Y1})
+            \t\t(end {X2} {Y2})
+            \t\t(stroke (width 0.1) (type solid))
+            \t\t(fill no)
+            \t\t(layer "Dwgs.User")
+            \t\t(uuid "{U('marker_rect:'+name)}")
+            \t)
+            \t(gr_text "{name}\\n{size_x:.1f}×{size_y:.1f}"
+            \t\t(at {fx(cx_local)} {fy(cy_local)})
+            \t\t(layer "Dwgs.User")
+            \t\t(uuid "{U('marker_text:'+name)}")
+            \t\t(effects
+            \t\t\t(font (size 0.8 0.8) (thickness 0.12))
+            \t\t)
+            \t)"""))
+
+    return "\n".join(keepouts), "\n".join(markers)
+
 
 # -----------------------------------------------------------------------------
 # 2) PCB file
@@ -324,6 +433,8 @@ def gen_pcb() -> str:
             \t)""")
         footprints.append(fp)
 
+    keepouts, markers = gen_cutouts()
+
     body = textwrap.dedent(f"""\
         (kicad_pcb
         \t(version {PCB_VERSION})
@@ -340,7 +451,7 @@ def gen_pcb() -> str:
         {setup}
         \t(net 0 "")
         {outline}
-        """ ) + "\n".join(footprints) + "\n)\n"
+        """) + markers + "\n" + "\n".join(footprints) + "\n" + keepouts + "\n)\n"
     return body
 
 # -----------------------------------------------------------------------------

@@ -41,3 +41,21 @@ Measured from the manufacturer DXF and copied into our own KiCad board outline (
 - **Back-side component-height limit:** 3 mm (per manufacturer DXF annotation 背面焊脚限高 3mm — "back-side solder-pin height limit")
 
 These are encoded in `../kicad/oas.kicad_pcb` and the regeneration script `../kicad/generate.py`.
+
+## Connector cutouts in the case wall (along the flat chord)
+
+The AK-N-94 has **5 rectangular cutouts** in the case wall at the chord position. Connectors mounted on the PCB extend through these cutouts. The cutouts are encoded as **keepout zones** in `oas.kicad_pcb` so that no traces, vias, pads or footprints can accidentally be placed in the area where a connector body must sit, and as **rectangles on `Dwgs.User`** for visual reference in pcbnew.
+
+Coordinates are PCB-local (origin = centre of the PCB outline; +Y is toward the chord = visually downward in pcbnew):
+
+| # | X range (mm) | Y range (mm) | Size (W × H) | Position vs. chord |
+|---|---|---|---|---|
+| C1 | −33.8 → −21.8 | +31.5 → +42.5 | 12.0 × 11.0 | fully inside PCB |
+| C2 | −16.8 → −1.1  | +27.2 → +43.5 | 15.7 × 16.3 | clipped at chord (would extend 3 mm beyond) |
+| C3 | +4.9  → +13.9 | +29.0 → +43.5 | 9.0 × 14.5  | clipped at chord (would extend 1 mm beyond) |
+| C4 | +18.9 → +22.9 | +35.0 → +43.5 | 4.0 × 8.5   | clipped at chord (has language tab Ø3 mm in case wall above) |
+| C5 | +27.9 → +35.4 | +36.5 → +42.5 | 7.5 × 6.0   | fully inside PCB |
+
+Names (C1…C5) are placeholders — the final connector assignment (USB-C, terminal 24 V, JST GH to SEN66, SWD header, Qwiic) will be decided during schematic + layout.
+
+The C4 language tab (Ø3 mm semicircle in the case wall, above the chord) is not drawn in the KiCad file — it sits outside the PCB outline and has no implication for PCB design.

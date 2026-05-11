@@ -50,7 +50,7 @@ Pull-ups: **4.7 kΩ on the MCU side**.
 - **Back-side limit:** 3 mm — solder fillets only, no components (per manufacturer DXF)
 - **Orientation:** flat chord on the bottom; sensor zone (VEML7700, SEN66 inlet path) is below the electronics, so natural convection lifts heat upward and away from the air intake
 - **Thermal isolation:** 1.5 mm milled FR4 slots separate the Power, MCU and peripheral zones
-- **Connector strip along the bottom flat:** 24 V terminal, USB-C, SWD header, Qwiic, JST GH to SEN66 — positions match the manufacturer enclosure cutouts
+- **Connector strip along the bottom flat:** 24 V terminal, USB-C, SWD header, Qwiic, JST GH to SEN66 — positions match the manufacturer enclosure cutouts (5 keepout zones C1…C5 in `oas.kicad_pcb` block the corresponding rectangles on F.Cu/B.Cu; see [`../hardware/case/README.md`](../hardware/case/README.md#connector-cutouts-in-the-case-wall-along-the-flat-chord) for dimensions)
 
 ## Why SEN66 mounts on the cover
 
