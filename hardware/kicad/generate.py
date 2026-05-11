@@ -2743,6 +2743,145 @@ POWER_LIB_SYMBOLS = """\
 \t\t\t)
 \t\t\t(embedded_fonts no)
 \t\t)
+\t\t(symbol "power:+3V3"
+\t\t\t(power global)
+\t\t\t(pin_numbers
+\t\t\t\t(hide yes)
+\t\t\t)
+\t\t\t(pin_names
+\t\t\t\t(offset 0)
+\t\t\t\t(hide yes)
+\t\t\t)
+\t\t\t(exclude_from_sim no)
+\t\t\t(in_bom yes)
+\t\t\t(on_board yes)
+\t\t\t(in_pos_files yes)
+\t\t\t(duplicate_pin_numbers_are_jumpers no)
+\t\t\t(property "Reference" "#PWR"
+\t\t\t\t(at 0 -3.81 0)
+\t\t\t\t(show_name no)
+\t\t\t\t(do_not_autoplace no)
+\t\t\t\t(hide yes)
+\t\t\t\t(effects
+\t\t\t\t\t(font
+\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(property "Value" "+3V3"
+\t\t\t\t(at 0 3.556 0)
+\t\t\t\t(show_name no)
+\t\t\t\t(do_not_autoplace no)
+\t\t\t\t(effects
+\t\t\t\t\t(font
+\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(property "Footprint" ""
+\t\t\t\t(at 0 0 0)
+\t\t\t\t(show_name no)
+\t\t\t\t(do_not_autoplace no)
+\t\t\t\t(hide yes)
+\t\t\t\t(effects
+\t\t\t\t\t(font
+\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(property "Datasheet" ""
+\t\t\t\t(at 0 0 0)
+\t\t\t\t(show_name no)
+\t\t\t\t(do_not_autoplace no)
+\t\t\t\t(hide yes)
+\t\t\t\t(effects
+\t\t\t\t\t(font
+\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(property "Description" "Power symbol creates a global label with name \\"+3V3\\""
+\t\t\t\t(at 0 0 0)
+\t\t\t\t(show_name no)
+\t\t\t\t(do_not_autoplace no)
+\t\t\t\t(hide yes)
+\t\t\t\t(effects
+\t\t\t\t\t(font
+\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(property "ki_keywords" "global power"
+\t\t\t\t(at 0 0 0)
+\t\t\t\t(show_name no)
+\t\t\t\t(do_not_autoplace no)
+\t\t\t\t(hide yes)
+\t\t\t\t(effects
+\t\t\t\t\t(font
+\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(symbol "+3V3_0_1"
+\t\t\t\t(polyline
+\t\t\t\t\t(pts
+\t\t\t\t\t\t(xy -0.762 1.27) (xy 0 2.54)
+\t\t\t\t\t)
+\t\t\t\t\t(stroke
+\t\t\t\t\t\t(width 0)
+\t\t\t\t\t\t(type default)
+\t\t\t\t\t)
+\t\t\t\t\t(fill
+\t\t\t\t\t\t(type none)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t\t(polyline
+\t\t\t\t\t(pts
+\t\t\t\t\t\t(xy 0 2.54) (xy 0.762 1.27)
+\t\t\t\t\t)
+\t\t\t\t\t(stroke
+\t\t\t\t\t\t(width 0)
+\t\t\t\t\t\t(type default)
+\t\t\t\t\t)
+\t\t\t\t\t(fill
+\t\t\t\t\t\t(type none)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t\t(polyline
+\t\t\t\t\t(pts
+\t\t\t\t\t\t(xy 0 0) (xy 0 2.54)
+\t\t\t\t\t)
+\t\t\t\t\t(stroke
+\t\t\t\t\t\t(width 0)
+\t\t\t\t\t\t(type default)
+\t\t\t\t\t)
+\t\t\t\t\t(fill
+\t\t\t\t\t\t(type none)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(symbol "+3V3_1_1"
+\t\t\t\t(pin power_in line
+\t\t\t\t\t(at 0 0 90)
+\t\t\t\t\t(length 0)
+\t\t\t\t\t(name ""
+\t\t\t\t\t\t(effects
+\t\t\t\t\t\t\t(font
+\t\t\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t\t\t)
+\t\t\t\t\t\t)
+\t\t\t\t\t)
+\t\t\t\t\t(number "1"
+\t\t\t\t\t\t(effects
+\t\t\t\t\t\t\t(font
+\t\t\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t\t\t)
+\t\t\t\t\t\t)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(embedded_fonts no)
+\t\t)
 \t\t(symbol "Device:L"
 \t\t\t(pin_numbers
 \t\t\t\t(hide yes)
@@ -3269,6 +3408,248 @@ POWER_LIB_SYMBOLS = """\
 \t\t\t\t\t\t)
 \t\t\t\t\t)
 \t\t\t\t\t(number "5"
+\t\t\t\t\t\t(effects
+\t\t\t\t\t\t\t(font
+\t\t\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t\t\t)
+\t\t\t\t\t\t)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(embedded_fonts no)
+\t\t)
+\t\t(symbol "Regulator_Switching:TPS62933"
+\t\t\t(exclude_from_sim no)
+\t\t\t(in_bom yes)
+\t\t\t(on_board yes)
+\t\t\t(in_pos_files yes)
+\t\t\t(duplicate_pin_numbers_are_jumpers no)
+\t\t\t(property "Reference" "U"
+\t\t\t\t(at 0 13.97 0)
+\t\t\t\t(show_name no)
+\t\t\t\t(do_not_autoplace no)
+\t\t\t\t(effects
+\t\t\t\t\t(font
+\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(property "Value" "TPS62933"
+\t\t\t\t(at 0 11.43 0)
+\t\t\t\t(show_name no)
+\t\t\t\t(do_not_autoplace no)
+\t\t\t\t(effects
+\t\t\t\t\t(font
+\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(property "Footprint" "Package_TO_SOT_SMD:SOT-583-8"
+\t\t\t\t(at 0 -25.4 0)
+\t\t\t\t(show_name no)
+\t\t\t\t(do_not_autoplace no)
+\t\t\t\t(hide yes)
+\t\t\t\t(effects
+\t\t\t\t\t(font
+\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(property "Datasheet" "https://www.ti.com/lit/ds/symlink/tps62933.pdf"
+\t\t\t\t(at 0 -22.86 0)
+\t\t\t\t(show_name no)
+\t\t\t\t(do_not_autoplace no)
+\t\t\t\t(hide yes)
+\t\t\t\t(effects
+\t\t\t\t\t(font
+\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(property "Description" "3.8-30V, 3A Synchronous Buck Converters with pulse frequency modulation (PFM), SOT583-8"
+\t\t\t\t(at 0 0 0)
+\t\t\t\t(show_name no)
+\t\t\t\t(do_not_autoplace no)
+\t\t\t\t(hide yes)
+\t\t\t\t(effects
+\t\t\t\t\t(font
+\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(property "ki_keywords" "synchronous buck converter pulse frequency modulation"
+\t\t\t\t(at 0 0 0)
+\t\t\t\t(show_name no)
+\t\t\t\t(do_not_autoplace no)
+\t\t\t\t(hide yes)
+\t\t\t\t(effects
+\t\t\t\t\t(font
+\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(property "ki_fp_filters" "SOT?583*"
+\t\t\t\t(at 0 0 0)
+\t\t\t\t(show_name no)
+\t\t\t\t(do_not_autoplace no)
+\t\t\t\t(hide yes)
+\t\t\t\t(effects
+\t\t\t\t\t(font
+\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(symbol "TPS62933_0_1"
+\t\t\t\t(rectangle
+\t\t\t\t\t(start -5.08 10.16)
+\t\t\t\t\t(end 5.08 -10.16)
+\t\t\t\t\t(stroke
+\t\t\t\t\t\t(width 0.254)
+\t\t\t\t\t\t(type default)
+\t\t\t\t\t)
+\t\t\t\t\t(fill
+\t\t\t\t\t\t(type background)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(symbol "TPS62933_1_1"
+\t\t\t\t(pin passive line
+\t\t\t\t\t(at -7.62 -5.08 0)
+\t\t\t\t\t(length 2.54)
+\t\t\t\t\t(name "RT"
+\t\t\t\t\t\t(effects
+\t\t\t\t\t\t\t(font
+\t\t\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t\t\t)
+\t\t\t\t\t\t)
+\t\t\t\t\t)
+\t\t\t\t\t(number "1"
+\t\t\t\t\t\t(effects
+\t\t\t\t\t\t\t(font
+\t\t\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t\t\t)
+\t\t\t\t\t\t)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t\t(pin input line
+\t\t\t\t\t(at -7.62 5.08 0)
+\t\t\t\t\t(length 2.54)
+\t\t\t\t\t(name "EN"
+\t\t\t\t\t\t(effects
+\t\t\t\t\t\t\t(font
+\t\t\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t\t\t)
+\t\t\t\t\t\t)
+\t\t\t\t\t)
+\t\t\t\t\t(number "2"
+\t\t\t\t\t\t(effects
+\t\t\t\t\t\t\t(font
+\t\t\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t\t\t)
+\t\t\t\t\t\t)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t\t(pin power_in line
+\t\t\t\t\t(at -7.62 7.62 0)
+\t\t\t\t\t(length 2.54)
+\t\t\t\t\t(name "VIN"
+\t\t\t\t\t\t(effects
+\t\t\t\t\t\t\t(font
+\t\t\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t\t\t)
+\t\t\t\t\t\t)
+\t\t\t\t\t)
+\t\t\t\t\t(number "3"
+\t\t\t\t\t\t(effects
+\t\t\t\t\t\t\t(font
+\t\t\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t\t\t)
+\t\t\t\t\t\t)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t\t(pin power_in line
+\t\t\t\t\t(at 0 -12.7 90)
+\t\t\t\t\t(length 2.54)
+\t\t\t\t\t(name "GND"
+\t\t\t\t\t\t(effects
+\t\t\t\t\t\t\t(font
+\t\t\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t\t\t)
+\t\t\t\t\t\t)
+\t\t\t\t\t)
+\t\t\t\t\t(number "4"
+\t\t\t\t\t\t(effects
+\t\t\t\t\t\t\t(font
+\t\t\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t\t\t)
+\t\t\t\t\t\t)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t\t(pin output line
+\t\t\t\t\t(at 7.62 0 180)
+\t\t\t\t\t(length 2.54)
+\t\t\t\t\t(name "SW"
+\t\t\t\t\t\t(effects
+\t\t\t\t\t\t\t(font
+\t\t\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t\t\t)
+\t\t\t\t\t\t)
+\t\t\t\t\t)
+\t\t\t\t\t(number "5"
+\t\t\t\t\t\t(effects
+\t\t\t\t\t\t\t(font
+\t\t\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t\t\t)
+\t\t\t\t\t\t)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t\t(pin passive line
+\t\t\t\t\t(at 7.62 7.62 180)
+\t\t\t\t\t(length 2.54)
+\t\t\t\t\t(name "BST"
+\t\t\t\t\t\t(effects
+\t\t\t\t\t\t\t(font
+\t\t\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t\t\t)
+\t\t\t\t\t\t)
+\t\t\t\t\t)
+\t\t\t\t\t(number "6"
+\t\t\t\t\t\t(effects
+\t\t\t\t\t\t\t(font
+\t\t\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t\t\t)
+\t\t\t\t\t\t)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t\t(pin passive line
+\t\t\t\t\t(at -7.62 -2.54 0)
+\t\t\t\t\t(length 2.54)
+\t\t\t\t\t(name "SS"
+\t\t\t\t\t\t(effects
+\t\t\t\t\t\t\t(font
+\t\t\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t\t\t)
+\t\t\t\t\t\t)
+\t\t\t\t\t)
+\t\t\t\t\t(number "7"
+\t\t\t\t\t\t(effects
+\t\t\t\t\t\t\t(font
+\t\t\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t\t\t)
+\t\t\t\t\t\t)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t\t(pin input line
+\t\t\t\t\t(at 7.62 -7.62 180)
+\t\t\t\t\t(length 2.54)
+\t\t\t\t\t(name "FB"
+\t\t\t\t\t\t(effects
+\t\t\t\t\t\t\t(font
+\t\t\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t\t\t)
+\t\t\t\t\t\t)
+\t\t\t\t\t)
+\t\t\t\t\t(number "8"
 \t\t\t\t\t\t(effects
 \t\t\t\t\t\t\t(font
 \t\t\t\t\t\t\t\t(size 1.27 1.27)
@@ -4149,6 +4530,126 @@ def _sch_buck_lm2596_5(
         \t)""")
 
 
+def _sch_buck_tps62933(
+    x: float, y: float, angle: int, reference: str, value: str, uuid_tag: str,
+) -> str:
+    """Emit a TPS62933 (synchronous buck regulator) symbol instance.
+
+    8-pin device. With angle=0, lib pin positions map to schematic as:
+      Pin 1 RT  (left, bottom):       (x - 7.62, y + 5.08)
+      Pin 2 EN  (left, top):          (x - 7.62, y - 5.08)
+      Pin 3 VIN (left, top-most):     (x - 7.62, y - 7.62)
+      Pin 4 GND (centre, bottom):     (x,        y + 12.7)
+      Pin 5 SW  (right, centre):      (x + 7.62, y)
+      Pin 6 BST (right, top):         (x + 7.62, y - 7.62)
+      Pin 7 SS  (left, mid-bottom):   (x - 7.62, y + 2.54)
+      Pin 8 FB  (right, bottom):      (x + 7.62, y + 7.62)
+
+    The symbol body is a rectangle (lib -5.08, -10.16) to (5.08, 10.16) — i.e.
+    10.16 mm wide × 20.32 mm tall on the schematic.
+    """
+    sym_uuid = U("sym:" + uuid_tag)
+    pin1_uuid = U("sym-pin:" + uuid_tag + "-1")
+    pin2_uuid = U("sym-pin:" + uuid_tag + "-2")
+    pin3_uuid = U("sym-pin:" + uuid_tag + "-3")
+    pin4_uuid = U("sym-pin:" + uuid_tag + "-4")
+    pin5_uuid = U("sym-pin:" + uuid_tag + "-5")
+    pin6_uuid = U("sym-pin:" + uuid_tag + "-6")
+    pin7_uuid = U("sym-pin:" + uuid_tag + "-7")
+    pin8_uuid = U("sym-pin:" + uuid_tag + "-8")
+    sheet_path = f"/{ROOT_SHEET_UUID}/{SHEET_BLOCK_UUIDS['power']}"
+    return textwrap.dedent(f"""\
+        \t(symbol
+        \t\t(lib_id "Regulator_Switching:TPS62933")
+        \t\t(at {fmt(x)} {fmt(y)} {angle})
+        \t\t(unit 1)
+        \t\t(exclude_from_sim no)
+        \t\t(in_bom yes)
+        \t\t(on_board yes)
+        \t\t(dnp no)
+        \t\t(fields_autoplaced yes)
+        \t\t(uuid "{sym_uuid}")
+        \t\t(property "Reference" "{reference}"
+        \t\t\t(at {fmt(x - 5.08)} {fmt(y - 11.43)} 0)
+        \t\t\t(effects
+        \t\t\t\t(font
+        \t\t\t\t\t(size 1.27 1.27)
+        \t\t\t\t)
+        \t\t\t\t(justify left)
+        \t\t\t)
+        \t\t)
+        \t\t(property "Value" "{value}"
+        \t\t\t(at {fmt(x + 1.27)} {fmt(y - 11.43)} 0)
+        \t\t\t(effects
+        \t\t\t\t(font
+        \t\t\t\t\t(size 1.27 1.27)
+        \t\t\t\t)
+        \t\t\t\t(justify left)
+        \t\t\t)
+        \t\t)
+        \t\t(property "Footprint" "Package_TO_SOT_SMD:SOT-583-8"
+        \t\t\t(at {fmt(x)} {fmt(y + 12.7)} 0)
+        \t\t\t(effects
+        \t\t\t\t(font
+        \t\t\t\t\t(size 1.27 1.27)
+        \t\t\t\t\t(italic yes)
+        \t\t\t\t)
+        \t\t\t\t(hide yes)
+        \t\t\t)
+        \t\t)
+        \t\t(property "Datasheet" "https://www.ti.com/lit/ds/symlink/tps62933.pdf"
+        \t\t\t(at {fmt(x)} {fmt(y)} 0)
+        \t\t\t(effects
+        \t\t\t\t(font
+        \t\t\t\t\t(size 1.27 1.27)
+        \t\t\t\t)
+        \t\t\t\t(hide yes)
+        \t\t\t)
+        \t\t)
+        \t\t(property "Description" ""
+        \t\t\t(at {fmt(x)} {fmt(y)} 0)
+        \t\t\t(effects
+        \t\t\t\t(font
+        \t\t\t\t\t(size 1.27 1.27)
+        \t\t\t\t)
+        \t\t\t\t(hide yes)
+        \t\t\t)
+        \t\t)
+        \t\t(pin "1"
+        \t\t\t(uuid "{pin1_uuid}")
+        \t\t)
+        \t\t(pin "2"
+        \t\t\t(uuid "{pin2_uuid}")
+        \t\t)
+        \t\t(pin "3"
+        \t\t\t(uuid "{pin3_uuid}")
+        \t\t)
+        \t\t(pin "4"
+        \t\t\t(uuid "{pin4_uuid}")
+        \t\t)
+        \t\t(pin "5"
+        \t\t\t(uuid "{pin5_uuid}")
+        \t\t)
+        \t\t(pin "6"
+        \t\t\t(uuid "{pin6_uuid}")
+        \t\t)
+        \t\t(pin "7"
+        \t\t\t(uuid "{pin7_uuid}")
+        \t\t)
+        \t\t(pin "8"
+        \t\t\t(uuid "{pin8_uuid}")
+        \t\t)
+        \t\t(instances
+        \t\t\t(project "oas"
+        \t\t\t\t(path "{sheet_path}"
+        \t\t\t\t\t(reference "{reference}")
+        \t\t\t\t\t(unit 1)
+        \t\t\t\t)
+        \t\t\t)
+        \t\t)
+        \t)""")
+
+
 def gen_power_sch() -> str:
     """Power sub-sheet — J1 input + D1 surge clamp + Q1 reverse-polarity + R1 pulldown + F1 polyfuse + C1/C2 caps + U1 24V->5V buck.
 
@@ -5011,6 +5512,451 @@ def gen_power_sch() -> str:
         reference="#FLG04",
         value_offset_x=PF_TEXT_OFFSET, value_offset_y=-2.54,
         uuid_tag="flg04-5v",
+    ))
+
+    # =========================================================================
+    # 5V -> 3.3V buck converter block (U2 TPS62933 + L2 + R2/R3 FB div + C5/C5b/C6/C6b/C7)
+    # =========================================================================
+    # Cascaded second buck stage. Takes the +5V rail produced by U1 (above)
+    # and steps it down to a regulated 3.3V rail that powers the ESP32-C6
+    # SuperMini (via its 3V3 pin, bypassing the module's onboard LDO so we
+    # don't dissipate ~250 mW close to the SEN66 air-quality sensor), plus
+    # the SEN66 itself, VEML7700 ambient light sensor, and NT3H2211 NFC tag.
+    #
+    # Component selection rationale (see commit message and CLAUDE.md):
+    #   * TPS62933   : 3.8-30 V Vin range (17 V abs-max for the typical-use
+    #                  recommendation, well above our 5 V), 3 A, 500 kHz
+    #                  default, SYNCHRONOUS topology (no external Schottky
+    #                  catch diode needed — high-side and low-side both
+    #                  internal). SOT-583-8 package, JLCPCB Basic library.
+    #                  ~95% efficiency at ~300 mA load — much better than
+    #                  LM2596's ~80% (LM2596 has external Schottky losses
+    #                  and runs at 150 kHz so the inductor ripple is much
+    #                  larger). The 17 V Vin_max ceiling that ruled it out
+    #                  upstream of D1 is irrelevant here because we cascade
+    #                  from the regulated +5V rail.
+    #   * L2 2.2uH  : Per TPS62933 datasheet typical-application table for
+    #                  3.3 V output at 500 kHz. Shielded SMD ferrite-core
+    #                  inductor with ≥2 A saturation and ~50 mOhm DCR.
+    #                  4×4 mm or 3×3 mm package — much smaller than LM2596's
+    #                  33 uH because the higher fsw drops the inductor
+    #                  requirement by ~15×.
+    #   * R2 44.2k 1% / R3 10k 1% (FB divider): TPS62933 FB pin reference
+    #                  voltage = 0.6 V. Vout = Vfb × (1 + R2/R3) =
+    #                  0.6 × (1 + 4.42) = 3.252 V — well within the
+    #                  ESP32-C6's 3.0-3.6 V supply window and the typical
+    #                  3.0-3.6 V supply requirements of SEN66, VEML7700,
+    #                  NT3H2211. R3 = 10 kΩ gives a low-current divider
+    #                  (~60 µA), and R2 = 44.2 kΩ is the nearest E96 value.
+    #                  1% tolerance keeps the output voltage variation due
+    #                  to divider tolerance below ±20 mV.
+    #   * C5 10uF + C5b 100nF : input bulk + HF ceramic bypass at U2.VIN.
+    #                  Per datasheet: ceramic X5R/X7R; 16 V rating gives
+    #                  3× margin over the 5 V input.
+    #   * C6 22uF + C6b 100nF : output bulk + HF ceramic bypass at the
+    #                  +3.3V rail. Per datasheet; 10 V rating gives 3× margin
+    #                  over 3.3 V.
+    #   * C7 100nF (BST): bootstrap capacitor from BST pin to SW pin.
+    #                  REQUIRED by TPS62933 for the high-side gate driver
+    #                  bootstrap supply. Datasheet value.
+    #
+    # The RT pin (programmable switching frequency) is tied to GND — that
+    # selects the default ~500 kHz internal oscillator. SS pin (soft-start)
+    # is also tied to GND for the default ~0.6 ms soft-start (no external
+    # cap). EN pin is tied to VIN via a direct wire (always-on operation —
+    # the TPS62933 enables when EN > 1.18 V, and +5V provides plenty of
+    # headroom). The BST pin gets its bootstrap cap C7 to the SW node.
+    #
+    # Layout (page-absolute mm, KiCad +Y is down on screen):
+    #
+    # The buck block sits BELOW the +24V protected-rail section so the
+    # cascade flow reads top-to-bottom (24 V → 5 V → 3.3 V). U2 is placed
+    # in the same X column as U1 (X=200.66) — vertically aligned, ~70 mm
+    # below — emphasising the cascade visually. The +5V net enters U2.VIN
+    # from above via a "+5V" global symbol placed at the top of the block;
+    # the +3.3V net exits to the right through C6/C6b decoupling and a
+    # PWR_FLAG sentinel into the +3.3V power flag at the far-right.
+
+    # ----- U2: TPS62933 buck regulator -----
+    # Anchor at X=200.66 (same X column as U1). Y=144.78 puts the body in
+    # the clear area below the existing power-protection block (whose
+    # lowest element is the GND flag at Y=132.08). With U2_Y=144.78 the
+    # body spans Y=[134.62, 154.94] and pin rows are:
+    #   VIN row Y=137.16 (lib (-7.62, +7.62) -> schem y-7.62 = 137.16)
+    #   BST row Y=137.16 (same as VIN — used for the +3.3V bus on the right)
+    #   EN  row Y=139.70
+    #   SW  row Y=144.78 (centre — switch-node horizontal)
+    #   SS  row Y=147.32
+    #   RT  row Y=149.86
+    #   FB  row Y=152.40
+    #   GND row Y=157.48 (centre-bottom)
+    U2_X = 200.66
+    U2_Y = 144.78
+    U2_VIN_X    = U2_X - 7.62     # 193.04
+    U2_VIN_Y    = U2_Y - 7.62     # 137.16 — +5V input bus row
+    U2_EN_X     = U2_X - 7.62     # 193.04
+    U2_EN_Y     = U2_Y - 5.08     # 139.70
+    U2_RT_X     = U2_X - 7.62     # 193.04
+    U2_RT_Y     = U2_Y + 5.08     # 149.86 — tied to GND (default 500 kHz)
+    U2_SS_X     = U2_X - 7.62     # 193.04
+    U2_SS_Y     = U2_Y + 2.54     # 147.32 — tied to GND (default soft-start)
+    U2_GND_X    = U2_X            # 200.66
+    U2_GND_Y    = U2_Y + 12.7     # 157.48
+    U2_SW_X     = U2_X + 7.62     # 208.28 — switch node
+    U2_SW_Y     = U2_Y            # 144.78
+    U2_BST_X    = U2_X + 7.62     # 208.28
+    U2_BST_Y    = U2_Y - 7.62     # 137.16 — bootstrap cap node
+    U2_FB_X     = U2_X + 7.62     # 208.28
+    U2_FB_Y     = U2_Y + 7.62     # 152.40 — feedback tap
+
+    # ----- C5: input bulk ceramic, 10uF 16V, angle=0 -----
+    # Non-polarized ceramic X5R/X7R. Pin 1 (top) on +5V bus, pin 2 (bottom)
+    # to GND. C5 sits 15.24 mm left of C5b — wide enough that the
+    # value-text label "10uF 16V" (rendered ~10 mm at size 1.27) clears
+    # C5b's value-text "100nF" without visual overlap.
+    C5_X = 170.18                 # 134 × 1.27
+    C5_Y = 140.97                 # 111 × 1.27
+    C5_TOP_Y = C5_Y - 3.81        # 137.16 — on +5V bus row
+    C5_BOT_Y = C5_Y + 3.81        # 144.78
+    C5_GND_Y = 147.32             # GND symbol, 2.54 below cap.bot
+
+    # ----- C5b: input HF ceramic bypass, 100nF, angle=0 -----
+    C5b_X = 185.42                # 146 × 1.27 — 15.24 mm right of C5, 7.62 left of VIN
+    C5b_Y = 140.97
+    C5b_TOP_Y = C5b_Y - 3.81      # 137.16
+    C5b_BOT_Y = C5b_Y + 3.81      # 144.78
+    C5b_GND_Y = 147.32
+
+    # ----- +5V drop symbol -----
+    # Global "+5V" power label placed ABOVE U2's VIN row, with angle=180
+    # so the triangle points DOWN toward the buck block. Pin sits at the
+    # symbol anchor (193.04, 130.81); a short vertical wire drops it onto
+    # the VIN bus at Y=137.16. The same vertical wire continues DOWN past
+    # the VIN bus row through U2.VIN pin to U2.EN pin — this is the
+    # always-on EN tie (EN → VIN).
+    Y_5V_DROP_TOP = 130.81        # 103 × 1.27 — on connection grid
+
+    # ----- C7: BST (bootstrap) ceramic capacitor, 100nF, angle=0 -----
+    # Vertical between U2.BST (top pin, Y=137.16) and U2.SW (bot pin,
+    # Y=144.78). Placed at X=213.36, 5.08 mm right of the BST/SW pin
+    # column (208.28). C7.top → BST extension wire row, C7.bot → SW
+    # extension wire row. Required by TPS62933 for the high-side gate
+    # driver bootstrap supply.
+    C7_X = 213.36                 # 168 × 1.27
+    C7_Y = 140.97
+    C7_TOP_Y = C7_Y - 3.81        # 137.16 — on BST row
+    C7_BOT_Y = C7_Y + 3.81        # 144.78 — on SW row
+
+    # ----- L2: 2.2 uH shielded inductor, angle=0 -----
+    # Vertical, between U2.SW (right of the body) and the +3.3V output bus.
+    # L2.bot pin on the SW horizontal extension row (Y=144.78), L2.top
+    # pin on the +3.3V bus row (Y=137.16). 7.62 mm pin-to-pin spacing
+    # fits naturally between the two rows. Placed at X=226.06, 12.7 mm
+    # right of C7's column — wide enough that C7's "100nF" value-text
+    # (left-justified at X=C7+2.54) doesn't run into L2's reference text
+    # (right-justified at X=L2-2.54).
+    L2_X = 226.06                 # 178 × 1.27
+    L2_Y = 140.97
+    L2_TOP_Y = L2_Y - 3.81        # 137.16 — on +3.3V bus row
+    L2_BOT_Y = L2_Y + 3.81        # 144.78 — on SW extension row
+
+    # ----- R2 / R3: feedback divider for 3.3V output -----
+    # TPS62933 FB pin reference voltage Vfb = 0.6 V.
+    #   Vout = Vfb × (1 + R2/R3)  =>  R2/R3 = (Vout/Vfb - 1) = 4.5 for Vout=3.3V
+    # With R3 = 10 kΩ (datasheet-recommended low-current divider):
+    #   R2 = 45 kΩ ideal → nearest E96 = 44.2 kΩ
+    #   → Vout = 0.6 × (1 + 4.42) = 3.252 V  (within ESP32-C6's 3.0-3.6 V window)
+    #
+    # Layout: R2 (top, 44.2 kΩ) and R3 (bottom, 10 kΩ) vertically stacked,
+    # forming a divider between +3.3V (R2.top) and GND (R3.bot). FB tap
+    # point is the R2.bot/R3.top junction. The U2.FB pin (at X=208.28,
+    # Y=152.40) routes to the FB tap via a short L-wire: drop DOWN from
+    # FB pin to Y=156.21 (clear of U2 body bottom at Y=154.94), then
+    # RIGHT to the FB tap column at X=226.06.
+    #
+    # R2 and R3 are placed with a 2.54 mm gap between R2.bot (Y=144.78)
+    # and R3.top (Y=147.32) so the two resistor body rectangles don't
+    # touch on screen — easier to read. The connecting wire between
+    # R2.bot and R3.top serves as the FB tap point.
+    #
+    # Wait — re-examining: if R2.top is to land on the +3.3V bus row
+    # (Y=137.16) directly, then R2_Y=140.97 (R2.top = 140.97 - 3.81 =
+    # 137.16, R2.bot = 144.78). But that puts R2.bot at Y=144.78 = the
+    # SW row! At X=226.06 the SW extension wire does NOT reach (SW wire
+    # X∈[208.28, 218.44]), so no electrical conflict, but visually the
+    # FB-tap row at Y=144.78 sits on the same horizontal as the SW node.
+    #
+    # Cleaner: keep R2.top one row above the bus and add a short vertical
+    # wire from R2.top up to the +3.3V bus. R2_Y=148.59 → R2.top=144.78
+    # (a few mm below bus), then r2top-to-bus wire from (226.06, 144.78)
+    # → (226.06, 137.16). R2.bot = 152.40. R3_Y=156.21 → R3.top=152.40,
+    # R3.bot=160.02. FB tap = R2.bot = R3.top = (226.06, 152.40), same
+    # Y as the U2.FB pin row — so the FB pin wire from (208.28, 152.40)
+    # to (226.06, 152.40) is a single horizontal segment, no L-routing.
+    # Much cleaner.
+    COL_FB_DIV = 240.03           # 189 × 1.27 — FB divider column (13.97 mm right of L2)
+    R2_X = COL_FB_DIV
+    R2_Y = 148.59                 # 117 × 1.27
+    R2_TOP_Y = R2_Y - 3.81        # 144.78
+    R2_BOT_Y = R2_Y + 3.81        # 152.40 — FB tap row, matches U2.FB pin Y
+    R3_X = COL_FB_DIV
+    R3_Y = 156.21                 # 123 × 1.27
+    R3_TOP_Y = R3_Y - 3.81        # 152.40 — FB tap row, shared with R2.bot
+    R3_BOT_Y = R3_Y + 3.81        # 160.02
+    R3_GND_Y = 163.83             # GND symbol below R3.bot
+
+    # ----- +3.3V output decoupling -----
+    # C6 (22uF) and C6b (100nF) tap the +3.3V bus to GND. Placed to the
+    # right of the FB divider with 15-16 mm column spacing so the
+    # value-text labels ("44.2k 1%" / "22uF 10V" / "100nF") never overlap.
+    C6_X = 256.54                 # 202 × 1.27 (16.51 right of R2)
+    C6_Y = 140.97
+    C6_TOP_Y = C6_Y - 3.81        # 137.16 — on +3.3V bus
+    C6_BOT_Y = C6_Y + 3.81        # 144.78
+    C6_GND_Y = 147.32
+
+    C6b_X = 271.78                # 214 × 1.27 (15.24 right of C6)
+    C6b_Y = 140.97
+    C6b_TOP_Y = C6b_Y - 3.81      # 137.16
+    C6b_BOT_Y = C6b_Y + 3.81      # 144.78
+    C6b_GND_Y = 147.32
+
+    # ----- +3.3V flag, PWR_FLAG sentinel -----
+    # Column = C6b + 7.62 = 279.40. This sits ~25 mm right of the +5V flag
+    # column (X=254 upstream), keeping the buck-3.3V section's PWR_FLAG
+    # and flag visually distinct from the upstream +5V flag (which lives
+    # in the same column but at a much lower Y, in the U1 block).
+    COL_3V3      = 279.40         # 220 × 1.27
+    Y_3V3_BUS    = 137.16         # +3.3V bus row (same Y as VIN bus, but different X range)
+    JUNC_3V3_Y   = 134.62         # PWR_FLAG sentinel sits here
+    FLAG_3V3_Y   = 132.08         # +3V3 triangle, 2.54 above sentinel
+
+    # ----- Buck-3.3V wires -----
+    # Input side: +5V symbol → VIN bus, with EN tied to VIN as always-on.
+    # The +5V "drop" symbol sits in the VIN/EN pin column (X=193.04)
+    # above the body; its anchor is also the wire endpoint (length 0 pin
+    # so the pin is at the symbol's (x, y)).
+    Y_5V_DROP_TOP_X = U2_VIN_X    # 193.04 — VIN/EN/+5V drop column
+    parts.append(_sch_wire(Y_5V_DROP_TOP_X, Y_5V_DROP_TOP, U2_VIN_X, U2_VIN_Y, "5v-to-vin"))
+    parts.append(_sch_wire(U2_VIN_X, U2_VIN_Y, U2_EN_X, U2_EN_Y, "vin-to-en"))
+    # VIN bus horizontal: C5.top → C5b.top → U2.VIN pin
+    parts.append(_sch_wire(C5_X, U2_VIN_Y, U2_VIN_X, U2_VIN_Y, "vin-bus-c5-c5b-u2"))
+    # C5 and C5b drops to local GND symbols
+    parts.append(_sch_wire(C5_X, C5_BOT_Y, C5_X, C5_GND_Y, "c5bot-to-gnd"))
+    parts.append(_sch_wire(C5b_X, C5b_BOT_Y, C5b_X, C5b_GND_Y, "c5bbot-to-gnd"))
+
+    # SS → RT → GND: combined drop. Both pins go to GND (default 500 kHz
+    # / default soft-start). Wire continues from SS pin down through RT
+    # pin to a local GND symbol below.
+    SS_RT_GND_Y = 152.40          # GND symbol Y, below RT pin (149.86)
+    parts.append(_sch_wire(U2_SS_X, U2_SS_Y, U2_RT_X, U2_RT_Y, "ss-to-rt"))
+    parts.append(_sch_wire(U2_RT_X, U2_RT_Y, U2_RT_X, SS_RT_GND_Y, "rt-to-gnd"))
+
+    # U2.GND (centre-bottom pin, pin 4) → local GND symbol below
+    U2_GND_SYM_Y = 161.29         # 3.81 below U2.GND pin
+    parts.append(_sch_wire(U2_GND_X, U2_GND_Y, U2_GND_X, U2_GND_SYM_Y, "u2gnd-to-gndsym"))
+
+    # BST extension: U2.BST → C7.top, single horizontal stub.
+    parts.append(_sch_wire(U2_BST_X, U2_BST_Y, C7_X, C7_TOP_Y, "u2bst-to-c7top"))
+    # SW extension: U2.SW → L2.bot horizontal. Passes through C7.bot tap
+    # column (X=213.36) — C7.bot pin endpoint lands on this wire, needing
+    # a junction at the tap point.
+    parts.append(_sch_wire(U2_SW_X, U2_SW_Y, L2_X, L2_BOT_Y, "u2sw-to-l2bot"))
+
+    # FB pin → FB tap (R2.bot/R3.top junction at COL_FB_DIV). Single
+    # horizontal wire at Y=152.40 (FB pin row = FB tap row, same Y), no
+    # L-routing needed because the divider sits directly to the right of
+    # the body in the same Y row.
+    parts.append(_sch_wire(U2_FB_X, U2_FB_Y, COL_FB_DIV, R2_BOT_Y, "u2fb-to-fbtap"))
+
+    # R2.top → +3.3V bus: short vertical hop up. R2.top at (226.06, 144.78);
+    # +3.3V bus at Y=137.16.
+    parts.append(_sch_wire(COL_FB_DIV, R2_TOP_Y, COL_FB_DIV, Y_3V3_BUS, "r2top-to-3v3bus"))
+
+    # R3.bot → local GND symbol below
+    parts.append(_sch_wire(COL_FB_DIV, R3_BOT_Y, COL_FB_DIV, R3_GND_Y, "r3bot-to-gnd"))
+
+    # +3.3V bus horizontal: from L2.top RIGHT through R2-tap column,
+    # C6 column, C6b column, to the flag column COL_3V3. Single wire
+    # with junctions at the four tap points (R2 vertical end, C6 pin,
+    # C6b pin, mid-bus T's).
+    parts.append(_sch_wire(L2_X, Y_3V3_BUS, COL_3V3, Y_3V3_BUS, "3v3-bus"))
+
+    # C6 and C6b drops to local GND symbols
+    parts.append(_sch_wire(C6_X, C6_BOT_Y, C6_X, C6_GND_Y, "c6bot-to-gnd"))
+    parts.append(_sch_wire(C6b_X, C6b_BOT_Y, C6b_X, C6b_GND_Y, "c6bbot-to-gnd"))
+
+    # +3.3V bus terminus → PWR_FLAG sentinel column upward, then to +3V3 flag.
+    parts.append(_sch_wire(COL_3V3, Y_3V3_BUS, COL_3V3, JUNC_3V3_Y, "3v3-bus-to-junc"))
+    parts.append(_sch_wire(COL_3V3, JUNC_3V3_Y, COL_3V3, FLAG_3V3_Y, "3v3-junc-to-flag"))
+
+    # ----- Buck-3.3V junctions -----
+    # VIN 4-way tap: VIN bus horizontal ends, +5V drop wire passes through,
+    # VIN-to-EN wire starts. Plus U2.VIN pin endpoint.
+    parts.append(_sch_junction(U2_VIN_X, U2_VIN_Y, "vin-u2"))
+    # C5b.top tap on VIN bus (mid-bus T with pin endpoint)
+    parts.append(_sch_junction(C5b_X, U2_VIN_Y, "vin-c5b"))
+    # SW wire passes through C7.bot tap column
+    parts.append(_sch_junction(C7_X, U2_SW_Y, "sw-c7"))
+    # SS-RT shared wire passes through RT pin
+    parts.append(_sch_junction(U2_RT_X, U2_RT_Y, "ss-rt"))
+    # FB tap: R2.bot pin + R3.top pin + FB wire end = 3 endpoints
+    parts.append(_sch_junction(COL_FB_DIV, R2_BOT_Y, "fb-tap"))
+    # +3.3V bus mid-bus T's: R2-vertical end, C6 pin, C6b pin
+    parts.append(_sch_junction(COL_FB_DIV, Y_3V3_BUS, "3v3-r2"))
+    parts.append(_sch_junction(C6_X, Y_3V3_BUS, "3v3-c6"))
+    parts.append(_sch_junction(C6b_X, Y_3V3_BUS, "3v3-c6b"))
+    # PWR_FLAG sentinel position on the vertical to the +3V3 flag
+    parts.append(_sch_junction(COL_3V3, JUNC_3V3_Y, "3v3"))
+
+    # ----- U2: TPS62933 -----
+    parts.append(_sch_buck_tps62933(
+        x=U2_X, y=U2_Y, angle=0,
+        reference="U2", value="TPS62933", uuid_tag="u2",
+    ))
+
+    # ----- L2: 2.2 uH shielded inductor (2 A sat, ~50 mOhm DCR) -----
+    parts.append(_sch_inductor(
+        x=L2_X, y=L2_Y, angle=0,
+        reference="L2", value="2.2uH 2A", uuid_tag="l2",
+    ))
+
+    # ----- C5: input bulk ceramic, 10 uF / 16 V -----
+    parts.append(_sch_capacitor(
+        lib_id="Device:C",
+        x=C5_X, y=C5_Y, angle=0,
+        reference="C5", value="10uF 16V", uuid_tag="c5",
+    ))
+
+    # ----- C5b: input HF ceramic bypass, 100 nF -----
+    parts.append(_sch_capacitor(
+        lib_id="Device:C",
+        x=C5b_X, y=C5b_Y, angle=0,
+        reference="C5b", value="100nF", uuid_tag="c5b",
+    ))
+
+    # ----- C6: output bulk ceramic, 22 uF / 10 V -----
+    parts.append(_sch_capacitor(
+        lib_id="Device:C",
+        x=C6_X, y=C6_Y, angle=0,
+        reference="C6", value="22uF 10V", uuid_tag="c6",
+    ))
+
+    # ----- C6b: output HF ceramic bypass, 100 nF -----
+    parts.append(_sch_capacitor(
+        lib_id="Device:C",
+        x=C6b_X, y=C6b_Y, angle=0,
+        reference="C6b", value="100nF", uuid_tag="c6b",
+    ))
+
+    # ----- C7: BST bootstrap ceramic, 100 nF -----
+    parts.append(_sch_capacitor(
+        lib_id="Device:C",
+        x=C7_X, y=C7_Y, angle=0,
+        reference="C7", value="100nF", uuid_tag="c7",
+    ))
+
+    # ----- R2: feedback divider top, 44.2 kΩ 1% -----
+    parts.append(_sch_resistor(
+        x=R2_X, y=R2_Y, angle=0,
+        reference="R2", value="44.2k 1%", uuid_tag="r2",
+    ))
+
+    # ----- R3: feedback divider bottom, 10 kΩ 1% -----
+    parts.append(_sch_resistor(
+        x=R3_X, y=R3_Y, angle=0,
+        reference="R3", value="10k 1%", uuid_tag="r3",
+    ))
+
+    # ----- +5V drop symbol (taps the global +5V net into U2.VIN) -----
+    # angle=180 so the triangle points DOWN. The value-text "+5V" sits
+    # above the symbol anchor (value_offset_y=-3.556, same as the upstream
+    # +5V flag).
+    parts.append(_sch_power_flag(
+        lib_id="power:+5V", value="+5V",
+        x=Y_5V_DROP_TOP_X, y=Y_5V_DROP_TOP, angle=180,
+        reference="#PWR15",
+        value_offset_x=0.0, value_offset_y=-3.556,
+        uuid_tag="pwr15-5v-drop",
+    ))
+
+    # ----- +3.3V flag at top-right of the buck-3.3V block -----
+    parts.append(_sch_power_flag(
+        lib_id="power:+3V3", value="+3V3",
+        x=COL_3V3, y=FLAG_3V3_Y, angle=0,
+        reference="#PWR16",
+        value_offset_x=0.0, value_offset_y=-3.556,
+        uuid_tag="pwr16-3v3",
+    ))
+
+    # ----- Local GND symbols around U2 / L2 / R3 / caps -----
+    # All share the global GND net. No PWR_FLAG sentinel on any of these
+    # — FLG02 (on J1.2's drop) already supplies the ERC power-source
+    # marker for the GND net.
+    parts.append(_sch_power_flag(
+        lib_id="power:GND", value="GND",
+        x=C5_X, y=C5_GND_Y, angle=0,
+        reference="#PWR17",
+        value_offset_x=0.0, value_offset_y=3.81,
+        uuid_tag="pwr17-gnd-c5",
+    ))
+    parts.append(_sch_power_flag(
+        lib_id="power:GND", value="GND",
+        x=C5b_X, y=C5b_GND_Y, angle=0,
+        reference="#PWR18",
+        value_offset_x=0.0, value_offset_y=3.81,
+        uuid_tag="pwr18-gnd-c5b",
+    ))
+    # SS-RT shared GND
+    parts.append(_sch_power_flag(
+        lib_id="power:GND", value="GND",
+        x=U2_RT_X, y=SS_RT_GND_Y, angle=0,
+        reference="#PWR19",
+        value_offset_x=0.0, value_offset_y=3.81,
+        uuid_tag="pwr19-gnd-ssrt",
+    ))
+    # U2.GND (pin 4)
+    parts.append(_sch_power_flag(
+        lib_id="power:GND", value="GND",
+        x=U2_GND_X, y=U2_GND_SYM_Y, angle=0,
+        reference="#PWR20",
+        value_offset_x=0.0, value_offset_y=3.81,
+        uuid_tag="pwr20-gnd-u2",
+    ))
+    # R3.bot (divider bottom to GND)
+    parts.append(_sch_power_flag(
+        lib_id="power:GND", value="GND",
+        x=COL_FB_DIV, y=R3_GND_Y, angle=0,
+        reference="#PWR21",
+        value_offset_x=0.0, value_offset_y=3.81,
+        uuid_tag="pwr21-gnd-r3",
+    ))
+    parts.append(_sch_power_flag(
+        lib_id="power:GND", value="GND",
+        x=C6_X, y=C6_GND_Y, angle=0,
+        reference="#PWR22",
+        value_offset_x=0.0, value_offset_y=3.81,
+        uuid_tag="pwr22-gnd-c6",
+    ))
+    parts.append(_sch_power_flag(
+        lib_id="power:GND", value="GND",
+        x=C6b_X, y=C6b_GND_Y, angle=0,
+        reference="#PWR23",
+        value_offset_x=0.0, value_offset_y=3.81,
+        uuid_tag="pwr23-gnd-c6b",
+    ))
+
+    # ----- PWR_FLAG sentinel on the new +3.3V net -----
+    # Without this, ERC would error "Input Power pin not driven by any
+    # Output Power pins" on the +3.3V net — TPS62933's SW pin is an
+    # `output` (not `power_out`), so it doesn't count as a power source
+    # for the ERC check.
+    parts.append(_sch_power_flag(
+        lib_id="power:PWR_FLAG", value="PWR_FLAG",
+        x=COL_3V3, y=JUNC_3V3_Y, angle=0,
+        reference="#FLG05",
+        value_offset_x=PF_TEXT_OFFSET, value_offset_y=-2.54,
+        uuid_tag="flg05-3v3",
     ))
 
     body = "\n".join(parts)
