@@ -2603,6 +2603,681 @@ POWER_LIB_SYMBOLS = """\
 \t\t\t\t)
 \t\t\t)
 \t\t\t(embedded_fonts no)
+\t\t)
+\t\t(symbol "power:+5V"
+\t\t\t(power global)
+\t\t\t(pin_numbers
+\t\t\t\t(hide yes)
+\t\t\t)
+\t\t\t(pin_names
+\t\t\t\t(offset 0)
+\t\t\t\t(hide yes)
+\t\t\t)
+\t\t\t(exclude_from_sim no)
+\t\t\t(in_bom yes)
+\t\t\t(on_board yes)
+\t\t\t(in_pos_files yes)
+\t\t\t(duplicate_pin_numbers_are_jumpers no)
+\t\t\t(property "Reference" "#PWR"
+\t\t\t\t(at 0 -3.81 0)
+\t\t\t\t(show_name no)
+\t\t\t\t(do_not_autoplace no)
+\t\t\t\t(hide yes)
+\t\t\t\t(effects
+\t\t\t\t\t(font
+\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(property "Value" "+5V"
+\t\t\t\t(at 0 3.556 0)
+\t\t\t\t(show_name no)
+\t\t\t\t(do_not_autoplace no)
+\t\t\t\t(effects
+\t\t\t\t\t(font
+\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(property "Footprint" ""
+\t\t\t\t(at 0 0 0)
+\t\t\t\t(show_name no)
+\t\t\t\t(do_not_autoplace no)
+\t\t\t\t(hide yes)
+\t\t\t\t(effects
+\t\t\t\t\t(font
+\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(property "Datasheet" ""
+\t\t\t\t(at 0 0 0)
+\t\t\t\t(show_name no)
+\t\t\t\t(do_not_autoplace no)
+\t\t\t\t(hide yes)
+\t\t\t\t(effects
+\t\t\t\t\t(font
+\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(property "Description" "Power symbol creates a global label with name \\"+5V\\""
+\t\t\t\t(at 0 0 0)
+\t\t\t\t(show_name no)
+\t\t\t\t(do_not_autoplace no)
+\t\t\t\t(hide yes)
+\t\t\t\t(effects
+\t\t\t\t\t(font
+\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(property "ki_keywords" "global power"
+\t\t\t\t(at 0 0 0)
+\t\t\t\t(show_name no)
+\t\t\t\t(do_not_autoplace no)
+\t\t\t\t(hide yes)
+\t\t\t\t(effects
+\t\t\t\t\t(font
+\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(symbol "+5V_0_1"
+\t\t\t\t(polyline
+\t\t\t\t\t(pts
+\t\t\t\t\t\t(xy -0.762 1.27) (xy 0 2.54)
+\t\t\t\t\t)
+\t\t\t\t\t(stroke
+\t\t\t\t\t\t(width 0)
+\t\t\t\t\t\t(type default)
+\t\t\t\t\t)
+\t\t\t\t\t(fill
+\t\t\t\t\t\t(type none)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t\t(polyline
+\t\t\t\t\t(pts
+\t\t\t\t\t\t(xy 0 2.54) (xy 0.762 1.27)
+\t\t\t\t\t)
+\t\t\t\t\t(stroke
+\t\t\t\t\t\t(width 0)
+\t\t\t\t\t\t(type default)
+\t\t\t\t\t)
+\t\t\t\t\t(fill
+\t\t\t\t\t\t(type none)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t\t(polyline
+\t\t\t\t\t(pts
+\t\t\t\t\t\t(xy 0 0) (xy 0 2.54)
+\t\t\t\t\t)
+\t\t\t\t\t(stroke
+\t\t\t\t\t\t(width 0)
+\t\t\t\t\t\t(type default)
+\t\t\t\t\t)
+\t\t\t\t\t(fill
+\t\t\t\t\t\t(type none)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(symbol "+5V_1_1"
+\t\t\t\t(pin power_in line
+\t\t\t\t\t(at 0 0 90)
+\t\t\t\t\t(length 0)
+\t\t\t\t\t(name ""
+\t\t\t\t\t\t(effects
+\t\t\t\t\t\t\t(font
+\t\t\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t\t\t)
+\t\t\t\t\t\t)
+\t\t\t\t\t)
+\t\t\t\t\t(number "1"
+\t\t\t\t\t\t(effects
+\t\t\t\t\t\t\t(font
+\t\t\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t\t\t)
+\t\t\t\t\t\t)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(embedded_fonts no)
+\t\t)
+\t\t(symbol "Device:L"
+\t\t\t(pin_numbers
+\t\t\t\t(hide yes)
+\t\t\t)
+\t\t\t(pin_names
+\t\t\t\t(offset 1.016)
+\t\t\t\t(hide yes)
+\t\t\t)
+\t\t\t(exclude_from_sim no)
+\t\t\t(in_bom yes)
+\t\t\t(on_board yes)
+\t\t\t(in_pos_files yes)
+\t\t\t(duplicate_pin_numbers_are_jumpers no)
+\t\t\t(property "Reference" "L"
+\t\t\t\t(at -1.27 0 90)
+\t\t\t\t(show_name no)
+\t\t\t\t(do_not_autoplace no)
+\t\t\t\t(effects
+\t\t\t\t\t(font
+\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(property "Value" "L"
+\t\t\t\t(at 1.905 0 90)
+\t\t\t\t(show_name no)
+\t\t\t\t(do_not_autoplace no)
+\t\t\t\t(effects
+\t\t\t\t\t(font
+\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(property "Footprint" ""
+\t\t\t\t(at 0 0 0)
+\t\t\t\t(show_name no)
+\t\t\t\t(do_not_autoplace no)
+\t\t\t\t(hide yes)
+\t\t\t\t(effects
+\t\t\t\t\t(font
+\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(property "Datasheet" ""
+\t\t\t\t(at 0 0 0)
+\t\t\t\t(show_name no)
+\t\t\t\t(do_not_autoplace no)
+\t\t\t\t(hide yes)
+\t\t\t\t(effects
+\t\t\t\t\t(font
+\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(property "Description" "Inductor"
+\t\t\t\t(at 0 0 0)
+\t\t\t\t(show_name no)
+\t\t\t\t(do_not_autoplace no)
+\t\t\t\t(hide yes)
+\t\t\t\t(effects
+\t\t\t\t\t(font
+\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(property "ki_keywords" "inductor choke coil reactor magnetic"
+\t\t\t\t(at 0 0 0)
+\t\t\t\t(show_name no)
+\t\t\t\t(do_not_autoplace no)
+\t\t\t\t(hide yes)
+\t\t\t\t(effects
+\t\t\t\t\t(font
+\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(property "ki_fp_filters" "Choke_* *Coil* Inductor_* L_*"
+\t\t\t\t(at 0 0 0)
+\t\t\t\t(show_name no)
+\t\t\t\t(do_not_autoplace no)
+\t\t\t\t(hide yes)
+\t\t\t\t(effects
+\t\t\t\t\t(font
+\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(symbol "L_0_1"
+\t\t\t\t(arc
+\t\t\t\t\t(start 0 2.54)
+\t\t\t\t\t(mid 0.6323 1.905)
+\t\t\t\t\t(end 0 1.27)
+\t\t\t\t\t(stroke
+\t\t\t\t\t\t(width 0)
+\t\t\t\t\t\t(type default)
+\t\t\t\t\t)
+\t\t\t\t\t(fill
+\t\t\t\t\t\t(type none)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t\t(arc
+\t\t\t\t\t(start 0 1.27)
+\t\t\t\t\t(mid 0.6323 0.635)
+\t\t\t\t\t(end 0 0)
+\t\t\t\t\t(stroke
+\t\t\t\t\t\t(width 0)
+\t\t\t\t\t\t(type default)
+\t\t\t\t\t)
+\t\t\t\t\t(fill
+\t\t\t\t\t\t(type none)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t\t(arc
+\t\t\t\t\t(start 0 0)
+\t\t\t\t\t(mid 0.6323 -0.635)
+\t\t\t\t\t(end 0 -1.27)
+\t\t\t\t\t(stroke
+\t\t\t\t\t\t(width 0)
+\t\t\t\t\t\t(type default)
+\t\t\t\t\t)
+\t\t\t\t\t(fill
+\t\t\t\t\t\t(type none)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t\t(arc
+\t\t\t\t\t(start 0 -1.27)
+\t\t\t\t\t(mid 0.6323 -1.905)
+\t\t\t\t\t(end 0 -2.54)
+\t\t\t\t\t(stroke
+\t\t\t\t\t\t(width 0)
+\t\t\t\t\t\t(type default)
+\t\t\t\t\t)
+\t\t\t\t\t(fill
+\t\t\t\t\t\t(type none)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(symbol "L_1_1"
+\t\t\t\t(pin passive line
+\t\t\t\t\t(at 0 3.81 270)
+\t\t\t\t\t(length 1.27)
+\t\t\t\t\t(name "1"
+\t\t\t\t\t\t(effects
+\t\t\t\t\t\t\t(font
+\t\t\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t\t\t)
+\t\t\t\t\t\t)
+\t\t\t\t\t)
+\t\t\t\t\t(number "1"
+\t\t\t\t\t\t(effects
+\t\t\t\t\t\t\t(font
+\t\t\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t\t\t)
+\t\t\t\t\t\t)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t\t(pin passive line
+\t\t\t\t\t(at 0 -3.81 90)
+\t\t\t\t\t(length 1.27)
+\t\t\t\t\t(name "2"
+\t\t\t\t\t\t(effects
+\t\t\t\t\t\t\t(font
+\t\t\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t\t\t)
+\t\t\t\t\t\t)
+\t\t\t\t\t)
+\t\t\t\t\t(number "2"
+\t\t\t\t\t\t(effects
+\t\t\t\t\t\t\t(font
+\t\t\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t\t\t)
+\t\t\t\t\t\t)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(embedded_fonts no)
+\t\t)
+\t\t(symbol "Device:D_Schottky"
+\t\t\t(pin_numbers
+\t\t\t\t(hide yes)
+\t\t\t)
+\t\t\t(pin_names
+\t\t\t\t(offset 1.016)
+\t\t\t\t(hide yes)
+\t\t\t)
+\t\t\t(exclude_from_sim no)
+\t\t\t(in_bom yes)
+\t\t\t(on_board yes)
+\t\t\t(in_pos_files yes)
+\t\t\t(duplicate_pin_numbers_are_jumpers no)
+\t\t\t(property "Reference" "D"
+\t\t\t\t(at 0 2.54 0)
+\t\t\t\t(show_name no)
+\t\t\t\t(do_not_autoplace no)
+\t\t\t\t(effects
+\t\t\t\t\t(font
+\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(property "Value" "D_Schottky"
+\t\t\t\t(at 0 -2.54 0)
+\t\t\t\t(show_name no)
+\t\t\t\t(do_not_autoplace no)
+\t\t\t\t(effects
+\t\t\t\t\t(font
+\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(property "Footprint" ""
+\t\t\t\t(at 0 0 0)
+\t\t\t\t(show_name no)
+\t\t\t\t(do_not_autoplace no)
+\t\t\t\t(hide yes)
+\t\t\t\t(effects
+\t\t\t\t\t(font
+\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(property "Datasheet" ""
+\t\t\t\t(at 0 0 0)
+\t\t\t\t(show_name no)
+\t\t\t\t(do_not_autoplace no)
+\t\t\t\t(hide yes)
+\t\t\t\t(effects
+\t\t\t\t\t(font
+\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(property "Description" "Schottky diode"
+\t\t\t\t(at 0 0 0)
+\t\t\t\t(show_name no)
+\t\t\t\t(do_not_autoplace no)
+\t\t\t\t(hide yes)
+\t\t\t\t(effects
+\t\t\t\t\t(font
+\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(property "ki_keywords" "diode Schottky"
+\t\t\t\t(at 0 0 0)
+\t\t\t\t(show_name no)
+\t\t\t\t(do_not_autoplace no)
+\t\t\t\t(hide yes)
+\t\t\t\t(effects
+\t\t\t\t\t(font
+\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(property "ki_fp_filters" "TO-???* *_Diode_* *SingleDiode* D_*"
+\t\t\t\t(at 0 0 0)
+\t\t\t\t(show_name no)
+\t\t\t\t(do_not_autoplace no)
+\t\t\t\t(hide yes)
+\t\t\t\t(effects
+\t\t\t\t\t(font
+\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(symbol "D_Schottky_0_1"
+\t\t\t\t(polyline
+\t\t\t\t\t(pts
+\t\t\t\t\t\t(xy -1.905 0.635) (xy -1.905 1.27) (xy -1.27 1.27) (xy -1.27 -1.27) (xy -0.635 -1.27) (xy -0.635 -0.635)
+\t\t\t\t\t)
+\t\t\t\t\t(stroke
+\t\t\t\t\t\t(width 0.254)
+\t\t\t\t\t\t(type default)
+\t\t\t\t\t)
+\t\t\t\t\t(fill
+\t\t\t\t\t\t(type none)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t\t(polyline
+\t\t\t\t\t(pts
+\t\t\t\t\t\t(xy 1.27 1.27) (xy 1.27 -1.27) (xy -1.27 0) (xy 1.27 1.27)
+\t\t\t\t\t)
+\t\t\t\t\t(stroke
+\t\t\t\t\t\t(width 0.254)
+\t\t\t\t\t\t(type default)
+\t\t\t\t\t)
+\t\t\t\t\t(fill
+\t\t\t\t\t\t(type none)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t\t(polyline
+\t\t\t\t\t(pts
+\t\t\t\t\t\t(xy 1.27 0) (xy -1.27 0)
+\t\t\t\t\t)
+\t\t\t\t\t(stroke
+\t\t\t\t\t\t(width 0)
+\t\t\t\t\t\t(type default)
+\t\t\t\t\t)
+\t\t\t\t\t(fill
+\t\t\t\t\t\t(type none)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(symbol "D_Schottky_1_1"
+\t\t\t\t(pin passive line
+\t\t\t\t\t(at -3.81 0 0)
+\t\t\t\t\t(length 2.54)
+\t\t\t\t\t(name "K"
+\t\t\t\t\t\t(effects
+\t\t\t\t\t\t\t(font
+\t\t\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t\t\t)
+\t\t\t\t\t\t)
+\t\t\t\t\t)
+\t\t\t\t\t(number "1"
+\t\t\t\t\t\t(effects
+\t\t\t\t\t\t\t(font
+\t\t\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t\t\t)
+\t\t\t\t\t\t)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t\t(pin passive line
+\t\t\t\t\t(at 3.81 0 180)
+\t\t\t\t\t(length 2.54)
+\t\t\t\t\t(name "A"
+\t\t\t\t\t\t(effects
+\t\t\t\t\t\t\t(font
+\t\t\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t\t\t)
+\t\t\t\t\t\t)
+\t\t\t\t\t)
+\t\t\t\t\t(number "2"
+\t\t\t\t\t\t(effects
+\t\t\t\t\t\t\t(font
+\t\t\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t\t\t)
+\t\t\t\t\t\t)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(embedded_fonts no)
+\t\t)
+\t\t(symbol "Regulator_Switching:LM2596S-5"
+\t\t\t(exclude_from_sim no)
+\t\t\t(in_bom yes)
+\t\t\t(on_board yes)
+\t\t\t(in_pos_files yes)
+\t\t\t(duplicate_pin_numbers_are_jumpers no)
+\t\t\t(property "Reference" "U"
+\t\t\t\t(at -10.16 6.35 0)
+\t\t\t\t(show_name no)
+\t\t\t\t(do_not_autoplace no)
+\t\t\t\t(effects
+\t\t\t\t\t(font
+\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t)
+\t\t\t\t\t(justify left)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(property "Value" "LM2596S-5"
+\t\t\t\t(at 0 6.35 0)
+\t\t\t\t(show_name no)
+\t\t\t\t(do_not_autoplace no)
+\t\t\t\t(effects
+\t\t\t\t\t(font
+\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t)
+\t\t\t\t\t(justify left)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(property "Footprint" "Package_TO_SOT_SMD:TO-263-5_TabPin3"
+\t\t\t\t(at 1.27 -6.35 0)
+\t\t\t\t(show_name no)
+\t\t\t\t(do_not_autoplace no)
+\t\t\t\t(hide yes)
+\t\t\t\t(effects
+\t\t\t\t\t(font
+\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t\t(italic yes)
+\t\t\t\t\t)
+\t\t\t\t\t(justify left)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(property "Datasheet" "http://www.ti.com/lit/ds/symlink/lm2596.pdf"
+\t\t\t\t(at 0 0 0)
+\t\t\t\t(show_name no)
+\t\t\t\t(do_not_autoplace no)
+\t\t\t\t(hide yes)
+\t\t\t\t(effects
+\t\t\t\t\t(font
+\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(property "Description" "5V 3A Step-Down Voltage Regulator, TO-263"
+\t\t\t\t(at 0 0 0)
+\t\t\t\t(show_name no)
+\t\t\t\t(do_not_autoplace no)
+\t\t\t\t(hide yes)
+\t\t\t\t(effects
+\t\t\t\t\t(font
+\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(property "ki_keywords" "Step-Down Voltage Regulator 5V 3A"
+\t\t\t\t(at 0 0 0)
+\t\t\t\t(show_name no)
+\t\t\t\t(do_not_autoplace no)
+\t\t\t\t(hide yes)
+\t\t\t\t(effects
+\t\t\t\t\t(font
+\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(property "ki_fp_filters" "TO?263*"
+\t\t\t\t(at 0 0 0)
+\t\t\t\t(show_name no)
+\t\t\t\t(do_not_autoplace no)
+\t\t\t\t(hide yes)
+\t\t\t\t(effects
+\t\t\t\t\t(font
+\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(symbol "LM2596S-5_0_1"
+\t\t\t\t(rectangle
+\t\t\t\t\t(start -10.16 5.08)
+\t\t\t\t\t(end 10.16 -5.08)
+\t\t\t\t\t(stroke
+\t\t\t\t\t\t(width 0.254)
+\t\t\t\t\t\t(type default)
+\t\t\t\t\t)
+\t\t\t\t\t(fill
+\t\t\t\t\t\t(type background)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(symbol "LM2596S-5_1_1"
+\t\t\t\t(pin power_in line
+\t\t\t\t\t(at -12.7 2.54 0)
+\t\t\t\t\t(length 2.54)
+\t\t\t\t\t(name "VIN"
+\t\t\t\t\t\t(effects
+\t\t\t\t\t\t\t(font
+\t\t\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t\t\t)
+\t\t\t\t\t\t)
+\t\t\t\t\t)
+\t\t\t\t\t(number "1"
+\t\t\t\t\t\t(effects
+\t\t\t\t\t\t\t(font
+\t\t\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t\t\t)
+\t\t\t\t\t\t)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t\t(pin output line
+\t\t\t\t\t(at 12.7 -2.54 180)
+\t\t\t\t\t(length 2.54)
+\t\t\t\t\t(name "OUT"
+\t\t\t\t\t\t(effects
+\t\t\t\t\t\t\t(font
+\t\t\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t\t\t)
+\t\t\t\t\t\t)
+\t\t\t\t\t)
+\t\t\t\t\t(number "2"
+\t\t\t\t\t\t(effects
+\t\t\t\t\t\t\t(font
+\t\t\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t\t\t)
+\t\t\t\t\t\t)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t\t(pin power_in line
+\t\t\t\t\t(at 0 -7.62 90)
+\t\t\t\t\t(length 2.54)
+\t\t\t\t\t(name "GND"
+\t\t\t\t\t\t(effects
+\t\t\t\t\t\t\t(font
+\t\t\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t\t\t)
+\t\t\t\t\t\t)
+\t\t\t\t\t)
+\t\t\t\t\t(number "3"
+\t\t\t\t\t\t(effects
+\t\t\t\t\t\t\t(font
+\t\t\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t\t\t)
+\t\t\t\t\t\t)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t\t(pin input line
+\t\t\t\t\t(at 12.7 2.54 180)
+\t\t\t\t\t(length 2.54)
+\t\t\t\t\t(name "FB"
+\t\t\t\t\t\t(effects
+\t\t\t\t\t\t\t(font
+\t\t\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t\t\t)
+\t\t\t\t\t\t)
+\t\t\t\t\t)
+\t\t\t\t\t(number "4"
+\t\t\t\t\t\t(effects
+\t\t\t\t\t\t\t(font
+\t\t\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t\t\t)
+\t\t\t\t\t\t)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t\t(pin input line
+\t\t\t\t\t(at -12.7 -2.54 0)
+\t\t\t\t\t(length 2.54)
+\t\t\t\t\t(name "~{ON}/OFF"
+\t\t\t\t\t\t(effects
+\t\t\t\t\t\t\t(font
+\t\t\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t\t\t)
+\t\t\t\t\t\t)
+\t\t\t\t\t)
+\t\t\t\t\t(number "5"
+\t\t\t\t\t\t(effects
+\t\t\t\t\t\t\t(font
+\t\t\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t\t\t)
+\t\t\t\t\t\t)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(embedded_fonts no)
 \t\t)"""
 
 
@@ -3181,8 +3856,301 @@ def _sch_capacitor(
         \t)""")
 
 
+def _sch_inductor(
+    x: float, y: float, angle: int, reference: str, value: str, uuid_tag: str,
+) -> str:
+    """Emit an inductor (Device:L) symbol instance.
+
+    With angle=0, lib pin positions map to schematic as:
+      Pin 1 (top):    (x, y - 3.81)
+      Pin 2 (bottom): (x, y + 3.81)
+
+    Reference text is placed to the LEFT of the body, value text to the RIGHT,
+    matching the stock symbol convention (Reference at lib (-1.27, 0, 90) and
+    Value at lib (1.905, 0, 90)). The property text-angle is set to 0 so the
+    labels render horizontal regardless of the symbol's rotation angle.
+    """
+    sym_uuid = U("sym:" + uuid_tag)
+    pin1_uuid = U("sym-pin:" + uuid_tag + "-1")
+    pin2_uuid = U("sym-pin:" + uuid_tag + "-2")
+    sheet_path = f"/{ROOT_SHEET_UUID}/{SHEET_BLOCK_UUIDS['power']}"
+    return textwrap.dedent(f"""\
+        \t(symbol
+        \t\t(lib_id "Device:L")
+        \t\t(at {fmt(x)} {fmt(y)} {angle})
+        \t\t(unit 1)
+        \t\t(exclude_from_sim no)
+        \t\t(in_bom yes)
+        \t\t(on_board yes)
+        \t\t(dnp no)
+        \t\t(fields_autoplaced yes)
+        \t\t(uuid "{sym_uuid}")
+        \t\t(property "Reference" "{reference}"
+        \t\t\t(at {fmt(x - 2.54)} {fmt(y - 1.27)} 0)
+        \t\t\t(effects
+        \t\t\t\t(font
+        \t\t\t\t\t(size 1.27 1.27)
+        \t\t\t\t)
+        \t\t\t\t(justify right)
+        \t\t\t)
+        \t\t)
+        \t\t(property "Value" "{value}"
+        \t\t\t(at {fmt(x + 2.54)} {fmt(y - 1.27)} 0)
+        \t\t\t(effects
+        \t\t\t\t(font
+        \t\t\t\t\t(size 1.27 1.27)
+        \t\t\t\t)
+        \t\t\t\t(justify left)
+        \t\t\t)
+        \t\t)
+        \t\t(property "Footprint" ""
+        \t\t\t(at {fmt(x)} {fmt(y)} 0)
+        \t\t\t(effects
+        \t\t\t\t(font
+        \t\t\t\t\t(size 1.27 1.27)
+        \t\t\t\t)
+        \t\t\t\t(hide yes)
+        \t\t\t)
+        \t\t)
+        \t\t(property "Datasheet" ""
+        \t\t\t(at {fmt(x)} {fmt(y)} 0)
+        \t\t\t(effects
+        \t\t\t\t(font
+        \t\t\t\t\t(size 1.27 1.27)
+        \t\t\t\t)
+        \t\t\t\t(hide yes)
+        \t\t\t)
+        \t\t)
+        \t\t(property "Description" ""
+        \t\t\t(at {fmt(x)} {fmt(y)} 0)
+        \t\t\t(effects
+        \t\t\t\t(font
+        \t\t\t\t\t(size 1.27 1.27)
+        \t\t\t\t)
+        \t\t\t\t(hide yes)
+        \t\t\t)
+        \t\t)
+        \t\t(pin "1"
+        \t\t\t(uuid "{pin1_uuid}")
+        \t\t)
+        \t\t(pin "2"
+        \t\t\t(uuid "{pin2_uuid}")
+        \t\t)
+        \t\t(instances
+        \t\t\t(project "oas"
+        \t\t\t\t(path "{sheet_path}"
+        \t\t\t\t\t(reference "{reference}")
+        \t\t\t\t\t(unit 1)
+        \t\t\t\t)
+        \t\t\t)
+        \t\t)
+        \t)""")
+
+
+def _sch_diode_schottky(
+    x: float, y: float, angle: int, reference: str, value: str, uuid_tag: str,
+) -> str:
+    """Emit a Schottky diode (Device:D_Schottky) symbol instance.
+
+    Pin 1 in the stock symbol is the cathode K (lib (-3.81, 0)), pin 2 is the
+    anode A (lib (3.81, 0)). With angle=270 (CW 90° rotation in schematic
+    Y-flipped coords), lib pin positions map to schematic as:
+      Pin 1 K (top, cathode): (x, y - 3.81)
+      Pin 2 A (bottom, anode): (x, y + 3.81)
+
+    This is the standard catch-diode orientation for a buck converter — the
+    cathode faces UP toward the switch node, the anode faces DOWN to GND.
+
+    Reference text is placed to the right of the body, value text below it
+    on the same side. The property at-angle is set to 0 so labels render
+    horizontal regardless of symbol rotation.
+    """
+    sym_uuid = U("sym:" + uuid_tag)
+    pin1_uuid = U("sym-pin:" + uuid_tag + "-1")
+    pin2_uuid = U("sym-pin:" + uuid_tag + "-2")
+    sheet_path = f"/{ROOT_SHEET_UUID}/{SHEET_BLOCK_UUIDS['power']}"
+    text_angle = (-angle) % 360
+    return textwrap.dedent(f"""\
+        \t(symbol
+        \t\t(lib_id "Device:D_Schottky")
+        \t\t(at {fmt(x)} {fmt(y)} {angle})
+        \t\t(unit 1)
+        \t\t(exclude_from_sim no)
+        \t\t(in_bom yes)
+        \t\t(on_board yes)
+        \t\t(dnp no)
+        \t\t(fields_autoplaced no)
+        \t\t(uuid "{sym_uuid}")
+        \t\t(property "Reference" "{reference}"
+        \t\t\t(at {fmt(x + 3.81)} {fmt(y - 1.27)} {text_angle})
+        \t\t\t(effects
+        \t\t\t\t(font
+        \t\t\t\t\t(size 1.27 1.27)
+        \t\t\t\t)
+        \t\t\t\t(justify left)
+        \t\t\t)
+        \t\t)
+        \t\t(property "Value" "{value}"
+        \t\t\t(at {fmt(x + 3.81)} {fmt(y + 1.27)} {text_angle})
+        \t\t\t(effects
+        \t\t\t\t(font
+        \t\t\t\t\t(size 1.27 1.27)
+        \t\t\t\t)
+        \t\t\t\t(justify left)
+        \t\t\t)
+        \t\t)
+        \t\t(property "Footprint" ""
+        \t\t\t(at {fmt(x)} {fmt(y)} 0)
+        \t\t\t(effects
+        \t\t\t\t(font
+        \t\t\t\t\t(size 1.27 1.27)
+        \t\t\t\t)
+        \t\t\t\t(hide yes)
+        \t\t\t)
+        \t\t)
+        \t\t(property "Datasheet" ""
+        \t\t\t(at {fmt(x)} {fmt(y)} 0)
+        \t\t\t(effects
+        \t\t\t\t(font
+        \t\t\t\t\t(size 1.27 1.27)
+        \t\t\t\t)
+        \t\t\t\t(hide yes)
+        \t\t\t)
+        \t\t)
+        \t\t(property "Description" ""
+        \t\t\t(at {fmt(x)} {fmt(y)} 0)
+        \t\t\t(effects
+        \t\t\t\t(font
+        \t\t\t\t\t(size 1.27 1.27)
+        \t\t\t\t)
+        \t\t\t\t(hide yes)
+        \t\t\t)
+        \t\t)
+        \t\t(pin "1"
+        \t\t\t(uuid "{pin1_uuid}")
+        \t\t)
+        \t\t(pin "2"
+        \t\t\t(uuid "{pin2_uuid}")
+        \t\t)
+        \t\t(instances
+        \t\t\t(project "oas"
+        \t\t\t\t(path "{sheet_path}"
+        \t\t\t\t\t(reference "{reference}")
+        \t\t\t\t\t(unit 1)
+        \t\t\t\t)
+        \t\t\t)
+        \t\t)
+        \t)""")
+
+
+def _sch_buck_lm2596_5(
+    x: float, y: float, angle: int, reference: str, value: str, uuid_tag: str,
+) -> str:
+    """Emit a LM2596S-5 buck regulator symbol instance.
+
+    With angle=0 (no rotation), lib pin positions map to schematic as:
+      Pin 1 VIN     (left, top):    (x - 12.7, y - 2.54)
+      Pin 2 OUT     (right, bot):   (x + 12.7, y + 2.54)
+      Pin 3 GND     (centre, bot):  (x,        y + 7.62)
+      Pin 4 FB      (right, top):   (x + 12.7, y - 2.54)
+      Pin 5 ON/OFF  (left, bot):    (x - 12.7, y + 2.54)
+
+    The symbol body is a rectangle (lib -10.16, -5.08) to (10.16, 5.08) — i.e.
+    20.32 mm wide × 10.16 mm tall on the schematic.
+    """
+    sym_uuid = U("sym:" + uuid_tag)
+    pin1_uuid = U("sym-pin:" + uuid_tag + "-1")
+    pin2_uuid = U("sym-pin:" + uuid_tag + "-2")
+    pin3_uuid = U("sym-pin:" + uuid_tag + "-3")
+    pin4_uuid = U("sym-pin:" + uuid_tag + "-4")
+    pin5_uuid = U("sym-pin:" + uuid_tag + "-5")
+    sheet_path = f"/{ROOT_SHEET_UUID}/{SHEET_BLOCK_UUIDS['power']}"
+    return textwrap.dedent(f"""\
+        \t(symbol
+        \t\t(lib_id "Regulator_Switching:LM2596S-5")
+        \t\t(at {fmt(x)} {fmt(y)} {angle})
+        \t\t(unit 1)
+        \t\t(exclude_from_sim no)
+        \t\t(in_bom yes)
+        \t\t(on_board yes)
+        \t\t(dnp no)
+        \t\t(fields_autoplaced yes)
+        \t\t(uuid "{sym_uuid}")
+        \t\t(property "Reference" "{reference}"
+        \t\t\t(at {fmt(x - 10.16)} {fmt(y - 6.35)} 0)
+        \t\t\t(effects
+        \t\t\t\t(font
+        \t\t\t\t\t(size 1.27 1.27)
+        \t\t\t\t)
+        \t\t\t\t(justify left)
+        \t\t\t)
+        \t\t)
+        \t\t(property "Value" "{value}"
+        \t\t\t(at {fmt(x)} {fmt(y - 6.35)} 0)
+        \t\t\t(effects
+        \t\t\t\t(font
+        \t\t\t\t\t(size 1.27 1.27)
+        \t\t\t\t)
+        \t\t\t\t(justify left)
+        \t\t\t)
+        \t\t)
+        \t\t(property "Footprint" "Package_TO_SOT_SMD:TO-263-5_TabPin3"
+        \t\t\t(at {fmt(x + 1.27)} {fmt(y + 6.35)} 0)
+        \t\t\t(effects
+        \t\t\t\t(font
+        \t\t\t\t\t(size 1.27 1.27)
+        \t\t\t\t\t(italic yes)
+        \t\t\t\t)
+        \t\t\t\t(justify left)
+        \t\t\t\t(hide yes)
+        \t\t\t)
+        \t\t)
+        \t\t(property "Datasheet" "http://www.ti.com/lit/ds/symlink/lm2596.pdf"
+        \t\t\t(at {fmt(x)} {fmt(y)} 0)
+        \t\t\t(effects
+        \t\t\t\t(font
+        \t\t\t\t\t(size 1.27 1.27)
+        \t\t\t\t)
+        \t\t\t\t(hide yes)
+        \t\t\t)
+        \t\t)
+        \t\t(property "Description" ""
+        \t\t\t(at {fmt(x)} {fmt(y)} 0)
+        \t\t\t(effects
+        \t\t\t\t(font
+        \t\t\t\t\t(size 1.27 1.27)
+        \t\t\t\t)
+        \t\t\t\t(hide yes)
+        \t\t\t)
+        \t\t)
+        \t\t(pin "1"
+        \t\t\t(uuid "{pin1_uuid}")
+        \t\t)
+        \t\t(pin "2"
+        \t\t\t(uuid "{pin2_uuid}")
+        \t\t)
+        \t\t(pin "3"
+        \t\t\t(uuid "{pin3_uuid}")
+        \t\t)
+        \t\t(pin "4"
+        \t\t\t(uuid "{pin4_uuid}")
+        \t\t)
+        \t\t(pin "5"
+        \t\t\t(uuid "{pin5_uuid}")
+        \t\t)
+        \t\t(instances
+        \t\t\t(project "oas"
+        \t\t\t\t(path "{sheet_path}"
+        \t\t\t\t\t(reference "{reference}")
+        \t\t\t\t\t(unit 1)
+        \t\t\t\t)
+        \t\t\t)
+        \t\t)
+        \t)""")
+
+
 def gen_power_sch() -> str:
-    """Power sub-sheet — J1 input + D1 surge clamp + Q1 reverse-polarity + R1 pulldown + F1 polyfuse + C1/C2 caps.
+    """Power sub-sheet — J1 input + D1 surge clamp + Q1 reverse-polarity + R1 pulldown + F1 polyfuse + C1/C2 caps + U1 24V->5V buck.
 
     Power flow runs LEFT-TO-RIGHT and UPWARD on screen:
 
@@ -3713,6 +4681,337 @@ def gen_power_sch() -> str:
     # global net and FLG02 (on J1.2's drop) already supplies the "power
     # source" marker for ERC. Adding a second PWR_FLAG on the same GND net
     # would create a "Power output to Power output" connection error.
+
+    # =========================================================================
+    # 24V -> 5V buck converter block (U1 LM2596S-5.0 + L1 + D2 + C3/C3b/C4/C4b)
+    # =========================================================================
+    # First active block in the power section. Takes the protected +24V rail
+    # (downstream of F1 / C1) and produces a regulated 5V output that powers
+    # the LD2410 mmWave radar (~80 mA) and the WS2812 status LED (~60 mA
+    # white-bright) — total ~140 mA, well below the LM2596's 3 A rating.
+    #
+    # Component selection rationale (see commit message and CLAUDE.md):
+    #   * LM2596S-5.0  : 40 V Vin_max, fixed 5 V output, 3 A, 150 kHz, TO-263.
+    #                    The 40 V rating is the binding constraint — it
+    #                    matches D1 (SMBJ24A) which clamps surges at 38.9 V.
+    #                    Lower-rated bucks (TPS62933 17V, MP2451 26V,
+    #                    TPS54302 28V) would not survive a clamped surge.
+    #                    Fixed-output variant eliminates the FB resistor
+    #                    divider (one fewer place for a layout error).
+    #   * L1 33 uH    : Standard inductor value from the LM2596 datasheet
+    #                    typical-application table for 5 V output at 150 kHz.
+    #                    Shielded ferrite-core part with >=1 A saturation and
+    #                    low DCR (<100 mOhm) keeps EMI and conduction loss low.
+    #   * D2 SS14     : 40 V / 1 A Schottky catch diode. LM2596 is an
+    #                    ASYNCHRONOUS switcher — there is no internal
+    #                    high-side flyback diode, so an external Schottky is
+    #                    MANDATORY. SOD-123 or DO-214AC package, JLCPCB Basic.
+    #   * C3 100uF/50V + C3b 100 nF : input bulk + HF bypass at U1.VIN.
+    #                    50 V rating gives margin over the 24 V nominal AND
+    #                    the 38.9 V SMBJ24A clamp voltage.
+    #   * C4 220uF/10V + C4b 100 nF : output bulk + HF bypass at the +5V rail.
+    #                    10 V rating gives 2x margin over 5 V; 220 uF is the
+    #                    LM2596 datasheet recommendation for low output ripple.
+    #
+    # ON/OFF pin (pin 5, active-LOW) is tied to GND for always-on operation —
+    # the buck has no shutdown / sleep mode in OAS. The U1 thermal pad will
+    # need a copper pour to GND on the PCB (handled in the PCB-layout chunk).
+    #
+    # Layout (page-absolute mm, KiCad +Y is down on screen):
+    #
+    #                                              +5V flag (top-right corner)
+    #                                              |
+    #                                              ◊ PWR_FLAG_5V
+    #                                              |
+    #            FB ↑   +5V bus ─────── L1 ─── C4 ─── C4b ─┴── (to flag)
+    #            |                |             |     |
+    #     +24V bus extension      |             GND   GND
+    #     ────────── C3 ── C3b ── U1.VIN     U1.OUT ── switch node
+    #                  |     |    (LM2596S-5)   |
+    #                  GND  GND                 |
+    #                       U1.ON/OFF=GND       D2 (catch)
+    #                       U1.GND=GND          |
+    #                                           D2.A=GND
+    #
+    # The buck block sits far to the right of the existing power section.
+    # U1 anchor at X=177.8 — 35.56 mm (= 4 grid steps of 8.89 mm = 7×1.27 mm)
+    # to the right of C1's column (X=142.24). The wide horizontal gap leaves
+    # room for C1's "100uF 50V" value text, then a clean run of +24V bus
+    # heading east to the buck input.
+
+    # ----- U1: LM2596S-5.0 buck regulator -----
+    # Anchor Y chosen so that U1.VIN (lib (-12.7, +2.54)) lands exactly on the
+    # +24V bus Y row (72.39). With Y_U1=74.93: VIN at 74.93-2.54 = 72.39 ✓.
+    # Body rectangle spans schematic Y=[69.85, 80.01], X=[190.50, 210.82].
+    # X chosen far enough right of C1, C3, C3b for cap value labels
+    # ("100uF 50V" ~ 11.4 mm wide on screen) to never overlap U1 body.
+    U1_X = 200.66
+    U1_Y = 74.93
+    U1_VIN_X    = U1_X - 12.7     # 187.96
+    U1_VIN_Y    = U1_Y - 2.54     # 72.39 — matches +24V bus row
+    U1_OUT_X    = U1_X + 12.7     # 213.36
+    U1_OUT_Y    = U1_Y + 2.54     # 77.47 — switch node row
+    U1_GND_X    = U1_X            # 200.66
+    U1_GND_Y    = U1_Y + 7.62     # 82.55
+    U1_FB_X     = U1_X + 12.7     # 213.36
+    U1_FB_Y     = U1_Y - 2.54     # 72.39
+    U1_ONOFF_X  = U1_X - 12.7     # 187.96
+    U1_ONOFF_Y  = U1_Y + 2.54     # 77.47 — same row as OUT
+
+    # ----- C3: input bulk electrolytic, 100uF 50V, angle=0 -----
+    # Pin 1 (top, anode +) on +24V bus, pin 2 (bottom) to GND. Placed between
+    # C1 (X=142.24) and U1.VIN (X=187.96). Spacing of 17.78 mm to C1 and
+    # 15.24 mm to C3b leaves clear gaps between adjacent caps' value-text
+    # labels ("100uF 50V" renders ~11.4 mm wide at size 1.27).
+    C3_X = 160.02
+    C3_Y = 76.20
+    C3_TOP_Y = C3_Y - 3.81        # 72.39 — on +24V bus
+    C3_BOT_Y = C3_Y + 3.81        # 80.01
+    C3_GND_Y = 82.55              # GND symbol anchor, 2.54 below cap.bot
+
+    # ----- C3b: input HF ceramic bypass, 100nF, angle=0 -----
+    C3b_X = 175.26
+    C3b_Y = 76.20
+    C3b_TOP_Y = C3b_Y - 3.81      # 72.39 — on +24V bus
+    C3b_BOT_Y = C3b_Y + 3.81      # 80.01
+    C3b_GND_Y = 82.55
+
+    # ----- Switch node and L1 (33 uH shielded, vertical, angle=0) -----
+    # Switch node row = U1.OUT row = Y=77.47. L1 vertical with bot pin on the
+    # switch node, top pin on the +5V output bus. L1.bot at Y=74.93 sits
+    # 2.54 mm ABOVE the switch node row, so a short vertical wire connects
+    # them. L1.top at Y=67.31 = +5V bus row, 2.54 mm ABOVE U1's body top edge
+    # (Y=69.85) for clear visual separation from the LM2596 rectangle.
+    L1_X = 223.52
+    L1_Y = 71.12
+    L1_TOP_Y = L1_Y - 3.81        # 67.31 — on +5V bus
+    L1_BOT_Y = L1_Y + 3.81        # 74.93 — 2.54 above switch node row
+
+    # ----- D2: SS14 Schottky catch diode, angle=270 (K top, A bottom) -----
+    # Sits between U1.OUT and L1.bot on the switch node horizontal. With
+    # angle=270 the cathode (pin 1) is at the TOP (Y - 3.81) facing the
+    # switch node, and the anode (pin 2) is at the BOTTOM (Y + 3.81) heading
+    # to GND. This is the standard buck catch-diode orientation: when the
+    # high-side switch in U1 turns off, L1's flyback current circulates from
+    # GND through D2 forward-biased into the switch node, holding it ~0.4 V
+    # below GND rather than rising arbitrarily.
+    D2_X = 218.44
+    D2_Y = 81.28
+    D2_K_Y = D2_Y - 3.81          # 77.47 — on switch node row
+    D2_A_Y = D2_Y + 3.81          # 85.09
+    D2_GND_Y = 88.90              # GND symbol anchor, 3.81 below D2.A
+
+    # ----- +5V output caps -----
+    # C4 (polarized, 220uF/10V) and C4b (ceramic, 100nF) tap the +5V bus to
+    # GND on the OUTPUT side of L1. Pin 1 (top, anode +) on +5V bus, pin 2
+    # (bottom) to GND. Column spacing of 15.24 mm (C4↔L1, C4b↔C4) keeps the
+    # "220uF 10V" / "100nF" value-text labels clear of neighbouring caps'
+    # references.
+    C4_X = 238.76
+    C4_Y = 71.12
+    C4_TOP_Y = C4_Y - 3.81        # 67.31 — on +5V bus
+    C4_BOT_Y = C4_Y + 3.81        # 74.93
+    C4_GND_Y = 77.47
+
+    C4b_X = 254.00
+    C4b_Y = 71.12
+    C4b_TOP_Y = C4b_Y - 3.81      # 67.31 — on +5V bus
+    C4b_BOT_Y = C4b_Y + 3.81      # 74.93
+    C4b_GND_Y = 77.47
+
+    # ----- +5V flag and PWR_FLAG sentinel -----
+    # Column = C4b column (254.00). The flag stack lifts above the +5V bus
+    # at Y=67.31: PWR_FLAG sentinel midway, +5V triangle at top-right Y=62.23
+    # for visual alignment with the existing +24V flag (also at Y=62.23, far
+    # to the left).
+    COL_5V       = C4b_X          # 254.00
+    Y_5V_BUS     = 67.31          # +5V bus row (above U1 body top edge Y=69.85)
+    JUNC_5V_Y    = 64.77          # PWR_FLAG sentinel on the vertical to flag
+    FLAG_5V_Y    = 62.23          # +5V triangle, same Y as +24V flag
+
+    # ----- Buck-block wires -----
+    # +24V bus extension from C1.top (142.24, 72.39) RIGHT to U1.VIN
+    # (165.10, 72.39). Single wire segment; junctions added at C3.top and
+    # C3b.top tap points, and at the (now 3-way) C1.top corner.
+    parts.append(_sch_wire(C1_X, F1_TOP_Y, U1_VIN_X, U1_VIN_Y, "vin-c1-to-u1"))
+
+    # C3.bot → C3-GND
+    parts.append(_sch_wire(C3_X, C3_BOT_Y, C3_X, C3_GND_Y, "c3bot-to-gnd"))
+    # C3b.bot → C3b-GND
+    parts.append(_sch_wire(C3b_X, C3b_BOT_Y, C3b_X, C3b_GND_Y, "c3bbot-to-gnd"))
+
+    # U1.ON/OFF pin (pin 5, active-LOW) → local GND symbol. Always-on operation.
+    U1_ONOFF_GND_Y = 82.55         # GND symbol below ON/OFF pin
+    parts.append(_sch_wire(U1_ONOFF_X, U1_ONOFF_Y, U1_ONOFF_X, U1_ONOFF_GND_Y, "u1onoff-to-gnd"))
+    # U1.GND (pin 3, centre-bottom) → local GND symbol below
+    U1_GND_SYM_Y = 86.36           # GND symbol 3.81 below U1.GND pin
+    parts.append(_sch_wire(U1_GND_X, U1_GND_Y, U1_GND_X, U1_GND_SYM_Y, "u1gnd-to-gndsym"))
+
+    # Switch node horizontal: U1.OUT (X=U1_OUT_X) → L1.bot column (X=L1_X).
+    # D2.K's pin tip lands on this wire at (D2_X, U1_OUT_Y) — a junction dot
+    # marks the T-connection.
+    parts.append(_sch_wire(U1_OUT_X, U1_OUT_Y, L1_X, U1_OUT_Y, "u1out-switch-horiz"))
+    # Short vertical from switch node row up to L1.bot pin.
+    parts.append(_sch_wire(L1_X, U1_OUT_Y, L1_X, L1_BOT_Y, "switch-to-l1bot"))
+
+    # D2.A (anode, bottom) → D2-GND symbol
+    parts.append(_sch_wire(D2_X, D2_A_Y, D2_X, D2_GND_Y, "d2a-to-gnd"))
+
+    # FB (pin 4) → +5V bus: short vertical hop UP from FB pin to the +5V row.
+    parts.append(_sch_wire(U1_FB_X, U1_FB_Y, U1_FB_X, Y_5V_BUS, "fb-to-5v-bus"))
+
+    # +5V bus horizontal from FB column (190.50) RIGHT through L1.top, C4.top,
+    # C4b.top — a single wire segment with junctions at the tap points.
+    parts.append(_sch_wire(U1_FB_X, Y_5V_BUS, COL_5V, Y_5V_BUS, "5v-bus"))
+
+    # C4.bot → C4-GND
+    parts.append(_sch_wire(C4_X, C4_BOT_Y, C4_X, C4_GND_Y, "c4bot-to-gnd"))
+    # C4b.bot → C4b-GND
+    parts.append(_sch_wire(C4b_X, C4b_BOT_Y, C4b_X, C4b_GND_Y, "c4bbot-to-gnd"))
+
+    # +5V bus terminus → PWR_FLAG sentinel column upward, then to +5V flag.
+    parts.append(_sch_wire(COL_5V, Y_5V_BUS, COL_5V, JUNC_5V_Y, "5v-bus-to-junc"))
+    parts.append(_sch_wire(COL_5V, JUNC_5V_Y, COL_5V, FLAG_5V_Y, "5v-junc-to-flag"))
+
+    # ----- Buck-block junctions -----
+    # C1.top is now a 3-way: existing f1-to-c1 enters from left, NEW
+    # vin-c1-to-u1 exits right, C1's body pin drops down.
+    parts.append(_sch_junction(C1_X, F1_TOP_Y, "vin-c1-extended"))
+    # C3.top tap on +24V bus.
+    parts.append(_sch_junction(C3_X, C3_TOP_Y, "24v-c3"))
+    # C3b.top tap on +24V bus.
+    parts.append(_sch_junction(C3b_X, C3b_TOP_Y, "24v-c3b"))
+    # D2.K tap on switch node.
+    parts.append(_sch_junction(D2_X, U1_OUT_Y, "switch-d2"))
+    # L1.top tap on +5V bus.
+    parts.append(_sch_junction(L1_X, Y_5V_BUS, "5v-l1"))
+    # C4.top tap on +5V bus.
+    parts.append(_sch_junction(C4_X, Y_5V_BUS, "5v-c4"))
+    # C4b.top + bus terminus + vertical to PWR_FLAG: 3-way.
+    parts.append(_sch_junction(COL_5V, Y_5V_BUS, "5v-c4b"))
+    # PWR_FLAG sentinel position on the vertical to the +5V flag.
+    parts.append(_sch_junction(COL_5V, JUNC_5V_Y, "5v"))
+
+    # ----- U1: LM2596S-5.0 -----
+    parts.append(_sch_buck_lm2596_5(
+        x=U1_X, y=U1_Y, angle=0,
+        reference="U1", value="LM2596S-5.0", uuid_tag="u1",
+    ))
+
+    # ----- L1: 33 uH shielded inductor, 1 A sat, low DCR -----
+    parts.append(_sch_inductor(
+        x=L1_X, y=L1_Y, angle=0,
+        reference="L1", value="33uH 1A", uuid_tag="l1",
+    ))
+
+    # ----- D2: SS14 Schottky catch diode -----
+    parts.append(_sch_diode_schottky(
+        x=D2_X, y=D2_Y, angle=270,
+        reference="D2", value="SS14", uuid_tag="d2",
+    ))
+
+    # ----- C3: input bulk electrolytic, 100 uF / 50 V -----
+    parts.append(_sch_capacitor(
+        lib_id="Device:C_Polarized",
+        x=C3_X, y=C3_Y, angle=0,
+        reference="C3", value="100uF 50V", uuid_tag="c3",
+    ))
+
+    # ----- C3b: input HF ceramic bypass, 100 nF -----
+    parts.append(_sch_capacitor(
+        lib_id="Device:C",
+        x=C3b_X, y=C3b_Y, angle=0,
+        reference="C3b", value="100nF", uuid_tag="c3b",
+    ))
+
+    # ----- C4: output bulk electrolytic, 220 uF / 10 V -----
+    parts.append(_sch_capacitor(
+        lib_id="Device:C_Polarized",
+        x=C4_X, y=C4_Y, angle=0,
+        reference="C4", value="220uF 10V", uuid_tag="c4",
+    ))
+
+    # ----- C4b: output HF ceramic bypass, 100 nF -----
+    parts.append(_sch_capacitor(
+        lib_id="Device:C",
+        x=C4b_X, y=C4b_Y, angle=0,
+        reference="C4b", value="100nF", uuid_tag="c4b",
+    ))
+
+    # ----- Local GND symbols around U1 / inductor / caps -----
+    # Each GND symbol creates a global-label drop to the GND net. No PWR_FLAG
+    # sentinel on any of these — FLG02 (on J1.2's drop) already supplies the
+    # ERC power-source marker for the GND net.
+    parts.append(_sch_power_flag(
+        lib_id="power:GND", value="GND",
+        x=C3_X, y=C3_GND_Y, angle=0,
+        reference="#PWR07",
+        value_offset_x=0.0, value_offset_y=3.81,
+        uuid_tag="pwr07-gnd-c3",
+    ))
+    parts.append(_sch_power_flag(
+        lib_id="power:GND", value="GND",
+        x=C3b_X, y=C3b_GND_Y, angle=0,
+        reference="#PWR08",
+        value_offset_x=0.0, value_offset_y=3.81,
+        uuid_tag="pwr08-gnd-c3b",
+    ))
+    parts.append(_sch_power_flag(
+        lib_id="power:GND", value="GND",
+        x=U1_ONOFF_X, y=U1_ONOFF_GND_Y, angle=0,
+        reference="#PWR09",
+        value_offset_x=0.0, value_offset_y=3.81,
+        uuid_tag="pwr09-gnd-u1onoff",
+    ))
+    parts.append(_sch_power_flag(
+        lib_id="power:GND", value="GND",
+        x=U1_GND_X, y=U1_GND_SYM_Y, angle=0,
+        reference="#PWR10",
+        value_offset_x=0.0, value_offset_y=3.81,
+        uuid_tag="pwr10-gnd-u1",
+    ))
+    parts.append(_sch_power_flag(
+        lib_id="power:GND", value="GND",
+        x=D2_X, y=D2_GND_Y, angle=0,
+        reference="#PWR11",
+        value_offset_x=0.0, value_offset_y=3.81,
+        uuid_tag="pwr11-gnd-d2",
+    ))
+    parts.append(_sch_power_flag(
+        lib_id="power:GND", value="GND",
+        x=C4_X, y=C4_GND_Y, angle=0,
+        reference="#PWR12",
+        value_offset_x=0.0, value_offset_y=3.81,
+        uuid_tag="pwr12-gnd-c4",
+    ))
+    parts.append(_sch_power_flag(
+        lib_id="power:GND", value="GND",
+        x=C4b_X, y=C4b_GND_Y, angle=0,
+        reference="#PWR13",
+        value_offset_x=0.0, value_offset_y=3.81,
+        uuid_tag="pwr13-gnd-c4b",
+    ))
+
+    # ----- +5V flag at top-right of the buck block -----
+    parts.append(_sch_power_flag(
+        lib_id="power:+5V", value="+5V",
+        x=COL_5V, y=FLAG_5V_Y, angle=0,
+        reference="#PWR14",
+        value_offset_x=0.0, value_offset_y=-3.556,
+        uuid_tag="pwr14-5v",
+    ))
+
+    # ----- PWR_FLAG sentinel on the new +5V net -----
+    # Without this, ERC would error "Input Power pin not driven by any Output
+    # Power pins" on the +5V net — the LM2596's OUT pin is an `output` (not
+    # `power_out`) so it doesn't count as a power source for the ERC check.
+    parts.append(_sch_power_flag(
+        lib_id="power:PWR_FLAG", value="PWR_FLAG",
+        x=COL_5V, y=JUNC_5V_Y, angle=0,
+        reference="#FLG04",
+        value_offset_x=PF_TEXT_OFFSET, value_offset_y=-2.54,
+        uuid_tag="flg04-5v",
+    ))
 
     body = "\n".join(parts)
     return textwrap.dedent(f"""\
