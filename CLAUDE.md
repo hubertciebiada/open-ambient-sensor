@@ -111,8 +111,9 @@ Additional features:
 - Manufacturer-supplied DXF and datasheet are **third-party files**, **not committed to this repo** (see Rule 6 below). Obtain directly from SZOMK. Keep locally under `hardware/case/` (gitignored).
 - Derived dimensions (used in KiCad and documentation, which are own work):
   - PCB: **Ø120 mm D-shape** (arc R=60 mm), flat chord **82.65 mm** along the bottom edge (chord Y from centre ≈ 43.50 mm; full precision 82.6545 mm in `generate.py`)
-  - 3× M3 mounting holes (Ø3.8 mm) on **pitch circle Ø110 mm**, trójkąt równoboczny with one hole opposite the chord
+  - 3× M3 mounting holes (Ø3.8 mm, **NPTH**) on **pitch circle Ø110 mm**, trójkąt równoboczny with one hole opposite the chord (NPTH: screws go into plastic bosses, no metal chassis bonding)
   - Hole positions (origin = centre of PCB outline): (±47.631, +27.500) and (0, −55.000)
+  - **Cable pass-through hole** Ø12 mm at PCB centre on `Edge.Cuts` — 24 V power enters from the rear of the case (electrical wall box behind the unit), passes through the PCB, terminates at a front-side terminal block. Sized for 3× 1.5 mm² conductors. Bare 24 V conductors stay inside the case (inaccessible from outside)
 - **HARD LIMIT: max 17 mm component height on front, 3 mm on back** (back side is solder fillets only)
 
 ### Module list (preliminary)

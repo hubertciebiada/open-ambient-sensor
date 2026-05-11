@@ -45,7 +45,8 @@ Pull-ups: **4.7 kΩ on the MCU side**.
 ## Thermal / layout strategy
 
 - **PCB outline:** Ø120 mm D-shape, flat chord 82.65 mm on the bottom edge (arc R=60 mm; full precision 82.6545 mm from manufacturer DXF)
-- **Mounting:** 3× M3 holes (Ø3.8 mm) on pitch circle Ø110 mm, trójkąt równoboczny, one hole opposite the chord
+- **Mounting:** 3× M3 holes (Ø3.8 mm, NPTH) on pitch circle Ø110 mm, trójkąt równoboczny, one hole opposite the chord. NPTH because the screws go into plastic bosses
+- **Cable entry:** Ø12 mm circular cut-out at PCB centre for 24 V power (3× 1.5 mm² conductors). Wires enter from the rear of the enclosure (behind the unit, from an electrical wall box) and reach a terminal block mounted on the front side of the PCB. The bare conductors stay enclosed within the case
 - **Front-side component-height limit:** 17 mm (per manufacturer DXF)
 - **Back-side limit:** 3 mm — solder fillets only, no components (per manufacturer DXF)
 - **Orientation:** flat chord on the bottom; sensor zone (VEML7700, SEN66 inlet path) is below the electronics, so natural convection lifts heat upward and away from the air intake

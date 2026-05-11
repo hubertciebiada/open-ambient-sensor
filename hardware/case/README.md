@@ -32,7 +32,8 @@ Measured from the manufacturer DXF and copied into our own KiCad board outline (
 
 - **PCB outline:** Ø120 mm D-shape (arc R=60 mm)
 - **Flat chord:** 82.65 mm along the bottom edge (full precision 82.6545 mm from DXF line measurement; chord Y from centre = 43.498 mm)
-- **Mounting holes:** 3× M3 (Ø3.8 mm) on **pitch circle Ø110 mm** (R=55 mm), trójkąt równoboczny with one hole opposite the chord
+- **Mounting holes:** 3× M3 (Ø3.8 mm, **NPTH**) on **pitch circle Ø110 mm** (R=55 mm), trójkąt równoboczny with one hole opposite the chord. NPTH because the screws thread into plastic bosses in the AK-N-94 — no metal chassis to bond to, so a copper pad would just be floating copper.
+- **Cable pass-through:** Ø12 mm hole in the geometric centre of the PCB (origin). 24 V power (and optional PE) wires enter the case from the rear (electrical box behind the unit), pass through this hole, and terminate at a terminal block mounted on the front side of the PCB. Sized for 3× 1.5 mm² conductors (e.g. YDY 3×1.5, outer Ø ≈ 8–9 mm) with margin. Keeping the wire entry inside the PCB outline shields the bare conductors — they are inaccessible from outside the enclosure.
 - Hole positions (origin = centre of the PCB outline):
   - H1: (+47.631, +27.500) — bottom-right (near chord)
   - H2: (−47.631, +27.500) — bottom-left (near chord)

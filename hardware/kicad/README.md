@@ -16,10 +16,11 @@ When KiCad opens the PCB the first time it may ask you to migrate the project �
 ## What's already in `oas.kicad_pcb`
 
 - **Board outline on `Edge.Cuts`:** Ø120 mm circular arc (R=60 mm) + flat chord 82.65 mm (precise: 82.6545 mm from the DXF). Origin (0, 0) is the centre of the circle. The flat chord sits at Y≈+43.50 — in KiCad's coordinate convention (Y grows downward on screen), that's the visual **bottom** of the board.
-- **3× M3 mounting holes**: Ø3.8 mm drill, Ø6.5 mm annular pad on F.Cu/B.Cu, on a pitch circle Ø110 mm. Positions:
+- **3× M3 mounting holes (NPTH)**: Ø3.8 mm drill, no copper pad, on a pitch circle Ø110 mm. Positions:
   - H1: (+47.631, +27.500) — bottom-right
   - H2: (−47.631, +27.500) — bottom-left
   - H3: (0, −55.000) — top (opposite the chord)
+- **Cable pass-through hole**: Ø12 mm circular cut-out on `Edge.Cuts` at the PCB centre (origin) — 24 V power wires enter from the rear of the case, pass through to a terminal block on the front side. Sized for 3× 1.5 mm² conductors with margin.
 - **5× connector cutout keepout zones** on F.Cu + B.Cu blocking tracks, vias, pads, copperpour and footprints — one per case-wall cutout. See [`../case/README.md`](../case/README.md#connector-cutouts-in-the-case-wall-along-the-flat-chord) for the exact dimensions.
 - **5× rectangle markers on `Dwgs.User`** labelled `C1…C5` with their size — visual reference for connector placement in pcbnew (this layer is not plotted).
 - **Stackup:** 2-layer, FR-4 1.6 mm, 1 oz (35 µm) copper, white solder mask, black silkscreen, HASL lead-free finish.

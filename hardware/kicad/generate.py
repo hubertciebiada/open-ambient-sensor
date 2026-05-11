@@ -54,7 +54,20 @@ HOLE_POSITIONS = [
 ]
 EDGE_CUTS_WIDTH = 0.1
 HOLE_DIAMETER = 3.8                # Ø3.8 mm per manufacturer DXF
-PAD_DIAMETER = HOLE_DIAMETER + 2 * 1.35   # annular ring 1.35 mm
+# Mounting holes are NPTH (non-plated). The screws go into plastic bosses in
+# the AK-N-94 enclosure — no metal chassis to bond to, so a copper pad here
+# would just be floating copper.
+COURTYARD_RADIUS = HOLE_DIAMETER * 0.75   # ~1.5× hole diameter
+
+# Cable pass-through hole in the centre of the PCB.
+# 24 V (and optional PE) wires enter the case from the rear (electrical box
+# behind the unit) and pass through this hole to a terminal block mounted on
+# the front side of the PCB. Keeping the entry inside the PCB outline
+# physically shields the bare wires — they are inaccessible from outside the
+# enclosure, even though 24 V DC is nominally SELV.
+# Sized for 3× 1.5 mm² conductors (e.g. YDY 3×1.5, outer Ø ≈ 8-9 mm) with
+# ample margin for strain-relief / grommet if desired.
+CABLE_HOLE_DIAMETER = 12.0
 
 # -----------------------------------------------------------------------------
 # Connector cutouts in the enclosure wall along the flat chord
@@ -122,16 +135,22 @@ ROOT_SHEET_UUID = str(uuid.uuid5(_OAS_NS, "sheet:root"))
 # 1) Mounting hole footprint (own library)
 # -----------------------------------------------------------------------------
 def gen_mounting_hole_footprint() -> str:
-    """Custom MountingHole_3.8mm_M3 footprint matching the manufacturer DXF."""
+    """Custom MountingHole_3.8mm_M3 footprint matching the manufacturer DXF.
+
+    NPTH (non-plated through hole): no copper pad, just a drilled hole.
+    The screws go into plastic bosses, so plating would add nothing but
+    floating copper risks (ESD pickup, capacitive coupling, manufacturing
+    waste).
+    """
     return textwrap.dedent(f"""\
         (footprint "MountingHole_3.8mm_M3"
         \t(version {PCB_VERSION})
         \t(generator "pcbnew")
         \t(generator_version "{GEN_VERSION}")
         \t(layer "F.Cu")
-        \t(descr "Mounting Hole 3.8 mm, M3 screw with clearance per SZOMK AK-N-94 enclosure")
-        \t(tags "mounting hole 3.8mm m3 szomk ak-n-94")
-        \t(attr through_hole exclude_from_pos_files exclude_from_bom)
+        \t(descr "Mounting Hole 3.8 mm NPTH for M3 screw (per SZOMK AK-N-94)")
+        \t(tags "mounting hole 3.8mm m3 npth szomk ak-n-94")
+        \t(attr through_hole board_only exclude_from_pos_files exclude_from_bom)
         \t(property "Reference" "REF**"
         \t\t(at 0 0 0)
         \t\t(unlocked yes)
@@ -140,7 +159,7 @@ def gen_mounting_hole_footprint() -> str:
         \t\t(uuid "{U()}")
         \t\t(effects (font (size 1 1) (thickness 0.15)))
         \t)
-        \t(property "Value" "MountingHole_3.8mm_M3"
+        \t(property "Value" "MountingHole_3.8mm_M3_NPTH"
         \t\t(at 0 0 0)
         \t\t(unlocked yes)
         \t\t(layer "F.Fab")
@@ -164,7 +183,7 @@ def gen_mounting_hole_footprint() -> str:
         \t\t(uuid "{U()}")
         \t\t(effects (font (size 1.27 1.27)))
         \t)
-        \t(property "Description" "Mounting Hole, Ø3.8 mm, for M3 screw (per SZOMK AK-N-94)"
+        \t(property "Description" "Mounting Hole, Ø3.8 mm NPTH, for M3 screw (per SZOMK AK-N-94)"
         \t\t(at 0 0 0)
         \t\t(unlocked yes)
         \t\t(layer "F.Fab")
@@ -174,7 +193,7 @@ def gen_mounting_hole_footprint() -> str:
         \t)
         \t(fp_circle
         \t\t(center 0 0)
-        \t\t(end {fmt(PAD_DIAMETER/2 + 0.25)} 0)
+        \t\t(end {fmt(COURTYARD_RADIUS)} 0)
         \t\t(stroke (width 0.05) (type solid))
         \t\t(fill no)
         \t\t(layer "F.CrtYd")
@@ -188,11 +207,11 @@ def gen_mounting_hole_footprint() -> str:
         \t\t(layer "F.Fab")
         \t\t(uuid "{U()}")
         \t)
-        \t(pad "" thru_hole circle
+        \t(pad "" np_thru_hole circle
         \t\t(at 0 0)
-        \t\t(size {fmt(PAD_DIAMETER)} {fmt(PAD_DIAMETER)})
+        \t\t(size {fmt(HOLE_DIAMETER)} {fmt(HOLE_DIAMETER)})
         \t\t(drill {fmt(HOLE_DIAMETER)})
-        \t\t(layers "*.Cu" "*.Mask")
+        \t\t(layers "F&B.Cu" "*.Mask")
         \t\t(remove_unused_layers no)
         \t\t(uuid "{U()}")
         \t)
@@ -342,7 +361,10 @@ def gen_pcb() -> str:
         \t\t(grid_origin {fmt(PAGE_CENTRE_X)} {fmt(PAGE_CENTRE_Y)})
         \t)""")
 
-    # Edge.Cuts outline (arc + chord); offset to page centre
+    # Edge.Cuts outline (arc + chord); offset to page centre.
+    # Plus a circular cut-out in the PCB centre for the 24 V cable pass-through
+    # (cable enters the case from the rear, passes through the PCB to a
+    # terminal block on the front side).
     outline = textwrap.dedent(f"""\
         \t(gr_arc
         \t\t(start {fx(p_start[0])} {fy(p_start[1])})
@@ -350,14 +372,22 @@ def gen_pcb() -> str:
         \t\t(end {fx(p_end[0])} {fy(p_end[1])})
         \t\t(stroke (width {fmt(EDGE_CUTS_WIDTH)}) (type solid))
         \t\t(layer "Edge.Cuts")
-        \t\t(uuid "{U()}")
+        \t\t(uuid "{U('outline_arc')}")
         \t)
         \t(gr_line
         \t\t(start {fx(p_end[0])} {fy(p_end[1])})
         \t\t(end {fx(p_start[0])} {fy(p_start[1])})
         \t\t(stroke (width {fmt(EDGE_CUTS_WIDTH)}) (type solid))
         \t\t(layer "Edge.Cuts")
-        \t\t(uuid "{U()}")
+        \t\t(uuid "{U('outline_chord')}")
+        \t)
+        \t(gr_circle
+        \t\t(center {fx(0)} {fy(0)})
+        \t\t(end {fx(CABLE_HOLE_DIAMETER/2)} {fy(0)})
+        \t\t(stroke (width {fmt(EDGE_CUTS_WIDTH)}) (type solid))
+        \t\t(fill no)
+        \t\t(layer "Edge.Cuts")
+        \t\t(uuid "{U('cable_hole')}")
         \t)""")
 
     # 3 mounting holes
@@ -369,8 +399,8 @@ def gen_pcb() -> str:
             \t\t(layer "F.Cu")
             \t\t(uuid "{U()}")
             \t\t(at {fx(x)} {fy(y)})
-            \t\t(descr "M3 mounting hole, Ø3.8 mm per SZOMK AK-N-94 spec")
-            \t\t(attr through_hole exclude_from_pos_files exclude_from_bom)
+            \t\t(descr "M3 mounting hole NPTH, Ø3.8 mm per SZOMK AK-N-94 spec")
+            \t\t(attr through_hole board_only exclude_from_pos_files exclude_from_bom)
             \t\t(property "Reference" "{ref}"
             \t\t\t(at 0 0 0)
             \t\t\t(layer "F.SilkS")
@@ -378,7 +408,7 @@ def gen_pcb() -> str:
             \t\t\t(uuid "{U()}")
             \t\t\t(effects (font (size 1 1) (thickness 0.15)))
             \t\t)
-            \t\t(property "Value" "MountingHole_3.8mm_M3"
+            \t\t(property "Value" "MountingHole_3.8mm_M3_NPTH"
             \t\t\t(at 0 0 0)
             \t\t\t(layer "F.Fab")
             \t\t\t(hide yes)
@@ -399,7 +429,7 @@ def gen_pcb() -> str:
             \t\t\t(uuid "{U()}")
             \t\t\t(effects (font (size 1.27 1.27)))
             \t\t)
-            \t\t(property "Description" "Mounting Hole, Ø3.8 mm, for M3 screw (per SZOMK AK-N-94)"
+            \t\t(property "Description" "Mounting Hole, Ø3.8 mm NPTH, for M3 screw (per SZOMK AK-N-94)"
             \t\t\t(at 0 0 0)
             \t\t\t(layer "F.Fab")
             \t\t\t(hide yes)
@@ -408,7 +438,7 @@ def gen_pcb() -> str:
             \t\t)
             \t\t(fp_circle
             \t\t\t(center 0 0)
-            \t\t\t(end {fmt(PAD_DIAMETER/2 + 0.25)} 0)
+            \t\t\t(end {fmt(COURTYARD_RADIUS)} 0)
             \t\t\t(stroke (width 0.05) (type solid))
             \t\t\t(fill no)
             \t\t\t(layer "F.CrtYd")
@@ -422,11 +452,11 @@ def gen_pcb() -> str:
             \t\t\t(layer "F.Fab")
             \t\t\t(uuid "{U()}")
             \t\t)
-            \t\t(pad "" thru_hole circle
+            \t\t(pad "" np_thru_hole circle
             \t\t\t(at 0 0)
-            \t\t\t(size {fmt(PAD_DIAMETER)} {fmt(PAD_DIAMETER)})
+            \t\t\t(size {fmt(HOLE_DIAMETER)} {fmt(HOLE_DIAMETER)})
             \t\t\t(drill {fmt(HOLE_DIAMETER)})
-            \t\t\t(layers "*.Cu" "*.Mask")
+            \t\t\t(layers "F&B.Cu" "*.Mask")
             \t\t\t(remove_unused_layers no)
             \t\t\t(uuid "{U()}")
             \t\t)

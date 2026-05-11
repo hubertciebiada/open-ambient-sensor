@@ -3,9 +3,9 @@
 	(generator "pcbnew")
 	(generator_version "10.0")
 	(layer "F.Cu")
-	(descr "Mounting Hole 3.8 mm, M3 screw with clearance per SZOMK AK-N-94 enclosure")
-	(tags "mounting hole 3.8mm m3 szomk ak-n-94")
-	(attr through_hole exclude_from_pos_files exclude_from_bom)
+	(descr "Mounting Hole 3.8 mm NPTH for M3 screw (per SZOMK AK-N-94)")
+	(tags "mounting hole 3.8mm m3 npth szomk ak-n-94")
+	(attr through_hole board_only exclude_from_pos_files exclude_from_bom)
 	(property "Reference" "REF**"
 		(at 0 0 0)
 		(unlocked yes)
@@ -14,7 +14,7 @@
 		(uuid "edfe7eb8-d7ae-5436-bcca-df483c1063e3")
 		(effects (font (size 1 1) (thickness 0.15)))
 	)
-	(property "Value" "MountingHole_3.8mm_M3"
+	(property "Value" "MountingHole_3.8mm_M3_NPTH"
 		(at 0 0 0)
 		(unlocked yes)
 		(layer "F.Fab")
@@ -38,7 +38,7 @@
 		(uuid "5af2e1d9-79b2-5078-b6d6-4f6355c6972f")
 		(effects (font (size 1.27 1.27)))
 	)
-	(property "Description" "Mounting Hole, Ø3.8 mm, for M3 screw (per SZOMK AK-N-94)"
+	(property "Description" "Mounting Hole, Ø3.8 mm NPTH, for M3 screw (per SZOMK AK-N-94)"
 		(at 0 0 0)
 		(unlocked yes)
 		(layer "F.Fab")
@@ -48,7 +48,7 @@
 	)
 	(fp_circle
 		(center 0 0)
-		(end 3.5 0)
+		(end 2.85 0)
 		(stroke (width 0.05) (type solid))
 		(fill no)
 		(layer "F.CrtYd")
@@ -62,11 +62,11 @@
 		(layer "F.Fab")
 		(uuid "8e026ac8-9152-571c-9ea1-a24fa6234ade")
 	)
-	(pad "" thru_hole circle
+	(pad "" np_thru_hole circle
 		(at 0 0)
-		(size 6.5 6.5)
+		(size 3.8 3.8)
 		(drill 3.8)
-		(layers "*.Cu" "*.Mask")
+		(layers "F&B.Cu" "*.Mask")
 		(remove_unused_layers no)
 		(uuid "9861e4c6-3628-5937-a2b3-d6bc421f60dc")
 	)
