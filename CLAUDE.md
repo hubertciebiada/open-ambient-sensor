@@ -379,3 +379,23 @@ If a change is awkward to express in `generate.py` (e.g. one-off ad-hoc graphic 
 ## Changelog
 
 - **v0.1** — Initial draft: project named (Open Ambient Sensor, OAS), module identification, layout strategy, dimensional analysis based on manufacturer DXF, orientation decision (flat edge on bottom for thermal convection), design philosophy formalized (measurement quality + aesthetic acceptability), third-party IP rules established (Rule 6)
+
+- **v0.2** — Power section schematic complete (`power.kicad_sch`):
+  - Input protection: J1 (Phoenix MSTBA 3-pin) → D1 (SMBJ24A TVS) → Q1 (P-MOSFET reverse polarity) → F1 (PTC fuse) → C1 bulk + C2 Y-cap
+  - Buck stage 1: U1 (LM2596S-5.0, 24V→5V, asynchronous, 40V Vin_max) + L1 + D2 (SS14) + input/output caps
+  - Buck stage 2: U2 (TPS62933, 5V→3.3V, synchronous, ~95% efficiency) + L2 + feedback divider + caps
+  - Two-stage cascade (not parallel) chosen for simplicity; total ~76% efficiency to the 3.3V rail
+  - Hierarchical structure split into 4 sub-sheets (power/mcu/sensors/io), all referenced by `oas.kicad_sch` root
+  - ERC clean (0/0) on all 5 sheets; generation deterministic (UUID v5)
+  - Visual changelog: `regenerate.py` now exports schematic SVG + PNG for all sub-sheets
+
+  Architectural decisions in v0.2:
+  - **ESP32-C6 powered via 3V3 pin** (not 5V via VIN+LDO) — saves ~250 mW of self-heating that would bias SEN66 measurements. The TPS62933 external buck (~95% efficiency) replaces the SuperMini module's internal LDO (~66%).
+  - **USB-C: decision pending** — current consideration is to drop USB-C entirely and flash via SWD/UART pin header, reducing one external connector. Final decision before chunk #4 (MCU sub-sheet).
+  - **17 mm front-side height limit**: assumption taken from manufacturer DXF annotation `正面限高 17mm` may be global or regional — see `docs/CASE-VERIFICATION-CHECKLIST.md` for items to validate against the physical AK-N-94 sample on arrival.
+
+  Review findings addressed in v0.2 (verified, corrected, documented):
+  - Q1 originally specified as AO3415A — actual datasheet Vds_max = −20 V / Vgs_max = ±8 V (3× over absolute max at 24 V supply). **Corrected to DMP4015SK3** (Vds = −40 V, Vgs = ±20 V); Zener clamp on gate-source pending in next chunk to fully address the residual Vgs = −24 V exceedance.
+  - F1 originally MF-MSMF050 (PTC 500 mA / 30 V) — voltage rating below D1's 38.9 V surge clamp. **Corrected to MF-RHT075/60-2** (PTC 750 mA / 60 V); also addresses cold-start inrush margin concern.
+  - L1 (33 µH / 1 A sat): saturation risk during cold-start of C4 (220 µF). Uprate to 2 A sat pending in next chunk.
+  - TPS62933 SS pin currently tied to GND (no soft-start): SEN66 datasheet expects 2–10 ms power ramp. Adding 47 nF on SS pin pending in next chunk.
