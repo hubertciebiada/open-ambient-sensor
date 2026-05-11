@@ -3,7 +3,11 @@ Generate the KiCad 10 base project for OAS (Open Ambient Sensor).
 
 Produces:
   - oas.kicad_pro       (project; design rules tuned for JLCPCB)
-  - oas.kicad_sch       (empty schematic)
+  - oas.kicad_sch       (root schematic, references 4 sub-sheets)
+  - power.kicad_sch     (empty sub-sheet — POWER sector)
+  - mcu.kicad_sch       (empty sub-sheet — MCU sector)
+  - sensors.kicad_sch   (empty sub-sheet — SENSORS sector)
+  - io.kicad_sch        (empty sub-sheet — chord connector cluster)
   - oas.kicad_pcb       (board outline on Edge.Cuts + 3 mounting holes)
   - libraries/oas.pretty/MountingHole_3.8mm_M3.kicad_mod  (custom footprint)
 
@@ -111,7 +115,7 @@ CUTOUTS = [
 # KiCad 10 format constants
 # -----------------------------------------------------------------------------
 PCB_VERSION = 20260206
-SCH_VERSION = 20260206   # safe lower bound for any KiCad 10.0.x
+SCH_VERSION = 20260306   # canonical KiCad 10.0.2 schematic version
 GEN_VERSION = "10.0"
 
 def fmt(x: float) -> str:
@@ -142,6 +146,42 @@ def U(tag: str = "") -> str:
 # Root project + sheet UUIDs (must match between .kicad_pro and .kicad_sch)
 # Use a tagged seed so this UUID is stable independent of call order elsewhere.
 ROOT_SHEET_UUID = str(uuid.uuid5(_OAS_NS, "sheet:root"))
+
+# Hierarchical sub-sheets — one per PCB sector (see CLAUDE.md):
+#   power   ↔ POWER sector   (09:00–12:00)
+#   mcu     ↔ MCU sector     (12:00–03:00)
+#   sensors ↔ SENSORS sector (03:00–09:00) — VEML7700, LD2410, WS2812, NFC
+#   io      ↔ connector cluster along the chord (USB-C, SWD, Qwiic)
+#
+# Two distinct UUIDs per sub-sheet:
+#   SHEET_BLOCK_UUIDS[name] — UUID of the (sheet ...) block in the root file.
+#     This is the identifier KiCad uses in hierarchical paths and the value
+#     that goes into oas.kicad_pro's "sheets" array.
+#   SHEET_FILE_UUIDS[name] — top-level (uuid) of the sub-sheet file itself.
+#     Unrelated to the sheets array.
+SUBSHEETS = ("power", "mcu", "sensors", "io")
+SHEET_BLOCK_UUIDS = {
+    name: str(uuid.uuid5(_OAS_NS, f"sheet-block:{name}")) for name in SUBSHEETS
+}
+SHEET_FILE_UUIDS = {
+    name: str(uuid.uuid5(_OAS_NS, f"sheet-file:{name}")) for name in SUBSHEETS
+}
+SUBSHEET_DISPLAY_NAMES = {
+    "power":   "Power",
+    "mcu":     "MCU",
+    "sensors": "Sensors",
+    "io":      "IO",
+}
+# 2×2 grid placement of (sheet ...) blocks on the root sheet drawing,
+# matching the verified template: Power top-left, MCU top-right,
+# Sensors bottom-left, IO bottom-right.
+SUBSHEET_POSITIONS = {
+    "power":   (50.8,  50.8),
+    "mcu":     (101.6, 50.8),
+    "sensors": (50.8,  88.9),
+    "io":      (101.6, 88.9),
+}
+SUBSHEET_SIZE = (38.1, 12.7)
 
 # -----------------------------------------------------------------------------
 # 1) Mounting hole footprint (own library)
@@ -542,9 +582,79 @@ def gen_pcb() -> str:
     return body
 
 # -----------------------------------------------------------------------------
-# 3) Empty schematic
+# 3) Hierarchical schematic — root + 4 empty per-sector sub-sheets
 # -----------------------------------------------------------------------------
-def gen_sch() -> str:
+def _gen_sheet_block(name: str, page: int) -> str:
+    """One (sheet ...) block placed on the root drawing.
+
+    `name` is the lowercase key (power/mcu/sensors/io); the display name
+    and file name are derived from it. `page` is the page number assigned
+    in the root's project instance path (root itself is page 1, so the
+    first sub-sheet starts at 2).
+    """
+    x, y = SUBSHEET_POSITIONS[name]
+    sx, sy = SUBSHEET_SIZE
+    display = SUBSHEET_DISPLAY_NAMES[name]
+    block_uuid = SHEET_BLOCK_UUIDS[name]
+    # Property anchor positions copied from the verified template
+    # (Sheetname above the box, Sheetfile below it).
+    name_y = y - 0.7116    # 50.8 -> 50.0884 in template
+    file_y = y + sy + 0.4446  # 50.8 + 12.7 + 0.4446 = 63.9446
+    return textwrap.dedent(f"""\
+        \t(sheet
+        \t\t(at {fmt(x)} {fmt(y)})
+        \t\t(size {fmt(sx)} {fmt(sy)})
+        \t\t(exclude_from_sim no)
+        \t\t(in_bom yes)
+        \t\t(on_board yes)
+        \t\t(dnp no)
+        \t\t(fields_autoplaced yes)
+        \t\t(stroke
+        \t\t\t(width 0.1524)
+        \t\t\t(type solid)
+        \t\t)
+        \t\t(fill
+        \t\t\t(color 0 0 0 0.0000)
+        \t\t)
+        \t\t(uuid "{block_uuid}")
+        \t\t(property "Sheetname" "{display}"
+        \t\t\t(at {fmt(x)} {fmt(name_y)} 0)
+        \t\t\t(effects
+        \t\t\t\t(font
+        \t\t\t\t\t(size 1.27 1.27)
+        \t\t\t\t)
+        \t\t\t\t(justify left bottom)
+        \t\t\t)
+        \t\t)
+        \t\t(property "Sheetfile" "{name}.kicad_sch"
+        \t\t\t(at {fmt(x)} {fmt(file_y)} 0)
+        \t\t\t(effects
+        \t\t\t\t(font
+        \t\t\t\t\t(size 1.27 1.27)
+        \t\t\t\t)
+        \t\t\t\t(justify left top)
+        \t\t\t)
+        \t\t)
+        \t\t(instances
+        \t\t\t(project "oas"
+        \t\t\t\t(path "/{ROOT_SHEET_UUID}"
+        \t\t\t\t\t(page "{page}")
+        \t\t\t\t)
+        \t\t\t)
+        \t\t)
+        \t)""")
+
+
+def gen_root_sch() -> str:
+    """Root schematic referencing the 4 per-sector sub-sheets.
+
+    Contains no symbols of its own — only (sheet ...) blocks that point
+    to power.kicad_sch / mcu.kicad_sch / sensors.kicad_sch / io.kicad_sch.
+    """
+    sheet_blocks = "\n".join(
+        _gen_sheet_block(name, page)
+        for page, name in enumerate(SUBSHEETS, start=2)
+    )
     return textwrap.dedent(f"""\
         (kicad_sch
         \t(version {SCH_VERSION})
@@ -552,15 +662,35 @@ def gen_sch() -> str:
         \t(generator_version "{GEN_VERSION}")
         \t(uuid "{ROOT_SHEET_UUID}")
         \t(paper "A4")
-        \t(title_block
-        \t\t(title "OAS — Open Ambient Sensor")
-        \t\t(date "2026-05-11")
-        \t\t(rev "0.1")
+        \t(lib_symbols
         \t)
-        \t(lib_symbols)
+        """) + sheet_blocks + textwrap.dedent("""
         \t(sheet_instances
-        \t\t(path "/" (page "1"))
+        \t\t(path "/"
+        \t\t\t(page "1")
+        \t\t)
         \t)
+        \t(embedded_fonts no)
+        )
+        """)
+
+
+def gen_subsheet_sch(name: str) -> str:
+    """Empty per-sector sub-sheet (just the file header + empty lib_symbols).
+
+    Placeholder for upcoming per-sector content (chunks #1b onward).
+    """
+    file_uuid = SHEET_FILE_UUIDS[name]
+    return textwrap.dedent(f"""\
+        (kicad_sch
+        \t(version {SCH_VERSION})
+        \t(generator "eeschema")
+        \t(generator_version "{GEN_VERSION}")
+        \t(uuid "{file_uuid}")
+        \t(paper "A4")
+        \t(lib_symbols
+        \t)
+        \t(embedded_fonts no)
         )
         """)
 
@@ -720,7 +850,13 @@ def gen_pro() -> str:
             "subpart_first_id": 65,
             "subpart_id_separator": 0,
         },
-        "sheets": [[ROOT_SHEET_UUID, "Root"]],
+        "sheets": [
+            [ROOT_SHEET_UUID, "Root"],
+            *[
+                [SHEET_BLOCK_UUIDS[name], SUBSHEET_DISPLAY_NAMES[name]]
+                for name in SUBSHEETS
+            ],
+        ],
         "text_variables": {},
         "tuning_profiles": [],
     }
@@ -754,7 +890,11 @@ def main():
         gen_mounting_hole_footprint(), encoding="utf-8"
     )
     (HERE / "oas.kicad_pcb").write_text(gen_pcb(), encoding="utf-8")
-    (HERE / "oas.kicad_sch").write_text(gen_sch(), encoding="utf-8")
+    (HERE / "oas.kicad_sch").write_text(gen_root_sch(), encoding="utf-8")
+    for name in SUBSHEETS:
+        (HERE / f"{name}.kicad_sch").write_text(
+            gen_subsheet_sch(name), encoding="utf-8"
+        )
     (HERE / "oas.kicad_pro").write_text(gen_pro(), encoding="utf-8")
     (HERE / "fp-lib-table").write_text(gen_fp_lib_table(), encoding="utf-8")
     (HERE / "sym-lib-table").write_text(gen_sym_lib_table(), encoding="utf-8")
@@ -771,6 +911,7 @@ def main():
     print("Files written:")
     for p in [
         "oas.kicad_pro", "oas.kicad_sch", "oas.kicad_pcb",
+        "power.kicad_sch", "mcu.kicad_sch", "sensors.kicad_sch", "io.kicad_sch",
         "fp-lib-table", "sym-lib-table",
         "libraries/oas.pretty/MountingHole_3.8mm_M3.kicad_mod",
     ]:

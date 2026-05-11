@@ -1,16 +1,183 @@
 (kicad_sch
-	(version 20260206)
+	(version 20260306)
 	(generator "eeschema")
 	(generator_version "10.0")
 	(uuid "515343fe-5590-5fd9-97ec-5bed0f979de2")
 	(paper "A4")
-	(title_block
-		(title "OAS — Open Ambient Sensor")
-		(date "2026-05-11")
-		(rev "0.1")
+	(lib_symbols
 	)
-	(lib_symbols)
+(sheet
+	(at 50.8 50.8)
+	(size 38.1 12.7)
+	(exclude_from_sim no)
+	(in_bom yes)
+	(on_board yes)
+	(dnp no)
+	(fields_autoplaced yes)
+	(stroke
+		(width 0.1524)
+		(type solid)
+	)
+	(fill
+		(color 0 0 0 0.0000)
+	)
+	(uuid "1557665b-a568-58fc-b40f-759ed4998499")
+	(property "Sheetname" "Power"
+		(at 50.8 50.0884 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+	)
+	(property "Sheetfile" "power.kicad_sch"
+		(at 50.8 63.9446 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left top)
+		)
+	)
+	(instances
+		(project "oas"
+			(path "/515343fe-5590-5fd9-97ec-5bed0f979de2"
+				(page "2")
+			)
+		)
+	)
+)
+(sheet
+	(at 101.6 50.8)
+	(size 38.1 12.7)
+	(exclude_from_sim no)
+	(in_bom yes)
+	(on_board yes)
+	(dnp no)
+	(fields_autoplaced yes)
+	(stroke
+		(width 0.1524)
+		(type solid)
+	)
+	(fill
+		(color 0 0 0 0.0000)
+	)
+	(uuid "5a2a7aae-0596-52cb-bb07-90c47115320c")
+	(property "Sheetname" "MCU"
+		(at 101.6 50.0884 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+	)
+	(property "Sheetfile" "mcu.kicad_sch"
+		(at 101.6 63.9446 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left top)
+		)
+	)
+	(instances
+		(project "oas"
+			(path "/515343fe-5590-5fd9-97ec-5bed0f979de2"
+				(page "3")
+			)
+		)
+	)
+)
+(sheet
+	(at 50.8 88.9)
+	(size 38.1 12.7)
+	(exclude_from_sim no)
+	(in_bom yes)
+	(on_board yes)
+	(dnp no)
+	(fields_autoplaced yes)
+	(stroke
+		(width 0.1524)
+		(type solid)
+	)
+	(fill
+		(color 0 0 0 0.0000)
+	)
+	(uuid "a5e13d4c-9fec-5607-b893-c0f069874d1d")
+	(property "Sheetname" "Sensors"
+		(at 50.8 88.1884 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+	)
+	(property "Sheetfile" "sensors.kicad_sch"
+		(at 50.8 102.0446 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left top)
+		)
+	)
+	(instances
+		(project "oas"
+			(path "/515343fe-5590-5fd9-97ec-5bed0f979de2"
+				(page "4")
+			)
+		)
+	)
+)
+(sheet
+	(at 101.6 88.9)
+	(size 38.1 12.7)
+	(exclude_from_sim no)
+	(in_bom yes)
+	(on_board yes)
+	(dnp no)
+	(fields_autoplaced yes)
+	(stroke
+		(width 0.1524)
+		(type solid)
+	)
+	(fill
+		(color 0 0 0 0.0000)
+	)
+	(uuid "30fc7086-1657-5b17-a13a-76780ee3d8bb")
+	(property "Sheetname" "IO"
+		(at 101.6 88.1884 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+	)
+	(property "Sheetfile" "io.kicad_sch"
+		(at 101.6 102.0446 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left top)
+		)
+	)
+	(instances
+		(project "oas"
+			(path "/515343fe-5590-5fd9-97ec-5bed0f979de2"
+				(page "5")
+			)
+		)
+	)
+)
 	(sheet_instances
-		(path "/" (page "1"))
+		(path "/"
+			(page "1")
+		)
 	)
+	(embedded_fonts no)
 )
