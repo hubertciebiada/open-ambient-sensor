@@ -4,7 +4,7 @@ Generate the KiCad 10 base project for OAS (Open Ambient Sensor).
 Produces:
   - oas.kicad_pro       (project; design rules tuned for JLCPCB)
   - oas.kicad_sch       (root schematic, references 4 sub-sheets)
-  - power.kicad_sch     (empty sub-sheet — POWER sector)
+  - power.kicad_sch     (POWER sector — input terminal J1 + power flags)
   - mcu.kicad_sch       (empty sub-sheet — MCU sector)
   - sensors.kicad_sch   (empty sub-sheet — SENSORS sector)
   - io.kicad_sch        (empty sub-sheet — chord connector cluster)
@@ -694,6 +694,1133 @@ def gen_subsheet_sch(name: str) -> str:
         )
         """)
 
+
+# -----------------------------------------------------------------------------
+# 3b) Power sub-sheet — input terminal J1
+# -----------------------------------------------------------------------------
+# The five library symbols below are copied verbatim from KiCad 10's stock
+# symbol libraries (GPL, freely redistributable, and embedded into every saved
+# schematic by KiCad itself). They are taken from:
+#   - C:\Program Files\KiCad\10.0\share\kicad\symbols\Connector.kicad_sym
+#   - C:\Program Files\KiCad\10.0\share\kicad\symbols\power.kicad_sym
+# Embedding them in our power.kicad_sch keeps the project self-contained: the
+# .kicad_sch file can be opened on any machine without requiring the user's
+# KiCad library path to be set correctly.
+POWER_LIB_SYMBOLS = """\
+\t\t(symbol "Connector:Screw_Terminal_01x03"
+\t\t\t(pin_names
+\t\t\t\t(offset 1.016)
+\t\t\t\t(hide yes)
+\t\t\t)
+\t\t\t(exclude_from_sim no)
+\t\t\t(in_bom yes)
+\t\t\t(on_board yes)
+\t\t\t(in_pos_files yes)
+\t\t\t(duplicate_pin_numbers_are_jumpers no)
+\t\t\t(property "Reference" "J"
+\t\t\t\t(at 0 5.08 0)
+\t\t\t\t(show_name no)
+\t\t\t\t(do_not_autoplace no)
+\t\t\t\t(effects
+\t\t\t\t\t(font
+\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(property "Value" "Screw_Terminal_01x03"
+\t\t\t\t(at 0 -5.08 0)
+\t\t\t\t(show_name no)
+\t\t\t\t(do_not_autoplace no)
+\t\t\t\t(effects
+\t\t\t\t\t(font
+\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(property "Footprint" ""
+\t\t\t\t(at 0 0 0)
+\t\t\t\t(show_name no)
+\t\t\t\t(do_not_autoplace no)
+\t\t\t\t(hide yes)
+\t\t\t\t(effects
+\t\t\t\t\t(font
+\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(property "Datasheet" ""
+\t\t\t\t(at 0 0 0)
+\t\t\t\t(show_name no)
+\t\t\t\t(do_not_autoplace no)
+\t\t\t\t(hide yes)
+\t\t\t\t(effects
+\t\t\t\t\t(font
+\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(property "Description" "Generic screw terminal, single row, 01x03, script generated (kicad-library-utils/schlib/autogen/connector/)"
+\t\t\t\t(at 0 0 0)
+\t\t\t\t(show_name no)
+\t\t\t\t(do_not_autoplace no)
+\t\t\t\t(hide yes)
+\t\t\t\t(effects
+\t\t\t\t\t(font
+\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(property "ki_keywords" "screw terminal"
+\t\t\t\t(at 0 0 0)
+\t\t\t\t(show_name no)
+\t\t\t\t(do_not_autoplace no)
+\t\t\t\t(hide yes)
+\t\t\t\t(effects
+\t\t\t\t\t(font
+\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(property "ki_fp_filters" "TerminalBlock*:*"
+\t\t\t\t(at 0 0 0)
+\t\t\t\t(show_name no)
+\t\t\t\t(do_not_autoplace no)
+\t\t\t\t(hide yes)
+\t\t\t\t(effects
+\t\t\t\t\t(font
+\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(symbol "Screw_Terminal_01x03_1_1"
+\t\t\t\t(rectangle
+\t\t\t\t\t(start -1.27 3.81)
+\t\t\t\t\t(end 1.27 -3.81)
+\t\t\t\t\t(stroke
+\t\t\t\t\t\t(width 0.254)
+\t\t\t\t\t\t(type default)
+\t\t\t\t\t)
+\t\t\t\t\t(fill
+\t\t\t\t\t\t(type background)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t\t(polyline
+\t\t\t\t\t(pts
+\t\t\t\t\t\t(xy -0.5334 2.8702) (xy 0.3302 2.032)
+\t\t\t\t\t)
+\t\t\t\t\t(stroke
+\t\t\t\t\t\t(width 0.1524)
+\t\t\t\t\t\t(type default)
+\t\t\t\t\t)
+\t\t\t\t\t(fill
+\t\t\t\t\t\t(type none)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t\t(polyline
+\t\t\t\t\t(pts
+\t\t\t\t\t\t(xy -0.5334 0.3302) (xy 0.3302 -0.508)
+\t\t\t\t\t)
+\t\t\t\t\t(stroke
+\t\t\t\t\t\t(width 0.1524)
+\t\t\t\t\t\t(type default)
+\t\t\t\t\t)
+\t\t\t\t\t(fill
+\t\t\t\t\t\t(type none)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t\t(polyline
+\t\t\t\t\t(pts
+\t\t\t\t\t\t(xy -0.5334 -2.2098) (xy 0.3302 -3.048)
+\t\t\t\t\t)
+\t\t\t\t\t(stroke
+\t\t\t\t\t\t(width 0.1524)
+\t\t\t\t\t\t(type default)
+\t\t\t\t\t)
+\t\t\t\t\t(fill
+\t\t\t\t\t\t(type none)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t\t(polyline
+\t\t\t\t\t(pts
+\t\t\t\t\t\t(xy -0.3556 3.048) (xy 0.508 2.2098)
+\t\t\t\t\t)
+\t\t\t\t\t(stroke
+\t\t\t\t\t\t(width 0.1524)
+\t\t\t\t\t\t(type default)
+\t\t\t\t\t)
+\t\t\t\t\t(fill
+\t\t\t\t\t\t(type none)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t\t(polyline
+\t\t\t\t\t(pts
+\t\t\t\t\t\t(xy -0.3556 0.508) (xy 0.508 -0.3302)
+\t\t\t\t\t)
+\t\t\t\t\t(stroke
+\t\t\t\t\t\t(width 0.1524)
+\t\t\t\t\t\t(type default)
+\t\t\t\t\t)
+\t\t\t\t\t(fill
+\t\t\t\t\t\t(type none)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t\t(polyline
+\t\t\t\t\t(pts
+\t\t\t\t\t\t(xy -0.3556 -2.032) (xy 0.508 -2.8702)
+\t\t\t\t\t)
+\t\t\t\t\t(stroke
+\t\t\t\t\t\t(width 0.1524)
+\t\t\t\t\t\t(type default)
+\t\t\t\t\t)
+\t\t\t\t\t(fill
+\t\t\t\t\t\t(type none)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t\t(circle
+\t\t\t\t\t(center 0 2.54)
+\t\t\t\t\t(radius 0.635)
+\t\t\t\t\t(stroke
+\t\t\t\t\t\t(width 0.1524)
+\t\t\t\t\t\t(type default)
+\t\t\t\t\t)
+\t\t\t\t\t(fill
+\t\t\t\t\t\t(type none)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t\t(circle
+\t\t\t\t\t(center 0 0)
+\t\t\t\t\t(radius 0.635)
+\t\t\t\t\t(stroke
+\t\t\t\t\t\t(width 0.1524)
+\t\t\t\t\t\t(type default)
+\t\t\t\t\t)
+\t\t\t\t\t(fill
+\t\t\t\t\t\t(type none)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t\t(circle
+\t\t\t\t\t(center 0 -2.54)
+\t\t\t\t\t(radius 0.635)
+\t\t\t\t\t(stroke
+\t\t\t\t\t\t(width 0.1524)
+\t\t\t\t\t\t(type default)
+\t\t\t\t\t)
+\t\t\t\t\t(fill
+\t\t\t\t\t\t(type none)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t\t(pin passive line
+\t\t\t\t\t(at -5.08 2.54 0)
+\t\t\t\t\t(length 3.81)
+\t\t\t\t\t(name "Pin_1"
+\t\t\t\t\t\t(effects
+\t\t\t\t\t\t\t(font
+\t\t\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t\t\t)
+\t\t\t\t\t\t)
+\t\t\t\t\t)
+\t\t\t\t\t(number "1"
+\t\t\t\t\t\t(effects
+\t\t\t\t\t\t\t(font
+\t\t\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t\t\t)
+\t\t\t\t\t\t)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t\t(pin passive line
+\t\t\t\t\t(at -5.08 0 0)
+\t\t\t\t\t(length 3.81)
+\t\t\t\t\t(name "Pin_2"
+\t\t\t\t\t\t(effects
+\t\t\t\t\t\t\t(font
+\t\t\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t\t\t)
+\t\t\t\t\t\t)
+\t\t\t\t\t)
+\t\t\t\t\t(number "2"
+\t\t\t\t\t\t(effects
+\t\t\t\t\t\t\t(font
+\t\t\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t\t\t)
+\t\t\t\t\t\t)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t\t(pin passive line
+\t\t\t\t\t(at -5.08 -2.54 0)
+\t\t\t\t\t(length 3.81)
+\t\t\t\t\t(name "Pin_3"
+\t\t\t\t\t\t(effects
+\t\t\t\t\t\t\t(font
+\t\t\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t\t\t)
+\t\t\t\t\t\t)
+\t\t\t\t\t)
+\t\t\t\t\t(number "3"
+\t\t\t\t\t\t(effects
+\t\t\t\t\t\t\t(font
+\t\t\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t\t\t)
+\t\t\t\t\t\t)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(embedded_fonts no)
+\t\t)
+\t\t(symbol "power:+24V"
+\t\t\t(power global)
+\t\t\t(pin_numbers
+\t\t\t\t(hide yes)
+\t\t\t)
+\t\t\t(pin_names
+\t\t\t\t(offset 0)
+\t\t\t\t(hide yes)
+\t\t\t)
+\t\t\t(exclude_from_sim no)
+\t\t\t(in_bom yes)
+\t\t\t(on_board yes)
+\t\t\t(in_pos_files yes)
+\t\t\t(duplicate_pin_numbers_are_jumpers no)
+\t\t\t(property "Reference" "#PWR"
+\t\t\t\t(at 0 -3.81 0)
+\t\t\t\t(show_name no)
+\t\t\t\t(do_not_autoplace no)
+\t\t\t\t(hide yes)
+\t\t\t\t(effects
+\t\t\t\t\t(font
+\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(property "Value" "+24V"
+\t\t\t\t(at 0 3.556 0)
+\t\t\t\t(show_name no)
+\t\t\t\t(do_not_autoplace no)
+\t\t\t\t(effects
+\t\t\t\t\t(font
+\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(property "Footprint" ""
+\t\t\t\t(at 0 0 0)
+\t\t\t\t(show_name no)
+\t\t\t\t(do_not_autoplace no)
+\t\t\t\t(hide yes)
+\t\t\t\t(effects
+\t\t\t\t\t(font
+\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(property "Datasheet" ""
+\t\t\t\t(at 0 0 0)
+\t\t\t\t(show_name no)
+\t\t\t\t(do_not_autoplace no)
+\t\t\t\t(hide yes)
+\t\t\t\t(effects
+\t\t\t\t\t(font
+\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(property "Description" "Power symbol creates a global label with name \\"+24V\\""
+\t\t\t\t(at 0 0 0)
+\t\t\t\t(show_name no)
+\t\t\t\t(do_not_autoplace no)
+\t\t\t\t(hide yes)
+\t\t\t\t(effects
+\t\t\t\t\t(font
+\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(property "ki_keywords" "global power"
+\t\t\t\t(at 0 0 0)
+\t\t\t\t(show_name no)
+\t\t\t\t(do_not_autoplace no)
+\t\t\t\t(hide yes)
+\t\t\t\t(effects
+\t\t\t\t\t(font
+\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(symbol "+24V_0_1"
+\t\t\t\t(polyline
+\t\t\t\t\t(pts
+\t\t\t\t\t\t(xy -0.762 1.27) (xy 0 2.54)
+\t\t\t\t\t)
+\t\t\t\t\t(stroke
+\t\t\t\t\t\t(width 0)
+\t\t\t\t\t\t(type default)
+\t\t\t\t\t)
+\t\t\t\t\t(fill
+\t\t\t\t\t\t(type none)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t\t(polyline
+\t\t\t\t\t(pts
+\t\t\t\t\t\t(xy 0 2.54) (xy 0.762 1.27)
+\t\t\t\t\t)
+\t\t\t\t\t(stroke
+\t\t\t\t\t\t(width 0)
+\t\t\t\t\t\t(type default)
+\t\t\t\t\t)
+\t\t\t\t\t(fill
+\t\t\t\t\t\t(type none)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t\t(polyline
+\t\t\t\t\t(pts
+\t\t\t\t\t\t(xy 0 0) (xy 0 2.54)
+\t\t\t\t\t)
+\t\t\t\t\t(stroke
+\t\t\t\t\t\t(width 0)
+\t\t\t\t\t\t(type default)
+\t\t\t\t\t)
+\t\t\t\t\t(fill
+\t\t\t\t\t\t(type none)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(symbol "+24V_1_1"
+\t\t\t\t(pin power_in line
+\t\t\t\t\t(at 0 0 90)
+\t\t\t\t\t(length 0)
+\t\t\t\t\t(name ""
+\t\t\t\t\t\t(effects
+\t\t\t\t\t\t\t(font
+\t\t\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t\t\t)
+\t\t\t\t\t\t)
+\t\t\t\t\t)
+\t\t\t\t\t(number "1"
+\t\t\t\t\t\t(effects
+\t\t\t\t\t\t\t(font
+\t\t\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t\t\t)
+\t\t\t\t\t\t)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(embedded_fonts no)
+\t\t)
+\t\t(symbol "power:GND"
+\t\t\t(power global)
+\t\t\t(pin_numbers
+\t\t\t\t(hide yes)
+\t\t\t)
+\t\t\t(pin_names
+\t\t\t\t(offset 0)
+\t\t\t\t(hide yes)
+\t\t\t)
+\t\t\t(exclude_from_sim no)
+\t\t\t(in_bom yes)
+\t\t\t(on_board yes)
+\t\t\t(in_pos_files yes)
+\t\t\t(duplicate_pin_numbers_are_jumpers no)
+\t\t\t(property "Reference" "#PWR"
+\t\t\t\t(at 0 -6.35 0)
+\t\t\t\t(show_name no)
+\t\t\t\t(do_not_autoplace no)
+\t\t\t\t(hide yes)
+\t\t\t\t(effects
+\t\t\t\t\t(font
+\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(property "Value" "GND"
+\t\t\t\t(at 0 -3.81 0)
+\t\t\t\t(show_name no)
+\t\t\t\t(do_not_autoplace no)
+\t\t\t\t(effects
+\t\t\t\t\t(font
+\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(property "Footprint" ""
+\t\t\t\t(at 0 0 0)
+\t\t\t\t(show_name no)
+\t\t\t\t(do_not_autoplace no)
+\t\t\t\t(hide yes)
+\t\t\t\t(effects
+\t\t\t\t\t(font
+\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(property "Datasheet" ""
+\t\t\t\t(at 0 0 0)
+\t\t\t\t(show_name no)
+\t\t\t\t(do_not_autoplace no)
+\t\t\t\t(hide yes)
+\t\t\t\t(effects
+\t\t\t\t\t(font
+\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(property "Description" "Power symbol creates a global label with name \\"GND\\" , ground"
+\t\t\t\t(at 0 0 0)
+\t\t\t\t(show_name no)
+\t\t\t\t(do_not_autoplace no)
+\t\t\t\t(hide yes)
+\t\t\t\t(effects
+\t\t\t\t\t(font
+\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(property "ki_keywords" "global power"
+\t\t\t\t(at 0 0 0)
+\t\t\t\t(show_name no)
+\t\t\t\t(do_not_autoplace no)
+\t\t\t\t(hide yes)
+\t\t\t\t(effects
+\t\t\t\t\t(font
+\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(symbol "GND_0_1"
+\t\t\t\t(polyline
+\t\t\t\t\t(pts
+\t\t\t\t\t\t(xy 0 0) (xy 0 -1.27) (xy 1.27 -1.27) (xy 0 -2.54) (xy -1.27 -1.27) (xy 0 -1.27)
+\t\t\t\t\t)
+\t\t\t\t\t(stroke
+\t\t\t\t\t\t(width 0)
+\t\t\t\t\t\t(type default)
+\t\t\t\t\t)
+\t\t\t\t\t(fill
+\t\t\t\t\t\t(type none)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(symbol "GND_1_1"
+\t\t\t\t(pin power_in line
+\t\t\t\t\t(at 0 0 270)
+\t\t\t\t\t(length 0)
+\t\t\t\t\t(name ""
+\t\t\t\t\t\t(effects
+\t\t\t\t\t\t\t(font
+\t\t\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t\t\t)
+\t\t\t\t\t\t)
+\t\t\t\t\t)
+\t\t\t\t\t(number "1"
+\t\t\t\t\t\t(effects
+\t\t\t\t\t\t\t(font
+\t\t\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t\t\t)
+\t\t\t\t\t\t)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(embedded_fonts no)
+\t\t)
+\t\t(symbol "power:Earth_Protective"
+\t\t\t(power global)
+\t\t\t(pin_numbers
+\t\t\t\t(hide yes)
+\t\t\t)
+\t\t\t(pin_names
+\t\t\t\t(offset 0)
+\t\t\t\t(hide yes)
+\t\t\t)
+\t\t\t(exclude_from_sim no)
+\t\t\t(in_bom yes)
+\t\t\t(on_board yes)
+\t\t\t(in_pos_files yes)
+\t\t\t(duplicate_pin_numbers_are_jumpers no)
+\t\t\t(property "Reference" "#PWR"
+\t\t\t\t(at 0 -10.16 0)
+\t\t\t\t(show_name no)
+\t\t\t\t(do_not_autoplace no)
+\t\t\t\t(hide yes)
+\t\t\t\t(effects
+\t\t\t\t\t(font
+\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(property "Value" "Earth_Protective"
+\t\t\t\t(at 0 -7.62 0)
+\t\t\t\t(show_name no)
+\t\t\t\t(do_not_autoplace no)
+\t\t\t\t(effects
+\t\t\t\t\t(font
+\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(property "Footprint" ""
+\t\t\t\t(at 0 -2.54 0)
+\t\t\t\t(show_name no)
+\t\t\t\t(do_not_autoplace no)
+\t\t\t\t(hide yes)
+\t\t\t\t(effects
+\t\t\t\t\t(font
+\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(property "Datasheet" ""
+\t\t\t\t(at 0 -2.54 0)
+\t\t\t\t(show_name no)
+\t\t\t\t(do_not_autoplace no)
+\t\t\t\t(hide yes)
+\t\t\t\t(effects
+\t\t\t\t\t(font
+\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(property "Description" "Power symbol creates a global label with name \\"Earth_Protective\\""
+\t\t\t\t(at 0 0 0)
+\t\t\t\t(show_name no)
+\t\t\t\t(do_not_autoplace no)
+\t\t\t\t(hide yes)
+\t\t\t\t(effects
+\t\t\t\t\t(font
+\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(property "ki_keywords" "global ground gnd clean"
+\t\t\t\t(at 0 0 0)
+\t\t\t\t(show_name no)
+\t\t\t\t(do_not_autoplace no)
+\t\t\t\t(hide yes)
+\t\t\t\t(effects
+\t\t\t\t\t(font
+\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(symbol "Earth_Protective_0_1"
+\t\t\t\t(polyline
+\t\t\t\t\t(pts
+\t\t\t\t\t\t(xy -0.635 -4.445) (xy 0.635 -4.445)
+\t\t\t\t\t)
+\t\t\t\t\t(stroke
+\t\t\t\t\t\t(width 0)
+\t\t\t\t\t\t(type default)
+\t\t\t\t\t)
+\t\t\t\t\t(fill
+\t\t\t\t\t\t(type none)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t\t(polyline
+\t\t\t\t\t(pts
+\t\t\t\t\t\t(xy -0.127 -5.08) (xy 0.127 -5.08)
+\t\t\t\t\t)
+\t\t\t\t\t(stroke
+\t\t\t\t\t\t(width 0)
+\t\t\t\t\t\t(type default)
+\t\t\t\t\t)
+\t\t\t\t\t(fill
+\t\t\t\t\t\t(type none)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t\t(polyline
+\t\t\t\t\t(pts
+\t\t\t\t\t\t(xy 0 -3.81) (xy 0 0)
+\t\t\t\t\t)
+\t\t\t\t\t(stroke
+\t\t\t\t\t\t(width 0)
+\t\t\t\t\t\t(type default)
+\t\t\t\t\t)
+\t\t\t\t\t(fill
+\t\t\t\t\t\t(type none)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t\t(circle
+\t\t\t\t\t(center 0 -3.81)
+\t\t\t\t\t(radius 2.54)
+\t\t\t\t\t(stroke
+\t\t\t\t\t\t(width 0)
+\t\t\t\t\t\t(type default)
+\t\t\t\t\t)
+\t\t\t\t\t(fill
+\t\t\t\t\t\t(type none)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t\t(polyline
+\t\t\t\t\t(pts
+\t\t\t\t\t\t(xy 1.27 -3.81) (xy -1.27 -3.81)
+\t\t\t\t\t)
+\t\t\t\t\t(stroke
+\t\t\t\t\t\t(width 0)
+\t\t\t\t\t\t(type default)
+\t\t\t\t\t)
+\t\t\t\t\t(fill
+\t\t\t\t\t\t(type none)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(symbol "Earth_Protective_1_1"
+\t\t\t\t(pin power_in line
+\t\t\t\t\t(at 0 0 270)
+\t\t\t\t\t(length 0)
+\t\t\t\t\t(name ""
+\t\t\t\t\t\t(effects
+\t\t\t\t\t\t\t(font
+\t\t\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t\t\t)
+\t\t\t\t\t\t)
+\t\t\t\t\t)
+\t\t\t\t\t(number "1"
+\t\t\t\t\t\t(effects
+\t\t\t\t\t\t\t(font
+\t\t\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t\t\t)
+\t\t\t\t\t\t)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(embedded_fonts no)
+\t\t)
+\t\t(symbol "power:PWR_FLAG"
+\t\t\t(power global)
+\t\t\t(pin_numbers
+\t\t\t\t(hide yes)
+\t\t\t)
+\t\t\t(pin_names
+\t\t\t\t(offset 0)
+\t\t\t\t(hide yes)
+\t\t\t)
+\t\t\t(exclude_from_sim no)
+\t\t\t(in_bom yes)
+\t\t\t(on_board yes)
+\t\t\t(in_pos_files yes)
+\t\t\t(duplicate_pin_numbers_are_jumpers no)
+\t\t\t(property "Reference" "#FLG"
+\t\t\t\t(at 0 1.905 0)
+\t\t\t\t(show_name no)
+\t\t\t\t(do_not_autoplace no)
+\t\t\t\t(hide yes)
+\t\t\t\t(effects
+\t\t\t\t\t(font
+\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(property "Value" "PWR_FLAG"
+\t\t\t\t(at 0 3.81 0)
+\t\t\t\t(show_name no)
+\t\t\t\t(do_not_autoplace no)
+\t\t\t\t(effects
+\t\t\t\t\t(font
+\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(property "Footprint" ""
+\t\t\t\t(at 0 0 0)
+\t\t\t\t(show_name no)
+\t\t\t\t(do_not_autoplace no)
+\t\t\t\t(hide yes)
+\t\t\t\t(effects
+\t\t\t\t\t(font
+\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(property "Datasheet" ""
+\t\t\t\t(at 0 0 0)
+\t\t\t\t(show_name no)
+\t\t\t\t(do_not_autoplace no)
+\t\t\t\t(hide yes)
+\t\t\t\t(effects
+\t\t\t\t\t(font
+\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(property "Description" "Special symbol for telling ERC where power comes from"
+\t\t\t\t(at 0 0 0)
+\t\t\t\t(show_name no)
+\t\t\t\t(do_not_autoplace no)
+\t\t\t\t(hide yes)
+\t\t\t\t(effects
+\t\t\t\t\t(font
+\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(property "ki_keywords" "flag power"
+\t\t\t\t(at 0 0 0)
+\t\t\t\t(show_name no)
+\t\t\t\t(do_not_autoplace no)
+\t\t\t\t(hide yes)
+\t\t\t\t(effects
+\t\t\t\t\t(font
+\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(symbol "PWR_FLAG_0_0"
+\t\t\t\t(pin power_out line
+\t\t\t\t\t(at 0 0 90)
+\t\t\t\t\t(length 0)
+\t\t\t\t\t(name ""
+\t\t\t\t\t\t(effects
+\t\t\t\t\t\t\t(font
+\t\t\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t\t\t)
+\t\t\t\t\t\t)
+\t\t\t\t\t)
+\t\t\t\t\t(number "1"
+\t\t\t\t\t\t(effects
+\t\t\t\t\t\t\t(font
+\t\t\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t\t\t)
+\t\t\t\t\t\t)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(symbol "PWR_FLAG_0_1"
+\t\t\t\t(polyline
+\t\t\t\t\t(pts
+\t\t\t\t\t\t(xy 0 0) (xy 0 1.27) (xy -1.016 1.905) (xy 0 2.54) (xy 1.016 1.905) (xy 0 1.27)
+\t\t\t\t\t)
+\t\t\t\t\t(stroke
+\t\t\t\t\t\t(width 0)
+\t\t\t\t\t\t(type default)
+\t\t\t\t\t)
+\t\t\t\t\t(fill
+\t\t\t\t\t\t(type none)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(embedded_fonts no)
+\t\t)"""
+
+
+# -----------------------------------------------------------------------------
+# Helpers for symbol/wire/junction emission in power.kicad_sch
+# -----------------------------------------------------------------------------
+def _sch_wire(x1: float, y1: float, x2: float, y2: float, tag: str) -> str:
+    return textwrap.dedent(f"""\
+        \t(wire
+        \t\t(pts
+        \t\t\t(xy {fmt(x1)} {fmt(y1)}) (xy {fmt(x2)} {fmt(y2)})
+        \t\t)
+        \t\t(stroke
+        \t\t\t(width 0)
+        \t\t\t(type default)
+        \t\t)
+        \t\t(uuid "{U('wire:'+tag)}")
+        \t)""")
+
+
+def _sch_junction(x: float, y: float, tag: str) -> str:
+    return textwrap.dedent(f"""\
+        \t(junction
+        \t\t(at {fmt(x)} {fmt(y)})
+        \t\t(diameter 0)
+        \t\t(color 0 0 0 0)
+        \t\t(uuid "{U('junction:'+tag)}")
+        \t)""")
+
+
+def _sch_power_flag(
+    lib_id: str, value: str, x: float, y: float, angle: int,
+    reference: str, value_offset_x: float, value_offset_y: float, uuid_tag: str,
+) -> str:
+    """Emit a power-symbol instance (+24V / GND / Earth_Protective / PWR_FLAG).
+
+    `value_offset_x/y` give the Value-label position relative to (x, y) in
+    schematic mm — chosen empirically per symbol so the visible label
+    matches the symbol's default placement convention.
+    """
+    sym_uuid = U("sym:" + uuid_tag)
+    pin_uuid = U("sym-pin:" + uuid_tag)
+    sheet_path = f"/{ROOT_SHEET_UUID}/{SHEET_BLOCK_UUIDS['power']}"
+    return textwrap.dedent(f"""\
+        \t(symbol
+        \t\t(lib_id "{lib_id}")
+        \t\t(at {fmt(x)} {fmt(y)} {angle})
+        \t\t(unit 1)
+        \t\t(exclude_from_sim no)
+        \t\t(in_bom yes)
+        \t\t(on_board yes)
+        \t\t(dnp no)
+        \t\t(fields_autoplaced yes)
+        \t\t(uuid "{sym_uuid}")
+        \t\t(property "Reference" "{reference}"
+        \t\t\t(at {fmt(x)} {fmt(y - 3.81)} 0)
+        \t\t\t(effects
+        \t\t\t\t(font
+        \t\t\t\t\t(size 1.27 1.27)
+        \t\t\t\t)
+        \t\t\t\t(hide yes)
+        \t\t\t)
+        \t\t)
+        \t\t(property "Value" "{value}"
+        \t\t\t(at {fmt(x + value_offset_x)} {fmt(y + value_offset_y)} 0)
+        \t\t\t(effects
+        \t\t\t\t(font
+        \t\t\t\t\t(size 1.27 1.27)
+        \t\t\t\t)
+        \t\t\t)
+        \t\t)
+        \t\t(property "Footprint" ""
+        \t\t\t(at {fmt(x)} {fmt(y)} 0)
+        \t\t\t(effects
+        \t\t\t\t(font
+        \t\t\t\t\t(size 1.27 1.27)
+        \t\t\t\t)
+        \t\t\t\t(hide yes)
+        \t\t\t)
+        \t\t)
+        \t\t(property "Datasheet" ""
+        \t\t\t(at {fmt(x)} {fmt(y)} 0)
+        \t\t\t(effects
+        \t\t\t\t(font
+        \t\t\t\t\t(size 1.27 1.27)
+        \t\t\t\t)
+        \t\t\t\t(hide yes)
+        \t\t\t)
+        \t\t)
+        \t\t(property "Description" ""
+        \t\t\t(at {fmt(x)} {fmt(y)} 0)
+        \t\t\t(effects
+        \t\t\t\t(font
+        \t\t\t\t\t(size 1.27 1.27)
+        \t\t\t\t)
+        \t\t\t\t(hide yes)
+        \t\t\t)
+        \t\t)
+        \t\t(pin "1"
+        \t\t\t(uuid "{pin_uuid}")
+        \t\t)
+        \t\t(instances
+        \t\t\t(project "oas"
+        \t\t\t\t(path "{sheet_path}"
+        \t\t\t\t\t(reference "{reference}")
+        \t\t\t\t\t(unit 1)
+        \t\t\t\t)
+        \t\t\t)
+        \t\t)
+        \t)""")
+
+
+def gen_power_sch() -> str:
+    """Power sub-sheet — contains the J1 input terminal (24 V / GND / PE).
+
+    Layout (page-absolute mm, KiCad +Y is down on screen):
+
+        +24V@(73.66, 88.9)     GND@(78.74, 101.6)     Earth_Protective@(83.82, 104.14)
+            |                       |                       |
+        PWR_FLAG@                 PWR_FLAG@               PWR_FLAG@
+        (73.66, 91.44)           (78.74, 99.06)          (83.82, 101.6)
+        (rot 0, body up)         (rot 180, body down)    (rot 180, body down)
+            |                       |                       |
+        ─── pin 1 ──── J1.1     ─── pin 2 ──── J1.2     ─── pin 3 ──── J1.3
+        (96.52, 93.98)          (96.52, 96.52)          (96.52, 99.06)
+
+    J1 itself sits at (101.6, 96.52). Each pin extends a horizontal wire
+    LEFT to its own per-net column, then a vertical wire to the flag's
+    anchor point. A junction shared between the flag's wire stem and the
+    PWR_FLAG sentinel marks the branch point.
+    """
+    file_uuid = SHEET_FILE_UUIDS["power"]
+    sheet_path = f"/{ROOT_SHEET_UUID}/{SHEET_BLOCK_UUIDS['power']}"
+
+    # J1 placement and pin Y coordinates.
+    J1_X = 101.6
+    J1_Y = 96.52
+    PIN1_Y = J1_Y - 2.54     # 93.98 — +24V
+    PIN2_Y = J1_Y            # 96.52 — GND
+    PIN3_Y = J1_Y + 2.54     # 99.06 — PE
+    PIN_X  = J1_X - 5.08     # 96.52 — pin tips on J1 symbol's left side
+
+    # Per-net column X (each net gets its own column to keep the schematic
+    # readable — no shared X between nets).
+    COL_24V = 73.66
+    COL_GND = 78.74
+    COL_PE  = 83.82
+
+    # Y coordinates for each flag/PWR_FLAG triplet.
+    JUNC_24V_Y = 91.44       # between PIN1_Y and FLAG_24V_Y
+    FLAG_24V_Y = 88.9
+    JUNC_GND_Y = 99.06       # below PIN2_Y
+    FLAG_GND_Y = 101.6
+    JUNC_PE_Y  = 101.6       # below PIN3_Y
+    FLAG_PE_Y  = 104.14
+
+    parts: list[str] = []
+
+    # ----- Wires -----
+    # +24V row (pin 1 → column 73.66 → flag above)
+    parts.append(_sch_wire(PIN_X, PIN1_Y, COL_24V, PIN1_Y,  "24v-horiz"))
+    parts.append(_sch_wire(COL_24V, PIN1_Y, COL_24V, JUNC_24V_Y, "24v-vert-low"))
+    parts.append(_sch_wire(COL_24V, JUNC_24V_Y, COL_24V, FLAG_24V_Y, "24v-vert-high"))
+
+    # GND row (pin 2 → column 78.74 → flag below)
+    parts.append(_sch_wire(PIN_X, PIN2_Y, COL_GND, PIN2_Y, "gnd-horiz"))
+    parts.append(_sch_wire(COL_GND, PIN2_Y, COL_GND, JUNC_GND_Y, "gnd-vert-high"))
+    parts.append(_sch_wire(COL_GND, JUNC_GND_Y, COL_GND, FLAG_GND_Y, "gnd-vert-low"))
+
+    # PE row (pin 3 → column 83.82 → flag below)
+    parts.append(_sch_wire(PIN_X, PIN3_Y, COL_PE, PIN3_Y, "pe-horiz"))
+    parts.append(_sch_wire(COL_PE, PIN3_Y, COL_PE, JUNC_PE_Y, "pe-vert-high"))
+    parts.append(_sch_wire(COL_PE, JUNC_PE_Y, COL_PE, FLAG_PE_Y, "pe-vert-low"))
+
+    # ----- Junctions (T-branch points where PWR_FLAG joins the column wire) -----
+    parts.append(_sch_junction(COL_24V, JUNC_24V_Y, "24v"))
+    parts.append(_sch_junction(COL_GND, JUNC_GND_Y, "gnd"))
+    parts.append(_sch_junction(COL_PE,  JUNC_PE_Y,  "pe"))
+
+    # ----- J1 symbol (Phoenix MSTBA 2,5/3-G-5,08, 5.08 mm pitch) -----
+    j1_uuid = U("sym:j1")
+    j1_pin1_uuid = U("sym-pin:j1-1")
+    j1_pin2_uuid = U("sym-pin:j1-2")
+    j1_pin3_uuid = U("sym-pin:j1-3")
+    parts.append(textwrap.dedent(f"""\
+        \t(symbol
+        \t\t(lib_id "Connector:Screw_Terminal_01x03")
+        \t\t(at {fmt(J1_X)} {fmt(J1_Y)} 0)
+        \t\t(unit 1)
+        \t\t(exclude_from_sim no)
+        \t\t(in_bom yes)
+        \t\t(on_board yes)
+        \t\t(dnp no)
+        \t\t(fields_autoplaced yes)
+        \t\t(uuid "{j1_uuid}")
+        \t\t(property "Reference" "J1"
+        \t\t\t(at {fmt(J1_X + 2.54)} {fmt(J1_Y - 7.62)} 0)
+        \t\t\t(effects
+        \t\t\t\t(font
+        \t\t\t\t\t(size 1.27 1.27)
+        \t\t\t\t)
+        \t\t\t\t(justify left)
+        \t\t\t)
+        \t\t)
+        \t\t(property "Value" "Phoenix_MSTBA_2,5/3-G-5,08"
+        \t\t\t(at {fmt(J1_X + 2.54)} {fmt(J1_Y - 5.08)} 0)
+        \t\t\t(effects
+        \t\t\t\t(font
+        \t\t\t\t\t(size 1.27 1.27)
+        \t\t\t\t)
+        \t\t\t\t(justify left)
+        \t\t\t)
+        \t\t)
+        \t\t(property "Footprint" ""
+        \t\t\t(at {fmt(J1_X)} {fmt(J1_Y)} 0)
+        \t\t\t(effects
+        \t\t\t\t(font
+        \t\t\t\t\t(size 1.27 1.27)
+        \t\t\t\t)
+        \t\t\t\t(hide yes)
+        \t\t\t)
+        \t\t)
+        \t\t(property "Datasheet" ""
+        \t\t\t(at {fmt(J1_X)} {fmt(J1_Y)} 0)
+        \t\t\t(effects
+        \t\t\t\t(font
+        \t\t\t\t\t(size 1.27 1.27)
+        \t\t\t\t)
+        \t\t\t\t(hide yes)
+        \t\t\t)
+        \t\t)
+        \t\t(property "Description" ""
+        \t\t\t(at {fmt(J1_X)} {fmt(J1_Y)} 0)
+        \t\t\t(effects
+        \t\t\t\t(font
+        \t\t\t\t\t(size 1.27 1.27)
+        \t\t\t\t)
+        \t\t\t\t(hide yes)
+        \t\t\t)
+        \t\t)
+        \t\t(pin "1"
+        \t\t\t(uuid "{j1_pin1_uuid}")
+        \t\t)
+        \t\t(pin "2"
+        \t\t\t(uuid "{j1_pin2_uuid}")
+        \t\t)
+        \t\t(pin "3"
+        \t\t\t(uuid "{j1_pin3_uuid}")
+        \t\t)
+        \t\t(instances
+        \t\t\t(project "oas"
+        \t\t\t\t(path "{sheet_path}"
+        \t\t\t\t\t(reference "J1")
+        \t\t\t\t\t(unit 1)
+        \t\t\t\t)
+        \t\t\t)
+        \t\t)
+        \t)"""))
+
+    # ----- Power flag symbols (+24V, GND, Earth_Protective) -----
+    parts.append(_sch_power_flag(
+        lib_id="power:+24V", value="+24V",
+        x=COL_24V, y=FLAG_24V_Y, angle=0,
+        reference="#PWR01",
+        value_offset_x=0.0, value_offset_y=-2.54,   # label above the triangle
+        uuid_tag="pwr01-24v",
+    ))
+    parts.append(_sch_power_flag(
+        lib_id="power:GND", value="GND",
+        x=COL_GND, y=FLAG_GND_Y, angle=0,
+        reference="#PWR02",
+        value_offset_x=0.0, value_offset_y=3.81,    # label below the symbol
+        uuid_tag="pwr02-gnd",
+    ))
+    parts.append(_sch_power_flag(
+        lib_id="power:Earth_Protective", value="Earth_Protective",
+        x=COL_PE, y=FLAG_PE_Y, angle=0,
+        reference="#PWR03",
+        value_offset_x=0.0, value_offset_y=7.62,    # label below the Ø2.54 circle
+        uuid_tag="pwr03-pe",
+    ))
+
+    # ----- PWR_FLAG sentinels (one per net) -----
+    # The +24V net's PWR_FLAG sits at its junction with the flag-up graphic
+    # (rotation 0) covering the +Y direction (toward the flag).
+    parts.append(_sch_power_flag(
+        lib_id="power:PWR_FLAG", value="PWR_FLAG",
+        x=COL_24V, y=JUNC_24V_Y, angle=0,
+        reference="#FLG01",
+        value_offset_x=0.0, value_offset_y=-3.81,
+        uuid_tag="flg01-24v",
+    ))
+    # GND and PE: PWR_FLAG rotated 180° so its graphic extends DOWN toward
+    # the flag symbol (which is below the pin row on screen).
+    parts.append(_sch_power_flag(
+        lib_id="power:PWR_FLAG", value="PWR_FLAG",
+        x=COL_GND, y=JUNC_GND_Y, angle=180,
+        reference="#FLG02",
+        value_offset_x=0.0, value_offset_y=-3.81,
+        uuid_tag="flg02-gnd",
+    ))
+    parts.append(_sch_power_flag(
+        lib_id="power:PWR_FLAG", value="PWR_FLAG",
+        x=COL_PE, y=JUNC_PE_Y, angle=180,
+        reference="#FLG03",
+        value_offset_x=0.0, value_offset_y=-3.81,
+        uuid_tag="flg03-pe",
+    ))
+
+    body = "\n".join(parts)
+    return textwrap.dedent(f"""\
+        (kicad_sch
+        \t(version {SCH_VERSION})
+        \t(generator "eeschema")
+        \t(generator_version "{GEN_VERSION}")
+        \t(uuid "{file_uuid}")
+        \t(paper "A4")
+        \t(lib_symbols
+        {POWER_LIB_SYMBOLS}
+        \t)
+        {body}
+        \t(embedded_fonts no)
+        )
+        """)
+
 # -----------------------------------------------------------------------------
 # 4) Project file
 # -----------------------------------------------------------------------------
@@ -892,9 +2019,11 @@ def main():
     (HERE / "oas.kicad_pcb").write_text(gen_pcb(), encoding="utf-8")
     (HERE / "oas.kicad_sch").write_text(gen_root_sch(), encoding="utf-8")
     for name in SUBSHEETS:
-        (HERE / f"{name}.kicad_sch").write_text(
-            gen_subsheet_sch(name), encoding="utf-8"
-        )
+        if name == "power":
+            content = gen_power_sch()
+        else:
+            content = gen_subsheet_sch(name)
+        (HERE / f"{name}.kicad_sch").write_text(content, encoding="utf-8")
     (HERE / "oas.kicad_pro").write_text(gen_pro(), encoding="utf-8")
     (HERE / "fp-lib-table").write_text(gen_fp_lib_table(), encoding="utf-8")
     (HERE / "sym-lib-table").write_text(gen_sym_lib_table(), encoding="utf-8")
