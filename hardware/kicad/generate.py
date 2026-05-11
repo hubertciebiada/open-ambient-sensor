@@ -2272,6 +2272,172 @@ POWER_LIB_SYMBOLS = """\
 \t\t\t)
 \t\t\t(embedded_fonts no)
 \t\t)
+\t\t(symbol "Device:D_Zener"
+\t\t\t(pin_numbers
+\t\t\t\t(hide yes)
+\t\t\t)
+\t\t\t(pin_names
+\t\t\t\t(offset 1.016)
+\t\t\t\t(hide yes)
+\t\t\t)
+\t\t\t(exclude_from_sim no)
+\t\t\t(in_bom yes)
+\t\t\t(on_board yes)
+\t\t\t(in_pos_files yes)
+\t\t\t(duplicate_pin_numbers_are_jumpers no)
+\t\t\t(property "Reference" "D"
+\t\t\t\t(at 0 2.54 0)
+\t\t\t\t(show_name no)
+\t\t\t\t(do_not_autoplace no)
+\t\t\t\t(effects
+\t\t\t\t\t(font
+\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(property "Value" "D_Zener"
+\t\t\t\t(at 0 -2.54 0)
+\t\t\t\t(show_name no)
+\t\t\t\t(do_not_autoplace no)
+\t\t\t\t(effects
+\t\t\t\t\t(font
+\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(property "Footprint" ""
+\t\t\t\t(at 0 0 0)
+\t\t\t\t(show_name no)
+\t\t\t\t(do_not_autoplace no)
+\t\t\t\t(hide yes)
+\t\t\t\t(effects
+\t\t\t\t\t(font
+\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(property "Datasheet" ""
+\t\t\t\t(at 0 0 0)
+\t\t\t\t(show_name no)
+\t\t\t\t(do_not_autoplace no)
+\t\t\t\t(hide yes)
+\t\t\t\t(effects
+\t\t\t\t\t(font
+\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(property "Description" "Zener diode"
+\t\t\t\t(at 0 0 0)
+\t\t\t\t(show_name no)
+\t\t\t\t(do_not_autoplace no)
+\t\t\t\t(hide yes)
+\t\t\t\t(effects
+\t\t\t\t\t(font
+\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(property "ki_keywords" "diode"
+\t\t\t\t(at 0 0 0)
+\t\t\t\t(show_name no)
+\t\t\t\t(do_not_autoplace no)
+\t\t\t\t(hide yes)
+\t\t\t\t(effects
+\t\t\t\t\t(font
+\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(property "ki_fp_filters" "TO-???* *_Diode_* *SingleDiode* D_*"
+\t\t\t\t(at 0 0 0)
+\t\t\t\t(show_name no)
+\t\t\t\t(do_not_autoplace no)
+\t\t\t\t(hide yes)
+\t\t\t\t(effects
+\t\t\t\t\t(font
+\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(symbol "D_Zener_0_1"
+\t\t\t\t(polyline
+\t\t\t\t\t(pts
+\t\t\t\t\t\t(xy -1.27 -1.27) (xy -1.27 1.27) (xy -0.762 1.27)
+\t\t\t\t\t)
+\t\t\t\t\t(stroke
+\t\t\t\t\t\t(width 0.254)
+\t\t\t\t\t\t(type default)
+\t\t\t\t\t)
+\t\t\t\t\t(fill
+\t\t\t\t\t\t(type none)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t\t(polyline
+\t\t\t\t\t(pts
+\t\t\t\t\t\t(xy 1.27 0) (xy -1.27 0)
+\t\t\t\t\t)
+\t\t\t\t\t(stroke
+\t\t\t\t\t\t(width 0)
+\t\t\t\t\t\t(type default)
+\t\t\t\t\t)
+\t\t\t\t\t(fill
+\t\t\t\t\t\t(type none)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t\t(polyline
+\t\t\t\t\t(pts
+\t\t\t\t\t\t(xy 1.27 -1.27) (xy 1.27 1.27) (xy -1.27 0) (xy 1.27 -1.27)
+\t\t\t\t\t)
+\t\t\t\t\t(stroke
+\t\t\t\t\t\t(width 0.254)
+\t\t\t\t\t\t(type default)
+\t\t\t\t\t)
+\t\t\t\t\t(fill
+\t\t\t\t\t\t(type none)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(symbol "D_Zener_1_1"
+\t\t\t\t(pin passive line
+\t\t\t\t\t(at -3.81 0 0)
+\t\t\t\t\t(length 2.54)
+\t\t\t\t\t(name "K"
+\t\t\t\t\t\t(effects
+\t\t\t\t\t\t\t(font
+\t\t\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t\t\t)
+\t\t\t\t\t\t)
+\t\t\t\t\t)
+\t\t\t\t\t(number "1"
+\t\t\t\t\t\t(effects
+\t\t\t\t\t\t\t(font
+\t\t\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t\t\t)
+\t\t\t\t\t\t)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t\t(pin passive line
+\t\t\t\t\t(at 3.81 0 180)
+\t\t\t\t\t(length 2.54)
+\t\t\t\t\t(name "A"
+\t\t\t\t\t\t(effects
+\t\t\t\t\t\t\t(font
+\t\t\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t\t\t)
+\t\t\t\t\t\t)
+\t\t\t\t\t)
+\t\t\t\t\t(number "2"
+\t\t\t\t\t\t(effects
+\t\t\t\t\t\t\t(font
+\t\t\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t\t\t)
+\t\t\t\t\t\t)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(embedded_fonts no)
+\t\t)
 \t\t(symbol "Device:C"
 \t\t\t(pin_numbers
 \t\t\t\t(hide yes)
@@ -4424,6 +4590,106 @@ def _sch_diode_schottky(
         \t)""")
 
 
+def _sch_diode_zener(
+    x: float, y: float, angle: int, reference: str, value: str, uuid_tag: str,
+) -> str:
+    """Emit a Zener diode (Device:D_Zener) symbol instance.
+
+    Pin 1 in the stock symbol is the cathode K (lib (-3.81, 0)), pin 2 is the
+    anode A (lib (3.81, 0)). With angle=270 (CW 90° rotation in schematic
+    Y-flipped coords), lib pin positions map to schematic as:
+      Pin 1 K (top, cathode): (x, y - 3.81)
+      Pin 2 A (bottom, anode): (x, y + 3.81)
+
+    For the Q1 gate-source clamp, the cathode faces UP (toward Q1.S / VIN
+    net) and the anode faces DOWN (toward the R4/R1 junction on the gate
+    side). When the gate-source voltage tries to exceed -18 V (gate well
+    below source), the Zener breaks down in reverse and clamps the gate-
+    side junction to V_S - 18 V, keeping |Vgs| within the PMV65XP's
+    +/-20 V absolute maximum.
+
+    Reference text is placed to the right of the body, value text below it
+    on the same side. The property at-angle is set so labels render
+    horizontal regardless of symbol rotation (text_angle = -angle mod 360).
+    """
+    sym_uuid = U("sym:" + uuid_tag)
+    pin1_uuid = U("sym-pin:" + uuid_tag + "-1")
+    pin2_uuid = U("sym-pin:" + uuid_tag + "-2")
+    sheet_path = f"/{ROOT_SHEET_UUID}/{SHEET_BLOCK_UUIDS['power']}"
+    text_angle = (-angle) % 360
+    return textwrap.dedent(f"""\
+        \t(symbol
+        \t\t(lib_id "Device:D_Zener")
+        \t\t(at {fmt(x)} {fmt(y)} {angle})
+        \t\t(unit 1)
+        \t\t(exclude_from_sim no)
+        \t\t(in_bom yes)
+        \t\t(on_board yes)
+        \t\t(dnp no)
+        \t\t(fields_autoplaced no)
+        \t\t(uuid "{sym_uuid}")
+        \t\t(property "Reference" "{reference}"
+        \t\t\t(at {fmt(x + 3.81)} {fmt(y - 1.27)} {text_angle})
+        \t\t\t(effects
+        \t\t\t\t(font
+        \t\t\t\t\t(size 1.27 1.27)
+        \t\t\t\t)
+        \t\t\t\t(justify left)
+        \t\t\t)
+        \t\t)
+        \t\t(property "Value" "{value}"
+        \t\t\t(at {fmt(x + 3.81)} {fmt(y + 1.27)} {text_angle})
+        \t\t\t(effects
+        \t\t\t\t(font
+        \t\t\t\t\t(size 1.27 1.27)
+        \t\t\t\t)
+        \t\t\t\t(justify left)
+        \t\t\t)
+        \t\t)
+        \t\t(property "Footprint" ""
+        \t\t\t(at {fmt(x)} {fmt(y)} 0)
+        \t\t\t(effects
+        \t\t\t\t(font
+        \t\t\t\t\t(size 1.27 1.27)
+        \t\t\t\t)
+        \t\t\t\t(hide yes)
+        \t\t\t)
+        \t\t)
+        \t\t(property "Datasheet" ""
+        \t\t\t(at {fmt(x)} {fmt(y)} 0)
+        \t\t\t(effects
+        \t\t\t\t(font
+        \t\t\t\t\t(size 1.27 1.27)
+        \t\t\t\t)
+        \t\t\t\t(hide yes)
+        \t\t\t)
+        \t\t)
+        \t\t(property "Description" ""
+        \t\t\t(at {fmt(x)} {fmt(y)} 0)
+        \t\t\t(effects
+        \t\t\t\t(font
+        \t\t\t\t\t(size 1.27 1.27)
+        \t\t\t\t)
+        \t\t\t\t(hide yes)
+        \t\t\t)
+        \t\t)
+        \t\t(pin "1"
+        \t\t\t(uuid "{pin1_uuid}")
+        \t\t)
+        \t\t(pin "2"
+        \t\t\t(uuid "{pin2_uuid}")
+        \t\t)
+        \t\t(instances
+        \t\t\t(project "oas"
+        \t\t\t\t(path "{sheet_path}"
+        \t\t\t\t\t(reference "{reference}")
+        \t\t\t\t\t(unit 1)
+        \t\t\t\t)
+        \t\t\t)
+        \t\t)
+        \t)""")
+
+
 def _sch_buck_lm2596_5(
     x: float, y: float, angle: int, reference: str, value: str, uuid_tag: str,
 ) -> str:
@@ -4651,23 +4917,36 @@ def _sch_buck_tps62933(
 
 
 def gen_power_sch() -> str:
-    """Power sub-sheet — J1 input + D1 surge clamp + Q1 reverse-polarity + R1 pulldown + F1 polyfuse + C1/C2 caps + U1 24V->5V buck.
+    """Power sub-sheet — J1 input + D1 surge clamp + Q1 reverse-polarity + R4/D3 Vgs clamp + R1 pulldown + F1 polyfuse + C1/C2 caps + U1 24V->5V buck.
 
     Power flow runs LEFT-TO-RIGHT and UPWARD on screen:
 
         J1 (input) ──┬── Q1.S → Q1.D → F1 → +24V (protected rail, exits up-right)
+                     │     │            ↑
+                     │     │            D3 (18V Zener, cathode → S net,
+                     │     │                 anode → R4/R1 junction)
                      │     │
-                     │     Q1.G → R1 → GND (gate pulldown, drops to its own GND flag)
+                     │     Q1.G → R4 (1k series) → (junction) → R1 (100k) → GND
+                     │                              │
+                     │                              D3.anode lands here
                      │
                      D1 (TVS surge clamp, shunts excess voltage to GND below)
                      │
                      └── J1.2 (GND), J1.3 (PE) — drop down to their own flags
 
     The TVS D1 sits BEFORE Q1 in the chain (tap point on the J1.1 → Q1.S
-    wire). A surge that exceeds Q1's Vds_max (-40V on DMP4015SK3) would
-    destroy Q1 before its reverse-polarity function could engage, so D1
-    must clamp upstream of Q1. SMBJ24A clamps at ~38.9V at 1A peak,
-    leaving comfortable margin below Q1's absolute maximum.
+    wire). A surge that exceeds Q1's Vds_max would destroy Q1 before its
+    reverse-polarity function could engage, so D1 must clamp upstream of
+    Q1. SMBJ24A clamps at ~38.9V at 1A peak, leaving comfortable margin
+    below Q1's absolute maximum (PMV65XP Vds_max = -50V).
+
+    The Q1 gate-source clamp (R4 + D3) is mandatory because PMV65XP
+    (like the previous DMP4015SK3) has Vgs_max = +/-20V, while the
+    natural pull-down through R1 alone would set Vgs = -24V at the 24V
+    supply, exceeding the absolute max. With D3 (18V Zener) shunting
+    the gate-side junction to source whenever the gate tries to drop
+    more than 18V below source, |Vgs| is clamped to <=18V. R4 (1k)
+    provides series isolation in the gate path.
 
     Layout (page-absolute mm, KiCad +Y is down on screen):
 
@@ -4678,9 +4957,21 @@ def gen_power_sch() -> str:
         - Q1 placed to the right of D1, angle=0:
             Q1.D on top  → wire goes UP through F1 to the +24V power flag
             Q1.S on bottom-right (Y aligns with J1.1)
-            Q1.G on left side → wire drops DOWN to R1 (crossing J1.1 row
-                                without a junction — KiCad convention)
-        - R1 below Q1.G, vertical orientation; R1.bot → dedicated GND flag
+            Q1.G on left side → wire drops DOWN through R4 (series) →
+                                R4/R1 junction → R1 (pulldown) → GND.
+                                (Crosses J1.1 row at X=Q1_G_X without a
+                                 junction — KiCad convention for the
+                                 non-connected crossing.)
+        - R4 (1k, series gate resistor) directly below Q1.G in the same
+          column as R1. Body fits in clear Y band between VIN row (93.98)
+          and the R4/R1 junction.
+        - R1 (100k, gate pulldown) below R4; R1.bot → dedicated GND flag.
+        - D3 (18V Zener, angle=270) placed LEFT of the R4/R1 column with
+          its CATHODE wired UP to the VIN net (Q1.S side, via a T-tap on
+          the existing vin-horiz wire) and its ANODE wired DOWN-and-RIGHT
+          via an L-route to the R4/R1 junction. Clamp current at steady
+          state flows S -> D3 (reverse breakdown at Vz=18V) -> junction
+          -> R1 -> GND, drawing ~60 uA when active.
         - F1 above Q1.D, vertical Polyfuse
         - +24V flag, GND flag, Earth_Protective flag — each in its own column
           with ≥15 mm horizontal spacing between independent columns so the
@@ -4720,10 +5011,12 @@ def gen_power_sch() -> str:
     PIN3_Y = J1_Y + 2.54     # 99.06 — PE
     PIN_X  = J1_X + 5.08     # 92.71 — pin tips on right side of mirrored body
 
-    # ----- Q1: P-MOSFET reverse-polarity (DMP4015SK3), angle=0, no mirror -----
+    # ----- Q1: P-MOSFET reverse-polarity (PMV65XP), angle=0, no mirror -----
     # With angle=0, pin schematic positions are:
     #   D = (Q1_X + 2.54, Q1_Y - 5.08)   TOP-right    → goes UP to F1 → +24V
-    #   G = (Q1_X - 5.08, Q1_Y)          LEFT side   → drops DOWN to R1
+    #   G = (Q1_X - 5.08, Q1_Y)          LEFT side   → drops DOWN through
+    #                                                  R4 (series) → junction
+    #                                                  with D3.anode → R1 → GND
     #   S = (Q1_X + 2.54, Q1_Y + 5.08)   BOTTOM-right → wires to J1.1
     # Y is set so Q1.S aligns with J1.1's row (PIN1_Y = 93.98).
     Q1_X = 113.03
@@ -4749,26 +5042,75 @@ def gen_power_sch() -> str:
     F1_TOP_Y = F1_Y - 3.81   # 72.39
     F1_BOT_Y = F1_Y + 3.81   # 80.01
 
+    # ----- R4: 1k series gate resistor, angle=0 -----
+    # In series with Q1.G, between Q1.G and the R4/R1 junction where D3
+    # (Zener clamp) ties in. R4 provides series isolation in the gate path
+    # so transient currents from the Zener clamp activation don't disturb
+    # Q1's gate drive directly. R4's body sits in the clear Y band between
+    # the VIN row (93.98) and the R4/R1 junction (104.14) — body Y range
+    # ~96.52 to ~101.60, well clear of the VIN crossing at 93.98.
+    R4_X = Q1_G_X            # 107.95 — same column as Q1.G, R1
+    R4_Y = 99.06
+    R4_TOP_Y = R4_Y - 3.81   # 95.25
+    R4_BOT_Y = R4_Y + 3.81   # 102.87
+
+    # ----- R4/R1 junction (Y row where D3.anode also lands) -----
+    # The junction sits between R4.bot (102.87) and R1.top (105.41) at a
+    # clean 1.27 mm grid increment. D3's anode wire enters from the LEFT,
+    # making this point a 3-way T.
+    R4_R1_JUNC_Y = 104.14    # 1.27 mm above R1.top
+
     # ----- R1: 100k gate-GND pulldown, angle=0 -----
-    # Sits directly below Q1.G; the wire Q1.G -> R1.top is a single vertical
-    # segment. This vertical wire CROSSES J1.1's horizontal wire at
-    # (Q1_G_X, PIN1_Y) without a junction — standard schematic convention
-    # for non-connected crossings.
+    # Sits directly below R4 in the same column. The wire chain
+    # Q1.G -> R4 -> junction -> R1 -> GND replaces the previous direct
+    # Q1.G -> R1 pulldown. This vertical chain CROSSES J1.1's horizontal
+    # wire at (Q1_G_X, PIN1_Y) without a junction — standard schematic
+    # convention for non-connected crossings.
     R1_X = Q1_G_X            # 107.95
     R1_Y = 109.22
     R1_TOP_Y = R1_Y - 3.81   # 105.41
     R1_BOT_Y = R1_Y + 3.81   # 113.03
+
+    # ----- D3: 18 V Zener gate-source clamp, angle=270 (body vertical) -----
+    # PMV65XP (and the predecessor DMP4015SK3) both have Vgs_max = +/-20V
+    # absolute maximum. With R1 alone pulling the gate toward GND, Vgs at
+    # the 24V supply settles at -24V — overshooting the gate-oxide limit
+    # by 20% and slowly destroying Q1. D3 (18V Zener) clamps |Vgs| to
+    # <=18V by shunting current from Q1.S to the R4/R1 junction whenever
+    # the junction voltage drops more than 18V below source. With the
+    # clamp active, the junction sits at V_S - 18V = 6V; the gate sees the
+    # same 6V through R4 (no DC gate current), so Vgs = 6 - 24 = -18V.
+    #
+    # Pin 1 in Device:D_Zener is the CATHODE (K, lib (-3.81, 0)), pin 2 is
+    # the ANODE (A, lib (3.81, 0)). With angle=270, the cathode (pin 1)
+    # lands at the TOP (Y - 3.81) and the anode (pin 2) at the BOTTOM
+    # (Y + 3.81) of the rotated body. The top pin connects to the VIN
+    # net (Q1.S side, via a T-tap on the existing vin-horiz wire); the
+    # bottom pin routes via an L-wire (down-then-right) to the R4/R1
+    # junction.
+    #
+    # X is set so D3 sits in clear space between D1 (now at X=96.52, one
+    # grid step left of its original 100.33 to give breathing room for
+    # text labels) and the R1 column (X=107.95). With D3_X=102.87 and
+    # body half-width ~1.27 mm, D3 body X range is ~101.60 to 104.14 —
+    # well clear of D1 (body ends at X=97.79) and the R1 column (X=107.95).
+    D3_X = 102.87
+    D3_Y = 99.06             # centred between VIN row and R4/R1 junction row
+    D3_K_Y = D3_Y - 3.81     # 95.25 — short stub up to VIN row (93.98)
+    D3_A_Y = D3_Y + 3.81     # 102.87 — short stub down-then-right to junction
 
     # ----- D1: TVS surge-clamp diode (SMBJ24A), angle=90 (body vertical) -----
     # Tap point on the J1.1 -> Q1.S wire (the UNPROTECTED VIN net). With
     # angle=90, lib pin (-3.81, 0) -> schem (D1_X, D1_Y + 3.81) is the
     # BOTTOM pin and lib (3.81, 0) -> schem (D1_X, D1_Y - 3.81) is the TOP
     # pin. The top pin lands on the VIN row (Y = PIN1_Y = 93.98) so D1_Y
-    # = 93.98 + 3.81 = 97.79. X chosen midway between J1.1 (X = 92.71) and
+    # = 93.98 + 3.81 = 97.79. X chosen between J1.1 (X = 92.71) and
     # Q1.S (X = 115.57), leaving the existing R1 column (X = 107.95) and
-    # its value-text untouched. X = 100.33 sits on the same 1.27 mm
-    # half-grid as the rest of the power-sheet layout.
-    D1_X = 100.33
+    # its value-text untouched. X = 96.52 (= 76 × 1.27) was moved one
+    # grid step LEFT of the previous 100.33 to give breathing room
+    # between D1's "SMBJ24A" value text (at X=100.33+, ~5 mm wide) and
+    # D3's vertical body at X=102.87.
+    D1_X = 96.52
     D1_Y = 97.79
     D1_TOP_Y = D1_Y - 3.81   # 93.98 — matches PIN1_Y / VIN wire row
     D1_BOT_Y = D1_Y + 3.81   # 101.60 — wire continues DOWN to local GND symbol
@@ -4888,8 +5230,22 @@ def gen_power_sch() -> str:
     # +24V junction → +24V flag.
     parts.append(_sch_wire(COL_24V, JUNC_24V_Y, COL_24V, FLAG_24V_Y, "junc24v-to-flag"))
 
-    # Q1.G → R1.top: single vertical wire (crosses J1.1's row without a dot).
-    parts.append(_sch_wire(Q1_G_X, Q1_G_Y, R1_X, R1_TOP_Y, "q1g-to-r1"))
+    # Q1.G -> R4 -> (junction with D3.anode) -> R1 -> GND chain.
+    # The chain crosses J1.1's horizontal VIN wire at (Q1_G_X, PIN1_Y) at
+    # the Q1.G -> R4.top segment, without a junction dot — standard
+    # schematic convention for non-connected crossings.
+    parts.append(_sch_wire(Q1_G_X, Q1_G_Y, R4_X, R4_TOP_Y, "q1g-to-r4"))
+    parts.append(_sch_wire(R4_X, R4_BOT_Y, R4_X, R4_R1_JUNC_Y, "r4-to-junction"))
+    parts.append(_sch_wire(R4_X, R4_R1_JUNC_Y, R1_X, R1_TOP_Y, "junction-to-r1"))
+
+    # D3 (Zener) clamp wires.
+    # D3.K (top) -> VIN net (T-tap on the existing vin-horiz wire at
+    # (D3_X, PIN1_Y) — a junction dot is added below to mark the tap).
+    parts.append(_sch_wire(D3_X, D3_K_Y, D3_X, PIN1_Y, "d3k-to-vin"))
+    # D3.A (bottom) -> R4/R1 junction via an L-route: drop down to the
+    # junction Y row, then run east to the junction X column.
+    parts.append(_sch_wire(D3_X, D3_A_Y, D3_X, R4_R1_JUNC_Y, "d3a-vert"))
+    parts.append(_sch_wire(D3_X, R4_R1_JUNC_Y, R4_X, R4_R1_JUNC_Y, "d3a-horiz"))
 
     # R1.bot → R1-GND flag (no junction, no PWR_FLAG sentinel — GND is global
     # and the J1.2 stack already supplies the sentinel for ERC).
@@ -4937,6 +5293,11 @@ def gen_power_sch() -> str:
     parts.append(_sch_junction(COL_PE,  JUNC_PE_Y,  "pe"))
     # T-branch where D1's top pin taps the J1 → Q1 VIN wire.
     parts.append(_sch_junction(D1_X, PIN1_Y, "vin-d1"))
+    # T-branch where D3's cathode taps the same J1 → Q1 VIN wire.
+    parts.append(_sch_junction(D3_X, PIN1_Y, "vin-d3"))
+    # 3-way junction where R4.bot wire, R1.top wire, and D3.anode L-wire
+    # meet on the gate-pulldown column.
+    parts.append(_sch_junction(R4_X, R4_R1_JUNC_Y, "r4-r1-d3"))
     # T-branch where C1's +24V tap meets the F1.top → +24V flag wire at
     # the F1 pin location.
     parts.append(_sch_junction(F1_X, F1_TOP_Y, "vin-c1"))
@@ -5028,7 +5389,7 @@ def gen_power_sch() -> str:
 
     # ----- D1: TVS surge-clamp diode (SMBJ24A), unidirectional, SMB package -----
     # Tap point is BEFORE Q1 on the unprotected VIN net — Q1's Vds_max is
-    # -40V on DMP4015SK3, and a transient above that would destroy Q1
+    # -50V on PMV65XP, and a transient above that would destroy Q1
     # before its reverse-polarity function could engage. SMBJ24A clamps
     # at Vc=38.9V at 1A peak (10/1000 us), holding VIN below Q1's
     # absolute maximum with comfortable margin. Vrwm=24V matches the
@@ -5041,18 +5402,37 @@ def gen_power_sch() -> str:
         reference="D1", value="SMBJ24A", uuid_tag="d1",
     ))
 
-    # ----- Q1: P-MOSFET reverse-polarity protection (DMP4015SK3) -----
+    # ----- D3: 18 V Zener gate-source clamp (PMV65XP Vgs protection) -----
+    # See R4/D3 constants block above for the topology rationale. D3
+    # cathode taps the J1.1 -> Q1.S VIN wire; anode lands on the R4/R1
+    # junction so a clamp event sinks current from Q1.S through D3
+    # (reverse breakdown at Vz=18V) into the junction and out through
+    # R1 to GND. Candidate part: MMSZ4705 (18V Zener, 500mW, SOD-123,
+    # JLCPCB Basic Parts Library). PCB-layout chunk picks the final
+    # footprint based on the same-day JLCPCB stock check.
+    parts.append(_sch_diode_zener(
+        x=D3_X, y=D3_Y, angle=270,
+        reference="D3", value="18V Zener", uuid_tag="d3",
+    ))
+
+    # ----- Q1: P-MOSFET reverse-polarity protection (PMV65XP) -----
     # Source = J1.1 (unprotected input), Drain = +24V protected rail.
-    # When input polarity is correct, the body diode conducts initially, then
-    # R1 pulls the gate to GND -> Vgs ~ -24 V turns the channel fully on,
-    # shorting out the body diode for low conduction loss.
-    # DMP4015SK3 from Diodes Incorporated: Vds_max = -40V (margin over the
-    # 38.9V SMBJ24A clamp), Vgs_max = +/-20V (tolerates the full -24V gate
-    # drive cleanly), Id_max = -5A, RDS(on) ~70mOhm at Vgs=-10V, SOT-23-3
-    # package. JLCPCB Extended Parts Library.
+    # When input polarity is correct, the body diode conducts initially,
+    # then the gate is pulled negative through R4 + R1 to GND. The D3
+    # Zener clamp limits |Vgs| to <=18V, so the channel turns fully on
+    # at Vgs = -18V — shorting out the body diode for low conduction loss.
+    # PMV65XP from Nexperia: Vds_max = -50V (margin over the 38.9V SMBJ24A
+    # clamp, even better than the previous DMP4015SK3's -40V), Vgs_max =
+    # +/-20V (same limit as DMP4015SK3 — that's why the D3 + R4 Zener
+    # clamp from Fix #1 is still required), Id continuous = -1.95A
+    # (plenty for our ~350 mA combined load), RDS(on) typ = 90 mOhm at
+    # Vgs=-10V (slightly higher than DMP4015SK3's 70 mOhm but still
+    # negligible at 350 mA = 11 mW dissipation), SOT-23-3 package.
+    # JLCPCB Basic Parts Library — no setup fee, no intermittent-stock
+    # concern that prompted the swap away from DMP4015SK3.
     parts.append(_sch_q_pmos(
         x=Q1_X, y=Q1_Y, angle=0,
-        reference="Q1", value="DMP4015SK3", uuid_tag="q1",
+        reference="Q1", value="PMV65XP", uuid_tag="q1",
     ))
 
     # ----- F1: PTC polyfuse, 750 mA hold / 60 V -----
@@ -5073,6 +5453,16 @@ def gen_power_sch() -> str:
     parts.append(_sch_resistor(
         x=R1_X, y=R1_Y, angle=0,
         reference="R1", value="100k", uuid_tag="r1",
+    ))
+
+    # ----- R4: 1 kΩ series gate resistor (Zener clamp current limiter) -----
+    # Sits in series with Q1.G between the Q1.G pin and the R4/R1 junction
+    # where D3 (Zener) ties in. R4 provides series isolation in the gate
+    # path so transient currents during a Zener clamp event are limited
+    # and do not disturb Q1's gate drive directly.
+    parts.append(_sch_resistor(
+        x=R4_X, y=R4_Y, angle=0,
+        reference="R4", value="1k", uuid_tag="r4",
     ))
 
     # ----- C1: bulk electrolytic, 100 uF / 50 V -----
@@ -5213,8 +5603,17 @@ def gen_power_sch() -> str:
     #                    divider (one fewer place for a layout error).
     #   * L1 33 uH    : Standard inductor value from the LM2596 datasheet
     #                    typical-application table for 5 V output at 150 kHz.
-    #                    Shielded ferrite-core part with >=1 A saturation and
+    #                    Shielded ferrite-core part with >=2 A saturation and
     #                    low DCR (<100 mOhm) keeps EMI and conduction loss low.
+    #                    The 2 A saturation rating is the binding requirement:
+    #                    LM2596 has no internal soft-start, so cold-start of
+    #                    C4 (220 uF output bulk) can push the peak inductor
+    #                    current above 1 A in the first few switching cycles.
+    #                    A 1 A-rated inductor would saturate and trigger an
+    #                    LM2596 over-current latch, producing an ugly power-on
+    #                    glitch. Candidate parts (verify JLCPCB stock at order
+    #                    day): Bourns SRR1208-330Y (33 uH, 1.95 A), Wurth
+    #                    74404084330 (33 uH, 2.4 A — likely Extended Library).
     #   * D2 SS14     : 40 V / 1 A Schottky catch diode. LM2596 is an
     #                    ASYNCHRONOUS switcher — there is no internal
     #                    high-side flyback diode, so an external Schottky is
@@ -5411,10 +5810,13 @@ def gen_power_sch() -> str:
         reference="U1", value="LM2596S-5.0", uuid_tag="u1",
     ))
 
-    # ----- L1: 33 uH shielded inductor, 1 A sat, low DCR -----
+    # ----- L1: 33 uH shielded inductor, >=2 A sat, low DCR -----
+    # See the buck-block component-selection comment above for why the
+    # saturation rating was uprated from 1 A to 2 A (LM2596 cold-start
+    # inrush via C4 = 220 uF can exceed 1 A in the first switching cycles).
     parts.append(_sch_inductor(
         x=L1_X, y=L1_Y, angle=0,
-        reference="L1", value="33uH 1A", uuid_tag="l1",
+        reference="L1", value="33uH 2A", uuid_tag="l1",
     ))
 
     # ----- D2: SS14 Schottky catch diode -----
@@ -5571,13 +5973,23 @@ def gen_power_sch() -> str:
     #   * C7 100nF (BST): bootstrap capacitor from BST pin to SW pin.
     #                  REQUIRED by TPS62933 for the high-side gate driver
     #                  bootstrap supply. Datasheet value.
+    #   * C8 47nF (SS) : soft-start capacitor from SS pin to GND. SS tied
+    #                  directly to GND DISABLES soft-start in TPS62933
+    #                  (an earlier comment claiming a ~0.6 ms default was
+    #                  incorrect — that figure came from a different TI
+    #                  device family). With C8=47nF the soft-start time is
+    #                  t_ss = C_ss * V_ref / I_ss = 47nF * 0.6V / 5uA ~=
+    #                  5.6 ms, which falls within the 2-10 ms power-ramp
+    #                  window specified by SEN66's application note for
+    #                  reliable sensor initialization on cold boot.
     #
     # The RT pin (programmable switching frequency) is tied to GND — that
     # selects the default ~500 kHz internal oscillator. SS pin (soft-start)
-    # is also tied to GND for the default ~0.6 ms soft-start (no external
-    # cap). EN pin is tied to VIN via a direct wire (always-on operation —
-    # the TPS62933 enables when EN > 1.18 V, and +5V provides plenty of
-    # headroom). The BST pin gets its bootstrap cap C7 to the SW node.
+    # uses C8 (47 nF) to ground to set t_ss ~= 5.6 ms (in the SEN66 power-
+    # ramp window of 2-10 ms). EN pin is tied to VIN via a direct wire
+    # (always-on operation — the TPS62933 enables when EN > 1.18 V, and
+    # +5V provides plenty of headroom). The BST pin gets its bootstrap
+    # cap C7 to the SW node.
     #
     # Layout (page-absolute mm, KiCad +Y is down on screen):
     #
@@ -5611,7 +6023,8 @@ def gen_power_sch() -> str:
     U2_RT_X     = U2_X - 7.62     # 193.04
     U2_RT_Y     = U2_Y + 5.08     # 149.86 — tied to GND (default 500 kHz)
     U2_SS_X     = U2_X - 7.62     # 193.04
-    U2_SS_Y     = U2_Y + 2.54     # 147.32 — tied to GND (default soft-start)
+    U2_SS_Y     = U2_Y + 2.54     # 147.32 — tied to GND via C8 (47 nF
+                                  # soft-start cap; t_ss ~= 5.6 ms)
     U2_GND_X    = U2_X            # 200.66
     U2_GND_Y    = U2_Y + 12.7     # 157.48
     U2_SW_X     = U2_X + 7.62     # 208.28 — switch node
@@ -5658,6 +6071,25 @@ def gen_power_sch() -> str:
     C7_Y = 140.97
     C7_TOP_Y = C7_Y - 3.81        # 137.16 — on BST row
     C7_BOT_Y = C7_Y + 3.81        # 144.78 — on SW row
+
+    # ----- C8: SS (soft-start) ceramic capacitor, 47nF, angle=0 -----
+    # Vertical between U2.SS (top pin, Y=147.32) and a local GND symbol
+    # below. Placed at X=191.77 (= 151 × 1.27), 1.27 mm LEFT of the U2.SS
+    # pin tip column (193.04). C8.top sits exactly on the SS pin row so
+    # the SS -> C8.top connection is a single short horizontal wire of
+    # 1.27 mm. C8.bot connects to a new local GND symbol below.
+    #
+    # Without C8, with SS tied directly to GND, the TPS62933 disables
+    # soft-start completely — Vout ramps in <<1 ms which can leave the
+    # downstream SEN66 sensor in an undefined state on cold boot
+    # (SEN66 datasheet requires a 2-10 ms power ramp for reliable init).
+    # With C8 = 47 nF: t_ss = C_ss * V_ref / I_ss = 47 nF * 0.6 V / 5 uA
+    # = 5.64 ms, comfortably within the 2-10 ms window.
+    C8_X = 191.77                 # 151 × 1.27 — 1.27 mm left of SS pin tip
+    C8_Y = 151.13                 # 119 × 1.27
+    C8_TOP_Y = C8_Y - 3.81        # 147.32 — matches U2.SS pin Y row
+    C8_BOT_Y = C8_Y + 3.81        # 154.94 — body bottom row
+    C8_GND_Y = 157.48             # GND symbol anchor below C8.bot
 
     # ----- L2: 2.2 uH shielded inductor, angle=0 -----
     # Vertical, between U2.SW (right of the body) and the +3.3V output bus.
@@ -5757,12 +6189,18 @@ def gen_power_sch() -> str:
     parts.append(_sch_wire(C5_X, C5_BOT_Y, C5_X, C5_GND_Y, "c5bot-to-gnd"))
     parts.append(_sch_wire(C5b_X, C5b_BOT_Y, C5b_X, C5b_GND_Y, "c5bbot-to-gnd"))
 
-    # SS → RT → GND: combined drop. Both pins go to GND (default 500 kHz
-    # / default soft-start). Wire continues from SS pin down through RT
-    # pin to a local GND symbol below.
-    SS_RT_GND_Y = 152.40          # GND symbol Y, below RT pin (149.86)
-    parts.append(_sch_wire(U2_SS_X, U2_SS_Y, U2_RT_X, U2_RT_Y, "ss-to-rt"))
-    parts.append(_sch_wire(U2_RT_X, U2_RT_Y, U2_RT_X, SS_RT_GND_Y, "rt-to-gnd"))
+    # RT → GND: RT pin (programmable f_sw) tied to GND for default ~500 kHz.
+    # The previous SS+RT shared-drop wiring was changed when SS was given
+    # its own soft-start cap (C8): SS no longer shares a wire with RT.
+    RT_GND_Y = 152.40             # GND symbol Y, below RT pin (149.86)
+    parts.append(_sch_wire(U2_RT_X, U2_RT_Y, U2_RT_X, RT_GND_Y, "rt-to-gnd"))
+
+    # SS → C8.top → C8.bot → GND: soft-start cap path. C8 sits 1.27 mm
+    # west of the SS pin tip column so the SS → C8.top connection is a
+    # single short horizontal wire; the C8.bot → GND drop continues
+    # vertically to a new local GND symbol.
+    parts.append(_sch_wire(U2_SS_X, U2_SS_Y, C8_X, C8_TOP_Y, "ss-to-c8"))
+    parts.append(_sch_wire(C8_X, C8_BOT_Y, C8_X, C8_GND_Y, "c8bot-to-gnd"))
 
     # U2.GND (centre-bottom pin, pin 4) → local GND symbol below
     U2_GND_SYM_Y = 161.29         # 3.81 below U2.GND pin
@@ -5810,8 +6248,6 @@ def gen_power_sch() -> str:
     parts.append(_sch_junction(C5b_X, U2_VIN_Y, "vin-c5b"))
     # SW wire passes through C7.bot tap column
     parts.append(_sch_junction(C7_X, U2_SW_Y, "sw-c7"))
-    # SS-RT shared wire passes through RT pin
-    parts.append(_sch_junction(U2_RT_X, U2_RT_Y, "ss-rt"))
     # FB tap: R2.bot pin + R3.top pin + FB wire end = 3 endpoints
     parts.append(_sch_junction(COL_FB_DIV, R2_BOT_Y, "fb-tap"))
     # +3.3V bus mid-bus T's: R2-vertical end, C6 pin, C6b pin
@@ -5868,6 +6304,16 @@ def gen_power_sch() -> str:
         reference="C7", value="100nF", uuid_tag="c7",
     ))
 
+    # ----- C8: SS soft-start ceramic, 47 nF -----
+    # See the C8 constants comment block above for the rationale (TPS62933
+    # SS=GND disables soft-start; C8=47nF sets t_ss ~= 5.6 ms within the
+    # SEN66 datasheet's 2-10 ms power-ramp window).
+    parts.append(_sch_capacitor(
+        lib_id="Device:C",
+        x=C8_X, y=C8_Y, angle=0,
+        reference="C8", value="47nF", uuid_tag="c8",
+    ))
+
     # ----- R2: feedback divider top, 44.2 kΩ 1% -----
     parts.append(_sch_resistor(
         x=R2_X, y=R2_Y, angle=0,
@@ -5919,10 +6365,13 @@ def gen_power_sch() -> str:
         value_offset_x=0.0, value_offset_y=3.81,
         uuid_tag="pwr18-gnd-c5b",
     ))
-    # SS-RT shared GND
+    # RT pin GND drop (SS now has its own C8 soft-start cap to GND, so it
+    # no longer shares this GND symbol with RT — see #PWR24 below for C8).
+    # uuid_tag retained as "pwr19-gnd-ssrt" to preserve UUID stability
+    # across the cap-fix rework.
     parts.append(_sch_power_flag(
         lib_id="power:GND", value="GND",
-        x=U2_RT_X, y=SS_RT_GND_Y, angle=0,
+        x=U2_RT_X, y=RT_GND_Y, angle=0,
         reference="#PWR19",
         value_offset_x=0.0, value_offset_y=3.81,
         uuid_tag="pwr19-gnd-ssrt",
@@ -5956,6 +6405,14 @@ def gen_power_sch() -> str:
         reference="#PWR23",
         value_offset_x=0.0, value_offset_y=3.81,
         uuid_tag="pwr23-gnd-c6b",
+    ))
+    # C8.bot (soft-start cap to GND)
+    parts.append(_sch_power_flag(
+        lib_id="power:GND", value="GND",
+        x=C8_X, y=C8_GND_Y, angle=0,
+        reference="#PWR24",
+        value_offset_x=0.0, value_offset_y=3.81,
+        uuid_tag="pwr24-gnd-c8",
     ))
 
     # ----- PWR_FLAG sentinel on the new +3.3V net -----
