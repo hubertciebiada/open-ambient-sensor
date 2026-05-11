@@ -131,19 +131,27 @@ def main() -> None:
             cairosvg.svg2png(url=str(svg), write_to=str(png), output_width=1600)
             print(f"  {svg.name} -> {png.name}")
 
-    # 3D render top — only run if we haven't done it in the last 10 minutes
-    # (it's expensive; ~15 s)
-    print("  rendering 3D top view (~15 s)...")
-    run([
-        kcli, "pcb", "render",
-        "--output", str(RENDERS / "3d-top.png"),
-        "--side", "top",
-        "--width", "1600", "--height", "1600",
-        "--background", "opaque",
-        "--quality", "high",
-        str(PCB),
-    ], hide_output=True)
-    print(f"  wrote 3d-top.png")
+    # 3D renders (expensive — ~15 s each)
+    render_targets = [
+        # (output, extra args)
+        ("3d-top.png",  []),
+        # Isometric view per KiCad docs: --rotate '-45,0,45' (with --floor
+        # to add a shadow plane so component height is easier to read)
+        ("3d-iso.png",  ["--rotate", "-45,0,45", "--perspective", "--floor"]),
+    ]
+    for out_name, extra in render_targets:
+        print(f"  rendering {out_name} (~15 s)...")
+        run([
+            kcli, "pcb", "render",
+            "--output", str(RENDERS / out_name),
+            "--side", "top",
+            "--width", "1600", "--height", "1600",
+            "--background", "opaque",
+            "--quality", "high",
+            *extra,
+            str(PCB),
+        ], hide_output=True)
+        print(f"  wrote {out_name}")
 
     print(f"\nDone in {time.time()-t0:.1f} s. Outputs in {RENDERS}/")
 
