@@ -35,6 +35,9 @@ hardware/kicad/erc.json
 hardware/kicad/*.svg
 hardware/kicad/*.pdf
 hardware/kicad/*.rpt
+# Inside renders/: PNGs and SVGs are committed as visual changelog,
+# but DRC/ERC text reports (prefixed `_`) are not.
+hardware/kicad/renders/_*
 
 # ESPHome ########
 .esphome/

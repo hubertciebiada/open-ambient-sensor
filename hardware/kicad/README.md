@@ -45,15 +45,44 @@ You said you've never done a PCB — here's the rationale for every choice. Anyt
 
 If you want a quote, upload the gerbers (once generated — TODO) to <https://jlcpcb.com>. With these defaults the board falls in JLCPCB's cheapest tier (~$2–5 per unit at quantity 5–10, plus shipping).
 
-## How to regenerate the files
+## How to regenerate everything
 
-If you want to change geometry (e.g. different mounting-hole pitch, different chord length, different hole diameter), edit constants at the top of `generate.py` and run:
+The single entry point for any change is **`regenerate.py`**:
 
 ```bash
-python generate.py
+python regenerate.py
 ```
 
-The script regenerates `oas.kicad_pcb`, `oas.kicad_sch`, `oas.kicad_pro`, the footprint library and the lib-tables. Generated UUIDs are **deterministic** (v5 namespaced under the OAS project) so re-running the script with no source changes produces bit-identical files — `git diff` is empty unless geometry actually changed.
+That script:
+1. runs `generate.py` to rebuild every KiCad source file from the Python geometry constants;
+2. runs `kicad-cli pcb drc` and `kicad-cli sch erc` (aborts on any error / warning);
+3. re-renders every preview into `renders/`:
+   - `2d-top.{svg,png}` — production-style top view (F.Cu + masks + silks + Edge.Cuts)
+   - `2d-cutouts.{svg,png}` — Edge.Cuts + Dwgs.User cutout markers + F.Cu (no-go zones)
+   - `2d-bottom.{svg,png}` — mirrored bottom view
+   - `3d-top.png` — raytraced 3D render (~15 s)
+   - `_drc.rpt` / `_erc.rpt` — text reports of DRC / ERC results
+
+Typical run time: ~30 s (dominated by the 3D render).
+
+**UUIDs are deterministic** (v5 namespaced under the OAS project), so re-running with no source changes produces a **bit-identical** `oas.kicad_pcb` — `git diff` is empty unless geometry actually changed.
+
+### When to use `generate.py` directly
+
+Almost never. `regenerate.py` is the canonical entry point. The one case where `generate.py` alone makes sense is if you want a quick smoke test of a `generate.py` change without paying for the 3D render.
+
+### Changing geometry
+
+Edit the constants at the top of `generate.py`:
+
+- `R_OUTLINE`, `CHORD`, `HALF_CHORD` — PCB outline
+- `HOLE_DIAMETER`, `PAD_DIAMETER`, `R_PITCH` — mounting holes
+- `CUTOUTS` — list of `(name, x_min, x_max, y_min, y_max)` for the case-wall cutouts
+- `PAGE_CENTRE_X`, `PAGE_CENTRE_Y` — page-space offset (you almost never want to change this)
+
+For structural / material changes (layer count, stackup, design rules, footprint definitions), edit the relevant generator function further down in `generate.py`.
+
+After editing, run `python regenerate.py` and commit the resulting diff (sources + KiCad files + renders together — they are one logical change).
 
 The geometry constants currently match the SZOMK AK-N-94 manufacturer DXF (see [`../case/README.md`](../case/README.md)).
 

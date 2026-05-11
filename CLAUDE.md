@@ -241,10 +241,13 @@ open-ambient-sensor/
 │   │   ├── README.md             # how to obtain manufacturer DXF/datasheet (not committed)
 │   │   └── sen66-bracket.stl     # own work — bracket for mounting SEN66 on cover
 │   ├── kicad/
-│   │   ├── oas.kicad_pro
-│   │   ├── oas.kicad_sch
-│   │   ├── oas.kicad_pcb
-│   │   └── libraries/            # custom symbols and footprints
+│   │   ├── generate.py           # SOURCE OF TRUTH — Python that generates all .kicad_* files
+│   │   ├── regenerate.py         # master script: generate + DRC/ERC + re-render
+│   │   ├── oas.kicad_pro         # generated artefact
+│   │   ├── oas.kicad_sch         # generated artefact
+│   │   ├── oas.kicad_pcb         # generated artefact
+│   │   ├── libraries/            # generated custom footprints
+│   │   └── renders/              # generated previews (PNG + SVG + DRC/ERC reports)
 │   ├── bom/
 │   │   ├── bom-jlcpcb.csv
 │   │   ├── bom-mouser.csv
@@ -286,6 +289,33 @@ hardware/case/manufacturer-*.step
 *.bak
 *-backups/
 ```
+
+---
+
+## PCB design workflow
+
+The KiCad project in `hardware/kicad/` is **script-driven**. The source-of-truth is the Python in `generate.py`, **not** `oas.kicad_pcb` / `oas.kicad_sch` / `oas.kicad_pro` / `MountingHole_3.8mm_M3.kicad_mod` — those are *derived artefacts* (regenerated bit-identically from the Python).
+
+### How we work on the PCB
+
+1. The user describes a desired change (e.g. *"shift cutout C3 by 0.5 mm"*, *"swap chord to 80 mm"*, *"add reverse-polarity protection on the 24 V input"*).
+2. The assistant edits the appropriate constant or function in `generate.py`. Geometric parameters live as named constants at the top of the file (`R_OUTLINE`, `CHORD`, `HOLE_DIAMETER`, `CUTOUTS`, etc.); structural choices (stackup, design rules, footprint definitions) live in dedicated generator functions further down.
+3. The assistant runs `python regenerate.py`. That one command:
+   - calls `generate.py` to rebuild every KiCad source file,
+   - runs `kicad-cli pcb drc` and `kicad-cli sch erc` and aborts on any error or warning,
+   - re-renders `renders/2d-top.{svg,png}`, `renders/2d-cutouts.{svg,png}`, `renders/2d-bottom.{svg,png}`, `renders/3d-top.png`, and the DRC / ERC reports.
+4. The assistant commits the resulting diff (sources + KiCad files + renders together).
+
+### Rules
+
+- **Never edit `.kicad_pcb`, `.kicad_sch`, `.kicad_pro`, or `*.kicad_mod` directly.** The next `regenerate.py` would overwrite the edit. If you find yourself wanting to hand-edit one of those, that's the signal to add a new constant or function to `generate.py`.
+- **All UUIDs are deterministic v5** (namespaced under the OAS project). Two consecutive runs of `regenerate.py` with no source changes produce a bit-identical PCB file → empty `git diff`. If a regeneration produces a non-empty diff, that's a real change.
+- **`renders/` is committed** as a visual changelog. Reviewers can see geometry changes in PRs without launching KiCad. The 3D render (~15 s) is regenerated every run; SVG/PNG previews are essentially free.
+- **This convention applies to the geometry / structural layer**. Once meaningful schematic content (placed symbols, drawn nets) exists, that may either continue as script-generated or migrate to direct file editing — to be decided when we get there.
+
+### How to do something the workflow doesn't support yet
+
+If a change is awkward to express in `generate.py` (e.g. one-off ad-hoc graphic on the silkscreen), **either** extend `generate.py` with the needed abstraction **or** introduce a second generator script for that artefact class. Do **not** introduce a pattern where the source-of-truth lives in two places.
 
 ---
 
