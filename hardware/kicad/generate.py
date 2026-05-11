@@ -2105,6 +2105,172 @@ POWER_LIB_SYMBOLS = """\
 \t\t\t\t)
 \t\t\t)
 \t\t\t(embedded_fonts no)
+\t\t)
+\t\t(symbol "Device:D_TVS"
+\t\t\t(pin_numbers
+\t\t\t\t(hide yes)
+\t\t\t)
+\t\t\t(pin_names
+\t\t\t\t(offset 1.016)
+\t\t\t\t(hide yes)
+\t\t\t)
+\t\t\t(exclude_from_sim no)
+\t\t\t(in_bom yes)
+\t\t\t(on_board yes)
+\t\t\t(in_pos_files yes)
+\t\t\t(duplicate_pin_numbers_are_jumpers no)
+\t\t\t(property "Reference" "D"
+\t\t\t\t(at 0 2.54 0)
+\t\t\t\t(show_name no)
+\t\t\t\t(do_not_autoplace no)
+\t\t\t\t(effects
+\t\t\t\t\t(font
+\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(property "Value" "D_TVS"
+\t\t\t\t(at 0 -2.54 0)
+\t\t\t\t(show_name no)
+\t\t\t\t(do_not_autoplace no)
+\t\t\t\t(effects
+\t\t\t\t\t(font
+\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(property "Footprint" ""
+\t\t\t\t(at 0 0 0)
+\t\t\t\t(show_name no)
+\t\t\t\t(do_not_autoplace no)
+\t\t\t\t(hide yes)
+\t\t\t\t(effects
+\t\t\t\t\t(font
+\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(property "Datasheet" ""
+\t\t\t\t(at 0 0 0)
+\t\t\t\t(show_name no)
+\t\t\t\t(do_not_autoplace no)
+\t\t\t\t(hide yes)
+\t\t\t\t(effects
+\t\t\t\t\t(font
+\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(property "Description" "Bidirectional transient-voltage-suppression diode"
+\t\t\t\t(at 0 0 0)
+\t\t\t\t(show_name no)
+\t\t\t\t(do_not_autoplace no)
+\t\t\t\t(hide yes)
+\t\t\t\t(effects
+\t\t\t\t\t(font
+\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(property "ki_keywords" "diode TVS thyrector"
+\t\t\t\t(at 0 0 0)
+\t\t\t\t(show_name no)
+\t\t\t\t(do_not_autoplace no)
+\t\t\t\t(hide yes)
+\t\t\t\t(effects
+\t\t\t\t\t(font
+\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(property "ki_fp_filters" "TO-???* *_Diode_* *SingleDiode* D_*"
+\t\t\t\t(at 0 0 0)
+\t\t\t\t(show_name no)
+\t\t\t\t(do_not_autoplace no)
+\t\t\t\t(hide yes)
+\t\t\t\t(effects
+\t\t\t\t\t(font
+\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(symbol "D_TVS_0_1"
+\t\t\t\t(polyline
+\t\t\t\t\t(pts
+\t\t\t\t\t\t(xy -2.54 1.27) (xy -2.54 -1.27) (xy 2.54 1.27) (xy 2.54 -1.27) (xy -2.54 1.27)
+\t\t\t\t\t)
+\t\t\t\t\t(stroke
+\t\t\t\t\t\t(width 0.254)
+\t\t\t\t\t\t(type default)
+\t\t\t\t\t)
+\t\t\t\t\t(fill
+\t\t\t\t\t\t(type none)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t\t(polyline
+\t\t\t\t\t(pts
+\t\t\t\t\t\t(xy 0.508 1.27) (xy 0 1.27) (xy 0 -1.27) (xy -0.508 -1.27)
+\t\t\t\t\t)
+\t\t\t\t\t(stroke
+\t\t\t\t\t\t(width 0.254)
+\t\t\t\t\t\t(type default)
+\t\t\t\t\t)
+\t\t\t\t\t(fill
+\t\t\t\t\t\t(type none)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t\t(polyline
+\t\t\t\t\t(pts
+\t\t\t\t\t\t(xy 1.27 0) (xy -1.27 0)
+\t\t\t\t\t)
+\t\t\t\t\t(stroke
+\t\t\t\t\t\t(width 0)
+\t\t\t\t\t\t(type default)
+\t\t\t\t\t)
+\t\t\t\t\t(fill
+\t\t\t\t\t\t(type none)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(symbol "D_TVS_1_1"
+\t\t\t\t(pin passive line
+\t\t\t\t\t(at -3.81 0 0)
+\t\t\t\t\t(length 2.54)
+\t\t\t\t\t(name "A1"
+\t\t\t\t\t\t(effects
+\t\t\t\t\t\t\t(font
+\t\t\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t\t\t)
+\t\t\t\t\t\t)
+\t\t\t\t\t)
+\t\t\t\t\t(number "1"
+\t\t\t\t\t\t(effects
+\t\t\t\t\t\t\t(font
+\t\t\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t\t\t)
+\t\t\t\t\t\t)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t\t(pin passive line
+\t\t\t\t\t(at 3.81 0 180)
+\t\t\t\t\t(length 2.54)
+\t\t\t\t\t(name "A2"
+\t\t\t\t\t\t(effects
+\t\t\t\t\t\t\t(font
+\t\t\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t\t\t)
+\t\t\t\t\t\t)
+\t\t\t\t\t)
+\t\t\t\t\t(number "2"
+\t\t\t\t\t\t(effects
+\t\t\t\t\t\t\t(font
+\t\t\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t\t\t)
+\t\t\t\t\t\t)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(embedded_fonts no)
 \t\t)"""
 
 
@@ -2485,22 +2651,135 @@ def _sch_polyfuse(
         \t)""")
 
 
+def _sch_diode_tvs(
+    x: float, y: float, angle: int, reference: str, value: str, uuid_tag: str,
+) -> str:
+    """Emit a TVS diode (Device:D_TVS) symbol instance.
+
+    The stock Device:D_TVS symbol is the two-headed bidirectional TVS body
+    shape with horizontal pins A1 (pin 1) and A2 (pin 2) at lib (-3.81, 0)
+    and (3.81, 0). For our unidirectional SMBJ24A part the symbol's drawn
+    "back-to-back" geometry is just KiCad's convention for the TVS class —
+    the actual part's polarity is encoded in the footprint and BOM value.
+
+    With angle=90 (CCW 90° rotation in lib coords -> CW 90° on screen),
+    lib pin positions map to schematic as:
+      Pin 2 (top):    (x, y - 3.81)
+      Pin 1 (bottom): (x, y + 3.81)
+
+    Reference text is placed to the right of the body, value text below it
+    on the same side. The property at-angle is set to compensate for the
+    symbol rotation so the labels render horizontal on screen even when
+    the symbol body is rotated: KiCad's renderer applies the symbol's
+    rotation on top of the property's local-frame angle, so we subtract
+    the symbol angle here (mod 360) to keep the effective text rotation
+    at 0° on the page.
+    """
+    sym_uuid = U("sym:" + uuid_tag)
+    pin1_uuid = U("sym-pin:" + uuid_tag + "-1")
+    pin2_uuid = U("sym-pin:" + uuid_tag + "-2")
+    sheet_path = f"/{ROOT_SHEET_UUID}/{SHEET_BLOCK_UUIDS['power']}"
+    # Compensation so labels render horizontal regardless of symbol rotation.
+    text_angle = (-angle) % 360
+    return textwrap.dedent(f"""\
+        \t(symbol
+        \t\t(lib_id "Device:D_TVS")
+        \t\t(at {fmt(x)} {fmt(y)} {angle})
+        \t\t(unit 1)
+        \t\t(exclude_from_sim no)
+        \t\t(in_bom yes)
+        \t\t(on_board yes)
+        \t\t(dnp no)
+        \t\t(fields_autoplaced no)
+        \t\t(uuid "{sym_uuid}")
+        \t\t(property "Reference" "{reference}"
+        \t\t\t(at {fmt(x + 3.81)} {fmt(y - 1.27)} {text_angle})
+        \t\t\t(effects
+        \t\t\t\t(font
+        \t\t\t\t\t(size 1.27 1.27)
+        \t\t\t\t)
+        \t\t\t\t(justify left)
+        \t\t\t)
+        \t\t)
+        \t\t(property "Value" "{value}"
+        \t\t\t(at {fmt(x + 3.81)} {fmt(y + 1.27)} {text_angle})
+        \t\t\t(effects
+        \t\t\t\t(font
+        \t\t\t\t\t(size 1.27 1.27)
+        \t\t\t\t)
+        \t\t\t\t(justify left)
+        \t\t\t)
+        \t\t)
+        \t\t(property "Footprint" ""
+        \t\t\t(at {fmt(x)} {fmt(y)} 0)
+        \t\t\t(effects
+        \t\t\t\t(font
+        \t\t\t\t\t(size 1.27 1.27)
+        \t\t\t\t)
+        \t\t\t\t(hide yes)
+        \t\t\t)
+        \t\t)
+        \t\t(property "Datasheet" ""
+        \t\t\t(at {fmt(x)} {fmt(y)} 0)
+        \t\t\t(effects
+        \t\t\t\t(font
+        \t\t\t\t\t(size 1.27 1.27)
+        \t\t\t\t)
+        \t\t\t\t(hide yes)
+        \t\t\t)
+        \t\t)
+        \t\t(property "Description" ""
+        \t\t\t(at {fmt(x)} {fmt(y)} 0)
+        \t\t\t(effects
+        \t\t\t\t(font
+        \t\t\t\t\t(size 1.27 1.27)
+        \t\t\t\t)
+        \t\t\t\t(hide yes)
+        \t\t\t)
+        \t\t)
+        \t\t(pin "1"
+        \t\t\t(uuid "{pin1_uuid}")
+        \t\t)
+        \t\t(pin "2"
+        \t\t\t(uuid "{pin2_uuid}")
+        \t\t)
+        \t\t(instances
+        \t\t\t(project "oas"
+        \t\t\t\t(path "{sheet_path}"
+        \t\t\t\t\t(reference "{reference}")
+        \t\t\t\t\t(unit 1)
+        \t\t\t\t)
+        \t\t\t)
+        \t\t)
+        \t)""")
+
+
 def gen_power_sch() -> str:
-    """Power sub-sheet — J1 input + reverse-polarity Q1 + R1 pulldown + F1 polyfuse.
+    """Power sub-sheet — J1 input + D1 surge clamp + Q1 reverse-polarity + R1 pulldown + F1 polyfuse.
 
     Power flow runs LEFT-TO-RIGHT and UPWARD on screen:
 
-        J1 (input) → Q1.S → Q1.D → F1 → +24V (protected rail, exits up-right)
+        J1 (input) ──┬── Q1.S → Q1.D → F1 → +24V (protected rail, exits up-right)
+                     │     │
+                     │     Q1.G → R1 → GND (gate pulldown, drops to its own GND flag)
                      │
-                     Q1.G → R1 → GND (gate pulldown, drops down to its own GND flag)
+                     D1 (TVS surge clamp, shunts excess voltage to GND below)
+                     │
+                     └── J1.2 (GND), J1.3 (PE) — drop down to their own flags
 
-        J1.2 (GND) → drops down to its own GND flag
-        J1.3 (PE)  → drops down to its own Earth_Protective flag
+    The TVS D1 sits BEFORE Q1 in the chain (tap point on the J1.1 → Q1.S
+    wire). A surge that exceeds Q1's Vds_max (40V on AO3415A) would
+    destroy Q1 before its reverse-polarity function could engage, so D1
+    must clamp upstream of Q1. SMBJ24A clamps at ~38.9V at 1A peak,
+    leaving ~1.1V margin below Q1's absolute maximum.
 
     Layout (page-absolute mm, KiCad +Y is down on screen):
 
         - J1 placed on the LEFT (mirror_y so pins face RIGHT into the circuit)
-        - Q1 placed to the right of J1, angle=0:
+        - D1 mid-VIN (angle=90, body vertical), top pin on VIN wire, bottom
+          pin drops to a local GND symbol. No new PWR_FLAG sentinel — the
+          existing GND sentinel on J1.2 covers the global GND net.
+        - Q1 placed to the right of D1, angle=0:
             Q1.D on top  → wire goes UP through F1 to the +24V power flag
             Q1.S on bottom-right (Y aligns with J1.1)
             Q1.G on left side → wire drops DOWN to R1 (crossing J1.1 row
@@ -2570,6 +2849,25 @@ def gen_power_sch() -> str:
     R1_TOP_Y = R1_Y - 3.81   # 105.41
     R1_BOT_Y = R1_Y + 3.81   # 113.03
 
+    # ----- D1: TVS surge-clamp diode (SMBJ24A), angle=90 (body vertical) -----
+    # Tap point on the J1.1 -> Q1.S wire (the UNPROTECTED VIN net). With
+    # angle=90, lib pin (-3.81, 0) -> schem (D1_X, D1_Y + 3.81) is the
+    # BOTTOM pin and lib (3.81, 0) -> schem (D1_X, D1_Y - 3.81) is the TOP
+    # pin. The top pin lands on the VIN row (Y = PIN1_Y = 93.98) so D1_Y
+    # = 93.98 + 3.81 = 97.79. X chosen midway between J1.1 (X = 92.71) and
+    # Q1.S (X = 115.57), leaving the existing R1 column (X = 107.95) and
+    # its value-text untouched. X = 100.33 sits on the same 1.27 mm
+    # half-grid as the rest of the power-sheet layout.
+    D1_X = 100.33
+    D1_Y = 97.79
+    D1_TOP_Y = D1_Y - 3.81   # 93.98 — matches PIN1_Y / VIN wire row
+    D1_BOT_Y = D1_Y + 3.81   # 101.60 — wire continues DOWN to local GND symbol
+    # GND symbol for D1's bottom pin. Local-only — no extra PWR_FLAG
+    # sentinel: the J1.2 GND drop already supplies the ERC power-source
+    # marker on the global GND net, and a second PWR_FLAG would cause
+    # "Power output to Power output" conflicts.
+    D1_GND_Y = 105.41        # GND symbol anchor, same Y row as R1.top
+
     # ----- Per-net flag columns -----
     # +24V flag column: Q1.D / F1 column at X=115.57.
     # R1-GND flag column: directly below Q1.G / R1 at X=107.95.
@@ -2611,7 +2909,13 @@ def gen_power_sch() -> str:
     parts: list[str] = []
 
     # J1.1 (unprotected +24V) → Q1.S: horizontal wire across the schematic.
+    # D1's top pin taps off this wire at (D1_X, PIN1_Y) — a junction dot is
+    # added below to make the T-connection electrically valid.
     parts.append(_sch_wire(PIN_X, PIN1_Y, Q1_S_X, Q1_S_Y, "vin-horiz"))
+
+    # D1.top (on VIN) → D1.bottom is internal to the symbol; we only need
+    # the wire from D1.bottom down to its local GND symbol.
+    parts.append(_sch_wire(D1_X, D1_BOT_Y, D1_X, D1_GND_Y, "d1bot-to-gnd"))
 
     # Q1.D → F1.bot: short vertical hop.
     parts.append(_sch_wire(Q1_D_X, Q1_D_Y, F1_X, F1_BOT_Y, "q1d-to-f1"))
@@ -2651,6 +2955,8 @@ def gen_power_sch() -> str:
     parts.append(_sch_junction(COL_24V, JUNC_24V_Y, "24v"))
     parts.append(_sch_junction(COL_GND, JUNC_GND_Y, "gnd"))
     parts.append(_sch_junction(COL_PE,  JUNC_PE_Y,  "pe"))
+    # T-branch where D1's top pin taps the J1 → Q1 VIN wire.
+    parts.append(_sch_junction(D1_X, PIN1_Y, "vin-d1"))
 
     # ----- J1 symbol (Phoenix MSTBA 2,5/3-G-5,08, mirror_y so pins face right) -----
     j1_uuid = U("sym:j1")
@@ -2733,6 +3039,20 @@ def gen_power_sch() -> str:
         \t\t)
         \t)"""))
 
+    # ----- D1: TVS surge-clamp diode (SMBJ24A), unidirectional, SMB package -----
+    # Tap point is BEFORE Q1 on the unprotected VIN net — Q1's Vds_max is
+    # only 40V and a transient above that would destroy Q1 before its
+    # reverse-polarity function could engage. SMBJ24A clamps at Vc=38.9V
+    # at 1A peak (10/1000 us), holding VIN below Q1's absolute maximum
+    # with ~1.1V margin. Vrwm=24V matches the nominal supply; Vbr_min=26.7V
+    # so the diode is off at the working point and consumes ~uA leakage.
+    # Peak pulse power 600W. F1 (PTC) downstream catches the sustained
+    # over-current that follows a clamped event.
+    parts.append(_sch_diode_tvs(
+        x=D1_X, y=D1_Y, angle=90,
+        reference="D1", value="SMBJ24A", uuid_tag="d1",
+    ))
+
     # ----- Q1: P-MOSFET reverse-polarity protection (AO3415A) -----
     # Source = J1.1 (unprotected input), Drain = +24V protected rail.
     # When input polarity is correct, the body diode conducts initially, then
@@ -2795,6 +3115,16 @@ def gen_power_sch() -> str:
         value_offset_x=0.0, value_offset_y=3.81,
         uuid_tag="pwr04-gnd-r1",
     ))
+    # GND for D1.bottom (TVS anode) — same net as #PWR02 via the global
+    # power label. No matching PWR_FLAG sentinel: see note below in the
+    # PWR_FLAG section.
+    parts.append(_sch_power_flag(
+        lib_id="power:GND", value="GND",
+        x=D1_X, y=D1_GND_Y, angle=0,
+        reference="#PWR05",
+        value_offset_x=0.0, value_offset_y=3.81,
+        uuid_tag="pwr05-gnd-d1",
+    ))
 
     # ----- PWR_FLAG sentinels -----
     # Each sentinel's "PWR_FLAG" value-text is offset SIDEWAYS (positive X)
@@ -2826,10 +3156,10 @@ def gen_power_sch() -> str:
         value_offset_x=PF_TEXT_OFFSET, value_offset_y=2.54,
         uuid_tag="flg03-pe",
     ))
-    # NOTE: no PWR_FLAG sentinel on the R1-GND drop — GND is a global net
-    # and FLG02 (on J1.2's drop) already supplies the "power source" marker
-    # for ERC. Adding a second PWR_FLAG on the same GND net would create a
-    # "Power output to Power output" connection error.
+    # NOTE: no PWR_FLAG sentinel on the R1-GND or D1-GND drops — GND is a
+    # global net and FLG02 (on J1.2's drop) already supplies the "power
+    # source" marker for ERC. Adding a second PWR_FLAG on the same GND net
+    # would create a "Power output to Power output" connection error.
 
     body = "\n".join(parts)
     return textwrap.dedent(f"""\
