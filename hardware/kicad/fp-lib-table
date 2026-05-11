@@ -1,0 +1,4 @@
+(fp_lib_table
+	(version 7)
+	(lib (name "oas") (type "KiCad") (uri "${KIPRJMOD}/libraries/oas.pretty") (options "") (descr "Project-local footprints"))
+)

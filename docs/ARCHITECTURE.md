@@ -44,9 +44,10 @@ Pull-ups: **4.7 kΩ on the MCU side**.
 
 ## Thermal / layout strategy
 
-- **PCB outline:** Ø120 mm D-shape, flat chord 82.6 mm on the bottom edge
-- **Front-side component-height limit:** 17 mm
-- **Back-side limit:** 3 mm (solder fillets only — no components)
+- **PCB outline:** Ø120 mm D-shape, flat chord 82.6 mm on the bottom edge (arc R=60 mm)
+- **Mounting:** 3× M3 holes (Ø3.8 mm) on pitch circle Ø110 mm, trójkąt równoboczny, one hole opposite the chord
+- **Front-side component-height limit:** 17 mm (per manufacturer DXF)
+- **Back-side limit:** 3 mm — solder fillets only, no components (per manufacturer DXF)
 - **Orientation:** flat chord on the bottom; sensor zone (VEML7700, SEN66 inlet path) is below the electronics, so natural convection lifts heat upward and away from the air intake
 - **Thermal isolation:** 1.5 mm milled FR4 slots separate the Power, MCU and peripheral zones
 - **Connector strip along the bottom flat:** 24 V terminal, USB-C, SWD header, Qwiic, JST GH to SEN66 — positions match the manufacturer enclosure cutouts
