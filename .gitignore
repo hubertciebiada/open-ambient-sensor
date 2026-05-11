@@ -1,0 +1,40 @@
+# OS specific ########
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# secrets ########
+secrets.yaml
+**/secrets.yaml
+
+# third-party manufacturer files (kept locally, not redistributable) ########
+hardware/case/*.dxf
+hardware/case/*-datasheet.pdf
+hardware/case/manufacturer-*.step
+hardware/case/manufacturer-*.stp
+hardware/case/manufacturer-*.pdf
+
+# build artifacts ########
+**/build/
+**/.cache/
+*.bak
+*-backups/
+
+# KiCad ########
+*-backups/
+*.kicad_pcb-bak
+*.kicad_sch-bak
+*.kicad_prl
+fp-info-cache
+~*.lck
+_autosave-*
+
+# ESPHome ########
+.esphome/
+firmware/esphome/.esphome/
+
+# Editors ########
+.vscode/
+.idea/
+*.swp
+*~

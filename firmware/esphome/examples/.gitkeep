@@ -1,0 +1,5 @@
+# Example device overrides (anonymised) will be placed here.
+# These are template configurations showing how to override `substitutions:` in
+# `oas.yaml` for individual deployment units.
+#
+# Status: TODO.

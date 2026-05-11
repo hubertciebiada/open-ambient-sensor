@@ -1,0 +1,4 @@
+# Production output (gerbers, drill files, assembly drawings, pick-and-place CSV)
+# will be placed here.
+#
+# Status: TODO — generate from the KiCad project once the PCB layout is finalised.
