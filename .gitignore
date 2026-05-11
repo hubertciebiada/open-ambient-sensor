@@ -36,5 +36,12 @@ firmware/esphome/.esphome/
 # Editors ########
 .vscode/
 .idea/
+.history/
 *.swp
 *~
+
+# Screenshots, scratch ########
+Zrzut*.png
+screenshot*.png
+*.scratch
+

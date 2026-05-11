@@ -51,7 +51,7 @@ PAD_DIAMETER = HOLE_DIAMETER + 2 * 1.35   # annular ring 1.35 mm
 # KiCad 10 format constants
 # -----------------------------------------------------------------------------
 PCB_VERSION = 20260206
-SCH_VERSION = 20260508
+SCH_VERSION = 20260206   # safe lower bound for any KiCad 10.0.x
 GEN_VERSION = "10.0"
 
 def fmt(x: float) -> str:
