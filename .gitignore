@@ -17,6 +17,7 @@ hardware/case/manufacturer-*.pdf
 # build artifacts ########
 **/build/
 **/.cache/
+**/__pycache__/
 *.bak
 *-backups/
 
