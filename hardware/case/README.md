@@ -31,7 +31,7 @@ The DXF and datasheet are available directly from SZOMK:
 Measured from the manufacturer DXF and copied into our own KiCad board outline (own work, committable):
 
 - **PCB outline:** Ø120 mm D-shape (arc R=60 mm)
-- **Flat chord:** 82.6 mm along the bottom edge (chord Y from centre = 43.524 mm)
+- **Flat chord:** 82.65 mm along the bottom edge (full precision 82.6545 mm from DXF line measurement; chord Y from centre = 43.498 mm)
 - **Mounting holes:** 3× M3 (Ø3.8 mm) on **pitch circle Ø110 mm** (R=55 mm), trójkąt równoboczny with one hole opposite the chord
 - Hole positions (origin = centre of the PCB outline):
   - H1: (+47.631, +27.500) — bottom-right (near chord)

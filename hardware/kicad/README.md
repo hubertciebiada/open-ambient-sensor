@@ -15,7 +15,7 @@ When KiCad opens the PCB the first time it may ask you to migrate the project �
 
 ## What's already in `oas.kicad_pcb`
 
-- **Board outline on `Edge.Cuts`:** Ø120 mm circular arc (R=60 mm) + flat chord 82.6 mm. Origin (0, 0) is the centre of the circle. The flat chord sits at Y=+43.524 — in KiCad's coordinate convention (Y grows downward on screen), that's the visual **bottom** of the board.
+- **Board outline on `Edge.Cuts`:** Ø120 mm circular arc (R=60 mm) + flat chord 82.65 mm (precise: 82.6545 mm from the DXF). Origin (0, 0) is the centre of the circle. The flat chord sits at Y≈+43.50 — in KiCad's coordinate convention (Y grows downward on screen), that's the visual **bottom** of the board.
 - **3× M3 mounting holes**: Ø3.8 mm drill, Ø6.5 mm annular pad on F.Cu/B.Cu, on a pitch circle Ø110 mm. Positions:
   - H1: (+47.631, +27.500) — bottom-right
   - H2: (−47.631, +27.500) — bottom-left
@@ -51,7 +51,7 @@ If you want to change geometry (e.g. different mounting-hole pitch, different ch
 python generate.py
 ```
 
-The script regenerates `oas.kicad_pcb`, `oas.kicad_sch`, `oas.kicad_pro`, the footprint library and the lib-tables. Generated UUIDs change every run — review the diff before committing.
+The script regenerates `oas.kicad_pcb`, `oas.kicad_sch`, `oas.kicad_pro`, the footprint library and the lib-tables. Generated UUIDs are **deterministic** (v5 namespaced under the OAS project) so re-running the script with no source changes produces bit-identical files — `git diff` is empty unless geometry actually changed.
 
 The geometry constants currently match the SZOMK AK-N-94 manufacturer DXF (see [`../case/README.md`](../case/README.md)).
 

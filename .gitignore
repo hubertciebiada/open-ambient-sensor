@@ -29,6 +29,13 @@ fp-info-cache
 ~*.lck
 _autosave-*
 
+# Local KiCad reports/exports (regenerable, not source-of-truth)
+hardware/kicad/drc.json
+hardware/kicad/erc.json
+hardware/kicad/*.svg
+hardware/kicad/*.pdf
+hardware/kicad/*.rpt
+
 # ESPHome ########
 .esphome/
 firmware/esphome/.esphome/

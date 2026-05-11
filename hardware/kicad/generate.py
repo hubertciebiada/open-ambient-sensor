@@ -20,6 +20,7 @@ import json
 import math
 import textwrap
 import uuid
+from itertools import count
 from pathlib import Path
 
 HERE = Path(__file__).parent
@@ -36,7 +37,7 @@ PAGE_CENTRE_X = 148.5              # A4 width / 2
 PAGE_CENTRE_Y = 105.0              # A4 height / 2
 
 R_OUTLINE = 60.0                   # PCB outline radius
-CHORD = 82.6                       # flat chord length
+CHORD = 82.6545                    # flat chord length (from DXF line measurement)
 HALF_CHORD = CHORD / 2.0
 Y_CHORD = math.sqrt(R_OUTLINE**2 - HALF_CHORD**2)  # ≈ 43.5237 mm
 # Pitch circle for mounting holes
@@ -74,12 +75,22 @@ def fy(y: float) -> str:
     """Format Y with PCB-centre-to-page-centre offset."""
     return fmt(y + PAGE_CENTRE_Y)
 
-def U() -> str:
-    """Generate a v4 UUID for KiCad entities."""
-    return str(uuid.uuid4())
+_OAS_NS = uuid.uuid5(uuid.NAMESPACE_OID, "oas.open-ambient-sensor")
+_uuid_counter = count()
+
+def U(tag: str = "") -> str:
+    """Deterministic UUID v5 namespaced under the OAS project.
+
+    Each call increments a per-run counter; combined with the project
+    namespace it produces stable UUIDs across regenerations, so
+    `python generate.py` is idempotent and git diffs only show real
+    geometry changes.
+    """
+    return str(uuid.uuid5(_OAS_NS, f"{tag}:{next(_uuid_counter)}"))
 
 # Root project + sheet UUIDs (must match between .kicad_pro and .kicad_sch)
-ROOT_SHEET_UUID = U()
+# Use a tagged seed so this UUID is stable independent of call order elsewhere.
+ROOT_SHEET_UUID = str(uuid.uuid5(_OAS_NS, "sheet:root"))
 
 # -----------------------------------------------------------------------------
 # 1) Mounting hole footprint (own library)
@@ -208,7 +219,7 @@ def gen_pcb() -> str:
         \t\t\t(layer "B.Mask"  (type "Bottom Solder Mask") (color "White") (thickness 0.01))
         \t\t\t(layer "B.Paste" (type "Bottom Solder Paste"))
         \t\t\t(layer "B.SilkS" (type "Bottom Silk Screen") (color "Black"))
-        \t\t\t(copper_finish "HAL lead-free")
+        \t\t\t(copper_finish "HASL lead-free")
         \t\t\t(dielectric_constraints no)
         \t\t)""")
 

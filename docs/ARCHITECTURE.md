@@ -44,7 +44,7 @@ Pull-ups: **4.7 kΩ on the MCU side**.
 
 ## Thermal / layout strategy
 
-- **PCB outline:** Ø120 mm D-shape, flat chord 82.6 mm on the bottom edge (arc R=60 mm)
+- **PCB outline:** Ø120 mm D-shape, flat chord 82.65 mm on the bottom edge (arc R=60 mm; full precision 82.6545 mm from manufacturer DXF)
 - **Mounting:** 3× M3 holes (Ø3.8 mm) on pitch circle Ø110 mm, trójkąt równoboczny, one hole opposite the chord
 - **Front-side component-height limit:** 17 mm (per manufacturer DXF)
 - **Back-side limit:** 3 mm — solder fillets only, no components (per manufacturer DXF)
