@@ -1496,6 +1496,450 @@ POWER_LIB_SYMBOLS = """\
 \t\t\t\t)
 \t\t\t)
 \t\t\t(embedded_fonts no)
+\t\t)
+\t\t(symbol "Device:Q_PMOS"
+\t\t\t(pin_numbers
+\t\t\t\t(hide yes)
+\t\t\t)
+\t\t\t(pin_names
+\t\t\t\t(offset 0)
+\t\t\t\t(hide yes)
+\t\t\t)
+\t\t\t(exclude_from_sim no)
+\t\t\t(in_bom yes)
+\t\t\t(on_board yes)
+\t\t\t(in_pos_files yes)
+\t\t\t(duplicate_pin_numbers_are_jumpers no)
+\t\t\t(property "Reference" "Q"
+\t\t\t\t(at 5.08 1.27 0)
+\t\t\t\t(show_name no)
+\t\t\t\t(do_not_autoplace no)
+\t\t\t\t(effects
+\t\t\t\t\t(font
+\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t)
+\t\t\t\t\t(justify left)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(property "Value" "Q_PMOS"
+\t\t\t\t(at 5.08 -1.27 0)
+\t\t\t\t(show_name no)
+\t\t\t\t(do_not_autoplace no)
+\t\t\t\t(effects
+\t\t\t\t\t(font
+\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t)
+\t\t\t\t\t(justify left)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(property "Footprint" ""
+\t\t\t\t(at 5.08 2.54 0)
+\t\t\t\t(show_name no)
+\t\t\t\t(do_not_autoplace no)
+\t\t\t\t(hide yes)
+\t\t\t\t(effects
+\t\t\t\t\t(font
+\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(property "Datasheet" ""
+\t\t\t\t(at 0 0 0)
+\t\t\t\t(show_name no)
+\t\t\t\t(do_not_autoplace no)
+\t\t\t\t(hide yes)
+\t\t\t\t(effects
+\t\t\t\t\t(font
+\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(property "Description" "P-MOSFET transistor"
+\t\t\t\t(at 0 0 0)
+\t\t\t\t(show_name no)
+\t\t\t\t(do_not_autoplace no)
+\t\t\t\t(hide yes)
+\t\t\t\t(effects
+\t\t\t\t\t(font
+\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(property "ki_keywords" "PMOS P-MOS"
+\t\t\t\t(at 0 0 0)
+\t\t\t\t(show_name no)
+\t\t\t\t(do_not_autoplace no)
+\t\t\t\t(hide yes)
+\t\t\t\t(effects
+\t\t\t\t\t(font
+\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(symbol "Q_PMOS_0_1"
+\t\t\t\t(polyline
+\t\t\t\t\t(pts
+\t\t\t\t\t\t(xy 0.254 1.905) (xy 0.254 -1.905)
+\t\t\t\t\t)
+\t\t\t\t\t(stroke
+\t\t\t\t\t\t(width 0.254)
+\t\t\t\t\t\t(type default)
+\t\t\t\t\t)
+\t\t\t\t\t(fill
+\t\t\t\t\t\t(type none)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t\t(polyline
+\t\t\t\t\t(pts
+\t\t\t\t\t\t(xy 0.254 0) (xy -2.54 0)
+\t\t\t\t\t)
+\t\t\t\t\t(stroke
+\t\t\t\t\t\t(width 0)
+\t\t\t\t\t\t(type default)
+\t\t\t\t\t)
+\t\t\t\t\t(fill
+\t\t\t\t\t\t(type none)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t\t(polyline
+\t\t\t\t\t(pts
+\t\t\t\t\t\t(xy 0.762 2.286) (xy 0.762 1.27)
+\t\t\t\t\t)
+\t\t\t\t\t(stroke
+\t\t\t\t\t\t(width 0.254)
+\t\t\t\t\t\t(type default)
+\t\t\t\t\t)
+\t\t\t\t\t(fill
+\t\t\t\t\t\t(type none)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t\t(polyline
+\t\t\t\t\t(pts
+\t\t\t\t\t\t(xy 0.762 1.778) (xy 3.302 1.778) (xy 3.302 -1.778) (xy 0.762 -1.778)
+\t\t\t\t\t)
+\t\t\t\t\t(stroke
+\t\t\t\t\t\t(width 0)
+\t\t\t\t\t\t(type default)
+\t\t\t\t\t)
+\t\t\t\t\t(fill
+\t\t\t\t\t\t(type none)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t\t(polyline
+\t\t\t\t\t(pts
+\t\t\t\t\t\t(xy 0.762 0.508) (xy 0.762 -0.508)
+\t\t\t\t\t)
+\t\t\t\t\t(stroke
+\t\t\t\t\t\t(width 0.254)
+\t\t\t\t\t\t(type default)
+\t\t\t\t\t)
+\t\t\t\t\t(fill
+\t\t\t\t\t\t(type none)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t\t(polyline
+\t\t\t\t\t(pts
+\t\t\t\t\t\t(xy 0.762 -1.27) (xy 0.762 -2.286)
+\t\t\t\t\t)
+\t\t\t\t\t(stroke
+\t\t\t\t\t\t(width 0.254)
+\t\t\t\t\t\t(type default)
+\t\t\t\t\t)
+\t\t\t\t\t(fill
+\t\t\t\t\t\t(type none)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t\t(circle
+\t\t\t\t\t(center 1.651 0)
+\t\t\t\t\t(radius 2.794)
+\t\t\t\t\t(stroke
+\t\t\t\t\t\t(width 0.254)
+\t\t\t\t\t\t(type default)
+\t\t\t\t\t)
+\t\t\t\t\t(fill
+\t\t\t\t\t\t(type none)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t\t(polyline
+\t\t\t\t\t(pts
+\t\t\t\t\t\t(xy 2.286 0) (xy 1.27 0.381) (xy 1.27 -0.381) (xy 2.286 0)
+\t\t\t\t\t)
+\t\t\t\t\t(stroke
+\t\t\t\t\t\t(width 0)
+\t\t\t\t\t\t(type default)
+\t\t\t\t\t)
+\t\t\t\t\t(fill
+\t\t\t\t\t\t(type outline)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t\t(polyline
+\t\t\t\t\t(pts
+\t\t\t\t\t\t(xy 2.54 2.54) (xy 2.54 1.778)
+\t\t\t\t\t)
+\t\t\t\t\t(stroke
+\t\t\t\t\t\t(width 0)
+\t\t\t\t\t\t(type default)
+\t\t\t\t\t)
+\t\t\t\t\t(fill
+\t\t\t\t\t\t(type none)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t\t(circle
+\t\t\t\t\t(center 2.54 1.778)
+\t\t\t\t\t(radius 0.254)
+\t\t\t\t\t(stroke
+\t\t\t\t\t\t(width 0)
+\t\t\t\t\t\t(type default)
+\t\t\t\t\t)
+\t\t\t\t\t(fill
+\t\t\t\t\t\t(type outline)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t\t(circle
+\t\t\t\t\t(center 2.54 -1.778)
+\t\t\t\t\t(radius 0.254)
+\t\t\t\t\t(stroke
+\t\t\t\t\t\t(width 0)
+\t\t\t\t\t\t(type default)
+\t\t\t\t\t)
+\t\t\t\t\t(fill
+\t\t\t\t\t\t(type outline)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t\t(polyline
+\t\t\t\t\t(pts
+\t\t\t\t\t\t(xy 2.54 -2.54) (xy 2.54 0) (xy 0.762 0)
+\t\t\t\t\t)
+\t\t\t\t\t(stroke
+\t\t\t\t\t\t(width 0)
+\t\t\t\t\t\t(type default)
+\t\t\t\t\t)
+\t\t\t\t\t(fill
+\t\t\t\t\t\t(type none)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t\t(polyline
+\t\t\t\t\t(pts
+\t\t\t\t\t\t(xy 2.921 -0.381) (xy 3.683 -0.381)
+\t\t\t\t\t)
+\t\t\t\t\t(stroke
+\t\t\t\t\t\t(width 0)
+\t\t\t\t\t\t(type default)
+\t\t\t\t\t)
+\t\t\t\t\t(fill
+\t\t\t\t\t\t(type none)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t\t(polyline
+\t\t\t\t\t(pts
+\t\t\t\t\t\t(xy 3.302 -0.381) (xy 2.921 0.254) (xy 3.683 0.254) (xy 3.302 -0.381)
+\t\t\t\t\t)
+\t\t\t\t\t(stroke
+\t\t\t\t\t\t(width 0)
+\t\t\t\t\t\t(type default)
+\t\t\t\t\t)
+\t\t\t\t\t(fill
+\t\t\t\t\t\t(type none)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(symbol "Q_PMOS_1_1"
+\t\t\t\t(pin passive line
+\t\t\t\t\t(at 2.54 5.08 270)
+\t\t\t\t\t(length 2.54)
+\t\t\t\t\t(name "D"
+\t\t\t\t\t\t(effects
+\t\t\t\t\t\t\t(font
+\t\t\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t\t\t)
+\t\t\t\t\t\t)
+\t\t\t\t\t)
+\t\t\t\t\t(number "D"
+\t\t\t\t\t\t(effects
+\t\t\t\t\t\t\t(font
+\t\t\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t\t\t)
+\t\t\t\t\t\t)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t\t(pin input line
+\t\t\t\t\t(at -5.08 0 0)
+\t\t\t\t\t(length 2.54)
+\t\t\t\t\t(name "G"
+\t\t\t\t\t\t(effects
+\t\t\t\t\t\t\t(font
+\t\t\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t\t\t)
+\t\t\t\t\t\t)
+\t\t\t\t\t)
+\t\t\t\t\t(number "G"
+\t\t\t\t\t\t(effects
+\t\t\t\t\t\t\t(font
+\t\t\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t\t\t)
+\t\t\t\t\t\t)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t\t(pin passive line
+\t\t\t\t\t(at 2.54 -5.08 90)
+\t\t\t\t\t(length 2.54)
+\t\t\t\t\t(name "S"
+\t\t\t\t\t\t(effects
+\t\t\t\t\t\t\t(font
+\t\t\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t\t\t)
+\t\t\t\t\t\t)
+\t\t\t\t\t)
+\t\t\t\t\t(number "S"
+\t\t\t\t\t\t(effects
+\t\t\t\t\t\t\t(font
+\t\t\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t\t\t)
+\t\t\t\t\t\t)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(embedded_fonts no)
+\t\t)
+\t\t(symbol "Device:R"
+\t\t\t(pin_numbers
+\t\t\t\t(hide yes)
+\t\t\t)
+\t\t\t(pin_names
+\t\t\t\t(offset 0)
+\t\t\t)
+\t\t\t(exclude_from_sim no)
+\t\t\t(in_bom yes)
+\t\t\t(on_board yes)
+\t\t\t(in_pos_files yes)
+\t\t\t(duplicate_pin_numbers_are_jumpers no)
+\t\t\t(property "Reference" "R"
+\t\t\t\t(at 2.032 0 90)
+\t\t\t\t(show_name no)
+\t\t\t\t(do_not_autoplace no)
+\t\t\t\t(effects
+\t\t\t\t\t(font
+\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(property "Value" "R"
+\t\t\t\t(at 0 0 90)
+\t\t\t\t(show_name no)
+\t\t\t\t(do_not_autoplace no)
+\t\t\t\t(effects
+\t\t\t\t\t(font
+\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(property "Footprint" ""
+\t\t\t\t(at -1.778 0 90)
+\t\t\t\t(show_name no)
+\t\t\t\t(do_not_autoplace no)
+\t\t\t\t(hide yes)
+\t\t\t\t(effects
+\t\t\t\t\t(font
+\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(property "Datasheet" ""
+\t\t\t\t(at 0 0 0)
+\t\t\t\t(show_name no)
+\t\t\t\t(do_not_autoplace no)
+\t\t\t\t(hide yes)
+\t\t\t\t(effects
+\t\t\t\t\t(font
+\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(property "Description" "Resistor"
+\t\t\t\t(at 0 0 0)
+\t\t\t\t(show_name no)
+\t\t\t\t(do_not_autoplace no)
+\t\t\t\t(hide yes)
+\t\t\t\t(effects
+\t\t\t\t\t(font
+\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(property "ki_keywords" "R res resistor"
+\t\t\t\t(at 0 0 0)
+\t\t\t\t(show_name no)
+\t\t\t\t(do_not_autoplace no)
+\t\t\t\t(hide yes)
+\t\t\t\t(effects
+\t\t\t\t\t(font
+\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(property "ki_fp_filters" "R_*"
+\t\t\t\t(at 0 0 0)
+\t\t\t\t(show_name no)
+\t\t\t\t(do_not_autoplace no)
+\t\t\t\t(hide yes)
+\t\t\t\t(effects
+\t\t\t\t\t(font
+\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(symbol "R_0_1"
+\t\t\t\t(rectangle
+\t\t\t\t\t(start -1.016 -2.54)
+\t\t\t\t\t(end 1.016 2.54)
+\t\t\t\t\t(stroke
+\t\t\t\t\t\t(width 0.254)
+\t\t\t\t\t\t(type default)
+\t\t\t\t\t)
+\t\t\t\t\t(fill
+\t\t\t\t\t\t(type none)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(symbol "R_1_1"
+\t\t\t\t(pin passive line
+\t\t\t\t\t(at 0 3.81 270)
+\t\t\t\t\t(length 1.27)
+\t\t\t\t\t(name ""
+\t\t\t\t\t\t(effects
+\t\t\t\t\t\t\t(font
+\t\t\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t\t\t)
+\t\t\t\t\t\t)
+\t\t\t\t\t)
+\t\t\t\t\t(number "1"
+\t\t\t\t\t\t(effects
+\t\t\t\t\t\t\t(font
+\t\t\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t\t\t)
+\t\t\t\t\t\t)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t\t(pin passive line
+\t\t\t\t\t(at 0 -3.81 90)
+\t\t\t\t\t(length 1.27)
+\t\t\t\t\t(name ""
+\t\t\t\t\t\t(effects
+\t\t\t\t\t\t\t(font
+\t\t\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t\t\t)
+\t\t\t\t\t\t)
+\t\t\t\t\t)
+\t\t\t\t\t(number "2"
+\t\t\t\t\t\t(effects
+\t\t\t\t\t\t\t(font
+\t\t\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t\t\t)
+\t\t\t\t\t\t)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(embedded_fonts no)
 \t\t)"""
 
 
@@ -1608,24 +2052,213 @@ def _sch_power_flag(
         \t)""")
 
 
+def _sch_q_pmos(
+    x: float, y: float, angle: int, reference: str, value: str, uuid_tag: str,
+) -> str:
+    """Emit a P-MOSFET (Device:Q_PMOS) symbol instance.
+
+    Pin numbers in the stock Device:Q_PMOS are letters: "D", "G", "S".
+    With angle=0, lib pin positions map to schematic as:
+      D pin: (x + 2.54, y - 5.08)   [upper-right of body]
+      G pin: (x - 5.08, y)          [left of body]
+      S pin: (x + 2.54, y + 5.08)   [lower-right of body]
+    """
+    sym_uuid = U("sym:" + uuid_tag)
+    pin_d_uuid = U("sym-pin:" + uuid_tag + "-d")
+    pin_g_uuid = U("sym-pin:" + uuid_tag + "-g")
+    pin_s_uuid = U("sym-pin:" + uuid_tag + "-s")
+    sheet_path = f"/{ROOT_SHEET_UUID}/{SHEET_BLOCK_UUIDS['power']}"
+    return textwrap.dedent(f"""\
+        \t(symbol
+        \t\t(lib_id "Device:Q_PMOS")
+        \t\t(at {fmt(x)} {fmt(y)} {angle})
+        \t\t(unit 1)
+        \t\t(exclude_from_sim no)
+        \t\t(in_bom yes)
+        \t\t(on_board yes)
+        \t\t(dnp no)
+        \t\t(fields_autoplaced yes)
+        \t\t(uuid "{sym_uuid}")
+        \t\t(property "Reference" "{reference}"
+        \t\t\t(at {fmt(x + 5.08)} {fmt(y - 2.54)} 0)
+        \t\t\t(effects
+        \t\t\t\t(font
+        \t\t\t\t\t(size 1.27 1.27)
+        \t\t\t\t)
+        \t\t\t\t(justify left)
+        \t\t\t)
+        \t\t)
+        \t\t(property "Value" "{value}"
+        \t\t\t(at {fmt(x + 5.08)} {fmt(y + 0.0)} 0)
+        \t\t\t(effects
+        \t\t\t\t(font
+        \t\t\t\t\t(size 1.27 1.27)
+        \t\t\t\t)
+        \t\t\t\t(justify left)
+        \t\t\t)
+        \t\t)
+        \t\t(property "Footprint" ""
+        \t\t\t(at {fmt(x)} {fmt(y)} 0)
+        \t\t\t(effects
+        \t\t\t\t(font
+        \t\t\t\t\t(size 1.27 1.27)
+        \t\t\t\t)
+        \t\t\t\t(hide yes)
+        \t\t\t)
+        \t\t)
+        \t\t(property "Datasheet" ""
+        \t\t\t(at {fmt(x)} {fmt(y)} 0)
+        \t\t\t(effects
+        \t\t\t\t(font
+        \t\t\t\t\t(size 1.27 1.27)
+        \t\t\t\t)
+        \t\t\t\t(hide yes)
+        \t\t\t)
+        \t\t)
+        \t\t(property "Description" ""
+        \t\t\t(at {fmt(x)} {fmt(y)} 0)
+        \t\t\t(effects
+        \t\t\t\t(font
+        \t\t\t\t\t(size 1.27 1.27)
+        \t\t\t\t)
+        \t\t\t\t(hide yes)
+        \t\t\t)
+        \t\t)
+        \t\t(pin "D"
+        \t\t\t(uuid "{pin_d_uuid}")
+        \t\t)
+        \t\t(pin "G"
+        \t\t\t(uuid "{pin_g_uuid}")
+        \t\t)
+        \t\t(pin "S"
+        \t\t\t(uuid "{pin_s_uuid}")
+        \t\t)
+        \t\t(instances
+        \t\t\t(project "oas"
+        \t\t\t\t(path "{sheet_path}"
+        \t\t\t\t\t(reference "{reference}")
+        \t\t\t\t\t(unit 1)
+        \t\t\t\t)
+        \t\t\t)
+        \t\t)
+        \t)""")
+
+
+def _sch_resistor(
+    x: float, y: float, angle: int, reference: str, value: str, uuid_tag: str,
+) -> str:
+    """Emit a resistor (Device:R) symbol instance.
+
+    With angle=0, lib pin positions map to schematic as:
+      Pin 1 (top):    (x, y - 3.81)
+      Pin 2 (bottom): (x, y + 3.81)
+    """
+    sym_uuid = U("sym:" + uuid_tag)
+    pin1_uuid = U("sym-pin:" + uuid_tag + "-1")
+    pin2_uuid = U("sym-pin:" + uuid_tag + "-2")
+    sheet_path = f"/{ROOT_SHEET_UUID}/{SHEET_BLOCK_UUIDS['power']}"
+    return textwrap.dedent(f"""\
+        \t(symbol
+        \t\t(lib_id "Device:R")
+        \t\t(at {fmt(x)} {fmt(y)} {angle})
+        \t\t(unit 1)
+        \t\t(exclude_from_sim no)
+        \t\t(in_bom yes)
+        \t\t(on_board yes)
+        \t\t(dnp no)
+        \t\t(fields_autoplaced yes)
+        \t\t(uuid "{sym_uuid}")
+        \t\t(property "Reference" "{reference}"
+        \t\t\t(at {fmt(x + 2.54)} {fmt(y - 1.27)} 0)
+        \t\t\t(effects
+        \t\t\t\t(font
+        \t\t\t\t\t(size 1.27 1.27)
+        \t\t\t\t)
+        \t\t\t\t(justify left)
+        \t\t\t)
+        \t\t)
+        \t\t(property "Value" "{value}"
+        \t\t\t(at {fmt(x + 2.54)} {fmt(y + 1.27)} 0)
+        \t\t\t(effects
+        \t\t\t\t(font
+        \t\t\t\t\t(size 1.27 1.27)
+        \t\t\t\t)
+        \t\t\t\t(justify left)
+        \t\t\t)
+        \t\t)
+        \t\t(property "Footprint" ""
+        \t\t\t(at {fmt(x)} {fmt(y)} 90)
+        \t\t\t(effects
+        \t\t\t\t(font
+        \t\t\t\t\t(size 1.27 1.27)
+        \t\t\t\t)
+        \t\t\t\t(hide yes)
+        \t\t\t)
+        \t\t)
+        \t\t(property "Datasheet" ""
+        \t\t\t(at {fmt(x)} {fmt(y)} 0)
+        \t\t\t(effects
+        \t\t\t\t(font
+        \t\t\t\t\t(size 1.27 1.27)
+        \t\t\t\t)
+        \t\t\t\t(hide yes)
+        \t\t\t)
+        \t\t)
+        \t\t(property "Description" ""
+        \t\t\t(at {fmt(x)} {fmt(y)} 0)
+        \t\t\t(effects
+        \t\t\t\t(font
+        \t\t\t\t\t(size 1.27 1.27)
+        \t\t\t\t)
+        \t\t\t\t(hide yes)
+        \t\t\t)
+        \t\t)
+        \t\t(pin "1"
+        \t\t\t(uuid "{pin1_uuid}")
+        \t\t)
+        \t\t(pin "2"
+        \t\t\t(uuid "{pin2_uuid}")
+        \t\t)
+        \t\t(instances
+        \t\t\t(project "oas"
+        \t\t\t\t(path "{sheet_path}"
+        \t\t\t\t\t(reference "{reference}")
+        \t\t\t\t\t(unit 1)
+        \t\t\t\t)
+        \t\t\t)
+        \t\t)
+        \t)""")
+
+
 def gen_power_sch() -> str:
-    """Power sub-sheet — contains the J1 input terminal (24 V / GND / PE).
+    """Power sub-sheet — J1 input terminal + reverse-polarity protection (Q1, R1).
 
     Layout (page-absolute mm, KiCad +Y is down on screen):
 
-        +24V@(73.66, 88.9)     GND@(78.74, 101.6)     Earth_Protective@(83.82, 104.14)
-            |                       |                       |
-        PWR_FLAG@                 PWR_FLAG@               PWR_FLAG@
-        (73.66, 91.44)           (78.74, 99.06)          (83.82, 101.6)
-        (rot 0, body up)         (rot 180, body down)    (rot 180, body down)
-            |                       |                       |
-        ─── pin 1 ──── J1.1     ─── pin 2 ──── J1.2     ─── pin 3 ──── J1.3
-        (96.52, 93.98)          (96.52, 96.52)          (96.52, 99.06)
+        +24V@(91.44, 76.2)               GND@(78.74, 104.14)   Earth_Protective@(83.82, 106.68)
+            |                                  |                       |
+        PWR_FLAG@(91.44, 81.28)             PWR_FLAG@               PWR_FLAG@
+        (rot 0, flag graphic up)            (78.74, 99.06)          (83.82, 101.6)
+            |                                  |                       |
+            ─── Q1.D ─── Q1 PMOS ─── Q1.S ─── J1.1 (96.52, 93.98)
+        Q1.G@(83.82, 88.9)                  J1.2 (96.52, 96.52)    J1.3 (96.52, 99.06)
+            |
+            └─ R1.top (73.66, 91.44)
+               R1 100k pulldown
+               R1.bot (73.66, 99.06)
+                  |
+               GND@(73.66, 101.6)
 
-    J1 itself sits at (101.6, 96.52). Each pin extends a horizontal wire
-    LEFT to its own per-net column, then a vertical wire to the flag's
-    anchor point. A junction shared between the flag's wire stem and the
-    PWR_FLAG sentinel marks the branch point.
+    The reverse-polarity P-MOSFET Q1 (AO3415A) sits between J1.1 and the
+    protected +24V rail. Source = unprotected input (J1.1), Drain = +24V.
+    R1 (100 kΩ) pulls Q1.gate to GND so Vgs ≈ -24 V turns the channel on
+    when polarity is correct.
+
+    J1 itself sits at (101.6, 96.52). For each pin (GND, PE) a horizontal
+    wire goes LEFT to its own per-net column, then a vertical wire to the
+    flag's anchor point; a junction marks the PWR_FLAG sentinel tap-off.
+    +24V is on Q1.D instead of J1.1, so the +24V flag column is at Q1.D's
+    x position (91.44).
     """
     file_uuid = SHEET_FILE_UUIDS["power"]
     sheet_path = f"/{ROOT_SHEET_UUID}/{SHEET_BLOCK_UUIDS['power']}"
@@ -1633,39 +2266,71 @@ def gen_power_sch() -> str:
     # J1 placement and pin Y coordinates.
     J1_X = 101.6
     J1_Y = 96.52
-    PIN1_Y = J1_Y - 2.54     # 93.98 — +24V
+    PIN1_Y = J1_Y - 2.54     # 93.98 — +24V (unprotected, local to J1.1 -> Q1.S)
     PIN2_Y = J1_Y            # 96.52 — GND
     PIN3_Y = J1_Y + 2.54     # 99.06 — PE
     PIN_X  = J1_X - 5.08     # 96.52 — pin tips on J1 symbol's left side
 
-    # Per-net column X (each net gets its own column to keep the schematic
-    # readable — no shared X between nets).
-    COL_24V = 73.66
+    # Q1 placement (P-MOSFET, body centred at this point, angle=0).
+    # With angle=0 the lib +y axis maps to schematic -y, so pin schematic
+    # positions are:  D = (Q1_X+2.54, Q1_Y-5.08), G = (Q1_X-5.08, Q1_Y),
+    # S = (Q1_X+2.54, Q1_Y+5.08).
+    Q1_X = 88.9
+    Q1_Y = 88.9
+    Q1_D_X = Q1_X + 2.54     # 91.44
+    Q1_D_Y = Q1_Y - 5.08     # 83.82
+    Q1_G_X = Q1_X - 5.08     # 83.82
+    Q1_G_Y = Q1_Y            # 88.9
+    Q1_S_X = Q1_X + 2.54     # 91.44
+    Q1_S_Y = Q1_Y + 5.08     # 93.98  — matches PIN1_Y; same horizontal row as J1.1
+
+    # R1 placement (100k pulldown, angle=0).
+    # Pin 1 (top) = (R1_X, R1_Y-3.81), pin 2 (bottom) = (R1_X, R1_Y+3.81).
+    R1_X = 73.66
+    R1_Y = 95.25
+    R1_TOP_Y = R1_Y - 3.81   # 91.44
+    R1_BOT_Y = R1_Y + 3.81   # 99.06
+
+    # Per-net column X for the flag stacks.
+    COL_24V = Q1_D_X         # 91.44 — protected rail lives on Q1.D wire
     COL_GND = 78.74
     COL_PE  = 83.82
+    COL_R1_GND = R1_X        # 73.66 — second GND symbol for R1.bottom
 
-    # Y coordinates for each flag/PWR_FLAG triplet.
-    JUNC_24V_Y = 91.44       # between PIN1_Y and FLAG_24V_Y
-    FLAG_24V_Y = 88.9
-    JUNC_GND_Y = 99.06       # below PIN2_Y
-    FLAG_GND_Y = 101.6
-    JUNC_PE_Y  = 101.6       # below PIN3_Y
-    FLAG_PE_Y  = 104.14
+    # Y coordinates for each flag / PWR_FLAG sentinel pair.
+    # Spacing FLAG-to-PWR_FLAG is 5.08 mm (Part A cosmetic fix — was 2.54,
+    # which left the symbols' value-text labels overlapping in eeschema).
+    JUNC_24V_Y = 81.28       # PWR_FLAG sentinel + junction on Q1.D wire
+    FLAG_24V_Y = 76.2        # +24V triangle, 5.08 mm further from Q1.D
+    JUNC_GND_Y = 99.06       # PWR_FLAG sentinel on GND column (below J1.2)
+    FLAG_GND_Y = 104.14      # GND symbol, 5.08 mm below PWR_FLAG
+    JUNC_PE_Y  = 101.6       # PWR_FLAG sentinel on PE column (below J1.3)
+    FLAG_PE_Y  = 106.68      # PE symbol, 5.08 mm below PWR_FLAG
 
     parts: list[str] = []
 
     # ----- Wires -----
-    # +24V row (pin 1 → column 73.66 → flag above)
-    parts.append(_sch_wire(PIN_X, PIN1_Y, COL_24V, PIN1_Y,  "24v-horiz"))
-    parts.append(_sch_wire(COL_24V, PIN1_Y, COL_24V, JUNC_24V_Y, "24v-vert-low"))
+    # J1.1 (unprotected) -> Q1.S: short horizontal hop, no flag, local net.
+    parts.append(_sch_wire(PIN_X, PIN1_Y, Q1_S_X, Q1_S_Y, "vin-horiz"))
+
+    # Q1.D -> +24V flag column: vertical, with a junction at PWR_FLAG height
+    # so the sentinel can tap off without an extra branch wire.
+    parts.append(_sch_wire(Q1_D_X, Q1_D_Y, COL_24V, JUNC_24V_Y, "24v-vert-low"))
     parts.append(_sch_wire(COL_24V, JUNC_24V_Y, COL_24V, FLAG_24V_Y, "24v-vert-high"))
 
-    # GND row (pin 2 → column 78.74 → flag below)
+    # Q1.G -> R1.top: horizontal then vertical (simple L-bend, no junction).
+    parts.append(_sch_wire(Q1_G_X, Q1_G_Y, R1_X, Q1_G_Y, "q1g-horiz"))
+    parts.append(_sch_wire(R1_X, Q1_G_Y, R1_X, R1_TOP_Y, "q1g-vert"))
+
+    # R1.bottom -> dedicated GND symbol (shares the GND global net).
+    parts.append(_sch_wire(R1_X, R1_BOT_Y, COL_R1_GND, 101.6, "r1gnd-vert"))
+
+    # GND row (J1.2 -> column 78.74 -> flag below)
     parts.append(_sch_wire(PIN_X, PIN2_Y, COL_GND, PIN2_Y, "gnd-horiz"))
     parts.append(_sch_wire(COL_GND, PIN2_Y, COL_GND, JUNC_GND_Y, "gnd-vert-high"))
     parts.append(_sch_wire(COL_GND, JUNC_GND_Y, COL_GND, FLAG_GND_Y, "gnd-vert-low"))
 
-    # PE row (pin 3 → column 83.82 → flag below)
+    # PE row (J1.3 -> column 83.82 -> flag below)
     parts.append(_sch_wire(PIN_X, PIN3_Y, COL_PE, PIN3_Y, "pe-horiz"))
     parts.append(_sch_wire(COL_PE, PIN3_Y, COL_PE, JUNC_PE_Y, "pe-vert-high"))
     parts.append(_sch_wire(COL_PE, JUNC_PE_Y, COL_PE, FLAG_PE_Y, "pe-vert-low"))
@@ -1755,7 +2420,23 @@ def gen_power_sch() -> str:
         \t\t)
         \t)"""))
 
-    # ----- Power flag symbols (+24V, GND, Earth_Protective) -----
+    # ----- Q1: P-MOSFET reverse-polarity protection (AO3415A) -----
+    # Source = J1.1 (unprotected input), Drain = +24V (protected rail).
+    # When input polarity is correct, the body diode conducts initially, then
+    # R1 pulls the gate to GND -> Vgs ~ -24 V turns the channel fully on,
+    # shorting out the body diode for low conduction loss.
+    parts.append(_sch_q_pmos(
+        x=Q1_X, y=Q1_Y, angle=0,
+        reference="Q1", value="AO3415A", uuid_tag="q1",
+    ))
+
+    # ----- R1: 100 kΩ gate-GND pulldown -----
+    parts.append(_sch_resistor(
+        x=R1_X, y=R1_Y, angle=0,
+        reference="R1", value="100k", uuid_tag="r1",
+    ))
+
+    # ----- Power flag symbols (+24V, GND, Earth_Protective, R1-side GND) -----
     parts.append(_sch_power_flag(
         lib_id="power:+24V", value="+24V",
         x=COL_24V, y=FLAG_24V_Y, angle=0,
@@ -1777,10 +2458,19 @@ def gen_power_sch() -> str:
         value_offset_x=0.0, value_offset_y=7.62,    # label below the Ø2.54 circle
         uuid_tag="pwr03-pe",
     ))
+    # GND for R1.bottom — same net as #PWR02 via the global power label.
+    parts.append(_sch_power_flag(
+        lib_id="power:GND", value="GND",
+        x=COL_R1_GND, y=101.6, angle=0,
+        reference="#PWR04",
+        value_offset_x=0.0, value_offset_y=3.81,
+        uuid_tag="pwr04-gnd-r1",
+    ))
 
-    # ----- PWR_FLAG sentinels (one per net) -----
-    # The +24V net's PWR_FLAG sits at its junction with the flag-up graphic
-    # (rotation 0) covering the +Y direction (toward the flag).
+    # ----- PWR_FLAG sentinels (one per power net: +24V, GND, PE) -----
+    # On the +24V net the PWR_FLAG sentinel sits on Q1.D's vertical wire
+    # at JUNC_24V_Y. With angle 0 the flag graphic extends UP (toward the
+    # +24V triangle above it).
     parts.append(_sch_power_flag(
         lib_id="power:PWR_FLAG", value="PWR_FLAG",
         x=COL_24V, y=JUNC_24V_Y, angle=0,
