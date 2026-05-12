@@ -2286,7 +2286,7 @@
         				(justify left)
         			)
         		)
-        		(property "Value" "JST SM05B-GHS-TB (HLK-LD2410B mmWave radar cable, 5-pin)"
+        		(property "Value" "1x5 P1.27mm through-hole header (HLK-LD2410B daughterboard, soldered)"
         			(at 182.88 156.21 0)
         			(effects
         				(font

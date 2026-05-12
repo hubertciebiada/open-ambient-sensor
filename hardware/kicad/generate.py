@@ -10180,7 +10180,14 @@ def gen_sensors_sch() -> str:
     """Sensors sub-sheet — chunks #5a + #5b.
 
     Chunk #5a — SEN66 connection (J3 + C10).
-    Chunk #5b — HLK-LD2410B mmWave radar connection (J4 + C11).
+    Chunk #5b — HLK-LD2410B mmWave radar (J4 + C11). LD2410 mounts as a
+                soldered daughterboard via a 5-pin 1.27 mm through-hole
+                header at J4; mechanical retention is the solder joint.
+                Antenna faces the AK-N-94 perforated cover (away from
+                the OAS PCB) per the HiLink §5.5 antenna-clearance rule
+                and the universal community pattern (Apollo MSR-2,
+                jonnybergdahl, p2baron). PCB footprint chosen in
+                chunk #7.
     The NFC tag (NT3H2211) is added in chunk #5c.
 
     SEN66 pinout (Sensirion SEN6x datasheet v0.92 Dec 2025, Table 16
@@ -10391,9 +10398,31 @@ def gen_sensors_sch() -> str:
     # =========================================================================
     # chunk #5b — HLK-LD2410B mmWave radar (J4 + C11)
     # =========================================================================
-    # HLK-LD2410B ships with a 5-pin 1.25 mm pitch JST GH cable. Pin order
-    # per the HiLink datasheet (looking at the module connector with pin 1
-    # on the side marked "1"):
+    # Mounting strategy: LD2410 module is soldered as a daughterboard
+    # directly into J4 — a 5-pin 1.27 mm pitch THROUGH-HOLE pin header on
+    # the OAS PCB. The HLK-LD2410B's onboard 1.27 mm pin row passes
+    # through OAS J4 holes; the pins are then soldered from the OAS PCB
+    # bottom side. The solder joint IS the mechanical retention — no
+    # cable, no zip-tie, no bracket. The LD2410 sits flat above the OAS
+    # PCB, antenna face oriented AWAY from the OAS PCB (towards the
+    # AK-N-94 perforated cover) so the radar beam radiates straight out
+    # through the cover into the room. This matches the universal
+    # community pattern (Apollo MSR-2, jonnybergdahl Sensor_LD2410B,
+    # p2baron Thingiverse 5782554) and the HiLink datasheet §5.5
+    # "antenna facing the area to be detected, surrounding area open and
+    # unobstructed" requirement.
+    #
+    # WHY through-hole (not the JST-GH cable variant): the HiLink
+    # datasheet §5.5 prohibits "metal materials or materials with
+    # shielding effect" in the radome path — a copper-pour FR4 PCB
+    # between the antenna and the user counts as such. Mounting the
+    # LD2410 as a vertical daughterboard with antenna pointing toward
+    # the cover keeps the OAS main PCB *behind* the antenna (where
+    # there is no detection requirement) and the antenna *front* face
+    # clear to radiate through the ABS cover.
+    #
+    # Pin order per HiLink LD2410B datasheet (pin 1 nearest the silk
+    # "1" marker on the module):
     #
     #   Pin 1: VCC   — 5 V supply. The HLK-LD2410B is a 5 V-supply module;
     #                  TX/RX/OUT logic levels are 3.3 V TTL so the ESP32-C6
@@ -10415,14 +10444,20 @@ def gen_sensors_sch() -> str:
     #                  drives the full ESPHome ld2410 component.
     #
     # Local decoupling: C11 (100 nF 0402 X7R) between VCC and GND of the
-    # LD2410 plug. The radar's switching draw can pull noticeable transient
-    # current on the +5V cable; cheap insurance for stable supply at the
-    # connector.
+    # LD2410 supply pins. The radar's switching draw can pull noticeable
+    # transient current on the +5V rail; cheap insurance at the
+    # daughterboard.
     #
-    # Connector: PCB-side socket on OAS is JST SM05B-GHS-TB (1.25 mm pitch,
-    # horizontal entry, SMD), same JST GH series as J3 — single BOM family.
-    # Mating cable: any 5-pin JST GH cable. HLK-LD2410B ships with a stock
-    # cable in the box.
+    # Connector: J4 is a 5-pin 1.27 mm pitch through-hole pin header /
+    # pin socket. The schematic symbol stays Conn_01x05 (same as the
+    # JST-GH variant); the difference is purely in the PCB footprint
+    # assignment, which is set in chunk #7 (PCB placement) to one of:
+    #   Connector_PinHeader_1.27mm:PinHeader_1x05_P1.27mm_Vertical
+    # or
+    #   Connector_PinSocket_1.27mm:PinSocket_1x05_P1.27mm_Vertical
+    # depending on whether the OAS PCB uses pin or socket geometry. The
+    # decision (pin vs socket on the OAS side) is mechanical-only — the
+    # net list is identical.
 
     # ===== J4: LD2410 JST-GH 5-pin connector =====
     # Placed below J3 in the schematic. With angle=0 + _sch_conn_01x05's
@@ -10524,7 +10559,7 @@ def gen_sensors_sch() -> str:
     parts.append(_sch_conn_01x05(
         x=J4_X, y=J4_Y, angle=0,
         reference="J4",
-        value="JST SM05B-GHS-TB (HLK-LD2410B mmWave radar cable, 5-pin)",
+        value="1x5 P1.27mm through-hole header (HLK-LD2410B daughterboard, soldered)",
         uuid_tag="j4-ld2410",
         sheet_key="sensors",
     ))
