@@ -4,9 +4,9 @@ Generate the KiCad 10 base project for OAS (Open Ambient Sensor).
 Produces:
   - oas.kicad_pro       (project; design rules tuned for JLCPCB)
   - oas.kicad_sch       (root schematic, references 4 sub-sheets)
-  - power.kicad_sch     (POWER sector — input terminal J1 + power flags)
-  - mcu.kicad_sch       (empty sub-sheet — MCU sector)
-  - sensors.kicad_sch   (empty sub-sheet — SENSORS sector)
+  - power.kicad_sch     (power sub-sheet — input terminal J1 + power flags)
+  - mcu.kicad_sch       (MCU sub-sheet)
+  - sensors.kicad_sch   (sensors sub-sheet)
   - io.kicad_sch        (empty sub-sheet — chord connector cluster)
   - oas.kicad_pcb       (board outline on Edge.Cuts + 3 mounting holes)
   - libraries/oas.pretty/MountingHole_3.8mm_M3.kicad_mod  (custom footprint)
@@ -64,16 +64,17 @@ HOLE_DIAMETER = 3.8                # Ø3.8 mm per manufacturer DXF
 COURTYARD_RADIUS = HOLE_DIAMETER * 0.75   # ~1.5× hole diameter
 
 # -----------------------------------------------------------------------------
-# Clock-face sector layout
+# PCB layout — soft functional grouping (NOT enforced geometrically)
 # -----------------------------------------------------------------------------
-# Treat the PCB as a clock face:
-#   09:00 → 12:00  (left-top quadrant)   = POWER
-#   12:00 → 03:00  (right-top quadrant)  = MCU + logic
-#   03:00 → 09:00  (bottom half, 180°)   = SENSORS
-# Power flow runs clockwise so signal paths never need to cross sector lines.
-# Drawn on Dwgs.User as 3 radial separators + 3 sector labels (not plotted).
-SECTOR_LABEL_RADIUS = 28   # mm from centre — where labels sit
-SECTOR_LABEL_HEIGHT = 4.0  # mm — text size
+# As a starting heuristic, the PCB roughly resembles a clock face with power
+# on the upper-left, MCU on the upper-right and sensors filling the bottom
+# half — 24 V enters through the central cable hole and power flows roughly
+# clockwise. This is a hint to keep rails short, not a hard constraint:
+# components may cross any imagined boundary if the layout needs it (the
+# SEN66 in particular is large and may span what would otherwise be the
+# "sensors" region). No separator lines or sector labels are drawn on the
+# PCB — the hierarchical schematic sub-sheets (power / mcu / sensors / io)
+# are a functional grouping, not a geographic mapping.
 
 # Cable pass-through hole in the centre of the PCB.
 # 24 V (and optional PE) wires enter the case from the rear (electrical box
@@ -118,8 +119,7 @@ CUTOUTS = [
 # height 21.5 mm > 17 mm front-side limit). The PCB carries:
 #   1. A no-pad mechanical-reference footprint (`SEN66_Mechanical_Reference`)
 #      drawn on F.Fab / F.SilkS — marks where the SEN66 body "shadow" sits
-#      so future SENSORS-sector components (VEML7700, LD2410, NT3H2211)
-#      stay clear.
+#      so neighbouring components (VEML7700, LD2410, NT3H2211) stay clear.
 #   2. Four NPTH zip-tie holes (Ø 3.0 mm) that pinch the SEN66 against
 #      the cover, threaded through both PCB and cover plate.
 #   3. The PCB-side JST GH 6-pin socket (J3) that mates with the SEN66's
@@ -130,7 +130,7 @@ CUTOUTS = [
 #
 #   SEN66 reference: anchor at (SEN66_ANCHOR_X, SEN66_ANCHOR_Y),
 #   rotation SEN66_ROTATION. Long axis runs RADIALLY (6:00 direction)
-#   per CLAUDE.md's sector-layout hint, connector edge points toward
+#   so cable runs are short; connector edge points toward
 #   PCB center (cable hole) so the JST GH cable has the shortest run.
 #
 # Rotation 90° in KiCad's convention maps footprint-local +X (long
@@ -181,7 +181,7 @@ SEN66_ZIPTIE_LOCAL = [
 
 # J3 (JST GH 6-pin board-side socket — SM06B-GHS-TB, horizontal SMD).
 # Placed to the PCB-RIGHT (east) of the SEN66 body shadow in the SENSORS
-# sector, just past body_max_X (= 35.6 mm) with room for the JST cable's
+# sensors area, just past body_max_X (= 35.6 mm) with room for the JST cable's
 # minimum bend radius (~10 mm). The cable from the SEN66 enclosure-cover
 # mount runs from the SEN66 connector at PCB (22.8, -15.2) (top edge of
 # body shadow, +X short edge of SEN66) → up and around (cable comes up
@@ -236,11 +236,11 @@ def U(tag: str = "") -> str:
 # Use a tagged seed so this UUID is stable independent of call order elsewhere.
 ROOT_SHEET_UUID = str(uuid.uuid5(_OAS_NS, "sheet:root"))
 
-# Hierarchical sub-sheets — one per PCB sector (see CLAUDE.md):
-#   power   ↔ POWER sector   (09:00–12:00)
-#   mcu     ↔ MCU sector     (12:00–03:00)
-#   sensors ↔ SENSORS sector (03:00–09:00) — VEML7700, LD2410, WS2812, NFC
-#   io      ↔ connector cluster along the chord (USB-C, SWD, Qwiic)
+# Hierarchical sub-sheets — functional grouping (see CLAUDE.md):
+#   power   — input protection + bucks 24V → 5V → 3.3V
+#   mcu     — ESP32-C6-DevKitM-1-N4 + decoupling
+#   sensors — SEN66, VEML7700, LD2410, WS2812, NT3H2211 NFC
+#   io      — connector cluster along the chord (24V terminal, Qwiic, SWD)
 #
 # Two distinct UUIDs per sub-sheet:
 #   SHEET_BLOCK_UUIDS[name] — UUID of the (sheet ...) block in the root file.
@@ -386,8 +386,8 @@ def gen_mounting_hole_footprint() -> str:
 #   - The PCB-side footprint is purely a placement marker — it tells the
 #     PCB designer where the SEN66 "lives" relative to the PCB centroid
 #     so the JST GH cable run length stays consistent across builds, and
-#     so the SENSORS sector layout can place VEML7700 / LD2410 / NT3H2211
-#     clear of the SEN66 shadow.
+#     so the layout can place VEML7700 / LD2410 / NT3H2211 clear of
+#     the SEN66 shadow.
 #   - No pads, no drilled holes (the 4× zip-tie holes are a separate
 #     footprint: `ZipTieHole_3mm_NPTH`).
 SEN66_BODY_X = 55.2
@@ -412,9 +412,9 @@ def gen_sen66_mechanical_footprint() -> str:
 
     No pads — the SEN66 doesn't bolt to the PCB; it lives on the enclosure
     cover. This footprint exists so the PCB designer has a visible "SEN66
-    shadow" in 2D / 3D views, ensuring the SENSORS sector layout reserves
-    enough clearance for the SEN66 cable strain relief and that future
-    components (VEML7700, LD2410, NT3H2211) avoid the SEN66 zone.
+    shadow" in 2D / 3D views, reserving enough clearance for the SEN66
+    cable strain relief and ensuring that future components (VEML7700,
+    LD2410, NT3H2211) avoid the SEN66 zone.
 
     Rendered on `F.Fab` (full body outline + air openings + connector
     marker + foam-divider hint + module identification) and on
@@ -790,7 +790,7 @@ def gen_cutouts() -> tuple[str, str]:
         # the case wall.
         #
         # The mechanical-reference SEN66 footprint (F.Fab/F.SilkS only,
-        # zero copper) needs to be place-able in the SENSORS sector
+        # zero copper) needs to be place-able anywhere on the PCB
         # even where its body shadow crosses a cutout zone — the SEN66
         # itself lives on the cover, not on the PCB, so a cutout-zone
         # overlap is purely a 2D drawing coincidence, not a physical
@@ -855,50 +855,6 @@ def gen_cutouts() -> tuple[str, str]:
             \t)"""))
 
     return "\n".join(keepouts), "\n".join(markers)
-
-
-def gen_sectors() -> str:
-    """Return Dwgs.User entities outlining the three PCB sectors.
-
-    The PCB is treated as a clock face:
-      09→12  POWER (left-top quadrant)
-      12→03  MCU   (right-top quadrant)
-      03→09  SENSORS (bottom half, 180°)
-    Three radial separators (at 12, 03, 09 o'clock) plus a label per sector.
-    """
-    def clock_xy(hour: float, radius: float) -> tuple[float, float]:
-        """Map clock hour (0..12) and radius to PCB-local (x, y)."""
-        angle = math.radians(hour / 12.0 * 360.0)
-        return (radius * math.sin(angle), -radius * math.cos(angle))
-
-    items = []
-    # Three radial separator lines, each from the cable-hole edge to the PCB outline.
-    for hour in (0.0, 3.0, 9.0):
-        sx, sy = clock_xy(hour, CABLE_HOLE_DIAMETER / 2 + 0.5)
-        ex, ey = clock_xy(hour, R_OUTLINE - 0.5)
-        items.append(textwrap.dedent(f"""\
-            \t(gr_line
-            \t\t(start {fx(sx)} {fy(sy)})
-            \t\t(end {fx(ex)} {fy(ey)})
-            \t\t(stroke (width 0.15) (type dash))
-            \t\t(layer "Dwgs.User")
-            \t\t(uuid "{U('sector_line:'+str(hour))}")
-            \t)"""))
-
-    # Sector labels at the middle of each arc segment.
-    for hour, name in [(10.5, "POWER"), (1.5, "MCU"), (6.0, "SENSORS")]:
-        cx, cy = clock_xy(hour, SECTOR_LABEL_RADIUS)
-        items.append(textwrap.dedent(f"""\
-            \t(gr_text "{name}"
-            \t\t(at {fx(cx)} {fy(cy)} 0)
-            \t\t(layer "Dwgs.User")
-            \t\t(uuid "{U('sector_label:'+name)}")
-            \t\t(effects
-            \t\t\t(font (size {fmt(SECTOR_LABEL_HEIGHT)} {fmt(SECTOR_LABEL_HEIGHT)}) (thickness 0.4))
-            \t\t)
-            \t)"""))
-
-    return "\n".join(items)
 
 
 # -----------------------------------------------------------------------------
@@ -1762,7 +1718,6 @@ def gen_pcb() -> str:
         footprints.append(fp)
 
     keepouts, markers = gen_cutouts()
-    sectors = gen_sectors()
     sensor_footprints = gen_sensors_pcb_footprints()
     silk_labels = gen_silk_labels()
 
@@ -1782,11 +1737,11 @@ def gen_pcb() -> str:
         {setup}
         \t(net 0 "")
         {outline}
-        """) + sectors + "\n" + markers + "\n" + "\n".join(footprints) + "\n" + sensor_footprints + "\n" + silk_labels + "\n" + keepouts + "\n)\n"
+        """) + markers + "\n" + "\n".join(footprints) + "\n" + sensor_footprints + "\n" + silk_labels + "\n" + keepouts + "\n)\n"
     return body
 
 # -----------------------------------------------------------------------------
-# 3) Hierarchical schematic — root + 4 empty per-sector sub-sheets
+# 3) Hierarchical schematic — root + 4 per-function sub-sheets
 # -----------------------------------------------------------------------------
 # Per-sheet hierarchical sheet pins for the root sheet block. The matching
 # hierarchical_label inside the sub-sheet binds the inter-sheet net by name.
@@ -1954,7 +1909,7 @@ def _root_wire(x1: float, y1: float, x2: float, y2: float, tag: str) -> str:
 
 
 def gen_root_sch() -> str:
-    """Root schematic referencing the 4 per-sector sub-sheets.
+    """Root schematic referencing the 4 per-function sub-sheets.
 
     Contains:
       - One (sheet ...) block per sub-sheet (power / mcu / sensors / io).
@@ -2019,9 +1974,9 @@ def gen_root_sch() -> str:
 
 
 def gen_subsheet_sch(name: str) -> str:
-    """Empty per-sector sub-sheet (just the file header + empty lib_symbols).
+    """Empty per-function sub-sheet (just the file header + empty lib_symbols).
 
-    Placeholder for upcoming per-sector content (chunks #1b onward).
+    Placeholder for upcoming per-function content (chunks #1b onward).
     """
     file_uuid = SHEET_FILE_UUIDS[name]
     return textwrap.dedent(f"""\

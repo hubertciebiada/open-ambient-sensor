@@ -89,7 +89,7 @@ Originally the DXF annotation `背面焊脚限高 3mm` ("back-side solder-pin he
 
 **To verify**:
 - Pattern is dense enough for airflow to reach SEN66 inlet (the sensor expects no air-restricting features within ~5 mm)
-- Perforations also help convective heat removal from the POWER sector (upper-left in PCB orientation)
+- Perforations also help convective heat removal from the power section of the PCB
 - Light path for the front status LED (WS2812) — is there a clear (non-perforated) section over its planned location? Or do we accept the LED light coming out through perforations? (Aesthetic decision.)
 
 ## 8. PCB outline match
@@ -130,9 +130,9 @@ These are not enclosure verifications but **planned post-bringup modifications**
 
 **Trigger**: SEN66 SHT temperature reading shows >0.1 °C bias vs an external reference thermometer placed at the same height, in steady state with the enclosure fully assembled and powered.
 
-**Action**: With a hot-air rework station, desolder the always-on power LED on the top side of the DevKitM-1-N4 module (estimated ~10 mA × 3.3 V = ~30 mW dissipation in the MCU sector). LED is typically a 0603 or 0402 part with a series resistor; removing the LED alone is sufficient (the resistor can stay).
+**Action**: With a hot-air rework station, desolder the always-on power LED on the top side of the DevKitM-1-N4 module (estimated ~10 mA × 3.3 V = ~30 mW dissipation near the MCU). LED is typically a 0603 or 0402 part with a series resistor; removing the LED alone is sufficient (the resistor can stay).
 
-**Expected effect**: ~30 mW reduction in MCU-sector dissipation; SEN66 SHT bias should drop proportionally.
+**Expected effect**: ~30 mW reduction in MCU-area dissipation; SEN66 SHT bias should drop proportionally.
 
 **When**: After first-prototype assembly, before sealing the enclosure. The DevKitM-1's top face is exposed when the OAS PCB is unscrewed from the enclosure bosses.
 

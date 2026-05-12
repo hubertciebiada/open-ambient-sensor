@@ -134,24 +134,19 @@ Additional features:
 | Flashing | Either of DevKitM-1's two onboard USB-C ports (USB-UART bridge or native USB-Serial-JTAG); module accessible before enclosure is sealed | USB 2.0 | confirmed v0.4 |
 | Debug | SWD / UART header (unpopulated by default) | — | tentative |
 
-### PCB sector layout (clock-face convention)
+### PCB layout — functional grouping (soft guideline)
 
-The PCB is divided into three angular sectors viewed from the front:
+The schematic is split into four hierarchical sub-sheets by **function**, not by geography:
 
-| Sector | Clock hours | Quadrant in KiCad coords | Contents |
-|---|---|---|---|
-| **POWER** | 09:00 → 12:00 | upper-left (X < 0, Y < 0) | terminal block J1, reverse-polarity protection, PTC fuse, TVS, bulk cap, Y-cap, bucks 24→5V→3.3V |
-| **MCU + logic** | 12:00 → 03:00 | upper-right (X > 0, Y < 0) | ESP32-C6-DevKitM-1-N4 (antenna edge → 12:00), optional unpopulated SWD/UART recovery header, decoupling caps |
-| **SENSORS** | 03:00 → 09:00 | bottom half (Y > 0) | SEN66 JST-GH connector, LD2410 connector, VEML7700, WS2812, NT3H2211 + NFC antenna, status LED |
+- `power.kicad_sch` — terminal block J1, reverse-polarity protection, PTC fuse, TVS, bulk cap, Y-cap, bucks 24→5V→3.3V
+- `mcu.kicad_sch` — ESP32-C6-DevKitM-1-N4, optional unpopulated SWD/UART recovery header, decoupling caps
+- `sensors.kicad_sch` — SEN66 JST-GH connector, LD2410 connector, VEML7700, NT3H2211 + NFC antenna, status LED (onboard WS2812 on DevKitM-1)
+- `io.kicad_sch` — connector strip along the chord (24 V terminal, Qwiic, etc.)
 
-Power flow runs **clockwise** (24 V enters through the centre → POWER sector → MCU sector → SENSORS sector) so signal paths and power rails never need to cross sector boundaries.
-
-The `power.kicad_sch`, `mcu.kicad_sch`, `sensors.kicad_sch`, and `io.kicad_sch` hierarchical sheets mirror this layout — each schematic sheet maps directly to one sector on the PCB.
-
-Three radial separator lines (12:00, 03:00, 09:00 azimuths) plus sector labels are drawn on `Dwgs.User` as a visual aid in pcbnew (not plotted to gerbers). The cable pass-through hole at the centre is the natural "0:00 position" — 24 V enters here.
+**Placement guideline (NOT a hard constraint)**: as a starting heuristic, think of the PCB roughly as a clock face with power on the upper-left, MCU on the upper-right, and sensors filling the bottom half. The 24 V cable enters through the centre, so keeping the terminal block and reverse-polarity / fusing chain near it shortens the bare-conductor span. Power flowing roughly clockwise (centre → power → MCU → sensors) tends to keep rails short, but **components may cross any imagined boundary if the layout needs it**. SEN66 in particular is large and may span what would otherwise be the "sensors" region.
 
 ### Architectural decisions (current)
-- **SEN66 mounts on the PCB inside the enclosure**, in the SENSORS sector (03:00–09:00, bottom half). Lies flat on its 55.2 × 25.6 mm **back face (clean, featureless)** with the **air-side face (55.2 × 25.6 mm, carrying both inlets + outlet + product label) facing UP** toward the AK-N-94 perforated cover. Body sticks 21.5 mm above PCB. Connector (ACES 51468-0064N-001 / JST-GHR-06V-S compatible, 6-pin 1.25 mm pitch) on the SEN66's +X short edge, radially inward toward PCB centre — cable runs horizontally to a PCB-mounted JST-GH socket. Required: lift hard constraint #1 from 17 mm to ≥22 mm in the SEN66 zone — verified per CASE-VERIFICATION-CHECKLIST §1 against the physical AK-N-94 sample. The 17 mm DXF annotation `正面限高 17mm` is most likely regional (mounting-boss periphery), not global. **PCB needs NO cutouts under SEN66** — openings face UP toward cover perforations, not down toward PCB.
+- **SEN66 mounts on the PCB inside the enclosure**, in the bottom-half region of the board (the largest contiguous area). Lies flat on its 55.2 × 25.6 mm **back face (clean, featureless)** with the **air-side face (55.2 × 25.6 mm, carrying both inlets + outlet + product label) facing UP** toward the AK-N-94 perforated cover. Body sticks 21.5 mm above PCB. Connector (ACES 51468-0064N-001 / JST-GHR-06V-S compatible, 6-pin 1.25 mm pitch) on the SEN66's +X short edge, radially inward toward PCB centre — cable runs horizontally to a PCB-mounted JST-GH socket. Required: lift hard constraint #1 from 17 mm to ≥22 mm in the SEN66 zone — verified per CASE-VERIFICATION-CHECKLIST §1 against the physical AK-N-94 sample. The 17 mm DXF annotation `正面限高 17mm` is most likely regional (mounting-boss periphery), not global. **PCB needs NO cutouts under SEN66** — openings face UP toward cover perforations, not down toward PCB.
 - **SEN66 retention**: zip-tie strap mount. Four NPTH holes (Ø ~3 mm) in the PCB just outside the SEN66 footprint along the two long edges (Y < 0 and Y > 25.6 in SEN66-local frame). A zip-tie loops over the SEN66 body through each Y-paired hole, pulling the module flat onto the PCB. No 3D-printed bracket, no screws into the SEN66 body (which has no mounting features per Sensirion STEP files). Reversible / serviceable: cut the zip-tie to swap the sensor.
 - **Zip-tie hole X-positions** (SEN66-local frame, X along 55.2 mm axis pointing toward connector): available "safe" corridors where the zip-tie band passes over the top face without crossing an opening: **X ∈ [18.22, 32.03]** (14 mm wide, between inlet zone at X ≤ 18.22 and outlet at X ≥ 32.03), and X ∈ [52.77, 55.2] (marginal, 2.4 mm wide). Recommended: Pair 1 at X ≈ 25 (mid-safe corridor); Pair 2 at X ≈ 50 (post-outlet, minor outlet rim shading <10% acceptable). Exact positions in chunk #5a.
 - **Open: SEN66 airflow sealing**. Sensirion mechanical guidelines require inlet and outlet in **separate sealed channels** to prevent parasitic recirculation (outflow back into inlets through host case interior). With face-up mount in AK-N-94, both inlets and outlet share the cover air-space → potential recirculation. Mitigation options TBD: (a) foam shroud separating inlet zone from outlet zone, (b) baffle on cover interior, (c) accept residual recirculation as design compromise. Decision after physical AK-N-94 sample arrives.

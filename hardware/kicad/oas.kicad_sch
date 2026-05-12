@@ -84,7 +84,7 @@
 		)
 		(pin "I2C_SDA" bidirectional
 			(at 101.6 52.07 180)
-			(uuid "95dc7538-9501-56fb-9965-dc10c5f85d98")
+			(uuid "33e6a8db-da2c-57a3-90d4-2bd69e6e828f")
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -94,7 +94,7 @@
 		)
 		(pin "I2C_SCL" output
 			(at 101.6 54.61 180)
-			(uuid "2be18c93-7ed2-5013-908e-97ec35cede68")
+			(uuid "52939980-fb46-5fde-9a77-466532e4b3db")
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -104,7 +104,7 @@
 		)
 		(pin "LD2410_OUT" input
 			(at 101.6 57.15 180)
-			(uuid "4cb15ee2-89a0-5661-8c6e-5d4adde5e03d")
+			(uuid "5d259502-4d34-59f1-ba4e-0eb5e4709d92")
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -114,7 +114,7 @@
 		)
 		(pin "NFC_FD" input
 			(at 101.6 59.69 180)
-			(uuid "7f1c459f-82c8-5c09-aa04-9307a537fd2b")
+			(uuid "1ca67b45-afbf-5517-8ab8-34465772e262")
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -124,7 +124,7 @@
 		)
 		(pin "UART_TX" output
 			(at 139.7 52.07 0)
-			(uuid "3b6ff44c-c157-5941-a315-3f7f113f2c79")
+			(uuid "028fd5c2-3a9b-5ceb-95fc-bf7043e59e1b")
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -134,7 +134,7 @@
 		)
 		(pin "UART_RX" input
 			(at 139.7 54.61 0)
-			(uuid "a05b2381-f9f6-5186-b216-f66c89ae4427")
+			(uuid "97b223dd-a874-5e5a-b60e-d59a7976fc7c")
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -186,7 +186,7 @@
 		)
 		(pin "I2C_SDA" bidirectional
 			(at 88.9 90.17 0)
-			(uuid "3b61fc9d-ac9b-57a0-ab43-16dcbc433127")
+			(uuid "5c7dcdd1-b737-5022-be2e-20ff81cec4af")
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -196,7 +196,7 @@
 		)
 		(pin "I2C_SCL" input
 			(at 88.9 92.71 0)
-			(uuid "68a918ab-5ff3-5eec-b8b6-9b06b9e746f6")
+			(uuid "4edc0e90-f116-5af8-9bf7-4f2d80a1d96e")
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -262,7 +262,7 @@
 		(width 0)
 		(type default)
 	)
-	(uuid "da68cc4a-f1ca-582f-95a7-4a7be3be36ef")
+	(uuid "8bd9dcfa-4bde-5fdc-bf2d-d2a3a1747965")
 )
 (wire
 	(pts
@@ -272,7 +272,7 @@
 		(width 0)
 		(type default)
 	)
-	(uuid "fa886cbf-fbc4-5c91-a5b8-b82d2abb76d7")
+	(uuid "4abe500e-7e5c-54d6-b106-66ffe1679359")
 )
 (wire
 	(pts
@@ -282,7 +282,7 @@
 		(width 0)
 		(type default)
 	)
-	(uuid "2a71da54-905b-5915-9a0c-84b082ea457b")
+	(uuid "40533ca6-65b1-5ca9-a1e3-5633c4816c67")
 )
 (wire
 	(pts
@@ -292,7 +292,7 @@
 		(width 0)
 		(type default)
 	)
-	(uuid "6d17847c-5a20-598c-8656-700c6dd43be1")
+	(uuid "9c628685-f1c9-5dac-b5f7-bc58a7795d5f")
 )
 (wire
 	(pts
@@ -302,7 +302,7 @@
 		(width 0)
 		(type default)
 	)
-	(uuid "ead29ae2-fc71-5700-a642-5edaf780db25")
+	(uuid "23ff1c65-f1cb-506f-8010-718b636bf8cb")
 )
 (wire
 	(pts
@@ -312,7 +312,7 @@
 		(width 0)
 		(type default)
 	)
-	(uuid "50af8554-48dd-567a-a0ba-924a251466d2")
+	(uuid "0fe784e6-a635-519e-b9c0-97fb913a3bf3")
 )
 	(sheet_instances
 		(path "/"

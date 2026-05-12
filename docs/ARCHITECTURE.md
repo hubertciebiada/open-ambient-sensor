@@ -52,9 +52,9 @@ Pull-ups: **10 kΩ on the MCU side** (per SEN66 datasheet §3.1; v0.6).
 
 **Firmware framework**: ESPHome on `esp-idf` (not `arduino`) — required for adequate memory headroom with BLE-proxy + WiFi + sensor stack combined.
 
-**Antenna orientation**: ESP32-C6-MINI-1's PCB antenna sits on the top edge of the module (the short edge with no pin headers). Place the DevKitM-1 in the MCU sector (12:00–03:00) such that its antenna edge points toward 12:00 (radial outward, toward case wall) — keeps the antenna away from the POWER sector's bucks (potential RF noise sources).
+**Antenna orientation**: ESP32-C6-MINI-1's PCB antenna sits on the top edge of the module (the short edge with no pin headers). Place the DevKitM-1 so its antenna edge points radially outward toward the case wall, and keep the bucks well away from the antenna to reduce RF noise pickup.
 
-**Form factor**: 48.26 × 25.4 mm. The MCU sector has enough area to accommodate this, but PCB layout must avoid placing tall components directly under the module body to maintain the 17 mm front-side height limit including the module's headers + standoff (~6-8 mm total module stack).
+**Form factor**: 48.26 × 25.4 mm. PCB layout must avoid placing tall components directly under the module body to maintain the 17 mm front-side height limit including the module's headers + standoff (~6-8 mm total module stack).
 
 **Onboard hardware to be aware of**:
 - Power LED (always-on indicator, ~10 mA on 3.3V = ~30 mW — could be desoldered post-bringup if SEN66 measurements show a temperature bias)
@@ -63,22 +63,11 @@ Pull-ups: **10 kΩ on the MCU side** (per SEN66 datasheet §3.1; v0.6).
 - 5V→3.3V LDO on the module — bypassed in our design by feeding 3.3V directly into the 3V3 pin from our TPS62933 buck (no LDO loss, no LDO heat)
 - **Two USB-C connectors**: one goes through the onboard USB-to-UART bridge IC (classic flashing path), the other is wired directly to the ESP32-C6's native USB-Serial-JTAG (GPIO 12/13). With no USB cable plugged in after deployment, the bridge IC enters suspend mode and contributes negligible heat (~10 µW). Both connectors share the +5V power input net, so plugging into either one powers the module.
 
-## PCB sector layout
+## PCB layout — functional grouping (soft guideline)
 
-Treat the PCB as a clock face. Three angular sectors, viewed from the front:
+The schematic is split into four hierarchical sub-sheets by **function**, not by geography: `power.kicad_sch`, `mcu.kicad_sch`, `sensors.kicad_sch`, `io.kicad_sch`. Layout follows function loosely, not strictly.
 
-| Sector | Clock hours | Quadrant | Contents |
-|---|---|---|---|
-| **POWER** | 09:00 → 12:00 | upper-left | terminal J1, P-MOSFET reverse-polarity protection, PTC fuse, TVS diode, bulk cap, Y-cap, buck 24V→5V, buck 5V→3.3V |
-| **MCU + logic** | 12:00 → 03:00 | upper-right | ESP32-C6-DevKitM-1-N4 (antenna edge → 12:00), optional unpopulated SWD/UART recovery header, decoupling caps |
-| **SENSORS** | 03:00 → 09:00 | bottom half (180°) | SEN66 JST-GH connector (sensor on cover), LD2410 connector, VEML7700, WS2812 status LED, NT3H2211 + NFC trace antenna |
-
-Power flows **clockwise** from the central cable entry, so traces and rails never need to cross sector boundaries. Each schematic hierarchical sheet (`power.kicad_sch`, `mcu.kicad_sch`, `sensors.kicad_sch`) maps onto one sector — placement is then trivial.
-
-The layout is visualised on `Dwgs.User`:
-- Three radial separator lines (dashed) at 12:00, 03:00, and 09:00 azimuths from the cable hole to the PCB edge.
-- Three sector labels: "POWER", "MCU", "SENSORS" in the midpoint of each arc.
-- These markers are not plotted to gerbers — they exist only as a placement guide in pcbnew.
+As a starting heuristic, the PCB roughly behaves like a clock face — power on the upper-left, MCU on the upper-right, sensors filling the bottom half — with 24 V entering through the central cable hole and power flowing roughly clockwise (centre → power → MCU → sensors). This keeps rails and signal paths short and the antenna far from the bucks. **It is a hint, not a hard constraint** — components (notably the SEN66, which is large) may cross any imagined boundary if the layout needs it. No separator lines or sector labels are drawn on the PCB.
 
 ## Thermal / layout strategy
 
