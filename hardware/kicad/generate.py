@@ -2469,6 +2469,8 @@ SUBSHEET_PINS: dict[str, list[tuple[str, str, float, float, int]]] = {
         ("LD2410_OUT",  "output",        38.1,  6.35, 0),
         ("UART_TX",     "input",         38.1,  8.89, 0),
         ("UART_RX",     "output",        38.1, 11.43, 0),
+        # chunk #5c: MIKROE-2462 NFC Tag 2 Click — field-detect interrupt.
+        ("NFC_FD",      "output",         0.0,  6.35, 180),
     ],
     "io": [],
 }
@@ -2667,6 +2669,16 @@ def gen_root_sch() -> str:
     inter_wires.append(_root_wire(88.9, 100.33, 146.05, 100.33, "uart-rx-east-from-sensors"))
     inter_wires.append(_root_wire(146.05, 100.33, 146.05, 54.61, "uart-rx-vertical"))
     inter_wires.append(_root_wire(146.05, 54.61, 139.7, 54.61, "uart-rx-west-into-mcu"))
+    # chunk #5c inter-sheet wire for NFC_FD.
+    # NFC_FD — sensors left-edge (50.8, 95.25) ↔ MCU left-edge (101.60, 59.69).
+    # Both pins on left side of their blocks (sensors at angle 180 dx=0,
+    # MCU at angle 180 dx=0). Route: sensors LEFT stub goes WEST out of
+    # the sensors block to a vertical leg at X=44.45, up past the
+    # sensors block top edge (Y=88.9), then NORTHEAST across the empty
+    # space below the power block to the MCU block's LEFT edge.
+    inter_wires.append(_root_wire(50.8, 95.25, 44.45, 95.25, "nfc-fd-west-from-sensors"))
+    inter_wires.append(_root_wire(44.45, 95.25, 44.45, 59.69, "nfc-fd-vertical"))
+    inter_wires.append(_root_wire(44.45, 59.69, 101.60, 59.69, "nfc-fd-east-into-mcu"))
     wires_text = "\n".join(inter_wires)
 
     return textwrap.dedent(f"""\
@@ -10163,6 +10175,103 @@ def _sch_conn_01x06(
         \t)""")
 
 
+def _sch_conn_02x08_top_bottom(
+    x: float, y: float, angle: int, reference: str, value: str, uuid_tag: str,
+    dnp: bool = False, sheet_key: str = "sensors",
+) -> str:
+    """Emit a Connector_Generic:Conn_02x08_Top_Bottom symbol instance.
+
+    Used as the mikroBUS placeholder for the MIKROE-2462 NFC Tag 2 Click
+    daughterboard (chunk #5c). 16 pins in two columns:
+      LEFT  column (pins 1..8, top to bottom): X = -5.08
+      RIGHT column (pins 9..16, top to bottom): X = +7.62
+    Y axis steps in 2.54 mm increments. With angle=0, lib pin (lx, ly)
+    maps to schem (x + lx, y - ly) — i.e. LIB +Y is UP, SCHEM +Y is DOWN.
+
+    Pin schem positions (anchor = (x, y), angle 0):
+      Pin n on LEFT  column (n in 1..8):  (x - 5.08,  y - (7.62 - 2.54*(n-1)))
+      Pin n on RIGHT column (n in 9..16): (x + 7.62,  y - (7.62 - 2.54*(n-9)))
+
+    Pin-function mapping (mikroBUS spec): pins 1..8 are LEFT side
+    (AN, RST, CS, SCK, MISO, MOSI, +3.3V, GND); pins 9..16 are RIGHT
+    side (PWM, INT, RX, TX, SCL, SDA, +5V, GND).
+    """
+    sym_uuid = U("sym:" + uuid_tag)
+    pin_uuids = [U(f"sym-pin:{uuid_tag}-{n}") for n in range(1, 17)]
+    sheet_path = f"/{ROOT_SHEET_UUID}/{SHEET_BLOCK_UUIDS[sheet_key]}"
+    dnp_flag = "yes" if dnp else "no"
+    pin_blocks = "\n".join(
+        f"\t\t(pin \"{n}\"\n\t\t\t(uuid \"{pin_uuids[n-1]}\")\n\t\t)"
+        for n in range(1, 17)
+    )
+    return textwrap.dedent(f"""\
+        \t(symbol
+        \t\t(lib_id "Connector_Generic:Conn_02x08_Top_Bottom")
+        \t\t(at {fmt(x)} {fmt(y)} {angle})
+        \t\t(unit 1)
+        \t\t(exclude_from_sim no)
+        \t\t(in_bom yes)
+        \t\t(on_board yes)
+        \t\t(dnp {dnp_flag})
+        \t\t(fields_autoplaced yes)
+        \t\t(uuid "{sym_uuid}")
+        \t\t(property "Reference" "{reference}"
+        \t\t\t(at {fmt(x + 2.54)} {fmt(y - 12.7)} 0)
+        \t\t\t(effects
+        \t\t\t\t(font
+        \t\t\t\t\t(size 1.27 1.27)
+        \t\t\t\t)
+        \t\t\t\t(justify left)
+        \t\t\t)
+        \t\t)
+        \t\t(property "Value" "{value}"
+        \t\t\t(at {fmt(x + 2.54)} {fmt(y + 12.7)} 0)
+        \t\t\t(effects
+        \t\t\t\t(font
+        \t\t\t\t\t(size 1.27 1.27)
+        \t\t\t\t)
+        \t\t\t\t(justify left)
+        \t\t\t)
+        \t\t)
+        \t\t(property "Footprint" ""
+        \t\t\t(at {fmt(x)} {fmt(y)} 0)
+        \t\t\t(effects
+        \t\t\t\t(font
+        \t\t\t\t\t(size 1.27 1.27)
+        \t\t\t\t)
+        \t\t\t\t(hide yes)
+        \t\t\t)
+        \t\t)
+        \t\t(property "Datasheet" "https://www.mikroe.com/nfc-tag-2-click"
+        \t\t\t(at {fmt(x)} {fmt(y)} 0)
+        \t\t\t(effects
+        \t\t\t\t(font
+        \t\t\t\t\t(size 1.27 1.27)
+        \t\t\t\t)
+        \t\t\t\t(hide yes)
+        \t\t\t)
+        \t\t)
+        \t\t(property "Description" "mikroBUS 2x8 socket — MIKROE-2462 NFC Tag 2 Click daughterboard (NT3H2111 NTAG I²C plus + onboard PCB antenna)"
+        \t\t\t(at {fmt(x)} {fmt(y)} 0)
+        \t\t\t(effects
+        \t\t\t\t(font
+        \t\t\t\t\t(size 1.27 1.27)
+        \t\t\t\t)
+        \t\t\t\t(hide yes)
+        \t\t\t)
+        \t\t)
+        {pin_blocks}
+        \t\t(instances
+        \t\t\t(project "oas"
+        \t\t\t\t(path "{sheet_path}"
+        \t\t\t\t\t(reference "{reference}")
+        \t\t\t\t\t(unit 1)
+        \t\t\t\t)
+        \t\t\t)
+        \t\t)
+        \t)""")
+
+
 def _sch_conn_01x05(
     x: float, y: float, angle: int, reference: str, value: str, uuid_tag: str,
     dnp: bool = False, sheet_key: str = "sensors",
@@ -10747,12 +10856,27 @@ def SENSORS_LIB_SYMBOLS() -> str:
                                        presence radar cable)
       - power:+5V                     (LD2410 module supply rail)
 
-    Both are pulled verbatim from the KiCad 10 stock libraries at
-    generation time via `_read_kicad_lib_symbol()`. The next chunk
-    (#5c NT3H2211 NFC) will append more symbols here.
+    Chunk #5c adds:
+      - Connector_Generic:Conn_02x08_Top_Bottom  (16-pin 2-row connector
+                                       representing the mikroBUS socket
+                                       that mates with the MIKROE-2462
+                                       NFC Tag 2 Click daughterboard.
+                                       Pin numbering follows mikroBUS
+                                       spec: pins 1-8 down the LEFT
+                                       column (AN/RST/CS/SCK/MISO/MOSI/
+                                       +3.3V/GND), pins 9-16 down the
+                                       RIGHT column (PWM/INT/RX/TX/SCL/
+                                       SDA/+5V/GND). The Top_Bottom
+                                       variant of Conn_02x08 matches
+                                       this convention exactly.)
+
+    All extras are pulled verbatim from the KiCad 10 stock libraries at
+    generation time via `_read_kicad_lib_symbol()`.
     """
     extras = "\n".join([
         _read_kicad_lib_symbol("Connector_Generic.kicad_sym", "Conn_01x05",
+                               lib_nickname="Connector_Generic"),
+        _read_kicad_lib_symbol("Connector_Generic.kicad_sym", "Conn_02x08_Top_Bottom",
                                lib_nickname="Connector_Generic"),
         _read_kicad_lib_symbol("power.kicad_sym", "+5V",
                                lib_nickname="power"),
@@ -10772,7 +10896,11 @@ def gen_sensors_sch() -> str:
                 and the universal community pattern (Apollo MSR-2,
                 jonnybergdahl, p2baron). PCB footprint chosen in
                 chunk #7.
-    The NFC tag (NT3H2211) is added in chunk #5c.
+    Chunk #5c — MIKROE-2462 NFC Tag 2 Click (U4 + C12). NXP NT3H2111
+                NTAG I²C plus + onboard PCB antenna, mounted as a
+                mikroBUS daughterboard on a 2×8 female pin socket
+                (P2.54 mm) on the OAS PCB. Pre-tuned antenna avoids
+                the PCB-trace antenna design (NXP AN11203) sub-project.
 
     SEN66 pinout (Sensirion SEN6x datasheet v0.92 Dec 2025, Table 16
     on p. 15) — applies to the entire SEN6x family (SEN62, SEN63C,
@@ -11152,6 +11280,190 @@ def gen_sensors_sch() -> str:
         x=C11_X, y=C11_Y, angle=0,
         reference="C11", value="100nF",
         uuid_tag="c11-ld2410-decoupling",
+        sheet_key="sensors",
+    ))
+
+    # =========================================================================
+    # chunk #5c — MIKROE-2462 NFC Tag 2 Click daughterboard (U4 + C12)
+    # =========================================================================
+    # NFC tag is hosted on a MikroElektronika "NFC Tag 2 Click"
+    # (MIKROE-2462) daughterboard: NXP NT3H2111 (NTAG I²C plus) +
+    # onboard PCB antenna + 16-pin mikroBUS male header (2×8, 2.54 mm
+    # pitch). The board plugs into a 2×8 female pin socket on the OAS
+    # PCB ("goldpiny żeńskie"). Pin-only mating means the daughterboard
+    # is easy to swap or remove for service.
+    #
+    # WHY a daughterboard rather than a discrete NT3H2x11 SMD on the OAS
+    # PCB: the alternative requires designing + tuning a PCB trace
+    # antenna for 13.56 MHz (NXP AN11203) which is a non-trivial
+    # sub-project. The MIKROE-2462 ships pre-tuned with its own antenna.
+    # Cost ~€12; saves antenna design effort and reduces NFC firmware
+    # risk by sticking to a well-documented community-supported chip.
+    #
+    # mikroBUS standard pinout (looking at the host socket with the
+    # notch / chamfer facing UP, daughterboard above):
+    #   LEFT column  (pins 1..8, top -> bottom):
+    #     1=AN  2=RST 3=CS  4=SCK 5=MISO 6=MOSI 7=+3.3V 8=GND
+    #   RIGHT column (pins 9..16, top -> bottom):
+    #     9=PWM 10=INT 11=RX 12=TX 13=SCL  14=SDA  15=+5V  16=GND
+    #
+    # NFC Tag 2 Click uses ONLY these mikroBUS pins:
+    #   pin 7  (+3.3V) — VCC supply for NT3H2111
+    #   pin 8  (GND)   — ground (left side)
+    #   pin 10 (INT)   — FD (field-detect) open-drain output. Asserts
+    #                    LOW when an NFC field is present. Wired to
+    #                    MCU GPIO 3 via the NFC_FD hier label so
+    #                    ESPHome can wake on phone-tap without polling.
+    #   pin 13 (SCL)   — I²C clock (NT3H2111 slave)
+    #   pin 14 (SDA)   — I²C data (NT3H2111 slave, address 0x55)
+    #   pin 16 (GND)   — ground (right side)
+    #
+    # All other mikroBUS pins (1, 2, 3, 4, 5, 6, 9, 11, 12, 15) are
+    # unused by NFC Tag 2 Click; each gets a `(no_connect ...)` marker
+    # so ERC stays quiet.
+
+    # ===== U4: mikroBUS 2x8 socket (placeholder symbol) =====
+    # Anchor far enough LEFT of J3/J4 to keep the wiring clean.
+    # Conn_02x08_Top_Bottom body spans lib X = -5.08..+7.62, lib Y =
+    # +7.62..-10.16. With anchor (120, 125) (no rotation), pin schem
+    # positions are:
+    #   left  col: X = 114.92,  Y = anchor_Y - lib_Y
+    #   right col: X = 127.62,  Y = anchor_Y - lib_Y
+    U4_X = 120.65
+    U4_Y = 125.73
+    U4_LEFT_X = U4_X - 5.08      # 115.57 — pin tip X for LEFT column
+    U4_RIGHT_X = U4_X + 7.62     # 128.27 — pin tip X for RIGHT column
+    # Pin Y positions (pin n is at lib Y from +7.62 to -10.16 in 2.54 steps;
+    # mapped to schem Y = anchor_Y - lib_Y so the top pin sits ABOVE anchor).
+    U4_PIN_Y = {
+        1:  U4_Y - 7.62,    # 118.11 — LEFT  top    — AN  (NC)
+        2:  U4_Y - 5.08,    # 120.65 — LEFT  row 2  — RST (NC)
+        3:  U4_Y - 2.54,    # 123.19 — LEFT  row 3  — CS  (NC)
+        4:  U4_Y,           # 125.73 — LEFT  row 4  — SCK (NC)
+        5:  U4_Y + 2.54,    # 128.27 — LEFT  row 5  — MISO (NC)
+        6:  U4_Y + 5.08,    # 130.81 — LEFT  row 6  — MOSI (NC)
+        7:  U4_Y + 7.62,    # 133.35 — LEFT  row 7  — +3.3V
+        8:  U4_Y + 10.16,   # 135.89 — LEFT  bottom — GND
+        9:  U4_Y - 7.62,    # 118.11 — RIGHT top    — PWM (NC)
+        10: U4_Y - 5.08,    # 120.65 — RIGHT row 2  — INT (= FD)
+        11: U4_Y - 2.54,    # 123.19 — RIGHT row 3  — RX  (NC)
+        12: U4_Y,           # 125.73 — RIGHT row 4  — TX  (NC)
+        13: U4_Y + 2.54,    # 128.27 — RIGHT row 5  — SCL
+        14: U4_Y + 5.08,    # 130.81 — RIGHT row 6  — SDA
+        15: U4_Y + 7.62,    # 133.35 — RIGHT row 7  — +5V (NC)
+        16: U4_Y + 10.16,   # 135.89 — RIGHT bottom — GND
+    }
+
+    # ----- mikroBUS pin 7 (+3.3V, LEFT col): wire WEST to +3V3 flag -----
+    PWR_U4P7_3V3_X = U4_LEFT_X - 5.08     # 110.49 — flag anchor west of pin
+    parts.append(_sch_wire(U4_LEFT_X, U4_PIN_Y[7], PWR_U4P7_3V3_X, U4_PIN_Y[7], "u4-p7-3v3-hop"))
+    parts.append(_sch_power_flag(
+        lib_id="power:+3V3", value="+3V3",
+        x=PWR_U4P7_3V3_X, y=U4_PIN_Y[7], angle=90,
+        reference="#PWR50",
+        value_offset_x=-3.81, value_offset_y=0.0,
+        uuid_tag="pwr50-3v3-u4-p7",
+        sheet_key="sensors",
+    ))
+
+    # ----- mikroBUS pin 8 (GND, LEFT col): wire WEST to GND flag -----
+    PWR_U4P8_GND_X = U4_LEFT_X - 5.08      # 110.49
+    parts.append(_sch_wire(U4_LEFT_X, U4_PIN_Y[8], PWR_U4P8_GND_X, U4_PIN_Y[8], "u4-p8-gnd-hop"))
+    parts.append(_sch_power_flag(
+        lib_id="power:GND", value="GND",
+        x=PWR_U4P8_GND_X, y=U4_PIN_Y[8], angle=270,
+        reference="#PWR51",
+        value_offset_x=-3.81, value_offset_y=0.0,
+        uuid_tag="pwr51-gnd-u4-p8",
+        sheet_key="sensors",
+    ))
+
+    # ----- mikroBUS pin 10 (INT/FD, RIGHT col): wire EAST to NFC_FD hier label -----
+    U4_HLABEL_X = HLABEL_LEFT_X                # 160.02 — shared column with J3/J4
+    parts.append(_sch_wire(U4_RIGHT_X, U4_PIN_Y[10], U4_HLABEL_X, U4_PIN_Y[10], "u4-p10-fd"))
+    parts.append(_sch_hierarchical_label(
+        name="NFC_FD", shape="output",
+        x=U4_HLABEL_X, y=U4_PIN_Y[10], angle=0, justify="left",
+        uuid_tag="nfc-fd-u4",
+    ))
+
+    # ----- mikroBUS pin 13 (SCL, RIGHT col): wire EAST to I2C_SCL hier label -----
+    parts.append(_sch_wire(U4_RIGHT_X, U4_PIN_Y[13], U4_HLABEL_X, U4_PIN_Y[13], "u4-p13-scl"))
+    parts.append(_sch_hierarchical_label(
+        name="I2C_SCL", shape="input",
+        x=U4_HLABEL_X, y=U4_PIN_Y[13], angle=0, justify="left",
+        uuid_tag="scl-u4",
+    ))
+
+    # ----- mikroBUS pin 14 (SDA, RIGHT col): wire EAST to I2C_SDA hier label -----
+    parts.append(_sch_wire(U4_RIGHT_X, U4_PIN_Y[14], U4_HLABEL_X, U4_PIN_Y[14], "u4-p14-sda"))
+    parts.append(_sch_hierarchical_label(
+        name="I2C_SDA", shape="bidirectional",
+        x=U4_HLABEL_X, y=U4_PIN_Y[14], angle=0, justify="left",
+        uuid_tag="sda-u4",
+    ))
+
+    # ----- mikroBUS pin 16 (GND, RIGHT col): wire EAST to GND flag -----
+    PWR_U4P16_GND_X = U4_RIGHT_X + 5.08    # 133.35
+    parts.append(_sch_wire(U4_RIGHT_X, U4_PIN_Y[16], PWR_U4P16_GND_X, U4_PIN_Y[16], "u4-p16-gnd-hop"))
+    parts.append(_sch_power_flag(
+        lib_id="power:GND", value="GND",
+        x=PWR_U4P16_GND_X, y=U4_PIN_Y[16], angle=90,
+        reference="#PWR52",
+        value_offset_x=3.81, value_offset_y=0.0,
+        uuid_tag="pwr52-gnd-u4-p16",
+        sheet_key="sensors",
+    ))
+
+    # ----- No-connect markers on unused mikroBUS pins (1, 2, 3, 4, 5, 6 left;
+    #       9, 11, 12, 15 right). ERC will warn `pin_not_connected` on every
+    #       unwired pin unless we silence it with no_connect.
+    for n in (1, 2, 3, 4, 5, 6):
+        parts.append(_sch_no_connect(U4_LEFT_X, U4_PIN_Y[n], f"u4-nc-{n}"))
+    for n in (9, 11, 12, 15):
+        parts.append(_sch_no_connect(U4_RIGHT_X, U4_PIN_Y[n], f"u4-nc-{n}"))
+
+    # ===== C12: 100 nF local decoupling on the U4 +3.3V supply =====
+    # Sits WEST of U4 between +3V3 (top) and GND (bottom). Anchored
+    # vertically so it lines up with the pin 7/8 power flags.
+    C12_X = 105.41
+    C12_Y = (U4_PIN_Y[7] + U4_PIN_Y[8]) / 2   # mid between pin 7 (+3V3) and pin 8 (GND)
+    C12_TOP_Y = C12_Y - 3.81
+    C12_BOT_Y = C12_Y + 3.81
+    C12_3V3_Y = C12_TOP_Y - 3.81
+    parts.append(_sch_wire(C12_X, C12_3V3_Y, C12_X, C12_TOP_Y, "c12-top-3v3"))
+    parts.append(_sch_power_flag(
+        lib_id="power:+3V3", value="+3V3",
+        x=C12_X, y=C12_3V3_Y, angle=0,
+        reference="#PWR53",
+        value_offset_x=0.0, value_offset_y=-3.556,
+        uuid_tag="pwr53-3v3-c12",
+        sheet_key="sensors",
+    ))
+    C12_GND_Y = C12_BOT_Y + 3.81
+    parts.append(_sch_wire(C12_X, C12_BOT_Y, C12_X, C12_GND_Y, "c12-bot-gnd"))
+    parts.append(_sch_power_flag(
+        lib_id="power:GND", value="GND",
+        x=C12_X, y=C12_GND_Y, angle=0,
+        reference="#PWR54",
+        value_offset_x=0.0, value_offset_y=3.81,
+        uuid_tag="pwr54-gnd-c12",
+        sheet_key="sensors",
+    ))
+
+    # ===== U4 + C12 symbols =====
+    parts.append(_sch_conn_02x08_top_bottom(
+        x=U4_X, y=U4_Y, angle=0,
+        reference="U4",
+        value="MIKROE-2462 NFC Tag 2 Click (NT3H2111 + onboard antenna, mikroBUS)",
+        uuid_tag="u4-nfc-tag",
+        sheet_key="sensors",
+    ))
+    parts.append(_sch_capacitor(
+        lib_id="Device:C",
+        x=C12_X, y=C12_Y, angle=0,
+        reference="C12", value="100nF",
+        uuid_tag="c12-nfc-decoupling",
         sheet_key="sensors",
     ))
 

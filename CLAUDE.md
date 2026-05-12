@@ -124,7 +124,7 @@ Additional features:
 | Air quality combo | Sensirion SEN66 | I²C via JST GH cable | tentative |
 | Presence | HiLink LD2410B/C | UART @ 256000 baud | tentative |
 | Visual indicator | onboard RGB NeoPixel on DevKitM-1 (GPIO 8) | 1-wire RMT | confirmed v0.4 (no external WS2812 needed) |
-| NFC dynamic tag | NXP NT3H2211 + PCB trace antenna | I²C + NFC | tentative |
+| NFC dynamic tag | **MIKROE-2462 NFC Tag 2 Click** (NXP NT3H2111 + onboard PCB antenna, mikroBUS) | I²C + NFC | confirmed v0.12 |
 | Power input | TVS + PTC + 24V terminal block | — | confirmed v0.2 |
 | Buck 24V → 5V | LM2596S-5.0 (async) | — | confirmed v0.2 |
 | Buck 5V → 3.3V | TPS62933 (sync, ~95%) | — | confirmed v0.2 |
@@ -151,14 +151,14 @@ The schematic is split into four hierarchical sub-sheets by **function**, not by
 - **Sensor zone below electronics** (PCB flat on bottom edge). Reason: natural convection lifts heat from MCU / power section upward, away from the SEN66 air intake.
 - **Connector strip along bottom flat**: 24V terminal, JST GH to SEN66, LD2410 connector, Qwiic, optional unpopulated SWD/UART recovery header. **No external USB-C** (use DevKitM-1's onboard USB before enclosure is sealed). Pre-defined positions exist in the manufacturer DXF; the case has matching cutouts / access.
 - **Thermal isolation slots** (1.5 mm milled gaps in FR4) separate Power, MCU, and peripheral zones.
-- **Shared I²C bus**: SEN66 (0x6B), NT3H2211 (0x55), plus Qwiic expansion. Pull-ups **10 kΩ on MCU side** (per SEN66 datasheet §3.1 spec; v0.6 changed from 4.7 kΩ → 10 kΩ). Bus length kept <10 cm per Sensirion guidance (face-up PCB-mount eliminates the previous 50 mm cable, achieving <40 mm total).
+- **Shared I²C bus**: SEN66 (0x6B), NT3H2111 (0x55, on MIKROE-2462 NFC Tag 2 Click), plus Qwiic expansion. Pull-ups **10 kΩ on MCU side** (per SEN66 datasheet §3.1 spec; v0.6 changed from 4.7 kΩ → 10 kΩ). Bus length kept <10 cm per Sensirion guidance (face-up PCB-mount eliminates the previous 50 mm cable, achieving <40 mm total).
 - **Bluetooth proxy** = software-only; no extra hardware.
 
 ### ESP32-C6-DevKitM-1-N4 pinout (v0.4 final)
 
 | Pin | Function | Notes |
 |---|---|---|
-| GPIO 6 | I²C SDA | shared bus: SEN66 (0x6B), NT3H2211 (0x55), Qwiic expansion |
+| GPIO 6 | I²C SDA | shared bus: SEN66 (0x6B), NT3H2111 (0x55, on MIKROE-2462), Qwiic expansion |
 | GPIO 7 | I²C SCL | shared bus, 4.7 kΩ pull-ups on MCU side |
 | GPIO 16 | UART1 TX → LD2410 RX | 256000 baud |
 | GPIO 17 | UART1 RX ← LD2410 TX | 256000 baud |
@@ -229,7 +229,7 @@ These were considered and explicitly rejected. Do not propose them again without
 
 ### Hardware
 - [ ] Select specific buck converter ICs (validate efficiency, JLCPCB Basic Library availability)
-- [ ] NFC antenna design (PCB spiral geometry, matching capacitor selection)
+- [x] ~~NFC antenna design (PCB spiral geometry, matching capacitor selection)~~ — sidestepped in v0.12 by adopting MIKROE-2462 (onboard pre-tuned PCB antenna)
 - [x] ~~Validate ESP32-C6 pinout against strap pin and boot mode constraints~~ — done in v0.4 (GPIO 2/3 for LD2410_OUT/NFC_FD, GPIO 8 for onboard NeoPixel)
 - [ ] 3D model bracket for SEN66 mounting on cover (STL in `hardware/case/`)
 - [ ] KiCad schematic — full
@@ -503,6 +503,22 @@ Past mistake to avoid: in v0.3 of this project, "GPIO 4 → GPIO 10 / GPIO 5 →
   - **Decision: keep ESP32-C6-DevKitM-1-N4 for v1**. Smallest delta from current schematic; deterministic Botland availability; official ESPHome `esp32-generic/esp32-generic-c6.yaml` BLE-proxy template; all 22 exposed GPIOs map cleanly to OAS signals + 11 spares.
   - **New plan item: post-prototype desolder of DevKitM-1's power LED** (~30 mW saved). Conditional rework — triggered if first-prototype SEN66 SHT measurements show >0.1 °C bias attributable to MCU-sector dissipation. The LED is on the top side of the DevKitM-1 board, easily accessible with a hot-air rework station before the OAS enclosure is sealed. Added to `docs/CASE-VERIFICATION-CHECKLIST.md` post-prototype rework list.
   - **v2 transition path recorded**: once v1 validates the OAS architecture end-to-end, evaluate migration to bare ESP32-C6-MINI-1-N4 SMT on the OAS PCB itself. Trade-offs already analyzed; trigger conditions: (a) >5 production units planned, (b) MCU-sector area becomes constrained by Qwiic/NFC/expansion, or (c) SEN66 bias is detected and LED desolder alone is insufficient.
+
+- **v0.12** — **NFC tag implementation: MIKROE-2462 daughterboard replaces discrete NT3H2x11 + PCB-trace-antenna design.**
+  - **Trigger**: while planning chunk #5c (NT3H2211 + NFC antenna on the OAS PCB), the user asked to research how this is actually done in DIY projects and whether a small daughterboard option exists that would fit into female pin sockets ("goldpiny żeńskie"), eliminating the PCB-trace-antenna design (NXP AN11203) sub-project.
+  - **Research findings (May 2026)**:
+    - **MikroE NFC Tag 2 Click (MIKROE-2462)** — NXP NT3H2111 (NTAG I²C plus, 1 KB EEPROM) + onboard PCB antenna + mikroBUS 2×8 male header (2.54 mm pitch, 42.9 × 25.4 mm). 3.3 V I²C, addr 0x55, FD on mikroBUS INT (pin 10). Available TME / Distrelec / Farnell / RS in EU, ~$12-15 USD. ESPHome: needs custom `external_component` wrapper around the [thijses/NT3H2x11_thijs](https://github.com/thijses/NT3H2x11_thijs) Arduino library.
+    - **MikroE NFC Tag 4 Click (MIKROE-3659)** — ST ST25DV16K, 2 KB EEPROM, same mikroBUS form factor. Strong runner-up; better EU stock in May 2026 but ST25DV has less DIY/ESPHome precedent than NTAG I²C.
+    - **M5Stack U216, DFRobot DFR0231** — REJECTED. Both use NFC readers (ST25R3916, PN532), not writeable tags.
+    - **Adafruit NTAG I²C breakout** — DOES NOT EXIST in their catalog (verified).
+    - **AliExpress generic NT3H2x11 breakouts** — no citable listing with verifiable dimensions/pinout (fails Module Identification rule).
+  - **Decision: MIKROE-2462**. Pre-tuned antenna eliminates the NXP AN11203 antenna-design sub-project entirely; mikroBUS form factor drops into a 2×8 female pin socket on the OAS PCB; pin-only mating means the daughterboard is easy to swap or remove for service.
+  - **Caveat to verify before ordering**: TME labels MIKROE-2462 with NT3H**1101** (1st-gen NTAG I²C), MikroE and Amazon list NT3H**2111** (NTAG I²C *plus*). Firmware register map differs slightly between them — verify with the actual batch before locking the ESPHome external_component to one register layout.
+  - **Schematic-side changes (chunk #5c in `sensors.kicad_sch`)**: U4 placeholder using `Connector_Generic:Conn_02x08_Top_Bottom` (16-pin 2-row connector matching the mikroBUS spec: pins 1-8 LEFT column, 9-16 RIGHT column). Only mikroBUS pins 7 (+3.3V), 8 (GND), 10 (INT → NFC_FD), 13 (SCL), 14 (SDA), 16 (GND) are connected; the other 10 mikroBUS pins (1-6, 9, 11, 12, 15) get `no_connect` markers to keep ERC silent. C12 (100 nF 0402) decouples the +3V3 supply at the NFC daughterboard socket.
+  - **What stays unchanged**: I²C address 0x55, GPIO 3 = NFC_FD (matches v0.4 pinout), ESPHome workflow.
+  - **What's REMOVED from the BOM**: discrete NXP NT3H2x11 SMD chip, PCB-trace NFC antenna, antenna tuning capacitors, antenna matching network. **One BOM line added** (MIKROE-2462, ~€12-15) replaces ~5-6 lines.
+
+- **v0.11** — LD2410 daughterboard rotated VERTICAL, pushed LEFT, pins facing chord. Body shadow X=-44.45..-29.21, Y=-16.51..+19.05. J4 pin row centered on body long-axis centerline (PCB X=-36.83) after an empirical-rotation fix (J4_PCB_ROTATION 90 → 270; KiCad's rotation in the .kicad_pcb file is visually CCW = mathematical CW with +Y-down screen, opposite to what we assumed from the rotation-math docs).
 
 - **v0.10** — **VEML7700 ambient light sensor REMOVED from the design.**
   - **Trigger**: while planning chunk #5b/#5c sensor placement, the geometric light-shielding problem was raised: the DevKitM-1's onboard NeoPixel (status LED, breathing animation) and always-on power LED sit inside the same closed white-perforated AK-N-94 enclosure as the VEML7700. Internal reflection off the cover ABS + direct line-of-sight on the PCB would bias VEML7700 lux readings, especially in low-ambient conditions.

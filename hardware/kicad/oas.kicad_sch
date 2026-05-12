@@ -234,6 +234,16 @@
 				(justify left)
 			)
 		)
+		(pin "NFC_FD" output
+			(at 50.8 95.25 180)
+			(uuid "9c248140-2f6c-513d-a4f6-673ee8c63a19")
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify right)
+			)
+		)
 		(instances
 			(project "oas"
 				(path "/515343fe-5590-5fd9-97ec-5bed0f979de2"
@@ -433,6 +443,36 @@
 		(type default)
 	)
 	(uuid "42b2e881-01f7-5188-994d-e487e14a93f2")
+)
+(wire
+	(pts
+		(xy 50.8 95.25) (xy 44.45 95.25)
+	)
+	(stroke
+		(width 0)
+		(type default)
+	)
+	(uuid "29bfe580-32a4-5988-90c3-a22ce6b5b97d")
+)
+(wire
+	(pts
+		(xy 44.45 95.25) (xy 44.45 59.69)
+	)
+	(stroke
+		(width 0)
+		(type default)
+	)
+	(uuid "5ec86be7-68a4-5c33-a5d1-33dec2e416e0")
+)
+(wire
+	(pts
+		(xy 44.45 59.69) (xy 101.6 59.69)
+	)
+	(stroke
+		(width 0)
+		(type default)
+	)
+	(uuid "8bd47f8d-8728-5f13-8bf4-520537398690")
 )
 	(sheet_instances
 		(path "/"
