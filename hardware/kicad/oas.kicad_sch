@@ -84,7 +84,7 @@
 		)
 		(pin "I2C_SDA" bidirectional
 			(at 101.6 52.07 180)
-			(uuid "23e96773-d87c-597a-a315-ab4d828e6c9d")
+			(uuid "95dc7538-9501-56fb-9965-dc10c5f85d98")
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -94,7 +94,7 @@
 		)
 		(pin "I2C_SCL" output
 			(at 101.6 54.61 180)
-			(uuid "fc56efad-8c36-56b1-85f5-dbde5401eb85")
+			(uuid "2be18c93-7ed2-5013-908e-97ec35cede68")
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -104,7 +104,7 @@
 		)
 		(pin "LD2410_OUT" input
 			(at 101.6 57.15 180)
-			(uuid "2c8dd28f-d759-5178-80db-11765ddb040c")
+			(uuid "4cb15ee2-89a0-5661-8c6e-5d4adde5e03d")
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -114,7 +114,7 @@
 		)
 		(pin "NFC_FD" input
 			(at 101.6 59.69 180)
-			(uuid "c1d31226-276b-5dc1-8a43-7eee5d6fdcbd")
+			(uuid "7f1c459f-82c8-5c09-aa04-9307a537fd2b")
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -124,7 +124,7 @@
 		)
 		(pin "UART_TX" output
 			(at 139.7 52.07 0)
-			(uuid "6b3d8077-e8a0-50f8-af13-c266eadda5a3")
+			(uuid "3b6ff44c-c157-5941-a315-3f7f113f2c79")
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -134,7 +134,7 @@
 		)
 		(pin "UART_RX" input
 			(at 139.7 54.61 0)
-			(uuid "d0ea61a1-6eb7-55e4-8d6e-839470867ae8")
+			(uuid "a05b2381-f9f6-5186-b216-f66c89ae4427")
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -182,6 +182,26 @@
 					(size 1.27 1.27)
 				)
 				(justify left top)
+			)
+		)
+		(pin "I2C_SDA" bidirectional
+			(at 88.9 90.17 0)
+			(uuid "3b61fc9d-ac9b-57a0-ab43-16dcbc433127")
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(pin "I2C_SCL" input
+			(at 88.9 92.71 0)
+			(uuid "68a918ab-5ff3-5eec-b8b6-9b06b9e746f6")
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
 			)
 		)
 		(instances
@@ -234,6 +254,66 @@
 			)
 		)
 	)
+(wire
+	(pts
+		(xy 88.9 90.17) (xy 95.25 90.17)
+	)
+	(stroke
+		(width 0)
+		(type default)
+	)
+	(uuid "da68cc4a-f1ca-582f-95a7-4a7be3be36ef")
+)
+(wire
+	(pts
+		(xy 95.25 90.17) (xy 95.25 52.07)
+	)
+	(stroke
+		(width 0)
+		(type default)
+	)
+	(uuid "fa886cbf-fbc4-5c91-a5b8-b82d2abb76d7")
+)
+(wire
+	(pts
+		(xy 95.25 52.07) (xy 101.6 52.07)
+	)
+	(stroke
+		(width 0)
+		(type default)
+	)
+	(uuid "2a71da54-905b-5915-9a0c-84b082ea457b")
+)
+(wire
+	(pts
+		(xy 88.9 92.71) (xy 97.79 92.71)
+	)
+	(stroke
+		(width 0)
+		(type default)
+	)
+	(uuid "6d17847c-5a20-598c-8656-700c6dd43be1")
+)
+(wire
+	(pts
+		(xy 97.79 92.71) (xy 97.79 54.61)
+	)
+	(stroke
+		(width 0)
+		(type default)
+	)
+	(uuid "ead29ae2-fc71-5700-a642-5edaf780db25")
+)
+(wire
+	(pts
+		(xy 97.79 54.61) (xy 101.6 54.61)
+	)
+	(stroke
+		(width 0)
+		(type default)
+	)
+	(uuid "50af8554-48dd-567a-a0ba-924a251466d2")
+)
 	(sheet_instances
 		(path "/"
 			(page "1")

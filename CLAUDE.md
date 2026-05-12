@@ -398,6 +398,16 @@ Past mistake to avoid: in v0.3 of this project, "GPIO 4 → GPIO 10 / GPIO 5 →
 - **Hierarchical labels** for inter-sheet signals (sub-sheet exports/imports). Direction tags (`input`/`output`/`bidirectional`) are documentation, not enforced by KiCad — but they help reviewers and matter when the root sheet adds matching sheet ports.
 - **ERC warnings during incremental sheet build are expected**: when chunk N adds a sub-sheet with hierarchical labels, ERC will warn "label not connected to a sheet port" until the matching sub-sheet (chunk N+1 or later) declares the same label. These warnings are temporary and should resolve once the related sheets land. Document expected warnings in commit messages; don't treat them as bugs.
 
+### PCB silkscreen conventions
+
+- **F.SilkScreen and B.SilkScreen are committed-output documentation** aimed at the human hand-assembling and servicing the board. For every major component — sensor module, connector, mounting hole class, special-purpose footprint — add a short text label on F.SilkScreen identifying what it is. The end user holding the assembled board sees only the silkscreen; the F.Fab layer is for machine-readable assembly drawings (MPN, polarity, pin 1 markers) that production may print but the user typically never sees.
+- **Example labels**: `"SEN66 air quality"`, `"24V terminal"`, `"to LD2410"`, `"USB UART"`, `"to SEN66"`, `"-> J3"`. Keep labels concise (≤20 chars) and self-explanatory in isolation (a user must not need the schematic to interpret them).
+- **Sizing**: 1.0–1.5 mm text height, ~0.15 mm stroke thickness (KiCad defaults). Slightly larger (up to 2 mm) is fine when there's room.
+- **Designators on PCB features**: when a footprint's `Reference` property is hidden (typical for mounting holes and zip-tie holes), emit a separate `fp_text user` on F.SilkS with the designator (`H1`, `H2`, `ZT1`..`ZT4`) so the hand-assembler can identify each hole at a glance.
+- **Cable direction hints**: connectors that mate via cable should carry a F.SilkS arrow (`"-> J3"`, `"to SEN66"`) on both ends. Cuts the schematic out of the assembly loop for cable routing.
+- **Implementation**: silk labels go either inside the placed footprint (as `fp_text user` — inherits footprint rotation) or as board-level `gr_text` (rotation-independent, easier to keep horizontal on a rotated footprint). Pick whichever keeps the source-of-truth Python cleaner; for one-instance footprints with non-zero rotation (e.g. the SEN66, J3), board-level `gr_text` is usually simpler.
+- **Over-documenting is better than under-documenting.** Silk ink is essentially free; the cost is a few seconds of layout review. The cost of an unlabeled board is the assembler grabbing the schematic every time.
+
 ### Before instructing an agent to "fix" a schematic
 
 - **Verify pin positions against the lib symbol definition, not from memory.** KiCad connector libraries (e.g. `Connector_Generic:Conn_01x06`) often have asymmetric pin coordinates — for example `Conn_01x06` has pins from lib_y = +7.62 mm to lib_y = −7.62 mm (six pins on a 2.54 mm grid, but with the symbol center between pins 3 and 4, not at pin 4's height). Standard "pin 1 at +5.08, pin 6 at −5.08" intuition is wrong for the stock 01x06.

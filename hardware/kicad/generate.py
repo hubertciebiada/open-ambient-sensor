@@ -112,6 +112,95 @@ CUTOUTS = [
 ]
 
 # -----------------------------------------------------------------------------
+# SEN66 PCB placement (mechanical reference + zip-tie holes + J3 socket)
+# -----------------------------------------------------------------------------
+# The SEN66 mounts on the enclosure cover, NOT on the PCB (CLAUDE.md: SEN66
+# height 21.5 mm > 17 mm front-side limit). The PCB carries:
+#   1. A no-pad mechanical-reference footprint (`SEN66_Mechanical_Reference`)
+#      drawn on F.Fab / F.SilkS — marks where the SEN66 body "shadow" sits
+#      so future SENSORS-sector components (VEML7700, LD2410, NT3H2211)
+#      stay clear.
+#   2. Four NPTH zip-tie holes (Ø 3.0 mm) that pinch the SEN66 against
+#      the cover, threaded through both PCB and cover plate.
+#   3. The PCB-side JST GH 6-pin socket (J3) that mates with the SEN66's
+#      ~50 mm signal cable.
+#
+# Placement (PCB-local mm, origin = PCB centroid; +Y = down on screen =
+# toward the chord):
+#
+#   SEN66 reference: anchor at (SEN66_ANCHOR_X, SEN66_ANCHOR_Y),
+#   rotation SEN66_ROTATION. Long axis runs RADIALLY (6:00 direction)
+#   per CLAUDE.md's sector-layout hint, connector edge points toward
+#   PCB center (cable hole) so the JST GH cable has the shortest run.
+#
+# Rotation 90° in KiCad's convention maps footprint-local +X (long
+# axis, connector edge direction) to PCB -Y (upward, toward 12:00 /
+# PCB center) and footprint-local +Y (short axis) to PCB +X (rightward,
+# toward 3:00). Anchor (0, 0) in footprint coords is the corner of the
+# 55.2 × 25.6 mm body face; placing this anchor at PCB (cx, cy) puts
+# the body in PCB X = cx..cx+25.6, Y = cy-55.2..cy.
+SEN66_ANCHOR_X = 12.0   # v0.7: nudged right 2 mm to push ZT1 clear of the
+                        # Ø12 mm cable pass-through hole at PCB origin
+SEN66_ANCHOR_Y = 25.0   # v0.7: shifted up from 40 so body Y max=25 clears
+                        # cutout zones C1..C5 (lowest cutout Y=27.2 at C2)
+SEN66_ROTATION = 90   # degrees; long axis radial, connector toward PCB center
+
+
+def _sen66_local_to_pcb(lx: float, ly: float) -> tuple[float, float]:
+    """Transform a footprint-local SEN66 coordinate to PCB-local mm.
+
+    Applies rotation `SEN66_ROTATION` around the footprint anchor, then
+    translates so the anchor lands at (SEN66_ANCHOR_X, SEN66_ANCHOR_Y).
+    Used to compute the global PCB coordinates of the 4 zip-tie holes
+    given their SEN66-local positions.
+    """
+    a = math.radians(SEN66_ROTATION)
+    # Standard 2D rotation, but KiCad +Y is screen-down, so we apply the
+    # same matrix as KiCad does internally for footprint rotation.
+    cos_a, sin_a = math.cos(a), math.sin(a)
+    rx =  cos_a * lx + sin_a * ly
+    ry = -sin_a * lx + cos_a * ly
+    return (SEN66_ANCHOR_X + rx, SEN66_ANCHOR_Y + ry)
+
+
+# Zip-tie hole positions in SEN66-local mm (relative to the body corner
+# at (0, 0)). v0.7: both pinch-points now inside the "safe corridor"
+# X ∈ [19.22, 31.03] (between inlet-zone X≤18.22 and outlet X≥32.03), so
+# a 2 mm zip-tie band centred at each X passes over the body without
+# covering any inlet or outlet on the air-side face.
+# X = 22 (~40% of 55.2) and X = 30 (~54% of 55.2). Previously the second
+# pair was at X=50 which sits inside the outlet circle (X=32..53) and
+# would have blocked ~8% of outlet area — fixed.
+# Y = -3 and Y = body_y + 3 = 28.6 (3 mm clearance past each long edge).
+SEN66_ZIPTIE_LOCAL = [
+    ("ZT1", 22.0, -3.0),
+    ("ZT2", 22.0, 28.6),
+    ("ZT3", 30.0, -3.0),
+    ("ZT4", 30.0, 28.6),
+]
+
+# J3 (JST GH 6-pin board-side socket — SM06B-GHS-TB, horizontal SMD).
+# Placed to the PCB-RIGHT (east) of the SEN66 body shadow in the SENSORS
+# sector, just past body_max_X (= 35.6 mm) with room for the JST cable's
+# minimum bend radius (~10 mm). The cable from the SEN66 enclosure-cover
+# mount runs from the SEN66 connector at PCB (22.8, -15.2) (top edge of
+# body shadow, +X short edge of SEN66) → up and around (cable comes up
+# off the cover, then bends back down to the PCB) → into J3 from the
+# PCB -X (west) direction. Total cable run ≈ 50 mm, well under the
+# 500 mm SEN6x datasheet maximum.
+#
+# Rotation 90° (counter-clockwise in KiCad's convention) reorients the
+# native horizontal JST footprint so its cable-opening side (pads at
+# local Y = -1.85, "north" in native orientation) faces PCB -X (west,
+# toward SEN66). At rotation 90, local Y → PCB X, so the pad-side
+# faces PCB -X. Verified clear of mounting hole H1 at (+47.6, +27.5)
+# (15.6 mm centre-to-centre, ~6.8 mm courtyard-to-courtyard clearance)
+# and clear of cutout C5 at (X 27.9..35.4, Y 36.5..42.5).
+J3_X = 48.0   # v0.7: nudged right 2 mm to follow SEN66 anchor shift +2 mm
+J3_Y = 7.0    # v0.7: lifted up 5 mm so socket sits closer to SEN66 connector
+J3_ROTATION = 90
+
+# -----------------------------------------------------------------------------
 # KiCad 10 format constants
 # -----------------------------------------------------------------------------
 PCB_VERSION = 20260206
@@ -271,6 +360,404 @@ def gen_mounting_hole_footprint() -> str:
         """)
 
 # -----------------------------------------------------------------------------
+# 1a) SEN66 mechanical-reference footprint (own library)
+# -----------------------------------------------------------------------------
+# Geometry constants for the SEN66 (Sensirion SEN6x family — fully shared
+# between SEN62/63C/65/66/68/69C). Extracted from the Sensirion SEN6x STEP
+# file (sen6x.step) and Mechanical Design Guidelines (sen6x_mech v0.92).
+#
+# Frame: footprint-local origin = corner of the 55.2 × 25.6 mm rectangular
+# face of the SEN66 body. +X grows toward the connector / outlet edge,
+# +Y grows along the 25.6 mm short side.
+#
+# These are the visible features ON THE BOTTOM FACE of the SEN66 (the face
+# that lays against the cover, the one carrying the inlets and outlet):
+#   Inlet #1 (obround):  center (10.70, 7.40),  size 15.05 × 7.05 mm
+#   Inlet #2 (rect):     center (10.65, 18.85), size 15.14 × 8.14 mm
+#   Outlet (circle):     center (42.40, 12.80), Ø 20.74 mm
+#   Connector exit:      +X short edge, mid-Y (≈ 55.2, 12.80)
+#   Foam-divider rib zone: across the body width at X ≈ 26 mm — the
+#     mechanical-design-guide §2.1 sealing rib that separates inlet zone
+#     from outlet zone, ensuring ambient air takes the intended path.
+#
+# This footprint is MECHANICAL-REFERENCE ONLY:
+#   - The SEN66 mounts on the inside of the enclosure cover, NOT on the PCB
+#     (CLAUDE.md: SEN66 height 21.5 mm > 17 mm front-side limit).
+#   - The PCB-side footprint is purely a placement marker — it tells the
+#     PCB designer where the SEN66 "lives" relative to the PCB centroid
+#     so the JST GH cable run length stays consistent across builds, and
+#     so the SENSORS sector layout can place VEML7700 / LD2410 / NT3H2211
+#     clear of the SEN66 shadow.
+#   - No pads, no drilled holes (the 4× zip-tie holes are a separate
+#     footprint: `ZipTieHole_3mm_NPTH`).
+SEN66_BODY_X = 55.2
+SEN66_BODY_Y = 25.6
+SEN66_BODY_Z = 21.5                # body height (CLAUDE.md hard constraint)
+SEN66_SILK_INSET = 0.2             # inset between F.Fab outline and F.SilkS
+
+# Air-opening footprint markers (on F.Fab only — assembly reference,
+# not on F.SilkS so the silkscreen art stays uncluttered).
+SEN66_INLET1_CX, SEN66_INLET1_CY = 10.70, 7.40
+SEN66_INLET1_DX, SEN66_INLET1_DY = 15.05, 7.05    # obround
+SEN66_INLET2_CX, SEN66_INLET2_CY = 10.65, 18.85
+SEN66_INLET2_DX, SEN66_INLET2_DY = 15.14, 8.14    # rectangle
+SEN66_OUTLET_CX, SEN66_OUTLET_CY = 42.40, 12.80
+SEN66_OUTLET_DIA = 20.74                            # outlet circle Ø
+SEN66_CONNECTOR_X, SEN66_CONNECTOR_Y = SEN66_BODY_X, SEN66_BODY_Y / 2
+SEN66_DIVIDER_X = 26.0                              # sealing-rib X position
+
+
+def gen_sen66_mechanical_footprint() -> str:
+    """Custom SEN66_Mechanical_Reference footprint (mechanical-only).
+
+    No pads — the SEN66 doesn't bolt to the PCB; it lives on the enclosure
+    cover. This footprint exists so the PCB designer has a visible "SEN66
+    shadow" in 2D / 3D views, ensuring the SENSORS sector layout reserves
+    enough clearance for the SEN66 cable strain relief and that future
+    components (VEML7700, LD2410, NT3H2211) avoid the SEN66 zone.
+
+    Rendered on `F.Fab` (full body outline + air openings + connector
+    marker + foam-divider hint + module identification) and on
+    `F.SilkScreen` (slightly inset body outline only — keep silkscreen
+    art minimal for production cleanliness).
+    """
+    # Footprint-local coordinates with the rectangle's corner at (0, 0)
+    # are awkward for KiCad — the footprint anchor sits at (0, 0) and
+    # all features sit in +X, +Y. That's fine; pcbnew accepts it.
+    x_min, y_min = 0.0, 0.0
+    x_max, y_max = SEN66_BODY_X, SEN66_BODY_Y
+    inset = SEN66_SILK_INSET
+
+    # F.Fab body outline (un-inset rectangle).
+    fab_outline = textwrap.dedent(f"""\
+        \t(fp_rect
+        \t\t(start {fmt(x_min)} {fmt(y_min)})
+        \t\t(end {fmt(x_max)} {fmt(y_max)})
+        \t\t(stroke (width 0.1) (type solid))
+        \t\t(fill no)
+        \t\t(layer "F.Fab")
+        \t\t(uuid "{U('sen66:fp:fab-outline')}")
+        \t)""")
+
+    # F.SilkS body outline (inset slightly from the courtyard / Edge.Cuts
+    # so the silkscreen edge prints cleanly inside the body shadow).
+    silk_outline = textwrap.dedent(f"""\
+        \t(fp_rect
+        \t\t(start {fmt(x_min + inset)} {fmt(y_min + inset)})
+        \t\t(end {fmt(x_max - inset)} {fmt(y_max - inset)})
+        \t\t(stroke (width 0.12) (type solid))
+        \t\t(fill no)
+        \t\t(layer "F.SilkS")
+        \t\t(uuid "{U('sen66:fp:silk-outline')}")
+        \t)""")
+
+    # Inlet #1 — obround (rounded ends). Half-length of straight midsection:
+    # straight = DX - DY (since end radii are DY/2).
+    in1_r = SEN66_INLET1_DY / 2.0
+    in1_x1 = SEN66_INLET1_CX - SEN66_INLET1_DX / 2.0 + in1_r
+    in1_x2 = SEN66_INLET1_CX + SEN66_INLET1_DX / 2.0 - in1_r
+    in1_y = SEN66_INLET1_CY
+    inlet1_top = textwrap.dedent(f"""\
+        \t(fp_line
+        \t\t(start {fmt(in1_x1)} {fmt(in1_y - in1_r)})
+        \t\t(end {fmt(in1_x2)} {fmt(in1_y - in1_r)})
+        \t\t(stroke (width 0.08) (type solid))
+        \t\t(layer "F.Fab")
+        \t\t(uuid "{U('sen66:fp:inlet1-top')}")
+        \t)""")
+    inlet1_bot = textwrap.dedent(f"""\
+        \t(fp_line
+        \t\t(start {fmt(in1_x1)} {fmt(in1_y + in1_r)})
+        \t\t(end {fmt(in1_x2)} {fmt(in1_y + in1_r)})
+        \t\t(stroke (width 0.08) (type solid))
+        \t\t(layer "F.Fab")
+        \t\t(uuid "{U('sen66:fp:inlet1-bot')}")
+        \t)""")
+    inlet1_left_arc = textwrap.dedent(f"""\
+        \t(fp_arc
+        \t\t(start {fmt(in1_x1)} {fmt(in1_y - in1_r)})
+        \t\t(mid {fmt(in1_x1 - in1_r)} {fmt(in1_y)})
+        \t\t(end {fmt(in1_x1)} {fmt(in1_y + in1_r)})
+        \t\t(stroke (width 0.08) (type solid))
+        \t\t(layer "F.Fab")
+        \t\t(uuid "{U('sen66:fp:inlet1-arc-l')}")
+        \t)""")
+    inlet1_right_arc = textwrap.dedent(f"""\
+        \t(fp_arc
+        \t\t(start {fmt(in1_x2)} {fmt(in1_y + in1_r)})
+        \t\t(mid {fmt(in1_x2 + in1_r)} {fmt(in1_y)})
+        \t\t(end {fmt(in1_x2)} {fmt(in1_y - in1_r)})
+        \t\t(stroke (width 0.08) (type solid))
+        \t\t(layer "F.Fab")
+        \t\t(uuid "{U('sen66:fp:inlet1-arc-r')}")
+        \t)""")
+
+    # Inlet #2 — rectangle.
+    in2_x1 = SEN66_INLET2_CX - SEN66_INLET2_DX / 2.0
+    in2_x2 = SEN66_INLET2_CX + SEN66_INLET2_DX / 2.0
+    in2_y1 = SEN66_INLET2_CY - SEN66_INLET2_DY / 2.0
+    in2_y2 = SEN66_INLET2_CY + SEN66_INLET2_DY / 2.0
+    inlet2 = textwrap.dedent(f"""\
+        \t(fp_rect
+        \t\t(start {fmt(in2_x1)} {fmt(in2_y1)})
+        \t\t(end {fmt(in2_x2)} {fmt(in2_y2)})
+        \t\t(stroke (width 0.08) (type solid))
+        \t\t(fill no)
+        \t\t(layer "F.Fab")
+        \t\t(uuid "{U('sen66:fp:inlet2')}")
+        \t)""")
+
+    # Outlet — circle.
+    out_r = SEN66_OUTLET_DIA / 2.0
+    outlet = textwrap.dedent(f"""\
+        \t(fp_circle
+        \t\t(center {fmt(SEN66_OUTLET_CX)} {fmt(SEN66_OUTLET_CY)})
+        \t\t(end {fmt(SEN66_OUTLET_CX + out_r)} {fmt(SEN66_OUTLET_CY)})
+        \t\t(stroke (width 0.08) (type solid))
+        \t\t(fill no)
+        \t\t(layer "F.Fab")
+        \t\t(uuid "{U('sen66:fp:outlet')}")
+        \t)""")
+
+    # Foam-divider hint — dashed line across body Y range at the divider X
+    # (visual aid, assembly reference for where the foam rib sits between
+    # inlet zone and outlet zone per Sensirion mech §3 §2.1 sealing).
+    divider = textwrap.dedent(f"""\
+        \t(fp_line
+        \t\t(start {fmt(SEN66_DIVIDER_X)} {fmt(y_min + 1.0)})
+        \t\t(end {fmt(SEN66_DIVIDER_X)} {fmt(y_max - 1.0)})
+        \t\t(stroke (width 0.08) (type dash))
+        \t\t(layer "F.Fab")
+        \t\t(uuid "{U('sen66:fp:divider')}")
+        \t)""")
+
+    # Connector position marker on +X short edge.
+    conn_marker = textwrap.dedent(f"""\
+        \t(fp_rect
+        \t\t(start {fmt(SEN66_CONNECTOR_X - 2.0)} {fmt(SEN66_CONNECTOR_Y - 2.4)})
+        \t\t(end {fmt(SEN66_CONNECTOR_X + 1.0)} {fmt(SEN66_CONNECTOR_Y + 2.4)})
+        \t\t(stroke (width 0.08) (type solid))
+        \t\t(fill no)
+        \t\t(layer "F.Fab")
+        \t\t(uuid "{U('sen66:fp:conn-marker')}")
+        \t)""")
+    conn_label = textwrap.dedent(f"""\
+        \t(fp_text user "JST GH cable ->"
+        \t\t(at {fmt(SEN66_CONNECTOR_X - 5.0)} {fmt(SEN66_CONNECTOR_Y + 4.5)} 0)
+        \t\t(layer "F.Fab")
+        \t\t(uuid "{U('sen66:fp:conn-label')}")
+        \t\t(effects (font (size 1.0 1.0) (thickness 0.15)))
+        \t)""")
+
+    # Module identification text in the centre — SEN66-SIN-T (MPN) +
+    # Sensirion material number 3.001.030 (per CLAUDE.md Module
+    # Identification rule).
+    body_label = textwrap.dedent(f"""\
+        \t(fp_text user "SEN66-SIN-T  |  MPN 3.001.030"
+        \t\t(at {fmt(SEN66_BODY_X / 2.0)} {fmt(SEN66_BODY_Y / 2.0 - 4.0)} 0)
+        \t\t(layer "F.Fab")
+        \t\t(uuid "{U('sen66:fp:body-label')}")
+        \t\t(effects (font (size 1.0 1.0) (thickness 0.15)))
+        \t)""")
+
+    # Reference + Value properties (hidden — this is a mechanical reference
+    # and shouldn't clutter the silk).
+    ref_block = textwrap.dedent(f"""\
+        \t(property "Reference" "REF**"
+        \t\t(at {fmt(SEN66_BODY_X / 2.0)} -1.5 0)
+        \t\t(unlocked yes)
+        \t\t(layer "F.SilkS")
+        \t\t(hide yes)
+        \t\t(uuid "{U('sen66:fp:prop-ref')}")
+        \t\t(effects (font (size 1 1) (thickness 0.15)))
+        \t)""")
+    value_block = textwrap.dedent(f"""\
+        \t(property "Value" "SEN66_Mechanical_Reference"
+        \t\t(at {fmt(SEN66_BODY_X / 2.0)} {fmt(SEN66_BODY_Y + 1.5)} 0)
+        \t\t(unlocked yes)
+        \t\t(layer "F.Fab")
+        \t\t(hide yes)
+        \t\t(uuid "{U('sen66:fp:prop-val')}")
+        \t\t(effects (font (size 1 1) (thickness 0.15)))
+        \t)""")
+    footprint_block = textwrap.dedent(f"""\
+        \t(property "Footprint" ""
+        \t\t(at 0 0 0)
+        \t\t(unlocked yes)
+        \t\t(layer "F.Fab")
+        \t\t(hide yes)
+        \t\t(uuid "{U('sen66:fp:prop-fp')}")
+        \t\t(effects (font (size 1.27 1.27)))
+        \t)""")
+    datasheet_block = textwrap.dedent(f"""\
+        \t(property "Datasheet" "https://sensirion.com/resource/datasheet/SEN6x"
+        \t\t(at 0 0 0)
+        \t\t(unlocked yes)
+        \t\t(layer "F.Fab")
+        \t\t(hide yes)
+        \t\t(uuid "{U('sen66:fp:prop-ds')}")
+        \t\t(effects (font (size 1.27 1.27)))
+        \t)""")
+    desc_block = textwrap.dedent(f"""\
+        \t(property "Description" "Sensirion SEN66 mechanical-reference footprint (no pads). SEN66-SIN-T, material 3.001.030. Body 55.2x25.6x21.5 mm. Mounts on enclosure cover, JST GH 6-pin cable to PCB."
+        \t\t(at 0 0 0)
+        \t\t(unlocked yes)
+        \t\t(layer "F.Fab")
+        \t\t(hide yes)
+        \t\t(uuid "{U('sen66:fp:prop-desc')}")
+        \t\t(effects (font (size 1.27 1.27)))
+        \t)""")
+
+    # Courtyard — match the body outline exactly (no inflate). The SEN66
+    # lives on the enclosure cover, not on the PCB, so its "footprint
+    # courtyard" on the board is purely a placement reference — there
+    # are no neighbouring PCB components that the SEN66 body can
+    # physically collide with (it's suspended above the PCB).
+    courtyard = textwrap.dedent(f"""\
+        \t(fp_rect
+        \t\t(start {fmt(x_min)} {fmt(y_min)})
+        \t\t(end {fmt(x_max)} {fmt(y_max)})
+        \t\t(stroke (width 0.05) (type solid))
+        \t\t(fill no)
+        \t\t(layer "F.CrtYd")
+        \t\t(uuid "{U('sen66:fp:crtyd')}")
+        \t)""")
+
+    body_blocks = "\n".join([
+        ref_block, value_block, footprint_block, datasheet_block, desc_block,
+        fab_outline, silk_outline,
+        inlet1_top, inlet1_bot, inlet1_left_arc, inlet1_right_arc,
+        inlet2, outlet, divider, conn_marker, conn_label, body_label,
+        courtyard,
+    ])
+
+    return textwrap.dedent(f"""\
+        (footprint "SEN66_Mechanical_Reference"
+        \t(version {PCB_VERSION})
+        \t(generator "pcbnew")
+        \t(generator_version "{GEN_VERSION}")
+        \t(layer "F.Cu")
+        \t(descr "Sensirion SEN66 mechanical-reference (no pads). SEN66-SIN-T, MPN 3.001.030. 55.2x25.6x21.5 mm. Mounts on enclosure cover via 4x zip-ties through ZipTieHole_3mm_NPTH; signal cable JST GH 6-pin to PCB connector J3.")
+        \t(tags "sen66 sensirion mechanical reference cover-mounted no-pads")
+        \t(attr board_only exclude_from_pos_files exclude_from_bom)
+        """) + body_blocks + "\n)\n"
+
+
+# -----------------------------------------------------------------------------
+# 1aa) Zip-tie NPTH footprint (own library)
+# -----------------------------------------------------------------------------
+# 4× zip-tie holes hold the SEN66 against the enclosure cover (no PCB
+# mount). Each hole is Ø3.0 mm NPTH — fits a standard 2.5 mm wide zip-tie
+# band with margin. The pattern matches the placement of the SEN66
+# mechanical reference footprint: holes sit at the 4 corners of an
+# imaginary rectangle slightly larger than the SEN66 body footprint,
+# leaving clearance for the zip-tie loop to come over the body.
+ZIPTIE_HOLE_DIAMETER = 3.0
+ZIPTIE_HOLE_SILK_RING_DIAMETER = 4.0    # silkscreen ring (visibility hint)
+
+
+def gen_ziptie_hole_footprint() -> str:
+    """Custom ZipTieHole_3mm_NPTH footprint.
+
+    NPTH (non-plated through hole), Ø3.0 mm — for zip-ties holding the
+    SEN66 against the enclosure cover. The SEN66 doesn't bolt to the PCB
+    (it lives on the cover) but the PCB carries the zip-tie holes so that,
+    during assembly, the SEN66 can be threaded against the cover via
+    zip-ties anchored through the PCB.
+
+    Pattern after MountingHole_3.8mm_M3 — no copper pad, no plating, no
+    soldermask cut-out; just a drilled hole + silk ring + courtyard for
+    visibility.
+    """
+    courtyard_r = ZIPTIE_HOLE_DIAMETER * 0.75
+    silk_r = ZIPTIE_HOLE_SILK_RING_DIAMETER / 2.0
+    drill_r = ZIPTIE_HOLE_DIAMETER / 2.0
+    return textwrap.dedent(f"""\
+        (footprint "ZipTieHole_3mm_NPTH"
+        \t(version {PCB_VERSION})
+        \t(generator "pcbnew")
+        \t(generator_version "{GEN_VERSION}")
+        \t(layer "F.Cu")
+        \t(descr "Zip-tie hole Ø3.0 mm NPTH, for retaining SEN66 against the enclosure cover")
+        \t(tags "zip-tie ziptie npth 3mm sen66 mechanical cover")
+        \t(attr through_hole board_only exclude_from_pos_files exclude_from_bom)
+        \t(property "Reference" "REF**"
+        \t\t(at 0 0 0)
+        \t\t(unlocked yes)
+        \t\t(layer "F.SilkS")
+        \t\t(hide yes)
+        \t\t(uuid "{U('ziptie:fp:ref')}")
+        \t\t(effects (font (size 1 1) (thickness 0.15)))
+        \t)
+        \t(property "Value" "ZipTieHole_3mm_NPTH"
+        \t\t(at 0 0 0)
+        \t\t(unlocked yes)
+        \t\t(layer "F.Fab")
+        \t\t(hide yes)
+        \t\t(uuid "{U('ziptie:fp:val')}")
+        \t\t(effects (font (size 1 1) (thickness 0.15)))
+        \t)
+        \t(property "Footprint" ""
+        \t\t(at 0 0 0)
+        \t\t(unlocked yes)
+        \t\t(layer "F.Fab")
+        \t\t(hide yes)
+        \t\t(uuid "{U('ziptie:fp:fp')}")
+        \t\t(effects (font (size 1.27 1.27)))
+        \t)
+        \t(property "Datasheet" ""
+        \t\t(at 0 0 0)
+        \t\t(unlocked yes)
+        \t\t(layer "F.Fab")
+        \t\t(hide yes)
+        \t\t(uuid "{U('ziptie:fp:ds')}")
+        \t\t(effects (font (size 1.27 1.27)))
+        \t)
+        \t(property "Description" "Zip-tie pass-through hole, Ø3.0 mm NPTH (fits 2.5 mm band zip-tie). Used in groups of 4 to retain the SEN66 module against the enclosure cover."
+        \t\t(at 0 0 0)
+        \t\t(unlocked yes)
+        \t\t(layer "F.Fab")
+        \t\t(hide yes)
+        \t\t(uuid "{U('ziptie:fp:desc')}")
+        \t\t(effects (font (size 1.27 1.27)))
+        \t)
+        \t(fp_circle
+        \t\t(center 0 0)
+        \t\t(end {fmt(courtyard_r)} 0)
+        \t\t(stroke (width 0.05) (type solid))
+        \t\t(fill no)
+        \t\t(layer "F.CrtYd")
+        \t\t(uuid "{U('ziptie:fp:crtyd')}")
+        \t)
+        \t(fp_circle
+        \t\t(center 0 0)
+        \t\t(end {fmt(silk_r)} 0)
+        \t\t(stroke (width 0.12) (type solid))
+        \t\t(fill no)
+        \t\t(layer "F.SilkS")
+        \t\t(uuid "{U('ziptie:fp:silk-ring')}")
+        \t)
+        \t(fp_circle
+        \t\t(center 0 0)
+        \t\t(end {fmt(drill_r)} 0)
+        \t\t(stroke (width 0.1) (type solid))
+        \t\t(fill no)
+        \t\t(layer "F.Fab")
+        \t\t(uuid "{U('ziptie:fp:fab-ring')}")
+        \t)
+        \t(pad "" np_thru_hole circle
+        \t\t(at 0 0)
+        \t\t(size {fmt(ZIPTIE_HOLE_DIAMETER)} {fmt(ZIPTIE_HOLE_DIAMETER)})
+        \t\t(drill {fmt(ZIPTIE_HOLE_DIAMETER)})
+        \t\t(layers "F&B.Cu" "*.Mask")
+        \t\t(remove_unused_layers no)
+        \t\t(uuid "{U('ziptie:fp:pad')}")
+        \t)
+        )
+        """)
+
+
+# -----------------------------------------------------------------------------
 # 1b) Cutout keepout zones + Dwgs.User markers
 # -----------------------------------------------------------------------------
 def gen_cutouts() -> tuple[str, str]:
@@ -293,6 +780,23 @@ def gen_cutouts() -> tuple[str, str]:
         size_x = abs(x2 - x1)
         size_y = abs(y2 - y1)
 
+        # Keepout NOTE: `(footprints not_allowed)` is INTENTIONALLY omitted.
+        # The cutout zones are meant to keep COPPER (tracks, vias, pads,
+        # copperpour) out of the case-wall opening area so traces don't
+        # short to the case wall's PE conductor or get pinched by the
+        # cutout edge. They are NOT meant to block footprint placement —
+        # the whole point of a chord-edge cutout is to let a connector
+        # footprint (USB-C, terminal block, JST-GH plug) extend THROUGH
+        # the case wall.
+        #
+        # The mechanical-reference SEN66 footprint (F.Fab/F.SilkS only,
+        # zero copper) needs to be place-able in the SENSORS sector
+        # even where its body shadow crosses a cutout zone — the SEN66
+        # itself lives on the cover, not on the PCB, so a cutout-zone
+        # overlap is purely a 2D drawing coincidence, not a physical
+        # conflict. (The `(pads not_allowed)` rule above already blocks
+        # any *copper* the SEN66 reference footprint might accidentally
+        # bring along.)
         keepouts.append(textwrap.dedent(f"""\
             \t(zone
             \t\t(net 0)
@@ -311,7 +815,7 @@ def gen_cutouts() -> tuple[str, str]:
             \t\t\t(vias not_allowed)
             \t\t\t(pads not_allowed)
             \t\t\t(copperpour not_allowed)
-            \t\t\t(footprints not_allowed)
+            \t\t\t(footprints allowed)
             \t\t)
             \t\t(placement
             \t\t\t(enabled no)
@@ -395,6 +899,704 @@ def gen_sectors() -> str:
             \t)"""))
 
     return "\n".join(items)
+
+
+# -----------------------------------------------------------------------------
+# 1c) SEN66 + zip-tie hole + J3 PCB placement
+# -----------------------------------------------------------------------------
+def _emit_pcb_footprint_simple_npth(
+    lib_id: str, reference: str, value: str, descr: str,
+    drill_mm: float, silk_ring_radius_mm: float, courtyard_radius_mm: float,
+    fab_ring_radius_mm: float, x: float, y: float, uuid_tag: str,
+    silk_label: str | None = None,
+    silk_label_offset_y: float = 0.0,
+) -> str:
+    """Emit a placed-instance NPTH footprint (zip-tie hole etc).
+
+    KiCad 10 stores footprint references in the PCB file as a full
+    repetition of the footprint geometry (not just a library reference).
+    This helper builds the same 'fp_circle on F.CrtYd + fp_circle on
+    F.Fab + fp_circle on F.SilkS + np_thru_hole pad' pattern that
+    `gen_ziptie_hole_footprint()` writes to the library file, but
+    placed at the given PCB-global (x, y).
+
+    The library file holds the canonical definition; the placement
+    here is the embedded copy KiCad expects inside the .kicad_pcb.
+    Keeping the two in lock-step is essential so opening pcbnew without
+    the project-local footprint library still renders the placement.
+
+    If `silk_label` is non-None, an additional `(fp_text user ...)` on
+    F.SilkS with that text is emitted at footprint-local
+    (0, silk_label_offset_y). Used for hand-assembler-facing designators
+    (e.g. "ZT1", "ZT2") so the human can identify each hole at a glance
+    without referring to the schematic.
+    """
+    silk_text = ""
+    if silk_label is not None:
+        silk_text = textwrap.dedent(f"""
+            \t\t(fp_text user "{silk_label}"
+            \t\t\t(at 0 {fmt(silk_label_offset_y)} 0)
+            \t\t\t(layer "F.SilkS")
+            \t\t\t(uuid "{U('fp-silk-label:' + uuid_tag)}")
+            \t\t\t(effects (font (size 1 1) (thickness 0.15)))
+            \t\t)""")
+    return textwrap.dedent(f"""\
+        \t(footprint "{lib_id}"
+        \t\t(layer "F.Cu")
+        \t\t(uuid "{U('fp-inst:' + uuid_tag)}")
+        \t\t(at {fx(x)} {fy(y)})
+        \t\t(descr "{descr}")
+        \t\t(attr through_hole board_only exclude_from_pos_files exclude_from_bom)
+        \t\t(property "Reference" "{reference}"
+        \t\t\t(at 0 0 0)
+        \t\t\t(layer "F.SilkS")
+        \t\t\t(hide yes)
+        \t\t\t(uuid "{U('fp-prop-ref:' + uuid_tag)}")
+        \t\t\t(effects (font (size 1 1) (thickness 0.15)))
+        \t\t)
+        \t\t(property "Value" "{value}"
+        \t\t\t(at 0 0 0)
+        \t\t\t(layer "F.Fab")
+        \t\t\t(hide yes)
+        \t\t\t(uuid "{U('fp-prop-val:' + uuid_tag)}")
+        \t\t\t(effects (font (size 1 1) (thickness 0.15)))
+        \t\t)
+        \t\t(property "Footprint" "oas:{lib_id}"
+        \t\t\t(at 0 0 0)
+        \t\t\t(layer "F.Fab")
+        \t\t\t(hide yes)
+        \t\t\t(uuid "{U('fp-prop-fp:' + uuid_tag)}")
+        \t\t\t(effects (font (size 1.27 1.27)))
+        \t\t)
+        \t\t(property "Datasheet" ""
+        \t\t\t(at 0 0 0)
+        \t\t\t(layer "F.Fab")
+        \t\t\t(hide yes)
+        \t\t\t(uuid "{U('fp-prop-ds:' + uuid_tag)}")
+        \t\t\t(effects (font (size 1.27 1.27)))
+        \t\t)
+        \t\t(property "Description" "{descr}"
+        \t\t\t(at 0 0 0)
+        \t\t\t(layer "F.Fab")
+        \t\t\t(hide yes)
+        \t\t\t(uuid "{U('fp-prop-desc:' + uuid_tag)}")
+        \t\t\t(effects (font (size 1.27 1.27)))
+        \t\t)
+        \t\t(fp_circle
+        \t\t\t(center 0 0)
+        \t\t\t(end {fmt(courtyard_radius_mm)} 0)
+        \t\t\t(stroke (width 0.05) (type solid))
+        \t\t\t(fill no)
+        \t\t\t(layer "F.CrtYd")
+        \t\t\t(uuid "{U('fp-crtyd:' + uuid_tag)}")
+        \t\t)
+        \t\t(fp_circle
+        \t\t\t(center 0 0)
+        \t\t\t(end {fmt(silk_ring_radius_mm)} 0)
+        \t\t\t(stroke (width 0.12) (type solid))
+        \t\t\t(fill no)
+        \t\t\t(layer "F.SilkS")
+        \t\t\t(uuid "{U('fp-silk:' + uuid_tag)}")
+        \t\t)
+        \t\t(fp_circle
+        \t\t\t(center 0 0)
+        \t\t\t(end {fmt(fab_ring_radius_mm)} 0)
+        \t\t\t(stroke (width 0.1) (type solid))
+        \t\t\t(fill no)
+        \t\t\t(layer "F.Fab")
+        \t\t\t(uuid "{U('fp-fab:' + uuid_tag)}")
+        \t\t)
+        \t\t(pad "" np_thru_hole circle
+        \t\t\t(at 0 0)
+        \t\t\t(size {fmt(drill_mm)} {fmt(drill_mm)})
+        \t\t\t(drill {fmt(drill_mm)})
+        \t\t\t(layers "F&B.Cu" "*.Mask")
+        \t\t\t(remove_unused_layers no)
+        \t\t\t(uuid "{U('fp-pad:' + uuid_tag)}")
+        \t\t){silk_text}
+        \t)""")
+
+
+def gen_sen66_reference_pcb_footprint(x: float, y: float, rotation: int) -> str:
+    """Emit the placed SEN66_Mechanical_Reference footprint instance.
+
+    This is the embedded copy of `gen_sen66_mechanical_footprint()`'s
+    library definition, positioned at PCB-local (x, y) with rotation
+    `rotation` degrees. The PCB file format requires a full repetition
+    of the footprint body — the library entry alone doesn't render.
+
+    Mechanical-only: no pads, no plated holes. All graphics on F.Fab,
+    F.SilkS, F.CrtYd; nothing on F.Cu so this footprint contributes
+    zero copper to the board.
+    """
+    x_min, y_min = 0.0, 0.0
+    x_max, y_max = SEN66_BODY_X, SEN66_BODY_Y
+    inset = SEN66_SILK_INSET
+    uuid_tag = "sen66-pcb"
+
+    # Inlet #1 — obround.
+    in1_r = SEN66_INLET1_DY / 2.0
+    in1_x1 = SEN66_INLET1_CX - SEN66_INLET1_DX / 2.0 + in1_r
+    in1_x2 = SEN66_INLET1_CX + SEN66_INLET1_DX / 2.0 - in1_r
+    in1_y = SEN66_INLET1_CY
+
+    # Inlet #2 — rectangle.
+    in2_x1 = SEN66_INLET2_CX - SEN66_INLET2_DX / 2.0
+    in2_x2 = SEN66_INLET2_CX + SEN66_INLET2_DX / 2.0
+    in2_y1 = SEN66_INLET2_CY - SEN66_INLET2_DY / 2.0
+    in2_y2 = SEN66_INLET2_CY + SEN66_INLET2_DY / 2.0
+
+    out_r = SEN66_OUTLET_DIA / 2.0
+
+    return textwrap.dedent(f"""\
+        \t(footprint "oas:SEN66_Mechanical_Reference"
+        \t\t(layer "F.Cu")
+        \t\t(uuid "{U('fp-inst:' + uuid_tag)}")
+        \t\t(at {fx(x)} {fy(y)} {rotation})
+        \t\t(descr "Sensirion SEN66 mechanical-reference (no pads). SEN66-SIN-T, MPN 3.001.030. 55.2x25.6x21.5 mm. Mounts on enclosure cover; signal cable JST GH 6-pin to PCB connector J3.")
+        \t\t(attr board_only exclude_from_pos_files exclude_from_bom)
+        \t\t(property "Reference" "SENS1"
+        \t\t\t(at {fmt(SEN66_BODY_X / 2.0)} -1.5 0)
+        \t\t\t(layer "F.SilkS")
+        \t\t\t(hide yes)
+        \t\t\t(uuid "{U('fp-prop-ref:' + uuid_tag)}")
+        \t\t\t(effects (font (size 1 1) (thickness 0.15)))
+        \t\t)
+        \t\t(property "Value" "SEN66_Mechanical_Reference"
+        \t\t\t(at {fmt(SEN66_BODY_X / 2.0)} {fmt(SEN66_BODY_Y + 1.5)} 0)
+        \t\t\t(layer "F.Fab")
+        \t\t\t(hide yes)
+        \t\t\t(uuid "{U('fp-prop-val:' + uuid_tag)}")
+        \t\t\t(effects (font (size 1 1) (thickness 0.15)))
+        \t\t)
+        \t\t(property "Footprint" "oas:SEN66_Mechanical_Reference"
+        \t\t\t(at 0 0 0)
+        \t\t\t(layer "F.Fab")
+        \t\t\t(hide yes)
+        \t\t\t(uuid "{U('fp-prop-fp:' + uuid_tag)}")
+        \t\t\t(effects (font (size 1.27 1.27)))
+        \t\t)
+        \t\t(property "Datasheet" "https://sensirion.com/resource/datasheet/SEN6x"
+        \t\t\t(at 0 0 0)
+        \t\t\t(layer "F.Fab")
+        \t\t\t(hide yes)
+        \t\t\t(uuid "{U('fp-prop-ds:' + uuid_tag)}")
+        \t\t\t(effects (font (size 1.27 1.27)))
+        \t\t)
+        \t\t(property "Description" "Sensirion SEN66 mechanical-reference footprint (no pads). SEN66-SIN-T, material 3.001.030. Body 55.2x25.6x21.5 mm. Mounts on enclosure cover, JST GH 6-pin cable to PCB."
+        \t\t\t(at 0 0 0)
+        \t\t\t(layer "F.Fab")
+        \t\t\t(hide yes)
+        \t\t\t(uuid "{U('fp-prop-desc:' + uuid_tag)}")
+        \t\t\t(effects (font (size 1.27 1.27)))
+        \t\t)
+        \t\t(fp_rect
+        \t\t\t(start {fmt(x_min)} {fmt(y_min)})
+        \t\t\t(end {fmt(x_max)} {fmt(y_max)})
+        \t\t\t(stroke (width 0.1) (type solid))
+        \t\t\t(fill no)
+        \t\t\t(layer "F.Fab")
+        \t\t\t(uuid "{U('fp-fab-outline:' + uuid_tag)}")
+        \t\t)
+        \t\t(fp_rect
+        \t\t\t(start {fmt(x_min + inset)} {fmt(y_min + inset)})
+        \t\t\t(end {fmt(x_max - inset)} {fmt(y_max - inset)})
+        \t\t\t(stroke (width 0.12) (type solid))
+        \t\t\t(fill no)
+        \t\t\t(layer "F.SilkS")
+        \t\t\t(uuid "{U('fp-silk-outline:' + uuid_tag)}")
+        \t\t)
+        \t\t(fp_line
+        \t\t\t(start {fmt(in1_x1)} {fmt(in1_y - in1_r)})
+        \t\t\t(end {fmt(in1_x2)} {fmt(in1_y - in1_r)})
+        \t\t\t(stroke (width 0.08) (type solid))
+        \t\t\t(layer "F.Fab")
+        \t\t\t(uuid "{U('fp-inlet1-top:' + uuid_tag)}")
+        \t\t)
+        \t\t(fp_line
+        \t\t\t(start {fmt(in1_x1)} {fmt(in1_y + in1_r)})
+        \t\t\t(end {fmt(in1_x2)} {fmt(in1_y + in1_r)})
+        \t\t\t(stroke (width 0.08) (type solid))
+        \t\t\t(layer "F.Fab")
+        \t\t\t(uuid "{U('fp-inlet1-bot:' + uuid_tag)}")
+        \t\t)
+        \t\t(fp_arc
+        \t\t\t(start {fmt(in1_x1)} {fmt(in1_y - in1_r)})
+        \t\t\t(mid {fmt(in1_x1 - in1_r)} {fmt(in1_y)})
+        \t\t\t(end {fmt(in1_x1)} {fmt(in1_y + in1_r)})
+        \t\t\t(stroke (width 0.08) (type solid))
+        \t\t\t(layer "F.Fab")
+        \t\t\t(uuid "{U('fp-inlet1-arcl:' + uuid_tag)}")
+        \t\t)
+        \t\t(fp_arc
+        \t\t\t(start {fmt(in1_x2)} {fmt(in1_y + in1_r)})
+        \t\t\t(mid {fmt(in1_x2 + in1_r)} {fmt(in1_y)})
+        \t\t\t(end {fmt(in1_x2)} {fmt(in1_y - in1_r)})
+        \t\t\t(stroke (width 0.08) (type solid))
+        \t\t\t(layer "F.Fab")
+        \t\t\t(uuid "{U('fp-inlet1-arcr:' + uuid_tag)}")
+        \t\t)
+        \t\t(fp_rect
+        \t\t\t(start {fmt(in2_x1)} {fmt(in2_y1)})
+        \t\t\t(end {fmt(in2_x2)} {fmt(in2_y2)})
+        \t\t\t(stroke (width 0.08) (type solid))
+        \t\t\t(fill no)
+        \t\t\t(layer "F.Fab")
+        \t\t\t(uuid "{U('fp-inlet2:' + uuid_tag)}")
+        \t\t)
+        \t\t(fp_circle
+        \t\t\t(center {fmt(SEN66_OUTLET_CX)} {fmt(SEN66_OUTLET_CY)})
+        \t\t\t(end {fmt(SEN66_OUTLET_CX + out_r)} {fmt(SEN66_OUTLET_CY)})
+        \t\t\t(stroke (width 0.08) (type solid))
+        \t\t\t(fill no)
+        \t\t\t(layer "F.Fab")
+        \t\t\t(uuid "{U('fp-outlet:' + uuid_tag)}")
+        \t\t)
+        \t\t(fp_line
+        \t\t\t(start {fmt(SEN66_DIVIDER_X)} {fmt(y_min + 1.0)})
+        \t\t\t(end {fmt(SEN66_DIVIDER_X)} {fmt(y_max - 1.0)})
+        \t\t\t(stroke (width 0.08) (type dash))
+        \t\t\t(layer "F.Fab")
+        \t\t\t(uuid "{U('fp-divider:' + uuid_tag)}")
+        \t\t)
+        \t\t(fp_rect
+        \t\t\t(start {fmt(SEN66_CONNECTOR_X - 2.0)} {fmt(SEN66_CONNECTOR_Y - 2.4)})
+        \t\t\t(end {fmt(SEN66_CONNECTOR_X + 1.0)} {fmt(SEN66_CONNECTOR_Y + 2.4)})
+        \t\t\t(stroke (width 0.08) (type solid))
+        \t\t\t(fill no)
+        \t\t\t(layer "F.Fab")
+        \t\t\t(uuid "{U('fp-conn-marker:' + uuid_tag)}")
+        \t\t)
+        \t\t(fp_text user "JST GH cable ->"
+        \t\t\t(at {fmt(SEN66_CONNECTOR_X - 5.0)} {fmt(SEN66_CONNECTOR_Y + 4.5)} 0)
+        \t\t\t(layer "F.Fab")
+        \t\t\t(uuid "{U('fp-conn-label:' + uuid_tag)}")
+        \t\t\t(effects (font (size 1.0 1.0) (thickness 0.15)))
+        \t\t)
+        \t\t(fp_text user "SEN66-SIN-T  |  MPN 3.001.030"
+        \t\t\t(at {fmt(SEN66_BODY_X / 2.0)} {fmt(SEN66_BODY_Y / 2.0 - 4.0)} 0)
+        \t\t\t(layer "F.Fab")
+        \t\t\t(uuid "{U('fp-body-label:' + uuid_tag)}")
+        \t\t\t(effects (font (size 1.0 1.0) (thickness 0.15)))
+        \t\t)
+        \t\t(fp_rect
+        \t\t\t(start {fmt(x_min)} {fmt(y_min)})
+        \t\t\t(end {fmt(x_max)} {fmt(y_max)})
+        \t\t\t(stroke (width 0.05) (type solid))
+        \t\t\t(fill no)
+        \t\t\t(layer "F.CrtYd")
+        \t\t\t(uuid "{U('fp-crtyd:' + uuid_tag)}")
+        \t\t)
+        \t)""")
+
+
+def _kicad_install_path() -> Path:
+    """Locate the KiCad 10 installation root.
+
+    Used to load stock footprint definitions (e.g. JST_GH_SM06B-GHS-TB)
+    so the embedded PCB copy matches the library byte-for-byte and
+    DRC's lib_footprint_mismatch check stays silent. Walks the common
+    Windows install paths; falls back to scanning `kicad-cli` on PATH
+    if neither default exists.
+    """
+    candidates = [
+        Path(r"C:/Program Files/KiCad/10.0/share/kicad"),
+        Path(r"C:/Program Files/KiCad/9.0/share/kicad"),
+    ]
+    for c in candidates:
+        if c.exists():
+            return c
+    raise FileNotFoundError(
+        "Could not find KiCad install directory. Tried: "
+        + ", ".join(str(c) for c in candidates)
+    )
+
+
+_J3_LIB_FOOTPRINT_PATH = (
+    _kicad_install_path() / "footprints" / "Connector_JST.pretty"
+    / "JST_GH_SM06B-GHS-TB_1x06-1MP_P1.25mm_Horizontal.kicad_mod"
+)
+
+
+def _annotate_pad_rotations(body_text: str, rotation: int) -> str:
+    """Inject the footprint rotation into every `(pad ...)` block's `(at)`.
+
+    KiCad pcbnew, when saving a rotated footprint, writes each pad with
+    an explicit rotation in its `(at lx ly <rotation>)` clause (e.g.
+    `(at -1.5 1.325 90)`). When the rotation is OMITTED (just `(at lx ly)`),
+    KiCad's DRC interprets the pad's geometry as PCB-axis-aligned rather
+    than rotated with the footprint — producing spurious pad-clearance
+    and solder-mask-bridge violations.
+
+    Walk through the supplied body_text (the footprint's child blocks
+    concatenated as a string), find every `(pad "..." ... (at lx ly))`,
+    and rewrite the `(at lx ly)` to `(at lx ly <rotation>)`. Pads that
+    already have an explicit rotation in their `(at ...)` are left
+    untouched (defensive, although the KiCad library SM06B-GHS-TB has
+    none).
+    """
+    import re
+
+    # Match: `(at <num> <num>)` where the closing paren immediately follows
+    # the second numeric token. Captures the two numbers as g1, g2.
+    pat = re.compile(
+        r"\(at\s+(-?\d+(?:\.\d+)?)\s+(-?\d+(?:\.\d+)?)\s*\)",
+    )
+
+    # Split body into pad blocks vs other blocks; only annotate inside pads.
+    out: list[str] = []
+    depth = 0
+    cur: list[str] = []
+    blocks: list[tuple[bool, str]] = []   # (is_pad, text)
+    is_pad = False
+    for ch in body_text:
+        cur.append(ch)
+        if ch == "(":
+            if depth == 0:
+                # Beginning of a top-level S-expression. Inspect first
+                # 8 chars to see if it's a (pad ...) clause.
+                pass
+            depth += 1
+        elif ch == ")":
+            depth -= 1
+            if depth == 0:
+                block = "".join(cur)
+                # Check if the block starts (modulo leading whitespace
+                # and tabs from reindent) with "(pad ".
+                stripped = block.lstrip()
+                blocks.append((stripped.startswith("(pad "), block))
+                cur = []
+
+    # If there are trailing characters (whitespace) outside any block,
+    # `cur` is non-empty; append it as a non-pad chunk.
+    if cur:
+        blocks.append((False, "".join(cur)))
+
+    parts = []
+    for is_pad_block, block in blocks:
+        if is_pad_block:
+            block = pat.sub(rf"(at \1 \2 {rotation})", block, count=1)
+        parts.append(block)
+    return "".join(parts)
+
+
+def gen_j3_jst_gh_pcb_footprint(x: float, y: float, rotation: int) -> str:
+    """Emit the placed J3 — JST_GH_SM06B-GHS-TB horizontal SMD socket.
+
+    Reads the KiCad 10 stock library footprint
+    `Connector_JST:JST_GH_SM06B-GHS-TB_1x06-1MP_P1.25mm_Horizontal`
+    from the system KiCad install, then patches:
+      - Top-level `(footprint "...")` → prefix with library nickname
+        `Connector_JST:` so DRC matches it against the stock library
+      - `(version ...)` and `(generator ...)` → drop (KiCad pcbnew
+        ignores them inside embedded footprints; their presence flags
+        lib_footprint_mismatch)
+      - Insert `(uuid ...)` and `(at <fx(x)> <fy(y)> <rotation>)` for
+        positioning
+      - Add OAS-side `(property "Reference" "J3" ...)` /
+        `(property "Value" "..." ...)` etc. replacing the library's
+        Reference="REF**" and Value="JST_GH_SM06B-GHS-TB_…" defaults
+      - Replace inline `${REFERENCE}` reference token with literal "J3"
+      - Replace inline KiCad layer prefixes (already 7-bit ASCII, just
+        passed through)
+      - Drop the 3D model block (path uses an env-var that isn't
+        guaranteed to be defined on every machine; KiCad just shows a
+        missing-model warning, which is purely visual and not a DRC).
+    """
+    src = _J3_LIB_FOOTPRINT_PATH.read_text(encoding="utf-8")
+    uuid_tag = "j3-jst-gh"
+
+    # Drop the top-level header line + version/generator/etc — we re-emit
+    # them with our own UUID and (at ...).
+    lines = src.split("\n")
+    # First line: (footprint "JST_GH_SM06B-GHS-TB_1x06-1MP_P1.25mm_Horizontal"
+    assert lines[0].startswith("(footprint "), f"unexpected first line: {lines[0]!r}"
+    # Skip header + (version ...) + (generator ...) + (layer ...) + (descr ...) + (tags ...).
+    # The library file has the structure: (footprint "..." (version ...) (generator ...) (layer "F.Cu") (descr "...") (tags "...") (property "Reference" "REF**" ...) (property "Value" "..." ...) (property "KiLib_Generator" ...) (attr smd) (duplicate_pad_numbers_are_jumpers no) ...).
+    # We want to keep everything from `(attr smd)` onward, but DROP the
+    # (property "Reference" ...), (property "Value" ...) and
+    # (property "KiLib_Generator" ...) so we can re-emit them with OAS
+    # values. Also drop the final `(embedded_fonts no)` and `(model ...)`
+    # blocks at the bottom; we replace with our own and skip the 3D model.
+
+    # The easiest parse: split on top-level S-expression bounds. KiCad
+    # footprint files are well-formatted; each (key ...) at the indent
+    # level "\t(" is a top-level child. We walk the file and split.
+    body_chars = []
+    depth = 0
+    current = []
+    items: list[str] = []
+    for ch in src:
+        if ch == "(":
+            if depth == 0:
+                current = []  # outermost paren — start fresh
+            depth += 1
+            current.append(ch)
+        elif ch == ")":
+            depth -= 1
+            current.append(ch)
+            if depth == 0:
+                items.append("".join(current))
+                current = []
+        else:
+            if depth > 0:
+                current.append(ch)
+    # `items` now has exactly one element — the top-level (footprint ...).
+    assert len(items) == 1, f"expected 1 top-level item, got {len(items)}"
+    top = items[0]
+
+    # Now extract the children of the (footprint ...) block. Strip the
+    # outermost paren wrapper, then iterate through the inner content.
+    inner = top.strip()
+    assert inner.startswith("(footprint") and inner.endswith(")")
+    # Remove "(footprint " prefix and trailing ")".
+    inner = inner[len("(footprint"):].rstrip()
+    inner = inner.rstrip(")").rstrip()
+    # The next token is the footprint name (quoted string).
+    inner = inner.lstrip()
+    assert inner.startswith('"')
+    name_end = inner.index('"', 1)
+    fp_name = inner[1:name_end]
+    inner_after_name = inner[name_end + 1:]
+
+    # Walk children inside `inner_after_name`. Each child is either a
+    # (key ...) S-expression or whitespace.
+    children: list[str] = []
+    depth = 0
+    cur = []
+    for ch in inner_after_name:
+        if ch == "(":
+            if depth == 0:
+                cur = []
+            depth += 1
+            cur.append(ch)
+        elif ch == ")":
+            depth -= 1
+            cur.append(ch)
+            if depth == 0:
+                children.append("".join(cur))
+        else:
+            if depth > 0:
+                cur.append(ch)
+
+    # Filter out the items we want to REPLACE (version, generator,
+    # property Reference, property Value, property KiLib_Generator,
+    # embedded_fonts, model).
+    SKIP_PREFIXES = (
+        "(version", "(generator", "(generator_version",
+        "(property \"Reference\"",
+        "(property \"Value\"",
+        "(property \"KiLib_Generator\"",
+        "(embedded_fonts",
+        "(model ",
+    )
+    body_children = []
+    for child in children:
+        if any(child.startswith(p) for p in SKIP_PREFIXES):
+            continue
+        body_children.append(child)
+
+    # Re-indent each child to be nested inside our placed (footprint).
+    # The library content uses single-tab indent for first-level
+    # children; once embedded in the PCB it needs two-tab indent.
+    def reindent_for_pcb(s: str) -> str:
+        out_lines = []
+        for ln in s.split("\n"):
+            if ln == "":
+                out_lines.append(ln)
+            else:
+                out_lines.append("\t" + ln)
+        return "\n".join(out_lines)
+
+    body_text = "\n".join(reindent_for_pcb(c) for c in body_children)
+
+    # Replace the inline ${REFERENCE} token inside fp_text user blocks
+    # with the literal "J3" so the F.Fab REFERENCE text renders cleanly.
+    body_text = body_text.replace('"${REFERENCE}"', '"J3"')
+
+    # KiCad quirk: when a footprint is placed with non-zero rotation,
+    # each pad's `(at lx ly)` must carry the rotation explicitly
+    # (`(at lx ly <rotation>)`), or DRC interprets the pad's shape as
+    # ABSOLUTE (PCB-aligned) instead of rotating with the footprint —
+    # leading to false-positive pad-pad clearance and solder-mask-bridge
+    # errors. Demo PCBs in the KiCad install (e.g.
+    # demos/cm5_minima/CM5_MINIMA_3.kicad_pcb) show pcbnew itself
+    # writes pad rotation explicitly on save. Replicate that here:
+    # walk through `body_text` and, for each `(pad ...) ... (at lx ly)`
+    # without a third token, inject the footprint rotation.
+    if rotation != 0:
+        body_text = _annotate_pad_rotations(body_text, rotation)
+
+    # New (property ...) entries for Reference, Value, Footprint, etc.,
+    # to be placed immediately after the (tags ...) header.
+    properties = textwrap.dedent(f"""\
+        \t\t(property "Reference" "J3"
+        \t\t\t(at 0 -3.9 {rotation})
+        \t\t\t(layer "F.SilkS")
+        \t\t\t(uuid "{U('fp-prop-ref:' + uuid_tag)}")
+        \t\t\t(effects (font (size 1 1) (thickness 0.15)))
+        \t\t)
+        \t\t(property "Value" "JST SM06B-GHS-TB (SEN66 connector)"
+        \t\t\t(at 0 3.9 {rotation})
+        \t\t\t(layer "F.Fab")
+        \t\t\t(uuid "{U('fp-prop-val:' + uuid_tag)}")
+        \t\t\t(effects (font (size 1 1) (thickness 0.15)))
+        \t\t)
+        \t\t(property "Footprint" "Connector_JST:JST_GH_SM06B-GHS-TB_1x06-1MP_P1.25mm_Horizontal"
+        \t\t\t(at 0 0 0)
+        \t\t\t(layer "F.Fab")
+        \t\t\t(hide yes)
+        \t\t\t(uuid "{U('fp-prop-fp:' + uuid_tag)}")
+        \t\t\t(effects (font (size 1.27 1.27)))
+        \t\t)
+        \t\t(property "Datasheet" "http://www.jst-mfg.com/product/pdf/eng/eGH.pdf"
+        \t\t\t(at 0 0 0)
+        \t\t\t(layer "F.Fab")
+        \t\t\t(hide yes)
+        \t\t\t(uuid "{U('fp-prop-ds:' + uuid_tag)}")
+        \t\t\t(effects (font (size 1.27 1.27)))
+        \t\t)
+        \t\t(property "Description" "JST GH 6-pin SMD horizontal socket SM06B-GHS-TB. Mates with SEN66 JST GH cable. Sourceable: TME / Mouser / Botland."
+        \t\t\t(at 0 0 0)
+        \t\t\t(layer "F.Fab")
+        \t\t\t(hide yes)
+        \t\t\t(uuid "{U('fp-prop-desc:' + uuid_tag)}")
+        \t\t\t(effects (font (size 1.27 1.27)))
+        \t\t)""")
+
+    return textwrap.dedent(f"""\
+        \t(footprint "Connector_JST:{fp_name}"
+        \t\t(layer "F.Cu")
+        \t\t(uuid "{U('fp-inst:' + uuid_tag)}")
+        \t\t(at {fx(x)} {fy(y)} {rotation})
+        """) + properties + "\n" + body_text + "\n\t)"
+
+
+def gen_sensors_pcb_footprints() -> str:
+    """Emit the SEN66 reference + 4 zip-tie holes + J3 socket as one block.
+
+    Returns a multi-line string ready to embed inside the kicad_pcb body.
+    """
+    parts = []
+
+    # SEN66 mechanical reference (no pads, F.Fab + F.SilkS art only).
+    parts.append(gen_sen66_reference_pcb_footprint(
+        x=SEN66_ANCHOR_X, y=SEN66_ANCHOR_Y, rotation=SEN66_ROTATION,
+    ))
+
+    # 4× zip-tie holes. F.SilkS designator (ZT1..ZT4) sits 3.2 mm above
+    # each hole centre (toward PCB -Y, "north" / cable hole). The silk
+    # ring has radius 2.0 mm; the text is ~0.5 mm tall (centred) so a
+    # -3.2 mm offset puts the text bottom edge ~0.7 mm above the ring
+    # (well clear of the 0.15 mm silk-overlap rule).
+    silk_r = ZIPTIE_HOLE_SILK_RING_DIAMETER / 2.0
+    courtyard_r = ZIPTIE_HOLE_DIAMETER * 0.75
+    fab_r = ZIPTIE_HOLE_DIAMETER / 2.0
+    descr = "Zip-tie pass-through hole, Ø3.0 mm NPTH (fits 2.5 mm band zip-tie). Used in groups of 4 to retain the SEN66 module against the enclosure cover."
+    for ref, lx, ly in SEN66_ZIPTIE_LOCAL:
+        gx, gy = _sen66_local_to_pcb(lx, ly)
+        parts.append(_emit_pcb_footprint_simple_npth(
+            lib_id="ZipTieHole_3mm_NPTH",
+            reference=ref,
+            value="ZipTieHole_3mm_NPTH",
+            descr=descr,
+            drill_mm=ZIPTIE_HOLE_DIAMETER,
+            silk_ring_radius_mm=silk_r,
+            courtyard_radius_mm=courtyard_r,
+            fab_ring_radius_mm=fab_r,
+            x=gx, y=gy,
+            uuid_tag=f"ziptie:{ref}",
+            silk_label=ref,
+            silk_label_offset_y=-3.2,
+        ))
+
+    # J3 — JST GH 6-pin socket (PCB-side).
+    parts.append(gen_j3_jst_gh_pcb_footprint(
+        x=J3_X, y=J3_Y, rotation=J3_ROTATION,
+    ))
+    return "\n".join(parts)
+
+
+# -----------------------------------------------------------------------------
+# 1d) Board-level F.SilkS labels (human-readable identifiers)
+# -----------------------------------------------------------------------------
+def gen_silk_labels() -> str:
+    """Return a block of board-level F.SilkS `gr_text` labels.
+
+    These are committed-output documentation aimed at the human
+    hand-assembling and servicing the board. The F.Fab layer carries
+    machine-readable assembly drawings (MPN, value, polarity), but the
+    end user holding the assembled PCB sees only the silkscreen.
+    Per the CLAUDE.md "PCB silkscreen documentation" convention, every
+    major component / connector gets a short, ≤20-char identifier on
+    F.SilkS, ~1.0-1.5 mm height. Labels emitted here:
+      - "SEN66 air quality"  — names the SEN66 body shadow
+      - "-> J3"              — cable-direction hint at the SEN66
+                                connector edge
+      - "to SEN66"           — destination label at J3
+      - "zip-tie"            — explanatory hint near one of the ZT
+                                holes (rest are designator-only)
+
+    Labels are emitted as PCB-level `gr_text` (not inside the placed
+    footprints) so they are independent of footprint rotation —
+    placing them in PCB-global coords with rotation 0 keeps them
+    horizontally readable when the PCB is viewed in its normal
+    orientation (chord at the bottom).
+    """
+    label_size = 1.0
+    label_thickness = 0.15
+
+    def _silk(text: str, x: float, y: float, tag: str,
+              size: float = label_size, layer: str = "F.SilkS") -> str:
+        return textwrap.dedent(f"""\
+            \t(gr_text "{text}"
+            \t\t(at {fx(x)} {fy(y)} 0)
+            \t\t(layer "{layer}")
+            \t\t(uuid "{U('silk-label:' + tag)}")
+            \t\t(effects
+            \t\t\t(font (size {fmt(size)} {fmt(size)}) (thickness {fmt(label_thickness)}))
+            \t\t)
+            \t)""")
+
+    parts = []
+    # SEN66 body label. With v0.7 anchor (12, 25), body shadow occupies
+    # PCB X=12..37.6, Y=-30.2..25. Place label below body bottom edge
+    # (Y=25) in the gap toward the chord, well clear of cutout zones
+    # (lowest cutout C2 starts at Y=27.2).
+    parts.append(_silk("SEN66 air quality", 24.8, 26.2, "sen66-body"))
+    # Cable-direction hint near the SEN66 connector. With v0.7, connector
+    # sits at PCB (24.8, -30.2). Place arrow just south of the connector
+    # edge, between connector and the outlet (which sits at PCB Y=-17.4).
+    parts.append(_silk("-> J3", 24.8, -25.0, "sen66-cable-arrow"))
+    # J3 destination label. With v0.7 J3 at (48, 7), rotation 90°, the
+    # footprint courtyard sits roughly X=44.8..51.2, Y=1..13. Place the
+    # destination text just south of the courtyard.
+    parts.append(_silk("to SEN66", 48.0, 15.0, "j3-dest"))
+
+    # ---- v0.7: cutout-zone reservation labels + outlines on F.SilkS ----
+    # Each cutout C1..C5 along the chord is reserved for a future
+    # connector that extends through the case wall (24V terminal, JST GH
+    # to LD2410, USB-C debug, Qwiic, etc.). Draw both:
+    #   - A thin F.SilkS rectangle outlining the cutout footprint (so the
+    #     hand-assembler sees the reserved zone's exact shape on the
+    #     manufactured PCB, not only in pcbnew)
+    #   - A small "C# AUX" text label centred in the rectangle
+    for name, x1, x2, y1, y2 in CUTOUTS:
+        cx = (x1 + x2) / 2
+        cy = (y1 + y2) / 2
+        # Rectangle outline on F.SilkS (hairline 0.12 mm)
+        parts.append(textwrap.dedent(f"""\
+            \t(gr_rect
+            \t\t(start {fx(x1)} {fy(y1)})
+            \t\t(end {fx(x2)} {fy(y2)})
+            \t\t(stroke (width 0.12) (type solid))
+            \t\t(fill no)
+            \t\t(layer "F.SilkS")
+            \t\t(uuid "{U('cutout-silk-rect:'+name)}")
+            \t)"""))
+        # Centred text label
+        parts.append(_silk(f"{name} AUX", cx, cy, f"cutout-silk-{name}", size=0.8))
+    return "\n".join(parts)
 
 
 # -----------------------------------------------------------------------------
@@ -561,6 +1763,8 @@ def gen_pcb() -> str:
 
     keepouts, markers = gen_cutouts()
     sectors = gen_sectors()
+    sensor_footprints = gen_sensors_pcb_footprints()
+    silk_labels = gen_silk_labels()
 
     body = textwrap.dedent(f"""\
         (kicad_pcb
@@ -578,7 +1782,7 @@ def gen_pcb() -> str:
         {setup}
         \t(net 0 "")
         {outline}
-        """) + sectors + "\n" + markers + "\n" + "\n".join(footprints) + "\n" + keepouts + "\n)\n"
+        """) + sectors + "\n" + markers + "\n" + "\n".join(footprints) + "\n" + sensor_footprints + "\n" + silk_labels + "\n" + keepouts + "\n)\n"
     return body
 
 # -----------------------------------------------------------------------------
@@ -610,7 +1814,15 @@ SUBSHEET_PINS: dict[str, list[tuple[str, str, float, float, int]]] = {
         ("UART_TX",     "output",        38.1, 1.27, 0),
         ("UART_RX",     "input",         38.1, 3.81, 0),
     ],
-    "sensors": [],
+    "sensors": [
+        # name,        shape,           dx,   dy,    angle (180=left-edge, 0=right-edge)
+        # I2C_SDA / I2C_SCL come in from the MCU sub-sheet. The hierarchical
+        # merge by name is independent of geometry, so the side these sit on
+        # is purely visual. We put them on the RIGHT edge to keep them clear
+        # of the left-edge cluster on the MCU sheet block above.
+        ("I2C_SDA",     "bidirectional", 38.1, 1.27, 0),
+        ("I2C_SCL",     "input",         38.1, 3.81, 0),
+    ],
     "io": [],
 }
 
@@ -720,16 +1932,72 @@ def _gen_sheet_block(name: str, page: int) -> str:
     )
 
 
+def _root_wire(x1: float, y1: float, x2: float, y2: float, tag: str) -> str:
+    """Emit a (wire ...) entity on the root schematic.
+
+    Same shape as `_sch_wire`, but takes page-absolute mm coordinates
+    (no fx/fy offset) since the root schematic uses A4 page space, and
+    a separate uuid namespace tag prefix `root-wire:` so the UUIDs
+    don't collide with sub-sheet wire UUIDs.
+    """
+    return textwrap.dedent(f"""\
+        \t(wire
+        \t\t(pts
+        \t\t\t(xy {fmt(x1)} {fmt(y1)}) (xy {fmt(x2)} {fmt(y2)})
+        \t\t)
+        \t\t(stroke
+        \t\t\t(width 0)
+        \t\t\t(type default)
+        \t\t)
+        \t\t(uuid "{U('root-wire:'+tag)}")
+        \t)""")
+
+
 def gen_root_sch() -> str:
     """Root schematic referencing the 4 per-sector sub-sheets.
 
-    Contains no symbols of its own — only (sheet ...) blocks that point
-    to power.kicad_sch / mcu.kicad_sch / sensors.kicad_sch / io.kicad_sch.
+    Contains:
+      - One (sheet ...) block per sub-sheet (power / mcu / sensors / io).
+      - Inter-sheet wires connecting matching hierarchical sheet pins
+        across sub-sheets, so KiCad's ERC sees each net as electrically
+        connected at the parent level (not just at the per-sub-sheet
+        label-matching level). Without these wires, ERC reports each
+        sheet pin as "pin_not_connected" even though the underlying
+        nets are joined by name.
+
+    Inter-sheet wires added so far:
+      - I2C_SDA  : MCU block left-edge pin (101.60, 52.07) ↔
+                   Sensors block right-edge pin (88.9, 90.17)
+      - I2C_SCL  : MCU block left-edge pin (101.60, 54.61) ↔
+                   Sensors block right-edge pin (88.9, 92.71)
+
+    Later chunks will add LD2410_OUT, NFC_FD (sensors→MCU), and
+    UART_TX/UART_RX (MCU→sensors via LD2410 connector) as their sub-
+    sheet content lands.
     """
     sheet_blocks = "\n".join(
         _gen_sheet_block(name, page)
         for page, name in enumerate(SUBSHEETS, start=2)
     )
+
+    # Inter-sheet wires for nets present in BOTH MCU and Sensors blocks.
+    # Each route: short east stub from sensors pin → vertical to MCU pin
+    # row → short east stub into MCU pin.
+    inter_wires: list[str] = []
+    # I2C_SDA — sensors (88.9, 90.17) ↔ MCU (101.60, 52.07).
+    # Vertical leg at X = 95.25 — clean midpoint between the right edge
+    # of sensors block (X=88.9) and the left edge of MCU block (X=101.6).
+    inter_wires.append(_root_wire(88.9, 90.17, 95.25, 90.17, "sda-east-from-sensors"))
+    inter_wires.append(_root_wire(95.25, 90.17, 95.25, 52.07, "sda-vertical"))
+    inter_wires.append(_root_wire(95.25, 52.07, 101.60, 52.07, "sda-east-into-mcu"))
+    # I2C_SCL — sensors (88.9, 92.71) ↔ MCU (101.60, 54.61).
+    # Vertical leg at X = 97.79 (offset from the SDA leg so the two
+    # nets don't share a wire endpoint mid-route).
+    inter_wires.append(_root_wire(88.9, 92.71, 97.79, 92.71, "scl-east-from-sensors"))
+    inter_wires.append(_root_wire(97.79, 92.71, 97.79, 54.61, "scl-vertical"))
+    inter_wires.append(_root_wire(97.79, 54.61, 101.60, 54.61, "scl-east-into-mcu"))
+    wires_text = "\n".join(inter_wires)
+
     return textwrap.dedent(f"""\
         (kicad_sch
         \t(version {SCH_VERSION})
@@ -739,7 +2007,7 @@ def gen_root_sch() -> str:
         \t(paper "A4")
         \t(lib_symbols
         \t)
-        """) + sheet_blocks + textwrap.dedent("""
+        """) + sheet_blocks + "\n" + wires_text + textwrap.dedent("""
         \t(sheet_instances
         \t\t(path "/"
         \t\t\t(page "1")
@@ -8126,7 +9394,7 @@ def _mcu_pin_xy(pin_num: int, anchor_x: float, anchor_y: float) -> tuple[float, 
 
 def _sch_conn_01x06(
     x: float, y: float, angle: int, reference: str, value: str, uuid_tag: str,
-    dnp: bool = False,
+    dnp: bool = False, sheet_key: str = "mcu",
 ) -> str:
     """Emit a Connector_Generic:Conn_01x06 symbol instance.
 
@@ -8143,10 +9411,15 @@ def _sch_conn_01x06(
     `dnp` flags the part Do-Not-Populate. The part still appears on the
     PCB and in ERC, but a hatched overlay is drawn in eeschema and the
     BOM exporter marks it accordingly.
+
+    `sheet_key` selects which sub-sheet's hierarchical path is recorded in
+    the symbol's instance block (defaults to "mcu" for backwards compat
+    with J2; the sensors sub-sheet passes "sensors" for the SEN66 J3
+    connector).
     """
     sym_uuid = U("sym:" + uuid_tag)
     pin_uuids = [U(f"sym-pin:{uuid_tag}-{n}") for n in range(1, 7)]
-    sheet_path = f"/{ROOT_SHEET_UUID}/{SHEET_BLOCK_UUIDS['mcu']}"
+    sheet_path = f"/{ROOT_SHEET_UUID}/{SHEET_BLOCK_UUIDS[sheet_key]}"
     dnp_flag = "yes" if dnp else "no"
     pin_blocks = "\n".join(
         f"\t\t(pin \"{n}\"\n\t\t\t(uuid \"{pin_uuids[n-1]}\")\n\t\t)"
@@ -8690,6 +9963,257 @@ def gen_mcu_sch() -> str:
 
 
 # -----------------------------------------------------------------------------
+# 3d) Sensors sub-sheet — J3 (SEN66 JST-GH connector) + C10 decoupling cap
+# -----------------------------------------------------------------------------
+def SENSORS_LIB_SYMBOLS() -> str:
+    """Concatenated lib_symbols block for the sensors sub-sheet.
+
+    Reuses `_MCU_LIB_SYMBOLS_TAIL` verbatim — it already contains
+    Connector_Generic:Conn_01x06, Device:C, Device:C_Polarized,
+    power:+3V3, and power:GND. The unused Device:C_Polarized
+    declaration is harmless (KiCad only renders symbols that are
+    actually instantiated in the schematic body). Keeping a single
+    source for the embedded library symbols across sub-sheets means
+    any future symbol-definition fix lands in exactly one place.
+
+    Later chunks (#5b VEML7700, #5c LD2410, #5d NT3H2211) will likely
+    need additional symbols (Device:R, an LD2410 connector symbol, the
+    NXP NT3H2211 IC symbol). At that point we'll either widen this
+    function or split into per-chunk concatenations.
+    """
+    return _MCU_LIB_SYMBOLS_TAIL
+
+
+def gen_sensors_sch() -> str:
+    """Sensors sub-sheet — chunk #5a: SEN66 connection (J3 + C10).
+
+    Populates the SEN66 portion only. Other sensors (VEML7700 ambient
+    light, LD2410 presence radar, NT3H2211 NFC dynamic tag) are added in
+    later chunks #5b..#5d.
+
+    SEN66 pinout (Sensirion SEN6x datasheet v0.92 Dec 2025, Table 16
+    on p. 15) — applies to the entire SEN6x family (SEN62, SEN63C,
+    SEN65, SEN66, SEN68, SEN69C):
+
+      Pin 1: VDD  — Supply voltage (3.15-3.6 V)
+      Pin 2: GND  — Ground
+      Pin 3: SDA  — Serial data input/output (I²C, open-drain)
+      Pin 4: SCL  — Serial clock input         (I²C, open-drain)
+      Pin 5: GND  — Ground or NC  (internally tied to pin 2)
+      Pin 6: VDD  — Supply voltage or NC (internally tied to pin 1)
+
+    The SEN6x is I²C-only — there is no SEL/UART-mode select pin on
+    this family. (Earlier Sensirion modules had a SEL pin to choose
+    between I²C and UART; SEN6x dropped UART entirely.) Pins 5 and 6
+    duplicate pins 2 and 1 respectively, internally bonded together
+    for current-carrying and contact redundancy.
+
+    Wiring choice: tie pin 5 → GND and pin 6 → VDD (matching the
+    internal pairing). This adds zero electrical risk (the pins are
+    already tied internally) and gives better connector contact
+    resilience than leaving pins 5/6 as no-connect on the JST-GH
+    cable. A pin chafe or contact failure on either the VDD or GND
+    line would otherwise interrupt the sensor; with both pins active,
+    the second pin keeps the sensor running.
+
+    Connector: SEN66 module side uses ACES 51468-0064N-001 (or
+    51452-006H0H0-001), compatible with JST GHR-06V-S. PCB-side
+    socket on OAS: JST SM06B-GHS-TB (1.25 mm pitch, horizontal entry,
+    SMD), part of the JST GH series. Mating cable: any 6-pin JST GH
+    cable, ~50 mm length recommended (datasheet §3 says max 10 cm to
+    keep I²C crosstalk low — 50 mm is comfortable).
+
+    Local decoupling: C10 (100 nF 0402 X7R) sits between VDD and GND
+    of the SEN66 plug. SEN66 has internal regulation, but a local
+    100 nF damps any cable transient ringing on the +3V3 rail at the
+    JST-GH socket — cheap insurance.
+
+    Inter-sheet nets imported via hierarchical_label (matching sheet
+    pins are declared on the root sheet's Sensors block):
+      I2C_SDA   (bidirectional, from MCU sub-sheet's GPIO 6)
+      I2C_SCL   (input,         from MCU sub-sheet's GPIO 7)
+
+    +3V3 and GND join via global power symbols, the same KiCad
+    convention used in the MCU and power sub-sheets.
+    """
+    file_uuid = SHEET_FILE_UUIDS["sensors"]
+
+    # ===== J3: SEN66 JST-GH 6-pin connector =====
+    # All coordinates on the 1.27 mm KiCad connection grid (page-absolute
+    # mm, KiCad +Y is down on screen).
+    #
+    # With angle=0 and the symbol's _sch_conn_01x06 layout, the lib pin
+    # positions map to:
+    #   Pin 1 (top):    (J3_X - 5.08, J3_Y - 5.08)
+    #   Pin 2:          (J3_X - 5.08, J3_Y - 2.54)
+    #   Pin 3:          (J3_X - 5.08, J3_Y)
+    #   Pin 4:          (J3_X - 5.08, J3_Y + 2.54)
+    #   Pin 5:          (J3_X - 5.08, J3_Y + 5.08)
+    #   Pin 6 (bottom): (J3_X - 5.08, J3_Y + 7.62)
+    # All pin tips on the LEFT side; body to the right (X = J3_X-1.27 to
+    # J3_X+1.27).
+    #
+    # Place J3 in the upper-mid region of the sheet so all the wiring
+    # has clearance to the page frame, and the C10 + the hier labels
+    # fit comfortably to its left.
+    J3_X = 180.34
+    J3_Y = 110.49
+    J3_PIN_X = J3_X - 5.08    # 175.26 — tip column for all 6 pin tips
+    J3_PIN_Y = {
+        1: J3_Y - 5.08,        # 105.41 — VDD (top)
+        2: J3_Y - 2.54,        # 107.95 — GND
+        3: J3_Y,               # 110.49 — SDA
+        4: J3_Y + 2.54,        # 113.03 — SCL
+        5: J3_Y + 5.08,        # 115.57 — GND (internally tied to pin 2)
+        6: J3_Y + 7.62,        # 118.11 — VDD (internally tied to pin 1)
+    }
+
+    # ===== C10: 100 nF local decoupling cap =====
+    # Sits to the LEFT of J3, between the VDD and GND rails. Its top pin
+    # (anode in the schematic, no polarity for ceramic) wires to a +3V3
+    # local power flag; its bottom pin to a local GND flag. C10's column
+    # is offset west so it's clearly visually a separate component from
+    # J3 but still close to the SEN66 plug (the principal target for the
+    # decoupling).
+    C10_X = 170.18
+    C10_Y = 110.49
+    C10_TOP_Y = C10_Y - 3.81   # 106.68 — pin 1 (top) → +3V3
+    C10_BOT_Y = C10_Y + 3.81   # 114.30 — pin 2 (bottom) → GND
+
+    # ===== Hierarchical labels (I²C bus signals from the MCU) =====
+    # Placed on the LEFT edge of the page area so the sensor wires
+    # naturally route west from J3's pin tips. The two labels share an
+    # X column (159.39) two grid steps west of J3's pin tip column.
+    HLABEL_LEFT_X = 160.02      # X column for both I²C hier labels
+    HLABEL_SDA_Y = J3_PIN_Y[3]  # 110.49 — same row as J3 pin 3
+    HLABEL_SCL_Y = J3_PIN_Y[4]  # 113.03 — same row as J3 pin 4
+
+    parts: list[str] = []
+
+    # ----- Pin 1 (VDD, top): wire UP to a local +3V3 flag -----
+    PWR_J3P1_3V3_Y = J3_PIN_Y[1] - 3.81   # 101.60 — flag anchor above pin
+    parts.append(_sch_wire(J3_PIN_X, PWR_J3P1_3V3_Y, J3_PIN_X, J3_PIN_Y[1], "j3-p1-vdd-up"))
+    parts.append(_sch_power_flag(
+        lib_id="power:+3V3", value="+3V3",
+        x=J3_PIN_X, y=PWR_J3P1_3V3_Y, angle=0,
+        reference="#PWR40",
+        value_offset_x=0.0, value_offset_y=-3.556,
+        uuid_tag="pwr40-3v3-j3-p1",
+        sheet_key="sensors",
+    ))
+
+    # ----- Pin 2 (GND): hop LEFT and place a local GND flag -----
+    PWR_J3P2_GND_X = J3_PIN_X - 5.08      # 170.18 — flag anchor west of pin
+    parts.append(_sch_wire(J3_PIN_X, J3_PIN_Y[2], PWR_J3P2_GND_X, J3_PIN_Y[2], "j3-p2-gnd-hop"))
+    parts.append(_sch_power_flag(
+        lib_id="power:GND", value="GND",
+        x=PWR_J3P2_GND_X, y=J3_PIN_Y[2], angle=270,
+        reference="#PWR41",
+        value_offset_x=-3.81, value_offset_y=0.0,
+        uuid_tag="pwr41-gnd-j3-p2",
+        sheet_key="sensors",
+    ))
+
+    # ----- Pin 3 (SDA): wire LEFT to I2C_SDA hier label -----
+    parts.append(_sch_wire(J3_PIN_X, J3_PIN_Y[3], HLABEL_LEFT_X, J3_PIN_Y[3], "j3-p3-sda"))
+    parts.append(_sch_hierarchical_label(
+        name="I2C_SDA", shape="bidirectional",
+        x=HLABEL_LEFT_X, y=HLABEL_SDA_Y, angle=180, justify="right",
+        uuid_tag="sda-j3",
+    ))
+
+    # ----- Pin 4 (SCL): wire LEFT to I2C_SCL hier label -----
+    parts.append(_sch_wire(J3_PIN_X, J3_PIN_Y[4], HLABEL_LEFT_X, J3_PIN_Y[4], "j3-p4-scl"))
+    parts.append(_sch_hierarchical_label(
+        name="I2C_SCL", shape="input",
+        x=HLABEL_LEFT_X, y=HLABEL_SCL_Y, angle=180, justify="right",
+        uuid_tag="scl-j3",
+    ))
+
+    # ----- Pin 5 (GND): hop LEFT and place a local GND flag -----
+    PWR_J3P5_GND_X = J3_PIN_X - 5.08      # 170.18
+    parts.append(_sch_wire(J3_PIN_X, J3_PIN_Y[5], PWR_J3P5_GND_X, J3_PIN_Y[5], "j3-p5-gnd-hop"))
+    parts.append(_sch_power_flag(
+        lib_id="power:GND", value="GND",
+        x=PWR_J3P5_GND_X, y=J3_PIN_Y[5], angle=270,
+        reference="#PWR42",
+        value_offset_x=-3.81, value_offset_y=0.0,
+        uuid_tag="pwr42-gnd-j3-p5",
+        sheet_key="sensors",
+    ))
+
+    # ----- Pin 6 (VDD, bottom): wire DOWN to a local +3V3 flag -----
+    # Flag at angle=180 → tip points down, so its anchor sits BELOW the pin.
+    PWR_J3P6_3V3_Y = J3_PIN_Y[6] + 3.81   # 121.92 — flag anchor below pin
+    parts.append(_sch_wire(J3_PIN_X, J3_PIN_Y[6], J3_PIN_X, PWR_J3P6_3V3_Y, "j3-p6-vdd-down"))
+    parts.append(_sch_power_flag(
+        lib_id="power:+3V3", value="+3V3",
+        x=J3_PIN_X, y=PWR_J3P6_3V3_Y, angle=180,
+        reference="#PWR43",
+        value_offset_x=0.0, value_offset_y=3.556,
+        uuid_tag="pwr43-3v3-j3-p6",
+        sheet_key="sensors",
+    ))
+
+    # ----- C10 decoupling: +3V3 (top) and GND (bottom) local flags -----
+    C10_3V3_Y = C10_TOP_Y - 3.81          # 102.87 — flag anchor above C10
+    parts.append(_sch_wire(C10_X, C10_3V3_Y, C10_X, C10_TOP_Y, "c10-top-3v3"))
+    parts.append(_sch_power_flag(
+        lib_id="power:+3V3", value="+3V3",
+        x=C10_X, y=C10_3V3_Y, angle=0,
+        reference="#PWR44",
+        value_offset_x=0.0, value_offset_y=-3.556,
+        uuid_tag="pwr44-3v3-c10",
+        sheet_key="sensors",
+    ))
+    C10_GND_Y = C10_BOT_Y + 3.81          # 118.11 — flag anchor below C10
+    parts.append(_sch_wire(C10_X, C10_BOT_Y, C10_X, C10_GND_Y, "c10-bot-gnd"))
+    parts.append(_sch_power_flag(
+        lib_id="power:GND", value="GND",
+        x=C10_X, y=C10_GND_Y, angle=0,
+        reference="#PWR45",
+        value_offset_x=0.0, value_offset_y=3.81,
+        uuid_tag="pwr45-gnd-c10",
+        sheet_key="sensors",
+    ))
+
+    # ===== Component symbols =====
+    # J3 SEN66 JST-GH 6-pin connector. Value field carries the MPN
+    # (JST SM06B-GHS-TB) per the project's Module Identification rule
+    # so the BOM exporter always picks up a real, sourceable part.
+    parts.append(_sch_conn_01x06(
+        x=J3_X, y=J3_Y, angle=0,
+        reference="J3",
+        value="JST SM06B-GHS-TB (SEN66-SIN-T, MPN 3.001.030; TME/Mouser)",
+        uuid_tag="j3-sen66",
+        sheet_key="sensors",
+    ))
+    parts.append(_sch_capacitor(
+        lib_id="Device:C",
+        x=C10_X, y=C10_Y, angle=0,
+        reference="C10", value="100nF",
+        uuid_tag="c10-sen66-decoupling",
+        sheet_key="sensors",
+    ))
+
+    body = "\n".join(parts)
+    return textwrap.dedent(f"""\
+        (kicad_sch
+        \t(version {SCH_VERSION})
+        \t(generator "eeschema")
+        \t(generator_version "{GEN_VERSION}")
+        \t(uuid "{file_uuid}")
+        \t(paper "A4")
+        \t(lib_symbols
+        {SENSORS_LIB_SYMBOLS()}
+        \t)
+        {body}
+        \t(embedded_fonts no)
+        )
+        """)
+
+
+# -----------------------------------------------------------------------------
 # 4) Project file
 # -----------------------------------------------------------------------------
 def gen_pro() -> str:
@@ -8884,6 +10408,12 @@ def main():
     (HERE / "libraries" / "oas.pretty" / "MountingHole_3.8mm_M3.kicad_mod").write_text(
         gen_mounting_hole_footprint(), encoding="utf-8"
     )
+    (HERE / "libraries" / "oas.pretty" / "SEN66_Mechanical_Reference.kicad_mod").write_text(
+        gen_sen66_mechanical_footprint(), encoding="utf-8"
+    )
+    (HERE / "libraries" / "oas.pretty" / "ZipTieHole_3mm_NPTH.kicad_mod").write_text(
+        gen_ziptie_hole_footprint(), encoding="utf-8"
+    )
     (HERE / "oas.kicad_pcb").write_text(gen_pcb(), encoding="utf-8")
     (HERE / "oas.kicad_sch").write_text(gen_root_sch(), encoding="utf-8")
     for name in SUBSHEETS:
@@ -8891,6 +10421,8 @@ def main():
             content = gen_power_sch()
         elif name == "mcu":
             content = gen_mcu_sch()
+        elif name == "sensors":
+            content = gen_sensors_sch()
         else:
             content = gen_subsheet_sch(name)
         (HERE / f"{name}.kicad_sch").write_text(content, encoding="utf-8")
@@ -8913,6 +10445,8 @@ def main():
         "power.kicad_sch", "mcu.kicad_sch", "sensors.kicad_sch", "io.kicad_sch",
         "fp-lib-table", "sym-lib-table",
         "libraries/oas.pretty/MountingHole_3.8mm_M3.kicad_mod",
+        "libraries/oas.pretty/SEN66_Mechanical_Reference.kicad_mod",
+        "libraries/oas.pretty/ZipTieHole_3mm_NPTH.kicad_mod",
     ]:
         full = HERE / p
         print(f"  {p}  ({full.stat().st_size} bytes)")
