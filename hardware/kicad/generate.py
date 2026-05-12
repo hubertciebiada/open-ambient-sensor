@@ -8079,14 +8079,44 @@ def gen_mcu_sch() -> str:
                                                 +-- L-route ------- pin 3 left
 
       Top-right of the U3 body (at 152.4, 110), the J2 header sits at
-      (200, 101.11) just to its right, with pins exiting LEFT toward U3.
-      The four signal pins (J2.3-6) align Y-row-by-row with U3.9-12 so
-      every recovery-header wire is a clean horizontal hop.
+      (199.39, 101.6) just to its right, with pins exiting LEFT toward
+      U3. The J2 pinout is captured by the J2_PIN_MAP table below; the
+      wire routing is derived from that table so adding or moving a
+      signal only requires updating the map.
 
       Left-edge hierarchical labels (X=120) carry the sensor-bound nets:
       I2C_SDA, I2C_SCL, LD2410_OUT, NFC_FD.  Right-side hierarchical
-      labels (X=222) carry UART_TX / UART_RX (T-tapped on the wires that
-      already run from U3 right pins to J2).
+      labels (X=222) carry UART_TX / UART_RX.
+
+    J2 (SWD/UART Recovery, DNP) pinout
+    ----------------------------------
+      J2.1 (top)    +3V3         programmer can supply 3V3 if needed
+      J2.2          GND
+      J2.3          UART_TX      from U3.11 (GPIO16) — feeds LD2410 RX
+      J2.4          UART_RX      to   U3.12 (GPIO17) — from LD2410 TX
+      J2.5          EN           reset (active low) — pull to GND to reset
+      J2.6 (bottom) GPIO9 / BOOT boot-mode strap — pull low + reset for
+                                 download mode
+
+    Rationale for this order: power pins at the top, signal pins below,
+    TX/RX kept adjacent so a standard 6-wire UART/programmer ribbon can
+    address the bus without skipping pins. EN and BOOT live below UART
+    because a typical recovery session pulses BOOT (held during reset)
+    while UART is plugged in continuously.
+
+    Wire routing (derived from J2_PIN_MAP)
+    --------------------------------------
+    Because the new pinout swaps the (TX/RX) pair with the (EN/BOOT)
+    pair compared to a row-aligned mapping, the four signal wires
+    between U3 right pins and J2 left pins cross. KiCad treats a wire
+    crossing as electrically separate only when neither wire has an
+    endpoint at the crossing and no junction is placed there. To
+    satisfy this for all four signals, TX and RX take a small north
+    detour through Y=92.71 (well clear of the U3 right-pin rows
+    Y=101.60..109.22) before dropping back down at their J2 row, while
+    EN and BOOT use simple L-jogs inside the U3↔J2 channel. All
+    crossings are mid-mid (no endpoints, no junctions) so they stay
+    electrically distinct.
 
     Pinout (per v0.3 ARCHITECTURE.md, post strap-pin validation):
       U3.1  5V          (NO-CONNECT — VBUS not used outside the SuperMini)
@@ -8097,10 +8127,10 @@ def gen_mcu_sch() -> str:
       U3.6  GPIO 8     (NO-CONNECT — onboard WS2812 on SuperMini, no ext. LED)
       U3.7  GPIO 10    → LD2410_OUT   (presence interrupt; was GPIO 4 = MTMS strap)
       U3.8  GPIO 11    → NFC_FD       (NT3H2211 FD; was GPIO 5 = MTDI strap)
-      U3.9  EN         → J2.3         (reset / recovery)
-      U3.10 GPIO 9     → J2.4         (boot-mode strap; recovery header only)
-      U3.11 GPIO 16    → UART_TX (→J2.5)  (256000 baud to LD2410 RX)
-      U3.12 GPIO 17    → UART_RX (←J2.6)  (256000 baud from LD2410 TX)
+      U3.9  EN         → J2.5         (reset / recovery)
+      U3.10 GPIO 9     → J2.6         (boot-mode strap; recovery header only)
+      U3.11 GPIO 16    → J2.3 / UART_TX (256000 baud to LD2410 RX)
+      U3.12 GPIO 17    → J2.4 / UART_RX (256000 baud from LD2410 TX)
       U3.13-16 GPIO 18-21   (NO-CONNECT — reserved for future expansion)
 
     Inter-sheet nets exported via hierarchical_label (matching sheet ports
@@ -8182,29 +8212,80 @@ def gen_mcu_sch() -> str:
     PWR_3V3_Y       = BUS_3V3_Y    # power symbol anchor sits on the bus
 
     # ===== J2: SWD/UART recovery header, 6-pin, DNP =====
-    # Anchor Y chosen so J2.3 (= U3.9 row, EN) aligns with U3.9 at Y=101.60.
-    # Conn_01x06 pin 3 lib Y=0 maps to schem Y=anchor_y. So anchor_y = 101.60.
-    # J2 placed to the right of U3 so its left-facing pins connect via
-    # short horizontal wires to U3's right pins. The four signal pins
-    # (J2.3-J2.6) align row-by-row with U3.9-U3.12.
-    J2_X = 199.39            # column 157
-    J2_Y = U3_EN_Y           # 101.60
-    J2_PIN_X = J2_X - 5.08   # 194.31 — pin tip column (all 6 pins)
-    J2_P1_Y = J2_Y - 5.08    # 96.52  — 3V3
-    J2_P2_Y = J2_Y - 2.54    # 99.06  — GND
-    J2_P3_Y = J2_Y           # 101.60 — EN (← U3.9)
-    J2_P4_Y = J2_Y + 2.54    # 104.14 — GPIO 9 BOOT (← U3.10)
-    J2_P5_Y = J2_Y + 5.08    # 106.68 — UART_TX (← U3.11)
-    J2_P6_Y = J2_Y + 7.62    # 109.22 — UART_RX (← U3.12)
+    # Anchor (J2_X, J2_Y) chosen so the J2 body sits to the right of U3
+    # with its leftward-facing pins in the channel between U3 right pins
+    # (X=165.10) and the right margin (X=222.25). Conn_01x06 lib pin Y
+    # offsets are {+5.08, +2.54, 0, -2.54, -5.08, -7.62}; with angle=0
+    # they map to schem Y = anchor_y - lib_y.
+    J2_X = 199.39                # column 157
+    J2_Y = 101.60                # row 80 — pin 3 lands exactly at U3.9 Y
+    J2_PIN_X = J2_X - 5.08       # 194.31 — pin tip column (all 6 pins)
+    J2_PIN_Y = {                 # schem Y of each J2 pin tip (X = J2_PIN_X)
+        1: J2_Y - 5.08,          # 96.52  — TOP
+        2: J2_Y - 2.54,          # 99.06
+        3: J2_Y,                 # 101.60
+        4: J2_Y + 2.54,          # 104.14
+        5: J2_Y + 5.08,          # 106.68
+        6: J2_Y + 7.62,          # 109.22 — BOTTOM
+    }
+
+    # J2_PIN_MAP — single source of truth for the recovery header pinout.
+    # `signal` is one of {"+3V3", "GND", "EN", "BOOT", "TX", "RX"} and is
+    # used downstream to derive the wires connecting J2 to U3 / power
+    # symbols / hier labels.
+    J2_PIN_MAP: dict[int, str] = {
+        1: "+3V3",      # programmer supplies 3V3 if needed
+        2: "GND",
+        3: "TX",        # ← U3.11 GPIO16 ; continues east to UART_TX hier label
+        4: "RX",        # ← U3.12 GPIO17 ; continues east to UART_RX hier label
+        5: "EN",        # ← U3.9
+        6: "BOOT",      # ← U3.10 GPIO9
+    }
+    # Validate: a future edit that breaks the {signal: pin} bijection
+    # would silently produce broken wires; assert it loudly instead.
+    assert set(J2_PIN_MAP.values()) == {"+3V3", "GND", "EN", "BOOT", "TX", "RX"}, \
+        f"J2_PIN_MAP must cover all 6 required signals exactly once: {J2_PIN_MAP}"
+    # Inverse map for routing convenience: signal -> J2 pin number.
+    J2_PIN_OF: dict[str, int] = {sig: pin for pin, sig in J2_PIN_MAP.items()}
 
     # ===== Hier-label columns =====
     # All hier labels for sensor-bound nets on LEFT side at X=119.38 (signals
     # flow OUT of MCU to the LEFT, since the sensors sheet is bottom-LEFT
     # in the root sheet layout).
     HLABEL_LEFT_X = 119.38   # column 94
-    # UART hier labels on the RIGHT, between J2 body and the right margin,
-    # T-tapping the existing U3→J2 wires.
+    # UART hier labels on the RIGHT, between J2 body and the right margin.
+    # Their Y values follow J2.3 (TX) and J2.4 (RX) — the UART wires now
+    # land on those rows after the U3→J2 jog, so the hier labels sit at
+    # the same Y as the J2 pin tap.
     HLABEL_RIGHT_X = 222.25  # column 175
+    HLABEL_TX_Y = J2_PIN_Y[J2_PIN_OF["TX"]]   # 101.60
+    HLABEL_RX_Y = J2_PIN_Y[J2_PIN_OF["RX"]]   # 104.14
+
+    # ===== Routing columns for the U3 ↔ J2 channel =====
+    # The four signals between U3 right pins and J2 left pins need to
+    # swap rows: TX (U3.11 Y=106.68) → J2.3 (Y=101.60), RX (U3.12 Y=109.22)
+    # → J2.4 (Y=104.14), EN (U3.9 Y=101.60) → J2.5 (Y=106.68), BOOT
+    # (U3.10 Y=104.14) → J2.6 (Y=109.22).  A swap of two adjacent row-
+    # pairs cannot be done with simple L-jogs without two of the wires
+    # sharing a Y line, so TX and RX take a small *north detour* through
+    # an empty Y row above U3 (Y_DETOUR), keeping all wire crossings at
+    # mid-mid (no endpoints, no junctions) — KiCad leaves those
+    # electrically distinct.
+    #
+    # The six X columns below sit on the 1.27 mm connection grid and are
+    # ordered left-to-right so each wire's vertical leg has an
+    # unambiguous slot:
+    #
+    #   X_TX_NORTH < X_EN_SOUTH < X_TX_DOWN < X_RX_NORTH < X_BOOT_SOUTH < X_RX_DOWN
+    X_TX_NORTH   = 167.64    # column 132 — TX leaves U3.11 row, jogs N
+    X_EN_SOUTH   = 170.18    # column 134 — EN  leaves U3.9 row, jogs S
+    X_TX_DOWN    = 172.72    # column 136 — TX  returns from detour, jogs S to Y=101.60
+    X_RX_NORTH   = 175.26    # column 138 — RX  leaves U3.12 row, jogs N
+    X_BOOT_SOUTH = 177.80    # column 140 — BOOT leaves U3.10 row, jogs S
+    X_RX_DOWN    = 180.34    # column 142 — RX  returns from detour, jogs S to Y=104.14
+    Y_DETOUR     = 92.71     # row 73    — well clear of U3 right-pin rows
+                             #             (matches the existing +3V3 PWR
+                             #             flag Y for visual coherence)
 
     # ===== Wires =====
     parts: list[str] = []
@@ -8241,26 +8322,57 @@ def gen_mcu_sch() -> str:
     parts.append(_sch_wire(U3_X_LEFT, U3_LDR_Y, HLABEL_LEFT_X, U3_LDR_Y, "ldr-wire"))
     parts.append(_sch_wire(U3_X_LEFT, U3_NFC_Y, HLABEL_LEFT_X, U3_NFC_Y, "nfc-wire"))
 
-    # ---- U3 right pins → J2 / UART hier labels (4 horizontal hops) ----
-    # EN and BOOT_MODE: 2-pin nets ending at J2.3 / J2.4.
-    parts.append(_sch_wire(U3_X_RIGHT, U3_EN_Y,   J2_PIN_X, J2_P3_Y, "en-to-j2"))
-    parts.append(_sch_wire(U3_X_RIGHT, U3_BOOT_Y, J2_PIN_X, J2_P4_Y, "boot-to-j2"))
-    # UART_TX / UART_RX wires run east from U3 right pins all the way to
-    # the right-edge UART hier labels at X=HLABEL_RIGHT_X=222.25. J2.5 and
-    # J2.6 sit mid-wire at X=J2_PIN_X=194.31 — each needs a junction dot
-    # to mark the T-tap.
-    parts.append(_sch_wire(U3_X_RIGHT, U3_TX_Y,   HLABEL_RIGHT_X, U3_TX_Y, "tx-bus"))
-    parts.append(_sch_wire(U3_X_RIGHT, U3_RX_Y,   HLABEL_RIGHT_X, U3_RX_Y, "rx-bus"))
-    parts.append(_sch_junction(J2_PIN_X, U3_TX_Y, "uart-tx-j2-tap"))
-    parts.append(_sch_junction(J2_PIN_X, U3_RX_Y, "uart-rx-j2-tap"))
+    # ---- U3 right pins → J2 (signal swap with TX/RX detouring north) ----
+    # Each net is emitted as a sequence of straight-line wires (one per
+    # segment of the polyline). KiCad joins consecutive wires that share
+    # a coordinate into a single net.
+    j2_tx_y   = J2_PIN_Y[J2_PIN_OF["TX"]]    # 101.60
+    j2_rx_y   = J2_PIN_Y[J2_PIN_OF["RX"]]    # 104.14
+    j2_en_y   = J2_PIN_Y[J2_PIN_OF["EN"]]    # 106.68
+    j2_boot_y = J2_PIN_Y[J2_PIN_OF["BOOT"]]  # 109.22
 
-    # ---- J2.1 (3V3) and J2.2 (GND) local power flags ----
+    # EN  : U3.9 → J2.5  (south L-jog at X_EN_SOUTH)
+    parts.append(_sch_wire(U3_X_RIGHT, U3_EN_Y,   X_EN_SOUTH, U3_EN_Y,   "en-east"))
+    parts.append(_sch_wire(X_EN_SOUTH, U3_EN_Y,   X_EN_SOUTH, j2_en_y,   "en-south"))
+    parts.append(_sch_wire(X_EN_SOUTH, j2_en_y,   J2_PIN_X,   j2_en_y,   "en-to-j2"))
+
+    # BOOT: U3.10 → J2.6  (south L-jog at X_BOOT_SOUTH)
+    parts.append(_sch_wire(U3_X_RIGHT, U3_BOOT_Y, X_BOOT_SOUTH, U3_BOOT_Y, "boot-east"))
+    parts.append(_sch_wire(X_BOOT_SOUTH, U3_BOOT_Y, X_BOOT_SOUTH, j2_boot_y, "boot-south"))
+    parts.append(_sch_wire(X_BOOT_SOUTH, j2_boot_y, J2_PIN_X, j2_boot_y, "boot-to-j2"))
+
+    # TX  : U3.11 → north detour → J2.3 → continues east to UART_TX hier label
+    # The single continuous TX net is broken into 5 wire segments:
+    #   1) U3.11 east to X_TX_NORTH at Y=U3_TX_Y
+    #   2) X_TX_NORTH north from Y=U3_TX_Y to Y=Y_DETOUR
+    #   3) Y=Y_DETOUR east from X_TX_NORTH to X_TX_DOWN
+    #   4) X_TX_DOWN south from Y=Y_DETOUR to Y=j2_tx_y
+    #   5) j2_tx_y east from X_TX_DOWN through J2.3 (194.31) to HLABEL_RIGHT_X
+    parts.append(_sch_wire(U3_X_RIGHT,  U3_TX_Y,   X_TX_NORTH, U3_TX_Y,   "tx-east"))
+    parts.append(_sch_wire(X_TX_NORTH,  U3_TX_Y,   X_TX_NORTH, Y_DETOUR,  "tx-north"))
+    parts.append(_sch_wire(X_TX_NORTH,  Y_DETOUR,  X_TX_DOWN,  Y_DETOUR,  "tx-detour"))
+    parts.append(_sch_wire(X_TX_DOWN,   Y_DETOUR,  X_TX_DOWN,  j2_tx_y,   "tx-down"))
+    parts.append(_sch_wire(X_TX_DOWN,   j2_tx_y,   HLABEL_RIGHT_X, j2_tx_y, "tx-bus"))
+    # J2.3 sits mid-wire on the final eastward segment — junction marks the tap.
+    parts.append(_sch_junction(J2_PIN_X, j2_tx_y, "tx-j2-tap"))
+
+    # RX  : U3.12 → north detour → J2.4 → continues east to UART_RX hier label
+    parts.append(_sch_wire(U3_X_RIGHT,  U3_RX_Y,   X_RX_NORTH, U3_RX_Y,   "rx-east"))
+    parts.append(_sch_wire(X_RX_NORTH,  U3_RX_Y,   X_RX_NORTH, Y_DETOUR,  "rx-north"))
+    parts.append(_sch_wire(X_RX_NORTH,  Y_DETOUR,  X_RX_DOWN,  Y_DETOUR,  "rx-detour"))
+    parts.append(_sch_wire(X_RX_DOWN,   Y_DETOUR,  X_RX_DOWN,  j2_rx_y,   "rx-down"))
+    parts.append(_sch_wire(X_RX_DOWN,   j2_rx_y,   HLABEL_RIGHT_X, j2_rx_y, "rx-bus"))
+    parts.append(_sch_junction(J2_PIN_X, j2_rx_y, "rx-j2-tap"))
+
+    # ---- J2.1 (+3V3) and J2.2 (GND) local power flags ----
     # +3V3 symbol just above J2.1; wire down from symbol to pin tip.
-    PWR_J2_3V3_Y = J2_P1_Y - 3.81      # 92.71 (row 73) — symbol 3.81 mm above pin
-    parts.append(_sch_wire(J2_PIN_X, PWR_J2_3V3_Y, J2_PIN_X, J2_P1_Y, "j2-3v3-drop"))
+    j2_3v3_y = J2_PIN_Y[J2_PIN_OF["+3V3"]]   # 96.52
+    j2_gnd_y = J2_PIN_Y[J2_PIN_OF["GND"]]    # 99.06
+    PWR_J2_3V3_Y = j2_3v3_y - 3.81           # 92.71 — symbol 3.81 mm above pin
+    parts.append(_sch_wire(J2_PIN_X, PWR_J2_3V3_Y, J2_PIN_X, j2_3v3_y, "j2-3v3-drop"))
     # GND symbol just left of J2.2; wire from pin tip leftward to symbol.
-    PWR_J2_GND_X = J2_PIN_X - 5.08      # 189.23 (column 149)
-    parts.append(_sch_wire(J2_PIN_X, J2_P2_Y, PWR_J2_GND_X, J2_P2_Y, "j2-gnd-hop"))
+    PWR_J2_GND_X = J2_PIN_X - 5.08           # 189.23 (column 149)
+    parts.append(_sch_wire(J2_PIN_X, j2_gnd_y, PWR_J2_GND_X, j2_gnd_y, "j2-gnd-hop"))
 
     # ===== Junctions =====
     # Already emitted UART tap junctions above. No others needed: every
@@ -8291,14 +8403,17 @@ def gen_mcu_sch() -> str:
         uuid_tag="nfc-fd",
     ))
     # Right-edge labels: angle=0 (arrow points right), justify=left.
+    # The UART hier labels live at the *new* Y rows of their respective
+    # J2 pin taps (TX → Y=101.60, RX → Y=104.14), so the TX/RX east-going
+    # segments terminate cleanly at the labels.
     parts.append(_sch_hierarchical_label(
         name="UART_TX", shape="output",
-        x=HLABEL_RIGHT_X, y=U3_TX_Y, angle=0, justify="left",
+        x=HLABEL_RIGHT_X, y=HLABEL_TX_Y, angle=0, justify="left",
         uuid_tag="uart-tx",
     ))
     parts.append(_sch_hierarchical_label(
         name="UART_RX", shape="input",
-        x=HLABEL_RIGHT_X, y=U3_RX_Y, angle=0, justify="left",
+        x=HLABEL_RIGHT_X, y=HLABEL_RX_Y, angle=0, justify="left",
         uuid_tag="uart-rx",
     ))
 
@@ -8386,10 +8501,12 @@ def gen_mcu_sch() -> str:
         uuid_tag="pwr29-gnd-u3",
         sheet_key="mcu",
     ))
-    # GND on J2.2 (angle=270).
+    # GND on J2's GND pin (angle=270).  Pin number is whichever J2
+    # pin is mapped to "GND" in J2_PIN_MAP — we look the Y up rather
+    # than hard-coding the row so the symbol follows the map.
     parts.append(_sch_power_flag(
         lib_id="power:GND", value="GND",
-        x=PWR_J2_GND_X, y=J2_P2_Y, angle=270,
+        x=PWR_J2_GND_X, y=j2_gnd_y, angle=270,
         reference="#PWR30",
         value_offset_x=-3.81, value_offset_y=0.0,
         uuid_tag="pwr30-gnd-j2",
