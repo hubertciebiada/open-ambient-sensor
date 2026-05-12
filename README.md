@@ -62,7 +62,7 @@ For the full module list, pinout and architectural decisions, see [`docs/ARCHITE
 ## Repository layout
 
 ```
-open-air-sensor/
+open-ambient-sensor/
 ├── hardware/
 │   ├── case/                     # 3D bracket for SEN66 (own work); manufacturer DXF kept local
 │   ├── kicad/                    # schematic, PCB, project libraries
