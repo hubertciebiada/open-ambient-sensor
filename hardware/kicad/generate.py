@@ -313,6 +313,77 @@ def _ld2410_local_to_pcb(lx: float, ly: float) -> tuple[float, float]:
     return (LD2410_ANCHOR_X + rx, LD2410_ANCHOR_Y + ry)
 
 
+# -----------------------------------------------------------------------------
+# ESP32-C6 DevKitM-1-N4 + MIKROE-2462 NFC Tag 2 Click — PCB shadow reservations
+# -----------------------------------------------------------------------------
+# Both are daughterboards mounted on FEMALE pin sockets ("goldpiny żeńskie")
+# on the OAS PCB. The boards sit ~3-7 mm above the PCB on the standoff of
+# their pin headers, so SMD components on the OAS PCB CAN be placed under
+# their shadow (within the standoff Z budget of ~3-5 mm).
+#
+# This chunk just RESERVES the shadow areas with mechanical-reference
+# footprints (F.Fab body outline + F.SilkS marker + pin-row hints + labels).
+# The actual electrical female pin sockets land in chunk #7 (PCB routing).
+#
+# Layout (v0.13, vertical orientation for both, in upper-center area
+# between LD2410 on the left and SEN66 on the right):
+#
+#   ESP32-C6 DevKitM-1-N4   MIKROE-2462 (NFC Tag 2 Click)
+#   body: 25.4 × 48.26 mm    body: 25.4 × 42.9 mm
+#   anchor (-25.4, -54.36)   anchor (+1, -52)
+#   body X=-25.4..0          body X=+1..+26.4
+#   body Y=-54.36..-6.1      body Y=-52..-9.1
+#   antenna at TOP edge      mikroBUS pins on long edges
+#   USB-C at BOTTOM edge     (1×8 left + 1×8 right)
+#
+# At the body top edges, the PCB outline at Y=-54.36 has x_max=±25.4
+# exactly, so each daughterboard's outer long edge sits right at the
+# PCB outline. ESP32 right edge (X=0) and MIKROE left edge (X=+1) leave
+# a 1 mm gap between the two boards. Both bodies clear the central cable
+# hole (Ø12 at origin, top edge Y=-6): ESP32 bottom at Y=-6.1 has 0.1 mm
+# clearance (visual only — pin sockets on long edges are at Y much higher);
+# MIKROE bottom at Y=-9.1 has 3.1 mm clearance.
+
+ESP32_BODY_W = 25.4              # mm, short axis (X width when vertical)
+ESP32_BODY_L = 48.26             # mm, long axis  (Y height when vertical)
+ESP32_BODY_Z = 8.6               # mm, height above PCB (DevKitM-1 spec)
+ESP32_PIN_ROW_INSET = 1.27       # mm, pin row distance from each long edge
+                                  # (pin column at body edge ± 1.27 mm)
+ESP32_PIN_PITCH = 2.54
+ESP32_PIN_COUNT_PER_ROW = 15
+
+ESP32_ANCHOR_X = -28.5            # mm; body lower-left corner. Body X
+                                   # range -28.5..-3.1 leaves 0.7 mm gap
+                                   # to LD2410 right edge (X=-29.21) and
+                                   # ~1 mm gap to MIKROE-2462 left edge.
+ESP32_ANCHOR_Y = -52.5            # mm; body Y range -52.5..-4.24 just
+                                   # inside PCB outline (x_max=±29.05 at
+                                   # Y=-52.5). Body bottom Y=-4.24 shadows
+                                   # cable hole upper edge; pin sockets
+                                   # on long edges (X column = anchor ±
+                                   # 1.27 inset) span pin Y -46..-10 well
+                                   # above cable hole Y zone (-6..+6).
+
+MIKROE2462_BODY_W = 25.4          # mm, short axis (X width when vertical)
+MIKROE2462_BODY_L = 42.9          # mm, long axis  (Y height when vertical)
+MIKROE2462_BODY_Z = 7.0           # mm, approx height above OAS PCB
+MIKROE2462_PIN_ROW_INSET = 1.27   # mikroBUS pin-row distance from each long edge
+MIKROE2462_PIN_PITCH = 2.54
+MIKROE2462_PIN_COUNT_PER_ROW = 8
+
+MIKROE2462_ANCHOR_X = -2.1        # body lower-left corner; body X range
+                                   # -2.1..+23.3 leaves ~1 mm gap to ESP32
+                                   # right edge (X=-3.1) and ~0.2 mm gap
+                                   # to SEN66 body left edge (X=+23.5).
+MIKROE2462_ANCHOR_Y = -53.1       # body Y range -53.1..-10.2 sits above
+                                   # the ZT3 silk circle (Y=-10..-6 at
+                                   # X=18.5..22.5; MIKROE silk Y_max=-10.4
+                                   # clears ZT3 silk Y_min=-10 by 0.4 mm).
+                                   # Pin row Y values land at -40..-22,
+                                   # well above cable hole and ZT zones.
+
+
+# -----------------------------------------------------------------------------
 # J4 — stock KiCad PinHeader_1x05_P1.27mm_Vertical at the LD2410 connector
 # short edge. With LD2410 in its vertical orientation (LD2410_ROTATION=270
 # in the .kicad_pcb file, which puts the connector edge at PCB Y=+19.05),
@@ -2082,6 +2153,149 @@ def gen_j4_pinheader_pcb_footprint(x: float, y: float, rotation: int) -> str:
         """) + properties + "\n" + body_text + "\n\t)"
 
 
+def _emit_daughterboard_reference_pcb_footprint(
+    lib_id: str,
+    reference: str,
+    descr: str,
+    anchor_x: float, anchor_y: float,
+    body_w: float, body_l: float,
+    pin_row_inset: float, pin_pitch: float, pin_count_per_row: int,
+    body_label: str,
+    antenna_label: str | None,
+    usb_label: str | None,
+    uuid_tag: str,
+) -> str:
+    """Emit a daughterboard mechanical-reference footprint placed at
+    (anchor_x, anchor_y) on the OAS PCB. The footprint is purely visual
+    (F.Fab + F.SilkS outlines + pin-row hints + labels); the actual
+    electrical female pin sockets are placed separately in chunk #7.
+
+    The daughterboard is assumed to be VERTICAL orientation: long axis
+    along PCB +Y, body extending from (anchor_x, anchor_y) to
+    (anchor_x + body_w, anchor_y + body_l). Pin rows are on both long
+    edges, parallel to the long axis, each with `pin_count_per_row`
+    pins at `pin_pitch` spacing centred along the long axis.
+
+    No F.CrtYd — these daughterboards sit ABOVE the OAS PCB on their
+    pin-header standoff (~3-7 mm), so SMD components on the OAS PCB
+    CAN be placed under their shadow within the standoff Z budget.
+    Adding a body-sized courtyard would spuriously block legitimate
+    component placement.
+    """
+    x1, y1 = anchor_x, anchor_y                 # body lower-left corner
+    x2, y2 = anchor_x + body_w, anchor_y + body_l   # body upper-right corner
+
+    # Pin row Y positions (long-axis pin centring): pin_count_per_row pins
+    # at pin_pitch starting `start_offset` from the body top edge so the
+    # row is centred along the long axis.
+    span = (pin_count_per_row - 1) * pin_pitch
+    start_offset = (body_l - span) / 2
+    pin_xs = (x1 + pin_row_inset, x2 - pin_row_inset)
+    pin_ys = [y1 + start_offset + i * pin_pitch for i in range(pin_count_per_row)]
+
+    parts: list[str] = []
+
+    # Body F.Fab outline only. Drop F.SilkS rectangle because the
+    # daughterboards live ABOVE the OAS PCB on their pin-header standoff,
+    # so a silk rectangle on the OAS PCB silkscreen layer:
+    #   (a) doesn't help the human assembler (the daughterboard itself
+    #       is the visible artefact, not a shadow under it),
+    #   (b) triggers silk_overlap / silk_edge_clearance DRC warnings any
+    #       time the body shadow comes close to other silk geometry
+    #       (cable hole, mounting holes, zip-tie holes, neighbouring
+    #       footprint silk).
+    # The F.Fab outline still appears in the production assembly drawing.
+    parts.append(textwrap.dedent(f"""\
+        \t(fp_rect
+        \t\t(start {fmt(x1 - anchor_x)} {fmt(y1 - anchor_y)})
+        \t\t(end {fmt(x2 - anchor_x)} {fmt(y2 - anchor_y)})
+        \t\t(stroke (width 0.1) (type solid))
+        \t\t(fill no)
+        \t\t(layer "F.Fab")
+        \t\t(uuid "{U('fp-fab-outline:' + uuid_tag)}")
+        \t)"""))
+
+    # Pin row dots on F.Fab — small circles at each pin position.
+    for col_idx, col_x in enumerate(pin_xs):
+        for row_idx, py in enumerate(pin_ys):
+            cx = col_x - anchor_x
+            cy = py - anchor_y
+            parts.append(textwrap.dedent(f"""\
+                \t(fp_circle
+                \t\t(center {fmt(cx)} {fmt(cy)})
+                \t\t(end {fmt(cx + 0.5)} {fmt(cy)})
+                \t\t(stroke (width 0.08) (type solid))
+                \t\t(fill no)
+                \t\t(layer "F.Fab")
+                \t\t(uuid "{U(f'fp-pin:{uuid_tag}:{col_idx}-{row_idx}')}")
+                \t)"""))
+
+    # Body label centred horizontally on the body, near the lower edge.
+    parts.append(textwrap.dedent(f"""\
+        \t(fp_text user "{body_label}"
+        \t\t(at {fmt(body_w / 2.0)} {fmt(body_l - 2.5)} 90)
+        \t\t(layer "F.Fab")
+        \t\t(uuid "{U('fp-body-label:' + uuid_tag)}")
+        \t\t(effects (font (size 1.0 1.0) (thickness 0.15)))
+        \t)"""))
+
+    # Optional antenna / USB labels at the short edges.
+    if antenna_label:
+        parts.append(textwrap.dedent(f"""\
+            \t(fp_text user "{antenna_label}"
+            \t\t(at {fmt(body_w / 2.0)} {fmt(2.5)} 90)
+            \t\t(layer "F.Fab")
+            \t\t(uuid "{U('fp-antenna-label:' + uuid_tag)}")
+            \t\t(effects (font (size 1.0 1.0) (thickness 0.15)))
+            \t)"""))
+    if usb_label:
+        parts.append(textwrap.dedent(f"""\
+            \t(fp_text user "{usb_label}"
+            \t\t(at {fmt(body_w / 2.0)} {fmt(body_l - 6.0)} 90)
+            \t\t(layer "F.Fab")
+            \t\t(uuid "{U('fp-usb-label:' + uuid_tag)}")
+            \t\t(effects (font (size 1.0 1.0) (thickness 0.15)))
+            \t)"""))
+
+    body_blocks = "\n".join(parts)
+    return textwrap.dedent(f"""\
+        \t(footprint "{lib_id}"
+        \t\t(layer "F.Cu")
+        \t\t(uuid "{U('fp-inst:' + uuid_tag)}")
+        \t\t(at {fx(anchor_x)} {fy(anchor_y)} 0)
+        \t\t(descr "{descr}")
+        \t\t(attr board_only exclude_from_pos_files exclude_from_bom)
+        \t\t(property "Reference" "{reference}"
+        \t\t\t(at {fmt(body_w / 2.0)} -1.5 0)
+        \t\t\t(layer "F.SilkS")
+        \t\t\t(hide yes)
+        \t\t\t(uuid "{U('fp-prop-ref:' + uuid_tag)}")
+        \t\t\t(effects (font (size 1 1) (thickness 0.15)))
+        \t\t)
+        \t\t(property "Value" "{lib_id}"
+        \t\t\t(at {fmt(body_w / 2.0)} {fmt(body_l + 1.5)} 0)
+        \t\t\t(layer "F.Fab")
+        \t\t\t(hide yes)
+        \t\t\t(uuid "{U('fp-prop-val:' + uuid_tag)}")
+        \t\t\t(effects (font (size 1 1) (thickness 0.15)))
+        \t\t)
+        \t\t(property "Footprint" "{lib_id}"
+        \t\t\t(at 0 0 0)
+        \t\t\t(layer "F.Fab")
+        \t\t\t(hide yes)
+        \t\t\t(uuid "{U('fp-prop-fp:' + uuid_tag)}")
+        \t\t\t(effects (font (size 1.27 1.27)))
+        \t\t)
+        \t\t(property "Description" "{descr}"
+        \t\t\t(at 0 0 0)
+        \t\t\t(layer "F.Fab")
+        \t\t\t(hide yes)
+        \t\t\t(uuid "{U('fp-prop-desc:' + uuid_tag)}")
+        \t\t\t(effects (font (size 1.27 1.27)))
+        \t\t)
+        """) + body_blocks + "\n\t)"
+
+
 def gen_sensors_pcb_footprints() -> str:
     """Emit the SEN66 reference + 4 zip-tie holes + J3 socket
     + LD2410 reference + J4 pin header as one block.
@@ -2138,6 +2352,43 @@ def gen_sensors_pcb_footprints() -> str:
     # OAS PCB bottom side, providing electrical + mechanical retention.
     parts.append(gen_j4_pinheader_pcb_footprint(
         x=J4_PCB_X, y=J4_PCB_Y, rotation=J4_PCB_ROTATION,
+    ))
+
+    # ESP32-C6 DevKitM-1-N4 daughterboard shadow reservation. Mounted on
+    # 2× 1x15 P2.54 mm female pin sockets (chunk #7); module sits face-up
+    # ~8 mm above OAS PCB. Antenna at TOP short edge (Y=anchor_y), USB-C
+    # at BOTTOM short edge (Y=anchor_y + body length).
+    parts.append(_emit_daughterboard_reference_pcb_footprint(
+        lib_id="oas:ESP32-C6-DevKitM-1_Reference",
+        reference="MOD1",
+        descr="ESP32-C6-DevKitM-1-N4 daughterboard shadow (EAN 5904422385651). 25.4×48.26×8.6 mm; mounts on 2×1x15 P2.54 mm female pin sockets. Antenna at top short edge, USB-C at bottom.",
+        anchor_x=ESP32_ANCHOR_X, anchor_y=ESP32_ANCHOR_Y,
+        body_w=ESP32_BODY_W, body_l=ESP32_BODY_L,
+        pin_row_inset=ESP32_PIN_ROW_INSET,
+        pin_pitch=ESP32_PIN_PITCH,
+        pin_count_per_row=ESP32_PIN_COUNT_PER_ROW,
+        body_label="ESP32-C6 DevKitM-1",
+        antenna_label="antenna ^",
+        usb_label="USB-C v",
+        uuid_tag="esp32-devkitm1-pcb",
+    ))
+
+    # MIKROE-2462 NFC Tag 2 Click daughterboard shadow reservation.
+    # Mounted on 2× 1x8 P2.54 mm female pin sockets (mikroBUS) in chunk #7;
+    # NT3H2111 + onboard PCB antenna sits ~7 mm above the OAS PCB.
+    parts.append(_emit_daughterboard_reference_pcb_footprint(
+        lib_id="oas:MIKROE-2462_Reference",
+        reference="MOD2",
+        descr="MIKROE-2462 NFC Tag 2 Click (NT3H2111 + onboard PCB NFC antenna). 25.4×42.9×7 mm; mounts on 2×1x8 P2.54 mm female pin sockets (mikroBUS).",
+        anchor_x=MIKROE2462_ANCHOR_X, anchor_y=MIKROE2462_ANCHOR_Y,
+        body_w=MIKROE2462_BODY_W, body_l=MIKROE2462_BODY_L,
+        pin_row_inset=MIKROE2462_PIN_ROW_INSET,
+        pin_pitch=MIKROE2462_PIN_PITCH,
+        pin_count_per_row=MIKROE2462_PIN_COUNT_PER_ROW,
+        body_label="MIKROE-2462 NFC",
+        antenna_label=None,
+        usb_label=None,
+        uuid_tag="mikroe2462-pcb",
     ))
     return "\n".join(parts)
 
