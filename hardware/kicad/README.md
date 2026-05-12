@@ -108,7 +108,7 @@ Roughly in order:
 1. **Schematic** (`oas.kicad_sch`) — place the ESP32-C6 SuperMini, SEN66 connector, LD2410 connector, VEML7700, WS2812, NT3H2211, buck converters, TVS, PTC, 24 V terminal block, USB-C, SWD header, Qwiic connector. Net them up.
 2. **Footprints** — assign footprints in the schematic (most parts are stock in `Connector_*`, `Sensor_*`, `Package_DFN_QFN`, `Package_SO`). The mounting holes already use the custom `oas:MountingHole_3.8mm_M3`.
 3. **PCB layout** — update PCB from schematic, then place parts respecting:
-   - 17 mm front-side height limit (3 mm back-side)
+   - 17 mm front-side height limit (5 mm back-side with washer-lifted PCB)
    - SEN66 is **not on the PCB** (mounted on cover, JST GH cable to a header)
    - Connector strip along the flat chord
    - Thermal-isolation slots between zones

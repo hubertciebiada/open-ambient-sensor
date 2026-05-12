@@ -39,7 +39,7 @@ Measured from the manufacturer DXF and copied into our own KiCad board outline (
   - H2: (−47.631, +27.500) — bottom-left (near chord)
   - H3: (0, −55.000) — top (opposite the chord)
 - **Front-side component-height limit:** 17 mm (per manufacturer DXF annotation 正面限高 17mm)
-- **Back-side component-height limit:** 3 mm (per manufacturer DXF annotation 背面焊脚限高 3mm — "back-side solder-pin height limit")
+- **Back-side component-height limit:** **5 mm effective** (DXF baseline `背面焊脚限高 3mm` is 3 mm, relaxed to 5 mm by adding 2 mm washers under the M3 mounting screws to lift the PCB off the bosses)
 
 These are encoded in `../kicad/oas.kicad_pcb` and the regeneration script `../kicad/generate.py`.
 

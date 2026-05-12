@@ -69,7 +69,7 @@ The layout is visualised on `Dwgs.User`:
 - **Mounting:** 3× M3 holes (Ø3.8 mm, NPTH) on pitch circle Ø110 mm, trójkąt równoboczny, one hole opposite the chord. NPTH because the screws go into plastic bosses
 - **Cable entry:** Ø12 mm circular cut-out at PCB centre for 24 V power (3× 1.5 mm² conductors). Wires enter from the rear of the enclosure (behind the unit, from an electrical wall box) and reach a terminal block mounted on the front side of the PCB. The bare conductors stay enclosed within the case
 - **Front-side component-height limit:** 17 mm (per manufacturer DXF)
-- **Back-side limit:** 3 mm — solder fillets only, no components (per manufacturer DXF)
+- **Back-side limit:** **5 mm effective** (DXF baseline 3 mm + 2 mm gained by washers under the M3 mounting screws) — fits standard through-hole pin-header bottoms without aggressive trimming; SMD components still discouraged on back side
 - **Orientation:** flat chord on the bottom; sensor zone (VEML7700, SEN66 inlet path) is below the electronics, so natural convection lifts heat upward and away from the air intake
 - **Thermal isolation:** 1.5 mm milled FR4 slots separate the Power, MCU and peripheral zones
 - **Connector strip along the bottom flat:** 24 V terminal, USB-C, SWD header, Qwiic, JST GH to SEN66 — positions match the manufacturer enclosure cutouts (5 keepout zones C1…C5 in `oas.kicad_pcb` block the corresponding rectangles on F.Cu/B.Cu; see [`../hardware/case/README.md`](../hardware/case/README.md#connector-cutouts-in-the-case-wall-along-the-flat-chord) for dimensions)

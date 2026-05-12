@@ -114,7 +114,7 @@ Additional features:
   - 3× M3 mounting holes (Ø3.8 mm, **NPTH**) on **pitch circle Ø110 mm**, trójkąt równoboczny with one hole opposite the chord (NPTH: screws go into plastic bosses, no metal chassis bonding)
   - Hole positions (origin = centre of PCB outline): (±47.631, +27.500) and (0, −55.000)
   - **Cable pass-through hole** Ø12 mm at PCB centre on `Edge.Cuts` — 24 V power enters from the rear of the case (electrical wall box behind the unit), passes through the PCB, terminates at a front-side terminal block. Sized for 3× 1.5 mm² conductors. Bare 24 V conductors stay inside the case (inaccessible from outside)
-- **HARD LIMIT: max 17 mm component height on front, 3 mm on back** (back side is solder fillets only)
+- **HARD LIMIT: max 17 mm component height on front, 5 mm on back** (back side mostly solder fillets; pin-header bottoms tolerated. Achieved by adding 2 mm washers under the mounting screws, lifting the PCB 2 mm off the enclosure mounting bosses)
 
 ### Module list (preliminary)
 
@@ -200,7 +200,7 @@ ESPHome components expected:
 ## Hard constraints (do not violate without an explicit, documented decision)
 
 1. Maximum **17 mm** component height on the front side of the PCB
-2. Maximum **3 mm** on the back side (solder fillets only — no components)
+2. Maximum **5 mm** on the back side (solder fillets + pin-header bottoms; no SMD components on back. Achieved by 2 mm washers under the M3 mounting screws — lifts the PCB off the enclosure bosses, gaining 2 mm clearance over the DXF-annotated 3 mm)
 3. **Ø120 mm D-shape** PCB outline from the manufacturer DXF
 4. **3× M3 mounting holes** at positions defined in the DXF
 5. **24V DC** input only (no 12V, no external 5V)

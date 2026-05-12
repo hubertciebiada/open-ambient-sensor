@@ -27,16 +27,21 @@ Several decisions in the current schematic and PCB are based on the manufacturer
 - Re-evaluate all currently-tall components (SEN66 itself is 21.5 mm — already on cover, not PCB)
 - C1, C3 (100 µF/50 V) might not fit even in SMD D-can — go to multi-layer ceramic or polymer
 
-## 2. Back-side height limit (3 mm)
+## 2. Back-side height limit (5 mm with washers, originally 3 mm)
 
-**Current assumption**: 3 mm maximum on back side (solder fillets only — no components), derived from DXF annotation `背面焊脚限高 3mm`.
+**Current assumption**: 5 mm effective back-side clearance, achieved by adding **2 mm washers under the M3 mounting screws**. This lifts the PCB 2 mm off the enclosure's mounting bosses, gaining 2 mm extra back-side clearance over the DXF-annotated 3 mm baseline.
+
+Originally the DXF annotation `背面焊脚限高 3mm` ("back-side solder-pin height limit 3 mm") was treated as a hard limit. The user opted to relax it to 5 mm via washers — back-side now tolerates standard through-hole pin-header bottoms (typically 2.5-3 mm protrusion after trimming) without requiring tight pin-trimming during assembly.
 
 **To verify**:
-- Confirm 3 mm is **solder-pin height** (i.e. through-hole protrusions on the back of the PCB), not "no component height of any kind"
-- If it's solder-fillet-only: SMD components are fine on the back (typically <1 mm tall)
-- If it's total clearance: means we genuinely cannot place any SMD on the back either
+- Confirm 3 mm is **solder-pin height** in the original DXF (through-hole protrusions on the back of the PCB), not "no component height of any kind"
+- Verify the mounting bosses on the physical sample have enough thread depth to accommodate the 2 mm washer + M3 screw without bottoming out (M3 screw typically 6-8 mm thread engagement; bosses need to be at least 8 mm deep to support both)
+- Verify the front-side clearance (17 mm assumption) is unaffected by the washer lift, or whether the 2 mm PCB lift reduces effective front clearance proportionally
 
-**Implication**: if back-side actually allows ~3 mm of SMD components (most 0603/0805 are <1 mm), we may move some decoupling caps to the back to free up front-side area.
+**Implication**:
+- Standard through-hole pin headers fit without aggressive pin trimming
+- SMD components on back side are still discouraged (cleanliness), but if needed up to ~4 mm tall parts could be placed
+- Slightly increased thermal pathway through PCB to the enclosure cover (PCB now 2 mm further from rear-cover heat sink, but rear cover is already minimal thermal-sink contribution)
 
 ## 3. Cable pass-through hole (Ø12 mm, PCB centre)
 
