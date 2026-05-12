@@ -2153,6 +2153,161 @@ def gen_j4_pinheader_pcb_footprint(x: float, y: float, rotation: int) -> str:
         """) + properties + "\n" + body_text + "\n\t)"
 
 
+def _daughterboard_body_content(
+    body_w: float, body_l: float,
+    pin_row_inset: float, pin_pitch: float, pin_count_per_row: int,
+    body_label: str,
+    antenna_label: str | None,
+    usb_label: str | None,
+    uuid_tag: str,
+) -> str:
+    """Inner body content (fp_rect on F.Fab + pin-row dots on F.Fab +
+    fp_text labels) shared by the library footprint definition and the
+    in-PCB placement instance for a daughterboard mech-ref. Returns the
+    block ready to embed inside a (footprint ...) wrapper.
+    """
+    parts: list[str] = []
+
+    # Body F.Fab outline.
+    parts.append(textwrap.dedent(f"""\
+        \t(fp_rect
+        \t\t(start 0 0)
+        \t\t(end {fmt(body_w)} {fmt(body_l)})
+        \t\t(stroke (width 0.1) (type solid))
+        \t\t(fill no)
+        \t\t(layer "F.Fab")
+        \t\t(uuid "{U('fp-fab-outline:' + uuid_tag)}")
+        \t)"""))
+
+    # Pin row dots on F.Fab (one column on each long edge, at pin_row_inset
+    # from the body edge, centred along the long axis).
+    span = (pin_count_per_row - 1) * pin_pitch
+    start_offset = (body_l - span) / 2
+    pin_xs = (pin_row_inset, body_w - pin_row_inset)
+    pin_ys = [start_offset + i * pin_pitch for i in range(pin_count_per_row)]
+    for col_idx, cx in enumerate(pin_xs):
+        for row_idx, cy in enumerate(pin_ys):
+            parts.append(textwrap.dedent(f"""\
+                \t(fp_circle
+                \t\t(center {fmt(cx)} {fmt(cy)})
+                \t\t(end {fmt(cx + 0.5)} {fmt(cy)})
+                \t\t(stroke (width 0.08) (type solid))
+                \t\t(fill no)
+                \t\t(layer "F.Fab")
+                \t\t(uuid "{U(f'fp-pin:{uuid_tag}:{col_idx}-{row_idx}')}")
+                \t)"""))
+
+    # Centre body label.
+    parts.append(textwrap.dedent(f"""\
+        \t(fp_text user "{body_label}"
+        \t\t(at {fmt(body_w / 2.0)} {fmt(body_l - 2.5)} 90)
+        \t\t(layer "F.Fab")
+        \t\t(uuid "{U('fp-body-label:' + uuid_tag)}")
+        \t\t(effects (font (size 1.0 1.0) (thickness 0.15)))
+        \t)"""))
+
+    if antenna_label:
+        parts.append(textwrap.dedent(f"""\
+            \t(fp_text user "{antenna_label}"
+            \t\t(at {fmt(body_w / 2.0)} {fmt(2.5)} 90)
+            \t\t(layer "F.Fab")
+            \t\t(uuid "{U('fp-antenna-label:' + uuid_tag)}")
+            \t\t(effects (font (size 1.0 1.0) (thickness 0.15)))
+            \t)"""))
+    if usb_label:
+        parts.append(textwrap.dedent(f"""\
+            \t(fp_text user "{usb_label}"
+            \t\t(at {fmt(body_w / 2.0)} {fmt(body_l - 6.0)} 90)
+            \t\t(layer "F.Fab")
+            \t\t(uuid "{U('fp-usb-label:' + uuid_tag)}")
+            \t\t(effects (font (size 1.0 1.0) (thickness 0.15)))
+            \t)"""))
+
+    return "\n".join(parts)
+
+
+def gen_daughterboard_mech_lib_file(
+    name: str,
+    descr: str,
+    body_w: float, body_l: float,
+    pin_row_inset: float, pin_pitch: float, pin_count_per_row: int,
+    body_label: str,
+    antenna_label: str | None,
+    usb_label: str | None,
+    uuid_tag: str,
+) -> str:
+    """Return the .kicad_mod library-file content for a daughterboard
+    mechanical-reference footprint.
+
+    Mirrors the embedded body that `_emit_daughterboard_reference_pcb_footprint`
+    writes into the placed-instance footprint inside `oas.kicad_pcb`,
+    but with library-file metadata (no `(at x y rotation)` anchor, no
+    embedded `(uuid ...)` for the footprint itself — KiCad pcbnew
+    generates those when the lib footprint is dropped onto a board).
+    Adding the matching lib file silences KiCad's
+    `lib_footprint_issues` DRC warning.
+    """
+    body = _daughterboard_body_content(
+        body_w=body_w, body_l=body_l,
+        pin_row_inset=pin_row_inset, pin_pitch=pin_pitch,
+        pin_count_per_row=pin_count_per_row,
+        body_label=body_label,
+        antenna_label=antenna_label,
+        usb_label=usb_label,
+        uuid_tag=uuid_tag + ":lib",
+    )
+    return textwrap.dedent(f"""\
+        (footprint "{name}"
+        \t(version {PCB_VERSION})
+        \t(generator "pcbnew")
+        \t(generator_version "{GEN_VERSION}")
+        \t(layer "F.Cu")
+        \t(descr "{descr}")
+        \t(tags "{name.lower()} oas mechanical reference daughterboard")
+        \t(attr board_only exclude_from_pos_files exclude_from_bom)
+        \t(property "Reference" "REF**"
+        \t\t(at {fmt(body_w / 2.0)} -1.5 0)
+        \t\t(unlocked yes)
+        \t\t(layer "F.SilkS")
+        \t\t(hide yes)
+        \t\t(uuid "{U('fp-lib-prop-ref:' + uuid_tag)}")
+        \t\t(effects (font (size 1 1) (thickness 0.15)))
+        \t)
+        \t(property "Value" "{name}"
+        \t\t(at {fmt(body_w / 2.0)} {fmt(body_l + 1.5)} 0)
+        \t\t(unlocked yes)
+        \t\t(layer "F.Fab")
+        \t\t(hide yes)
+        \t\t(uuid "{U('fp-lib-prop-val:' + uuid_tag)}")
+        \t\t(effects (font (size 1 1) (thickness 0.15)))
+        \t)
+        \t(property "Footprint" ""
+        \t\t(at 0 0 0)
+        \t\t(unlocked yes)
+        \t\t(layer "F.Fab")
+        \t\t(hide yes)
+        \t\t(uuid "{U('fp-lib-prop-fp:' + uuid_tag)}")
+        \t\t(effects (font (size 1.27 1.27)))
+        \t)
+        \t(property "Datasheet" ""
+        \t\t(at 0 0 0)
+        \t\t(unlocked yes)
+        \t\t(layer "F.Fab")
+        \t\t(hide yes)
+        \t\t(uuid "{U('fp-lib-prop-ds:' + uuid_tag)}")
+        \t\t(effects (font (size 1.27 1.27)))
+        \t)
+        \t(property "Description" "{descr}"
+        \t\t(at 0 0 0)
+        \t\t(unlocked yes)
+        \t\t(layer "F.Fab")
+        \t\t(hide yes)
+        \t\t(uuid "{U('fp-lib-prop-desc:' + uuid_tag)}")
+        \t\t(effects (font (size 1.27 1.27)))
+        \t)
+        """) + body + "\n)\n"
+
+
 def _emit_daughterboard_reference_pcb_footprint(
     lib_id: str,
     reference: str,
@@ -2182,82 +2337,15 @@ def _emit_daughterboard_reference_pcb_footprint(
     Adding a body-sized courtyard would spuriously block legitimate
     component placement.
     """
-    x1, y1 = anchor_x, anchor_y                 # body lower-left corner
-    x2, y2 = anchor_x + body_w, anchor_y + body_l   # body upper-right corner
-
-    # Pin row Y positions (long-axis pin centring): pin_count_per_row pins
-    # at pin_pitch starting `start_offset` from the body top edge so the
-    # row is centred along the long axis.
-    span = (pin_count_per_row - 1) * pin_pitch
-    start_offset = (body_l - span) / 2
-    pin_xs = (x1 + pin_row_inset, x2 - pin_row_inset)
-    pin_ys = [y1 + start_offset + i * pin_pitch for i in range(pin_count_per_row)]
-
-    parts: list[str] = []
-
-    # Body F.Fab outline only. Drop F.SilkS rectangle because the
-    # daughterboards live ABOVE the OAS PCB on their pin-header standoff,
-    # so a silk rectangle on the OAS PCB silkscreen layer:
-    #   (a) doesn't help the human assembler (the daughterboard itself
-    #       is the visible artefact, not a shadow under it),
-    #   (b) triggers silk_overlap / silk_edge_clearance DRC warnings any
-    #       time the body shadow comes close to other silk geometry
-    #       (cable hole, mounting holes, zip-tie holes, neighbouring
-    #       footprint silk).
-    # The F.Fab outline still appears in the production assembly drawing.
-    parts.append(textwrap.dedent(f"""\
-        \t(fp_rect
-        \t\t(start {fmt(x1 - anchor_x)} {fmt(y1 - anchor_y)})
-        \t\t(end {fmt(x2 - anchor_x)} {fmt(y2 - anchor_y)})
-        \t\t(stroke (width 0.1) (type solid))
-        \t\t(fill no)
-        \t\t(layer "F.Fab")
-        \t\t(uuid "{U('fp-fab-outline:' + uuid_tag)}")
-        \t)"""))
-
-    # Pin row dots on F.Fab — small circles at each pin position.
-    for col_idx, col_x in enumerate(pin_xs):
-        for row_idx, py in enumerate(pin_ys):
-            cx = col_x - anchor_x
-            cy = py - anchor_y
-            parts.append(textwrap.dedent(f"""\
-                \t(fp_circle
-                \t\t(center {fmt(cx)} {fmt(cy)})
-                \t\t(end {fmt(cx + 0.5)} {fmt(cy)})
-                \t\t(stroke (width 0.08) (type solid))
-                \t\t(fill no)
-                \t\t(layer "F.Fab")
-                \t\t(uuid "{U(f'fp-pin:{uuid_tag}:{col_idx}-{row_idx}')}")
-                \t)"""))
-
-    # Body label centred horizontally on the body, near the lower edge.
-    parts.append(textwrap.dedent(f"""\
-        \t(fp_text user "{body_label}"
-        \t\t(at {fmt(body_w / 2.0)} {fmt(body_l - 2.5)} 90)
-        \t\t(layer "F.Fab")
-        \t\t(uuid "{U('fp-body-label:' + uuid_tag)}")
-        \t\t(effects (font (size 1.0 1.0) (thickness 0.15)))
-        \t)"""))
-
-    # Optional antenna / USB labels at the short edges.
-    if antenna_label:
-        parts.append(textwrap.dedent(f"""\
-            \t(fp_text user "{antenna_label}"
-            \t\t(at {fmt(body_w / 2.0)} {fmt(2.5)} 90)
-            \t\t(layer "F.Fab")
-            \t\t(uuid "{U('fp-antenna-label:' + uuid_tag)}")
-            \t\t(effects (font (size 1.0 1.0) (thickness 0.15)))
-            \t)"""))
-    if usb_label:
-        parts.append(textwrap.dedent(f"""\
-            \t(fp_text user "{usb_label}"
-            \t\t(at {fmt(body_w / 2.0)} {fmt(body_l - 6.0)} 90)
-            \t\t(layer "F.Fab")
-            \t\t(uuid "{U('fp-usb-label:' + uuid_tag)}")
-            \t\t(effects (font (size 1.0 1.0) (thickness 0.15)))
-            \t)"""))
-
-    body_blocks = "\n".join(parts)
+    body_blocks = _daughterboard_body_content(
+        body_w=body_w, body_l=body_l,
+        pin_row_inset=pin_row_inset, pin_pitch=pin_pitch,
+        pin_count_per_row=pin_count_per_row,
+        body_label=body_label,
+        antenna_label=antenna_label,
+        usb_label=usb_label,
+        uuid_tag=uuid_tag,
+    )
     return textwrap.dedent(f"""\
         \t(footprint "{lib_id}"
         \t\t(layer "F.Cu")
@@ -11915,11 +12003,52 @@ def gen_fp_lib_table() -> str:
         """)
 
 def gen_sym_lib_table() -> str:
+    """Project-local symbol-library table.
+
+    Maps the `OAS` library name (used as `OAS:ESP32-C6_DevKitM-1` lib_id
+    inside mcu.kicad_sch) to the project-local `libraries/OAS.kicad_sym`
+    file. Without this entry, KiCad ERC raises `lib_symbol_issues` on the
+    U3 symbol ("Obecna konfiguracja nie zawiera biblioteki symboli 'OAS'").
+    """
     return textwrap.dedent("""\
         (sym_lib_table
         \t(version 7)
+        \t(lib
+        \t\t(name "OAS")
+        \t\t(type "KiCad")
+        \t\t(uri "${KIPRJMOD}/libraries/OAS.kicad_sym")
+        \t\t(options "")
+        \t\t(descr "OAS project-local symbols (ESP32-C6 DevKitM-1, ...)")
+        \t)
         )
         """)
+
+
+def gen_oas_symbol_library() -> str:
+    """Project-local symbol library file `OAS.kicad_sym`.
+
+    Mirrors the embedded `(symbol "OAS:ESP32-C6_DevKitM-1" ...)` inside
+    mcu.kicad_sch so KiCad can resolve the OAS library reference from
+    the sym-lib-table. The embedded copy in mcu.kicad_sch is what gets
+    rendered; this file exists primarily to silence the
+    `lib_symbol_issues` ERC warning on U3.
+    """
+    body = _esp32c6_devkitm1_lib_symbol()
+    # `_esp32c6_devkitm1_lib_symbol()` returns content indented with two
+    # leading tabs (one tab inside the schematic, one inside lib_symbols).
+    # In a standalone .kicad_sym file the (symbol ...) blocks are nested
+    # ONCE inside (kicad_symbol_lib ...), so we strip one tab from each
+    # line.
+    body_one_tab = "\n".join(
+        (line[1:] if line.startswith("\t") else line)
+        for line in body.split("\n")
+    )
+    return textwrap.dedent("""\
+        (kicad_symbol_lib
+        \t(version 20251024)
+        \t(generator "kicad_symbol_editor")
+        \t(generator_version "10.0")
+        """) + body_one_tab + "\n)\n"
 
 # -----------------------------------------------------------------------------
 # Write everything
@@ -11938,6 +12067,36 @@ def main():
     )
     (HERE / "libraries" / "oas.pretty" / "LD2410_Mechanical_Reference.kicad_mod").write_text(
         gen_ld2410_mechanical_footprint(), encoding="utf-8"
+    )
+    (HERE / "libraries" / "oas.pretty" / "ESP32-C6-DevKitM-1_Reference.kicad_mod").write_text(
+        gen_daughterboard_mech_lib_file(
+            name="ESP32-C6-DevKitM-1_Reference",
+            descr="Espressif ESP32-C6-DevKitM-1-N4 daughterboard mechanical reference (no pads). EAN 5904422385651. Body 25.4×48.26×8.6 mm. Mounts on 2× 1x15 P2.54 mm female pin sockets; antenna at one short edge, dual USB-C at the other.",
+            body_w=ESP32_BODY_W, body_l=ESP32_BODY_L,
+            pin_row_inset=ESP32_PIN_ROW_INSET,
+            pin_pitch=ESP32_PIN_PITCH,
+            pin_count_per_row=ESP32_PIN_COUNT_PER_ROW,
+            body_label="ESP32-C6 DevKitM-1",
+            antenna_label="antenna ^",
+            usb_label="USB-C v",
+            uuid_tag="esp32-devkitm1",
+        ),
+        encoding="utf-8",
+    )
+    (HERE / "libraries" / "oas.pretty" / "MIKROE-2462_Reference.kicad_mod").write_text(
+        gen_daughterboard_mech_lib_file(
+            name="MIKROE-2462_Reference",
+            descr="MikroElektronika NFC Tag 2 Click (NT3H2111 NTAG I²C plus + onboard PCB antenna) daughterboard mechanical reference (no pads). Body 25.4×42.9×7 mm. Mounts on 2× 1x8 P2.54 mm female pin sockets (mikroBUS).",
+            body_w=MIKROE2462_BODY_W, body_l=MIKROE2462_BODY_L,
+            pin_row_inset=MIKROE2462_PIN_ROW_INSET,
+            pin_pitch=MIKROE2462_PIN_PITCH,
+            pin_count_per_row=MIKROE2462_PIN_COUNT_PER_ROW,
+            body_label="MIKROE-2462 NFC",
+            antenna_label=None,
+            usb_label=None,
+            uuid_tag="mikroe2462",
+        ),
+        encoding="utf-8",
     )
     (HERE / "oas.kicad_pcb").write_text(gen_pcb(), encoding="utf-8")
     (HERE / "oas.kicad_sch").write_text(gen_root_sch(), encoding="utf-8")
@@ -11959,6 +12118,10 @@ def main():
     (HERE / "oas.kicad_pro").write_text(gen_pro(), encoding="utf-8")
     (HERE / "fp-lib-table").write_text(gen_fp_lib_table(), encoding="utf-8")
     (HERE / "sym-lib-table").write_text(gen_sym_lib_table(), encoding="utf-8")
+    (HERE / "libraries").mkdir(parents=True, exist_ok=True)
+    (HERE / "libraries" / "OAS.kicad_sym").write_text(
+        gen_oas_symbol_library(), encoding="utf-8",
+    )
 
     # Geometry summary for the human
     print(f"Half-chord: {HALF_CHORD:.4f} mm")
@@ -11974,10 +12137,13 @@ def main():
         "oas.kicad_pro", "oas.kicad_sch", "oas.kicad_pcb",
         "power.kicad_sch", "mcu.kicad_sch", "sensors.kicad_sch", "io.kicad_sch",
         "fp-lib-table", "sym-lib-table",
+        "libraries/OAS.kicad_sym",
         "libraries/oas.pretty/MountingHole_3.8mm_M3.kicad_mod",
         "libraries/oas.pretty/SEN66_Mechanical_Reference.kicad_mod",
         "libraries/oas.pretty/ZipTieHole_3mm_NPTH.kicad_mod",
         "libraries/oas.pretty/LD2410_Mechanical_Reference.kicad_mod",
+        "libraries/oas.pretty/ESP32-C6-DevKitM-1_Reference.kicad_mod",
+        "libraries/oas.pretty/MIKROE-2462_Reference.kicad_mod",
     ]:
         full = HERE / p
         print(f"  {p}  ({full.stat().st_size} bytes)")

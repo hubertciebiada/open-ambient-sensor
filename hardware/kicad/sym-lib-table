@@ -1,3 +1,10 @@
 (sym_lib_table
 	(version 7)
+	(lib
+		(name "OAS")
+		(type "KiCad")
+		(uri "${KIPRJMOD}/libraries/OAS.kicad_sym")
+		(options "")
+		(descr "OAS project-local symbols (ESP32-C6 DevKitM-1, ...)")
+	)
 )
