@@ -5412,7 +5412,7 @@ def gen_power_sch() -> str:
     # footprint based on the same-day JLCPCB stock check.
     parts.append(_sch_diode_zener(
         x=D3_X, y=D3_Y, angle=270,
-        reference="D3", value="18V Zener", uuid_tag="d3",
+        reference="D3", value="18V Zener 500mW", uuid_tag="d3",
     ))
 
     # ----- Q1: P-MOSFET reverse-polarity protection (PMV65XP) -----
