@@ -4997,12 +4997,41 @@ def gen_power_sch() -> str:
     file_uuid = SHEET_FILE_UUIDS["power"]
     sheet_path = f"/{ROOT_SHEET_UUID}/{SHEET_BLOCK_UUIDS['power']}"
 
+    # ----- A4 page-frame fit shift -----
+    # Uniform offset applied to every BASE position anchor in this function
+    # so the whole power section fits inside the A4 drawing-sheet frame
+    # (297 x 210 mm, usable inner area roughly X=10..280, Y=10..195 with a
+    # title block reserved at the bottom-right corner X=200..297, Y=170..210).
+    #
+    # The schematic grew organically through chunks #1a..#1h, accumulating
+    # rightward (24V protection -> 5V buck -> 3.3V buck) and downward
+    # (the 3.3V cascade sits below the protection block). Without this
+    # shift COL_3V3 was at X=279.40 (PWR_FLAG value-text would render at
+    # ~X=284.5 — close to the page right edge) and R3 GND text reached
+    # Y~167.6, close to the title-block top at Y=170.
+    #
+    # The shift below is a PURE LAYOUT operation: every (x, y) anchor moves
+    # by the same amount. Wires, junctions, hierarchical labels, and
+    # electrical connections remain logically identical. ERC and net
+    # topology are unaffected.
+    #
+    # NOTE on the inline `# 93.98 — ...` style comments scattered through
+    # this function: those numbers were the PRE-SHIFT values of the
+    # corresponding derived quantities, kept as readability hints. They
+    # are now off by (PWR_X_SHIFT, PWR_Y_SHIFT) but the mathematical
+    # derivations (e.g. `J1_Y - 2.54`) remain correct.
+    #
+    # Shifts must be integer multiples of the 1.27 mm schematic connection
+    # grid so wire endpoints and symbol pins stay on-grid after the shift.
+    PWR_X_SHIFT = -30.48     # mm — shift entire power section LEFT (24 x 1.27 mm)
+    PWR_Y_SHIFT = -10.16     # mm — shift entire power section UP (8 x 1.27 mm)
+
     # ----- J1: Phoenix MSTBA 2,5/3-G-5,08 (5.08 mm pitch) -----
     # mirror_y so the pin tips exit to the RIGHT of the body, putting J1
     # visually on the LEFT side of the schematic with the circuit growing
     # to its right.
-    J1_X = 87.63
-    J1_Y = 96.52
+    J1_X = 87.63 + PWR_X_SHIFT
+    J1_Y = 96.52 + PWR_Y_SHIFT
     # With mirror_y applied to a symbol at angle=0, the lib pin at
     # (-5.08, +2.54) maps to schematic position (J1_X + 5.08, J1_Y - 2.54).
     # i.e. pin 1 tip is to the right of and above the body anchor.
@@ -5019,8 +5048,8 @@ def gen_power_sch() -> str:
     #                                                  with D3.anode → R1 → GND
     #   S = (Q1_X + 2.54, Q1_Y + 5.08)   BOTTOM-right → wires to J1.1
     # Y is set so Q1.S aligns with J1.1's row (PIN1_Y = 93.98).
-    Q1_X = 113.03
-    Q1_Y = 88.9
+    Q1_X = 113.03 + PWR_X_SHIFT
+    Q1_Y = 88.9 + PWR_Y_SHIFT
     Q1_D_X = Q1_X + 2.54     # 115.57
     Q1_D_Y = Q1_Y - 5.08     # 83.82
     Q1_G_X = Q1_X - 5.08     # 107.95
@@ -5038,7 +5067,7 @@ def gen_power_sch() -> str:
     # while still well below the 1.5 A trip threshold. 60V rating provides
     # comfortable margin over the SMBJ24A surge-clamp ceiling (38.9V).
     F1_X = Q1_D_X            # 115.57 — same vertical column as Q1.D
-    F1_Y = 76.2
+    F1_Y = 76.2 + PWR_Y_SHIFT
     F1_TOP_Y = F1_Y - 3.81   # 72.39
     F1_BOT_Y = F1_Y + 3.81   # 80.01
 
@@ -5050,7 +5079,7 @@ def gen_power_sch() -> str:
     # the VIN row (93.98) and the R4/R1 junction (104.14) — body Y range
     # ~96.52 to ~101.60, well clear of the VIN crossing at 93.98.
     R4_X = Q1_G_X            # 107.95 — same column as Q1.G, R1
-    R4_Y = 99.06
+    R4_Y = 99.06 + PWR_Y_SHIFT
     R4_TOP_Y = R4_Y - 3.81   # 95.25
     R4_BOT_Y = R4_Y + 3.81   # 102.87
 
@@ -5058,7 +5087,7 @@ def gen_power_sch() -> str:
     # The junction sits between R4.bot (102.87) and R1.top (105.41) at a
     # clean 1.27 mm grid increment. D3's anode wire enters from the LEFT,
     # making this point a 3-way T.
-    R4_R1_JUNC_Y = 104.14    # 1.27 mm above R1.top
+    R4_R1_JUNC_Y = 104.14 + PWR_Y_SHIFT    # 1.27 mm above R1.top
 
     # ----- R1: 100k gate-GND pulldown, angle=0 -----
     # Sits directly below R4 in the same column. The wire chain
@@ -5067,7 +5096,7 @@ def gen_power_sch() -> str:
     # wire at (Q1_G_X, PIN1_Y) without a junction — standard schematic
     # convention for non-connected crossings.
     R1_X = Q1_G_X            # 107.95
-    R1_Y = 109.22
+    R1_Y = 109.22 + PWR_Y_SHIFT
     R1_TOP_Y = R1_Y - 3.81   # 105.41
     R1_BOT_Y = R1_Y + 3.81   # 113.03
 
@@ -5094,8 +5123,8 @@ def gen_power_sch() -> str:
     # text labels) and the R1 column (X=107.95). With D3_X=102.87 and
     # body half-width ~1.27 mm, D3 body X range is ~101.60 to 104.14 —
     # well clear of D1 (body ends at X=97.79) and the R1 column (X=107.95).
-    D3_X = 102.87
-    D3_Y = 99.06             # centred between VIN row and R4/R1 junction row
+    D3_X = 102.87 + PWR_X_SHIFT
+    D3_Y = 99.06 + PWR_Y_SHIFT  # centred between VIN row and R4/R1 junction row
     D3_K_Y = D3_Y - 3.81     # 95.25 — short stub up to VIN row (93.98)
     D3_A_Y = D3_Y + 3.81     # 102.87 — short stub down-then-right to junction
 
@@ -5110,15 +5139,15 @@ def gen_power_sch() -> str:
     # grid step LEFT of the previous 100.33 to give breathing room
     # between D1's "SMBJ24A" value text (at X=100.33+, ~5 mm wide) and
     # D3's vertical body at X=102.87.
-    D1_X = 96.52
-    D1_Y = 97.79
+    D1_X = 96.52 + PWR_X_SHIFT
+    D1_Y = 97.79 + PWR_Y_SHIFT
     D1_TOP_Y = D1_Y - 3.81   # 93.98 — matches PIN1_Y / VIN wire row
     D1_BOT_Y = D1_Y + 3.81   # 101.60 — wire continues DOWN to local GND symbol
     # GND symbol for D1's bottom pin. Local-only — no extra PWR_FLAG
     # sentinel: the J1.2 GND drop already supplies the ERC power-source
     # marker on the global GND net, and a second PWR_FLAG would cause
     # "Power output to Power output" conflicts.
-    D1_GND_Y = 105.41        # GND symbol anchor, same Y row as R1.top
+    D1_GND_Y = 105.41 + PWR_Y_SHIFT  # GND symbol anchor, same Y row as R1.top
 
     # ----- Per-net flag columns -----
     # +24V flag column: Q1.D / F1 column at X=115.57.
@@ -5138,24 +5167,24 @@ def gen_power_sch() -> str:
     #     labels are nowhere near each other on screen.
     COL_24V    = Q1_D_X      # 115.57
     COL_R1_GND = R1_X        # 107.95
-    COL_PE     = 82.55       # 5.08 mm left of J1.3 pin tip (PIN_X=92.71)
-    COL_GND    = 67.31       # far left of J1
+    COL_PE     = 82.55 + PWR_X_SHIFT   # 5.08 mm left of J1.3 pin tip (PIN_X=92.71)
+    COL_GND    = 67.31 + PWR_X_SHIFT   # far left of J1
 
     # Flag stack Y coordinates. Spacing FLAG-to-PWR_FLAG (sentinel) = 5.08 mm.
-    JUNC_24V_Y = 67.31       # PWR_FLAG sentinel sits at this junction
-    FLAG_24V_Y = 62.23       # +24V triangle, 5.08 mm above the sentinel
+    JUNC_24V_Y = 67.31 + PWR_Y_SHIFT       # PWR_FLAG sentinel sits at this junction
+    FLAG_24V_Y = 62.23 + PWR_Y_SHIFT       # +24V triangle, 5.08 mm above the sentinel
     # PE wire: drops from J1.3 down to PE_TURN_Y, runs LEFT to COL_PE, then
     # DOWN through the PE PWR_FLAG sentinel to the Earth_Protective symbol.
-    PE_TURN_Y  = 105.41      # Y at which PE wire turns from down to left
-    JUNC_PE_Y  = 110.49      # PE PWR_FLAG sentinel — on the PE vertical drop
-    FLAG_PE_Y  = 115.57      # Earth_Protective symbol, 5.08 mm below sentinel
+    PE_TURN_Y  = 105.41 + PWR_Y_SHIFT      # Y at which PE wire turns from down to left
+    JUNC_PE_Y  = 110.49 + PWR_Y_SHIFT      # PE PWR_FLAG sentinel — on the PE vertical drop
+    FLAG_PE_Y  = 115.57 + PWR_Y_SHIFT      # Earth_Protective symbol, 5.08 mm below sentinel
     # GND wire: hops right of J1 pins, drops past PE flag's body AND its
     # value-text label ("Earth_Protective" at Y≈123), runs LEFT in clear
     # space, then DOWN through its own PWR_FLAG sentinel to the GND symbol.
-    GND_HORIZ_Y = 127.00     # horizontal leg of GND wire, clear of PE flag area
+    GND_HORIZ_Y = 127.00 + PWR_Y_SHIFT     # horizontal leg of GND wire, clear of PE flag area
     JUNC_GND_Y = GND_HORIZ_Y # GND PWR_FLAG sentinel sits here, on the leg
-    FLAG_GND_Y = 132.08      # GND symbol, 5.08 mm below the sentinel
-    FLAG_R1_GND_Y = 116.84   # second GND symbol below R1.bot
+    FLAG_GND_Y = 132.08 + PWR_Y_SHIFT      # GND symbol, 5.08 mm below the sentinel
+    FLAG_R1_GND_Y = 116.84 + PWR_Y_SHIFT   # second GND symbol below R1.bot
 
     # ----- C1: bulk electrolytic capacitor (100uF 50V), angle=0 -----
     # C_Polarized: pin 1 (top, ANODE +) on the protected +24V rail,
@@ -5177,14 +5206,14 @@ def gen_power_sch() -> str:
     # is a single horizontal segment from F1.top to C1.top. The F1.top
     # pin then has three connections (F1 body, f1-to-junc24v upward,
     # f1-to-c1 rightward) — a junction dot at (F1_X, F1_TOP_Y) marks it.
-    C1_X = 142.24
-    C1_Y = 76.2
+    C1_X = 142.24 + PWR_X_SHIFT
+    C1_Y = 76.2 + PWR_Y_SHIFT
     C1_TOP_Y = C1_Y - 3.81   # 72.39 — matches F1_TOP_Y
     C1_BOT_Y = C1_Y + 3.81   # 80.01
     # GND symbol for C1.bottom — independent column, separated >5 cm
     # vertically from any other GND label so its "GND" text cannot
     # collide with neighbouring symbols.
-    C1_GND_Y = 83.82         # 1.5 grid steps below C1.bot
+    C1_GND_Y = 83.82 + PWR_Y_SHIFT         # 1.5 grid steps below C1.bot
 
     # ----- C2: Y2 ceramic capacitor (10nF Y2), angle=0 -----
     # Closes the EMI loop between circuit GND and the PE conductor.
@@ -5206,8 +5235,8 @@ def gen_power_sch() -> str:
     # east to (COL_GND, GND_HORIZ_Y) where it meets the existing
     # gnd-vert-low/gnd-horiz-left L-corner, producing a 3-way GND tap
     # that requires its own junction dot.
-    C2_X = 60.96
-    C2_Y = 119.38
+    C2_X = 60.96 + PWR_X_SHIFT
+    C2_Y = 119.38 + PWR_Y_SHIFT
     C2_TOP_Y = C2_Y - 3.81   # 115.57 — matches FLAG_PE_Y (PE flag pin row)
     C2_BOT_Y = C2_Y + 3.81   # 123.19
 
@@ -5657,8 +5686,8 @@ def gen_power_sch() -> str:
     # Body rectangle spans schematic Y=[69.85, 80.01], X=[190.50, 210.82].
     # X chosen far enough right of C1, C3, C3b for cap value labels
     # ("100uF 50V" ~ 11.4 mm wide on screen) to never overlap U1 body.
-    U1_X = 200.66
-    U1_Y = 74.93
+    U1_X = 200.66 + PWR_X_SHIFT
+    U1_Y = 74.93 + PWR_Y_SHIFT
     U1_VIN_X    = U1_X - 12.7     # 187.96
     U1_VIN_Y    = U1_Y - 2.54     # 72.39 — matches +24V bus row
     U1_OUT_X    = U1_X + 12.7     # 213.36
@@ -5675,18 +5704,18 @@ def gen_power_sch() -> str:
     # C1 (X=142.24) and U1.VIN (X=187.96). Spacing of 17.78 mm to C1 and
     # 15.24 mm to C3b leaves clear gaps between adjacent caps' value-text
     # labels ("100uF 50V" renders ~11.4 mm wide at size 1.27).
-    C3_X = 160.02
-    C3_Y = 76.20
+    C3_X = 160.02 + PWR_X_SHIFT
+    C3_Y = 76.20 + PWR_Y_SHIFT
     C3_TOP_Y = C3_Y - 3.81        # 72.39 — on +24V bus
     C3_BOT_Y = C3_Y + 3.81        # 80.01
-    C3_GND_Y = 82.55              # GND symbol anchor, 2.54 below cap.bot
+    C3_GND_Y = 82.55 + PWR_Y_SHIFT  # GND symbol anchor, 2.54 below cap.bot
 
     # ----- C3b: input HF ceramic bypass, 100nF, angle=0 -----
-    C3b_X = 175.26
-    C3b_Y = 76.20
+    C3b_X = 175.26 + PWR_X_SHIFT
+    C3b_Y = 76.20 + PWR_Y_SHIFT
     C3b_TOP_Y = C3b_Y - 3.81      # 72.39 — on +24V bus
     C3b_BOT_Y = C3b_Y + 3.81      # 80.01
-    C3b_GND_Y = 82.55
+    C3b_GND_Y = 82.55 + PWR_Y_SHIFT
 
     # ----- Switch node and L1 (33 uH shielded, vertical, angle=0) -----
     # Switch node row = U1.OUT row = Y=77.47. L1 vertical with bot pin on the
@@ -5694,8 +5723,8 @@ def gen_power_sch() -> str:
     # 2.54 mm ABOVE the switch node row, so a short vertical wire connects
     # them. L1.top at Y=67.31 = +5V bus row, 2.54 mm ABOVE U1's body top edge
     # (Y=69.85) for clear visual separation from the LM2596 rectangle.
-    L1_X = 223.52
-    L1_Y = 71.12
+    L1_X = 223.52 + PWR_X_SHIFT
+    L1_Y = 71.12 + PWR_Y_SHIFT
     L1_TOP_Y = L1_Y - 3.81        # 67.31 — on +5V bus
     L1_BOT_Y = L1_Y + 3.81        # 74.93 — 2.54 above switch node row
 
@@ -5707,11 +5736,11 @@ def gen_power_sch() -> str:
     # high-side switch in U1 turns off, L1's flyback current circulates from
     # GND through D2 forward-biased into the switch node, holding it ~0.4 V
     # below GND rather than rising arbitrarily.
-    D2_X = 218.44
-    D2_Y = 81.28
+    D2_X = 218.44 + PWR_X_SHIFT
+    D2_Y = 81.28 + PWR_Y_SHIFT
     D2_K_Y = D2_Y - 3.81          # 77.47 — on switch node row
     D2_A_Y = D2_Y + 3.81          # 85.09
-    D2_GND_Y = 88.90              # GND symbol anchor, 3.81 below D2.A
+    D2_GND_Y = 88.90 + PWR_Y_SHIFT  # GND symbol anchor, 3.81 below D2.A
 
     # ----- +5V output caps -----
     # C4 (polarized, 220uF/10V) and C4b (ceramic, 100nF) tap the +5V bus to
@@ -5719,17 +5748,17 @@ def gen_power_sch() -> str:
     # (bottom) to GND. Column spacing of 15.24 mm (C4↔L1, C4b↔C4) keeps the
     # "220uF 10V" / "100nF" value-text labels clear of neighbouring caps'
     # references.
-    C4_X = 238.76
-    C4_Y = 71.12
+    C4_X = 238.76 + PWR_X_SHIFT
+    C4_Y = 71.12 + PWR_Y_SHIFT
     C4_TOP_Y = C4_Y - 3.81        # 67.31 — on +5V bus
     C4_BOT_Y = C4_Y + 3.81        # 74.93
-    C4_GND_Y = 77.47
+    C4_GND_Y = 77.47 + PWR_Y_SHIFT
 
-    C4b_X = 254.00
-    C4b_Y = 71.12
+    C4b_X = 254.00 + PWR_X_SHIFT
+    C4b_Y = 71.12 + PWR_Y_SHIFT
     C4b_TOP_Y = C4b_Y - 3.81      # 67.31 — on +5V bus
     C4b_BOT_Y = C4b_Y + 3.81      # 74.93
-    C4b_GND_Y = 77.47
+    C4b_GND_Y = 77.47 + PWR_Y_SHIFT
 
     # ----- +5V flag and PWR_FLAG sentinel -----
     # Column = C4b column (254.00). The flag stack lifts above the +5V bus
@@ -5737,9 +5766,9 @@ def gen_power_sch() -> str:
     # for visual alignment with the existing +24V flag (also at Y=62.23, far
     # to the left).
     COL_5V       = C4b_X          # 254.00
-    Y_5V_BUS     = 67.31          # +5V bus row (above U1 body top edge Y=69.85)
-    JUNC_5V_Y    = 64.77          # PWR_FLAG sentinel on the vertical to flag
-    FLAG_5V_Y    = 62.23          # +5V triangle, same Y as +24V flag
+    Y_5V_BUS     = 67.31 + PWR_Y_SHIFT  # +5V bus row (above U1 body top edge Y=69.85)
+    JUNC_5V_Y    = 64.77 + PWR_Y_SHIFT  # PWR_FLAG sentinel on the vertical to flag
+    FLAG_5V_Y    = 62.23 + PWR_Y_SHIFT  # +5V triangle, same Y as +24V flag
 
     # ----- Buck-block wires -----
     # +24V bus extension from C1.top (142.24, 72.39) RIGHT to U1.VIN
@@ -5753,10 +5782,10 @@ def gen_power_sch() -> str:
     parts.append(_sch_wire(C3b_X, C3b_BOT_Y, C3b_X, C3b_GND_Y, "c3bbot-to-gnd"))
 
     # U1.ON/OFF pin (pin 5, active-LOW) → local GND symbol. Always-on operation.
-    U1_ONOFF_GND_Y = 82.55         # GND symbol below ON/OFF pin
+    U1_ONOFF_GND_Y = 82.55 + PWR_Y_SHIFT  # GND symbol below ON/OFF pin
     parts.append(_sch_wire(U1_ONOFF_X, U1_ONOFF_Y, U1_ONOFF_X, U1_ONOFF_GND_Y, "u1onoff-to-gnd"))
     # U1.GND (pin 3, centre-bottom) → local GND symbol below
-    U1_GND_SYM_Y = 86.36           # GND symbol 3.81 below U1.GND pin
+    U1_GND_SYM_Y = 86.36 + PWR_Y_SHIFT    # GND symbol 3.81 below U1.GND pin
     parts.append(_sch_wire(U1_GND_X, U1_GND_Y, U1_GND_X, U1_GND_SYM_Y, "u1gnd-to-gndsym"))
 
     # Switch node horizontal: U1.OUT (X=U1_OUT_X) → L1.bot column (X=L1_X).
@@ -6014,8 +6043,8 @@ def gen_power_sch() -> str:
     #   RT  row Y=149.86
     #   FB  row Y=152.40
     #   GND row Y=157.48 (centre-bottom)
-    U2_X = 200.66
-    U2_Y = 144.78
+    U2_X = 200.66 + PWR_X_SHIFT
+    U2_Y = 144.78 + PWR_Y_SHIFT
     U2_VIN_X    = U2_X - 7.62     # 193.04
     U2_VIN_Y    = U2_Y - 7.62     # 137.16 — +5V input bus row
     U2_EN_X     = U2_X - 7.62     # 193.04
@@ -6039,18 +6068,18 @@ def gen_power_sch() -> str:
     # to GND. C5 sits 15.24 mm left of C5b — wide enough that the
     # value-text label "10uF 16V" (rendered ~10 mm at size 1.27) clears
     # C5b's value-text "100nF" without visual overlap.
-    C5_X = 170.18                 # 134 × 1.27
-    C5_Y = 140.97                 # 111 × 1.27
+    C5_X = 170.18 + PWR_X_SHIFT   # 134 × 1.27
+    C5_Y = 140.97 + PWR_Y_SHIFT   # 111 × 1.27
     C5_TOP_Y = C5_Y - 3.81        # 137.16 — on +5V bus row
     C5_BOT_Y = C5_Y + 3.81        # 144.78
-    C5_GND_Y = 147.32             # GND symbol, 2.54 below cap.bot
+    C5_GND_Y = 147.32 + PWR_Y_SHIFT  # GND symbol, 2.54 below cap.bot
 
     # ----- C5b: input HF ceramic bypass, 100nF, angle=0 -----
-    C5b_X = 185.42                # 146 × 1.27 — 15.24 mm right of C5, 7.62 left of VIN
-    C5b_Y = 140.97
+    C5b_X = 185.42 + PWR_X_SHIFT  # 146 × 1.27 — 15.24 mm right of C5, 7.62 left of VIN
+    C5b_Y = 140.97 + PWR_Y_SHIFT
     C5b_TOP_Y = C5b_Y - 3.81      # 137.16
     C5b_BOT_Y = C5b_Y + 3.81      # 144.78
-    C5b_GND_Y = 147.32
+    C5b_GND_Y = 147.32 + PWR_Y_SHIFT
 
     # ----- +5V drop symbol -----
     # Global "+5V" power label placed ABOVE U2's VIN row, with angle=180
@@ -6059,7 +6088,7 @@ def gen_power_sch() -> str:
     # the VIN bus at Y=137.16. The same vertical wire continues DOWN past
     # the VIN bus row through U2.VIN pin to U2.EN pin — this is the
     # always-on EN tie (EN → VIN).
-    Y_5V_DROP_TOP = 130.81        # 103 × 1.27 — on connection grid
+    Y_5V_DROP_TOP = 130.81 + PWR_Y_SHIFT  # 103 × 1.27 — on connection grid
 
     # ----- C7: BST (bootstrap) ceramic capacitor, 100nF, angle=0 -----
     # Vertical between U2.BST (top pin, Y=137.16) and U2.SW (bot pin,
@@ -6067,8 +6096,8 @@ def gen_power_sch() -> str:
     # column (208.28). C7.top → BST extension wire row, C7.bot → SW
     # extension wire row. Required by TPS62933 for the high-side gate
     # driver bootstrap supply.
-    C7_X = 213.36                 # 168 × 1.27
-    C7_Y = 140.97
+    C7_X = 213.36 + PWR_X_SHIFT   # 168 × 1.27
+    C7_Y = 140.97 + PWR_Y_SHIFT
     C7_TOP_Y = C7_Y - 3.81        # 137.16 — on BST row
     C7_BOT_Y = C7_Y + 3.81        # 144.78 — on SW row
 
@@ -6085,11 +6114,11 @@ def gen_power_sch() -> str:
     # (SEN66 datasheet requires a 2-10 ms power ramp for reliable init).
     # With C8 = 47 nF: t_ss = C_ss * V_ref / I_ss = 47 nF * 0.6 V / 5 uA
     # = 5.64 ms, comfortably within the 2-10 ms window.
-    C8_X = 191.77                 # 151 × 1.27 — 1.27 mm left of SS pin tip
-    C8_Y = 151.13                 # 119 × 1.27
+    C8_X = 191.77 + PWR_X_SHIFT   # 151 × 1.27 — 1.27 mm left of SS pin tip
+    C8_Y = 151.13 + PWR_Y_SHIFT   # 119 × 1.27
     C8_TOP_Y = C8_Y - 3.81        # 147.32 — matches U2.SS pin Y row
     C8_BOT_Y = C8_Y + 3.81        # 154.94 — body bottom row
-    C8_GND_Y = 157.48             # GND symbol anchor below C8.bot
+    C8_GND_Y = 157.48 + PWR_Y_SHIFT  # GND symbol anchor below C8.bot
 
     # ----- L2: 2.2 uH shielded inductor, angle=0 -----
     # Vertical, between U2.SW (right of the body) and the +3.3V output bus.
@@ -6099,8 +6128,8 @@ def gen_power_sch() -> str:
     # right of C7's column — wide enough that C7's "100nF" value-text
     # (left-justified at X=C7+2.54) doesn't run into L2's reference text
     # (right-justified at X=L2-2.54).
-    L2_X = 226.06                 # 178 × 1.27
-    L2_Y = 140.97
+    L2_X = 226.06 + PWR_X_SHIFT   # 178 × 1.27
+    L2_Y = 140.97 + PWR_Y_SHIFT
     L2_TOP_Y = L2_Y - 3.81        # 137.16 — on +3.3V bus row
     L2_BOT_Y = L2_Y + 3.81        # 144.78 — on SW extension row
 
@@ -6138,42 +6167,42 @@ def gen_power_sch() -> str:
     # Y as the U2.FB pin row — so the FB pin wire from (208.28, 152.40)
     # to (226.06, 152.40) is a single horizontal segment, no L-routing.
     # Much cleaner.
-    COL_FB_DIV = 240.03           # 189 × 1.27 — FB divider column (13.97 mm right of L2)
+    COL_FB_DIV = 240.03 + PWR_X_SHIFT  # 189 × 1.27 — FB divider column (13.97 mm right of L2)
     R2_X = COL_FB_DIV
-    R2_Y = 148.59                 # 117 × 1.27
+    R2_Y = 148.59 + PWR_Y_SHIFT   # 117 × 1.27
     R2_TOP_Y = R2_Y - 3.81        # 144.78
     R2_BOT_Y = R2_Y + 3.81        # 152.40 — FB tap row, matches U2.FB pin Y
     R3_X = COL_FB_DIV
-    R3_Y = 156.21                 # 123 × 1.27
+    R3_Y = 156.21 + PWR_Y_SHIFT   # 123 × 1.27
     R3_TOP_Y = R3_Y - 3.81        # 152.40 — FB tap row, shared with R2.bot
     R3_BOT_Y = R3_Y + 3.81        # 160.02
-    R3_GND_Y = 163.83             # GND symbol below R3.bot
+    R3_GND_Y = 163.83 + PWR_Y_SHIFT  # GND symbol below R3.bot
 
     # ----- +3.3V output decoupling -----
     # C6 (22uF) and C6b (100nF) tap the +3.3V bus to GND. Placed to the
     # right of the FB divider with 15-16 mm column spacing so the
     # value-text labels ("44.2k 1%" / "22uF 10V" / "100nF") never overlap.
-    C6_X = 256.54                 # 202 × 1.27 (16.51 right of R2)
-    C6_Y = 140.97
+    C6_X = 256.54 + PWR_X_SHIFT   # 202 × 1.27 (16.51 right of R2)
+    C6_Y = 140.97 + PWR_Y_SHIFT
     C6_TOP_Y = C6_Y - 3.81        # 137.16 — on +3.3V bus
     C6_BOT_Y = C6_Y + 3.81        # 144.78
-    C6_GND_Y = 147.32
+    C6_GND_Y = 147.32 + PWR_Y_SHIFT
 
-    C6b_X = 271.78                # 214 × 1.27 (15.24 right of C6)
-    C6b_Y = 140.97
+    C6b_X = 271.78 + PWR_X_SHIFT  # 214 × 1.27 (15.24 right of C6)
+    C6b_Y = 140.97 + PWR_Y_SHIFT
     C6b_TOP_Y = C6b_Y - 3.81      # 137.16
     C6b_BOT_Y = C6b_Y + 3.81      # 144.78
-    C6b_GND_Y = 147.32
+    C6b_GND_Y = 147.32 + PWR_Y_SHIFT
 
     # ----- +3.3V flag, PWR_FLAG sentinel -----
     # Column = C6b + 7.62 = 279.40. This sits ~25 mm right of the +5V flag
     # column (X=254 upstream), keeping the buck-3.3V section's PWR_FLAG
     # and flag visually distinct from the upstream +5V flag (which lives
     # in the same column but at a much lower Y, in the U1 block).
-    COL_3V3      = 279.40         # 220 × 1.27
-    Y_3V3_BUS    = 137.16         # +3.3V bus row (same Y as VIN bus, but different X range)
-    JUNC_3V3_Y   = 134.62         # PWR_FLAG sentinel sits here
-    FLAG_3V3_Y   = 132.08         # +3V3 triangle, 2.54 above sentinel
+    COL_3V3      = 279.40 + PWR_X_SHIFT  # 220 × 1.27
+    Y_3V3_BUS    = 137.16 + PWR_Y_SHIFT  # +3.3V bus row (same Y as VIN bus, but different X range)
+    JUNC_3V3_Y   = 134.62 + PWR_Y_SHIFT  # PWR_FLAG sentinel sits here
+    FLAG_3V3_Y   = 132.08 + PWR_Y_SHIFT  # +3V3 triangle, 2.54 above sentinel
 
     # ----- Buck-3.3V wires -----
     # Input side: +5V symbol → VIN bus, with EN tied to VIN as always-on.
@@ -6192,7 +6221,7 @@ def gen_power_sch() -> str:
     # RT → GND: RT pin (programmable f_sw) tied to GND for default ~500 kHz.
     # The previous SS+RT shared-drop wiring was changed when SS was given
     # its own soft-start cap (C8): SS no longer shares a wire with RT.
-    RT_GND_Y = 152.40             # GND symbol Y, below RT pin (149.86)
+    RT_GND_Y = 152.40 + PWR_Y_SHIFT  # GND symbol Y, below RT pin (149.86)
     parts.append(_sch_wire(U2_RT_X, U2_RT_Y, U2_RT_X, RT_GND_Y, "rt-to-gnd"))
 
     # SS → C8.top → C8.bot → GND: soft-start cap path. C8 sits 1.27 mm
@@ -6203,7 +6232,7 @@ def gen_power_sch() -> str:
     parts.append(_sch_wire(C8_X, C8_BOT_Y, C8_X, C8_GND_Y, "c8bot-to-gnd"))
 
     # U2.GND (centre-bottom pin, pin 4) → local GND symbol below
-    U2_GND_SYM_Y = 161.29         # 3.81 below U2.GND pin
+    U2_GND_SYM_Y = 161.29 + PWR_Y_SHIFT  # 3.81 below U2.GND pin
     parts.append(_sch_wire(U2_GND_X, U2_GND_Y, U2_GND_X, U2_GND_SYM_Y, "u2gnd-to-gndsym"))
 
     # BST extension: U2.BST → C7.top, single horizontal stub.
