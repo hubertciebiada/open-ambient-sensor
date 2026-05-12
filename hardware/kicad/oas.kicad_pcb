@@ -1192,8 +1192,8 @@
 	)
 )
 (gr_rect
-	(start 114.7 136.494)
-	(end 126.7 147.498)
+	(start 115 136.794)
+	(end 126.4 147.198)
 	(stroke (width 0.12) (type solid))
 	(fill no)
 	(layer "F.SilkS")
@@ -1204,12 +1204,12 @@
 	(layer "F.SilkS")
 	(uuid "a39f90b5-5e44-5c82-b506-d0177c7b8b46")
 	(effects
-		(font (size 0.8 0.8) (thickness 0.15))
+		(font (size 1 1) (thickness 0.15))
 	)
 )
 (gr_rect
-	(start 131.7 132.198)
-	(end 147.4 148.497798)
+	(start 132 132.498)
+	(end 147.1 148.197798)
 	(stroke (width 0.12) (type solid))
 	(fill no)
 	(layer "F.SilkS")
@@ -1220,12 +1220,12 @@
 	(layer "F.SilkS")
 	(uuid "05cfd0c6-ab1e-5c34-9b12-ddd1444365da")
 	(effects
-		(font (size 0.8 0.8) (thickness 0.15))
+		(font (size 1 1) (thickness 0.15))
 	)
 )
 (gr_rect
-	(start 153.4 133.998)
-	(end 162.4 148.497798)
+	(start 153.7 134.298)
+	(end 162.1 148.197798)
 	(stroke (width 0.12) (type solid))
 	(fill no)
 	(layer "F.SilkS")
@@ -1236,28 +1236,28 @@
 	(layer "F.SilkS")
 	(uuid "fe5a5194-1815-5739-b8f0-1f26bd30a626")
 	(effects
-		(font (size 0.8 0.8) (thickness 0.15))
+		(font (size 1 1) (thickness 0.15))
 	)
 )
 (gr_rect
-	(start 167.4 139.998)
-	(end 171.4 148.497798)
+	(start 167.7 140.298)
+	(end 171.1 148.197798)
 	(stroke (width 0.12) (type solid))
 	(fill no)
 	(layer "F.SilkS")
 	(uuid "7dae242a-8aaa-5633-8c4e-c9dbbaf045f9")
 )
 (gr_text "C4 AUX"
-	(at 169.4 144.247899 0)
+	(at 169.4 144.247899 90)
 	(layer "F.SilkS")
 	(uuid "f9575dd8-28d1-5138-a0ec-2bfaef0097e1")
 	(effects
-		(font (size 0.8 0.8) (thickness 0.15))
+		(font (size 1 1) (thickness 0.15))
 	)
 )
 (gr_rect
-	(start 176.4 141.494)
-	(end 183.9 147.494)
+	(start 176.7 141.794)
+	(end 183.6 147.194)
 	(stroke (width 0.12) (type solid))
 	(fill no)
 	(layer "F.SilkS")
@@ -1268,7 +1268,7 @@
 	(layer "F.SilkS")
 	(uuid "3dd3d997-ec3f-5f61-8a75-c76d6f272ba5")
 	(effects
-		(font (size 0.8 0.8) (thickness 0.15))
+		(font (size 1 1) (thickness 0.15))
 	)
 )
 (zone

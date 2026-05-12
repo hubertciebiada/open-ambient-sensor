@@ -1540,10 +1540,11 @@ def gen_silk_labels() -> str:
     label_thickness = 0.15
 
     def _silk(text: str, x: float, y: float, tag: str,
-              size: float = label_size, layer: str = "F.SilkS") -> str:
+              size: float = label_size, layer: str = "F.SilkS",
+              angle: float = 0.0) -> str:
         return textwrap.dedent(f"""\
             \t(gr_text "{text}"
-            \t\t(at {fx(x)} {fy(y)} 0)
+            \t\t(at {fx(x)} {fy(y)} {fmt(angle)})
             \t\t(layer "{layer}")
             \t\t(uuid "{U('silk-label:' + tag)}")
             \t\t(effects
@@ -1570,25 +1571,42 @@ def gen_silk_labels() -> str:
     # Each cutout C1..C5 along the chord is reserved for a future
     # connector that extends through the case wall (24V terminal, JST GH
     # to LD2410, USB-C debug, Qwiic, etc.). Draw both:
-    #   - A thin F.SilkS rectangle outlining the cutout footprint (so the
-    #     hand-assembler sees the reserved zone's exact shape on the
-    #     manufactured PCB, not only in pcbnew)
-    #   - A small "C# AUX" text label centred in the rectangle
+    #   - A thin F.SilkS rectangle outlining the cutout footprint, inset
+    #     by SILK_EDGE_INSET on each side so it clears Edge.Cuts even
+    #     when the cutout is clipped at the chord
+    #   - A "C# AUX" text label centred in the rectangle. For narrow
+    #     rects the text is rotated 90° so it still fits inside the
+    #     outline without overlapping (DRC silk_overlap).
+    SILK_EDGE_INSET = 0.3       # mm — keeps rect off the board edge.
+                                # With 0.12 mm silk stroke, line outer edge
+                                # sits 0.06 mm beyond the centerline; 0.3 mm
+                                # inset leaves 0.24 mm clear to Edge.Cuts,
+                                # comfortably above the 0.15 mm DRC limit.
+    SILK_TEXT_MIN_HORIZONTAL_FIT = 5.0   # mm — width needed to keep "C# AUX"
+                                          # at 1.0 mm horizontal inside the rect
     for name, x1, x2, y1, y2 in CUTOUTS:
-        cx = (x1 + x2) / 2
-        cy = (y1 + y2) / 2
-        # Rectangle outline on F.SilkS (hairline 0.12 mm)
+        rx1, rx2 = x1 + SILK_EDGE_INSET, x2 - SILK_EDGE_INSET
+        ry1, ry2 = y1 + SILK_EDGE_INSET, y2 - SILK_EDGE_INSET
+        cx = (rx1 + rx2) / 2
+        cy = (ry1 + ry2) / 2
+        rect_w = rx2 - rx1
         parts.append(textwrap.dedent(f"""\
             \t(gr_rect
-            \t\t(start {fx(x1)} {fy(y1)})
-            \t\t(end {fx(x2)} {fy(y2)})
+            \t\t(start {fx(rx1)} {fy(ry1)})
+            \t\t(end {fx(rx2)} {fy(ry2)})
             \t\t(stroke (width 0.12) (type solid))
             \t\t(fill no)
             \t\t(layer "F.SilkS")
             \t\t(uuid "{U('cutout-silk-rect:'+name)}")
             \t)"""))
-        # Centred text label
-        parts.append(_silk(f"{name} AUX", cx, cy, f"cutout-silk-{name}", size=0.8))
+        # Centred text label at the DRC minimum text height (1.0 mm);
+        # rotate 90° in narrow rects so the text fits inside without
+        # overlapping the outline.
+        text_angle = 90.0 if rect_w < SILK_TEXT_MIN_HORIZONTAL_FIT else 0.0
+        parts.append(_silk(
+            f"{name} AUX", cx, cy, f"cutout-silk-{name}",
+            size=1.0, angle=text_angle,
+        ))
     return "\n".join(parts)
 
 
