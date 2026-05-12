@@ -358,7 +358,7 @@
 (footprint "oas:SEN66_Mechanical_Reference"
 	(layer "F.Cu")
 	(uuid "c1ef6aff-60fb-5663-bd5c-1a156bffa33f")
-	(at 160.5 130 90)
+	(at 165.5 130 90)
 	(descr "Sensirion SEN66 mechanical-reference (no pads). SEN66-SIN-T, MPN 3.001.030. 55.2x25.6x21.5 mm. Mounts on enclosure cover; signal cable JST GH 6-pin to PCB connector J3.")
 	(attr board_only exclude_from_pos_files exclude_from_bom)
 	(property "Reference" "SENS1"
@@ -497,7 +497,7 @@
         	(footprint "ZipTieHole_3mm_NPTH"
         		(layer "F.Cu")
         		(uuid "d3216e4e-5d73-5b59-ac1a-e95fc07f8541")
-        		(at 157.5 108)
+        		(at 162.5 108)
         		(descr "Zip-tie pass-through hole, Ø3.0 mm NPTH (fits 2.5 mm band zip-tie). Used in groups of 4 to retain the SEN66 module against the enclosure cover.")
         		(attr through_hole board_only exclude_from_pos_files exclude_from_bom)
         		(property "Reference" "ZT1"
@@ -577,7 +577,7 @@
         	(footprint "ZipTieHole_3mm_NPTH"
         		(layer "F.Cu")
         		(uuid "1915f2c2-ccee-5181-8aca-a88995dc8b55")
-        		(at 189.1 108)
+        		(at 194.1 108)
         		(descr "Zip-tie pass-through hole, Ø3.0 mm NPTH (fits 2.5 mm band zip-tie). Used in groups of 4 to retain the SEN66 module against the enclosure cover.")
         		(attr through_hole board_only exclude_from_pos_files exclude_from_bom)
         		(property "Reference" "ZT2"
@@ -657,7 +657,7 @@
         	(footprint "ZipTieHole_3mm_NPTH"
         		(layer "F.Cu")
         		(uuid "0e0045df-d9d5-5721-9b56-aadc3e956904")
-        		(at 157.5 100)
+        		(at 162.5 100)
         		(descr "Zip-tie pass-through hole, Ø3.0 mm NPTH (fits 2.5 mm band zip-tie). Used in groups of 4 to retain the SEN66 module against the enclosure cover.")
         		(attr through_hole board_only exclude_from_pos_files exclude_from_bom)
         		(property "Reference" "ZT3"
@@ -737,7 +737,7 @@
         	(footprint "ZipTieHole_3mm_NPTH"
         		(layer "F.Cu")
         		(uuid "2bab4adc-961a-5bf3-9d30-0f990a184f43")
-        		(at 189.1 100)
+        		(at 194.1 100)
         		(descr "Zip-tie pass-through hole, Ø3.0 mm NPTH (fits 2.5 mm band zip-tie). Used in groups of 4 to retain the SEN66 module against the enclosure cover.")
         		(attr through_hole board_only exclude_from_pos_files exclude_from_bom)
         		(property "Reference" "ZT4"
@@ -817,7 +817,7 @@
 (footprint "Connector_JST:JST_GH_SM06B-GHS-TB_1x06-1MP_P1.25mm_Horizontal"
 	(layer "F.Cu")
 	(uuid "921a0799-32e4-576f-977b-a649c6a604e5")
-	(at 196.5 112 90)
+	(at 201.5 112 90)
 (property "Reference" "J3"
 	(at 0 -3.9 90)
 	(layer "F.SilkS")
@@ -1168,7 +1168,7 @@
 		)
 	)
 (gr_text "SEN66 air quality"
-	(at 173.3 131.2 0)
+	(at 178.3 131.2 0)
 	(layer "F.SilkS")
 	(uuid "a8aa26d6-067a-5856-9570-0510da278d70")
 	(effects
@@ -1176,7 +1176,7 @@
 	)
 )
 (gr_text "-> J3"
-	(at 173.3 80 0)
+	(at 178.3 80 0)
 	(layer "F.SilkS")
 	(uuid "7400bea7-8ef4-5814-82bc-127db00dd968")
 	(effects
@@ -1184,7 +1184,7 @@
 	)
 )
 (gr_text "to SEN66"
-	(at 196.5 120 0)
+	(at 201.5 120 0)
 	(layer "F.SilkS")
 	(uuid "2a26f7d1-a874-51b4-b096-50e1ba84371f")
 	(effects
