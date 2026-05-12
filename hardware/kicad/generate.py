@@ -213,6 +213,90 @@ J3_ROTATION = 180  # v0.9: rotated 90 -> 180 so the cable opening (pad-side,
                    # natural viewing orientation (chord at bottom of screen).
 
 # -----------------------------------------------------------------------------
+# LD2410 PCB placement (mechanical reference + J4 pin header) — chunk #5b
+# -----------------------------------------------------------------------------
+# HLK-LD2410B mounts as a soldered daughterboard:
+#   - LD2410's onboard 1.27 mm pin row passes through J4's 5 plated
+#     through-holes on the OAS PCB.
+#   - Pins are soldered from the OAS PCB bottom side; the solder joints
+#     provide BOTH electrical and mechanical retention.
+#   - LD2410 lies face-up ABOVE the OAS PCB (pin-header standoff ~3-5 mm),
+#     antenna patches pointing AWAY from the OAS PCB (toward the AK-N-94
+#     perforated cover); 24 GHz beam radiates straight through the ABS
+#     cover into the room.
+#   - Orientation: long axis along OAS X; connector short edge faces the
+#     OAS centre (toward MCU / power rails for short signal traces);
+#     antenna short edge faces the PCB outline (left).
+#
+# Dimensions: LD2410B body ~30-33 × 15-16 mm in datasheet (varies by
+# revision). LD2410_BODY_W/H below are slightly enlarged + grid-aligned
+# (multiples of 1.27 mm) for keep-out planning. The mechanical-reference
+# footprint claims this rectangle so future PCB components (NT3H2211 NFC,
+# Qwiic, decoupling caps) keep clear of the LD2410 shadow.
+LD2410_BODY_W = 35.56            # mm, long axis (28 × 1.27)
+LD2410_BODY_H = 15.24            # mm, short axis (12 × 1.27)
+LD2410_BODY_Z = 7.0              # mm, approx height above PCB (pin-header
+                                  # standoff + LD2410 PCB + onboard SMD).
+                                  # Well within the 17 mm front-side limit.
+LD2410_SILK_INSET = 0.2          # F.SilkS inset from F.Fab outline (top/
+                                  # bottom/left). The right edge uses a
+                                  # larger inset (LD2410_SILK_INSET_CONN
+                                  # below) so the silk rectangle does NOT
+                                  # extend into the J4 pin-header silk area
+                                  # at the connector edge.
+LD2410_SILK_INSET_CONN = 4.0     # Larger inset on the connector-edge (+X)
+                                  # side so the LD2410 silk rectangle stops
+                                  # ~4 mm short of the body's connector edge,
+                                  # leaving room for the J4 pin-header silk
+                                  # graphics (5 pads + ref text) at OAS PCB
+                                  # X = -10.16.
+LD2410_ANTENNA_X_END = 12.7      # mm — LD2410-local X end of antenna zone
+                                  # (patches sit at LD2410-local X ≈ 0..12 mm,
+                                  # at the short edge OPPOSITE the connector).
+LD2410_CONNECTOR_X = 35.56       # mm — LD2410-local X of the pin row (the
+                                  # +X short edge, the connector end).
+LD2410_CONNECTOR_Y = 7.62        # mm — LD2410-local Y center of the 5-pin
+                                  # row (centred on the short edge).
+
+# Placement on OAS PCB. Anchored at the body lower-left corner (LD2410-local
+# (0, 0) = OAS (LD2410_ANCHOR_X, LD2410_ANCHOR_Y)). With rotation 0, body
+# extends in +X and +Y from the anchor.
+LD2410_ANCHOR_X = -45.72         # mm — OAS PCB X of the LD2410 body corner.
+                                  # Body right edge (connector side) lands at
+                                  # X = -45.72 + 35.56 = -10.16 (= -8 × 1.27),
+                                  # so J4 pin column sits on the 1.27 mm grid.
+LD2410_ANCHOR_Y = -25.4          # mm — OAS PCB Y of the LD2410 body corner.
+                                  # Body extends to Y = -10.16. Pin row centred
+                                  # at OAS Y = -17.78 (mid-grid).
+LD2410_ROTATION = 0              # degrees; long axis aligned with OAS +X.
+
+
+def _ld2410_local_to_pcb(lx: float, ly: float) -> tuple[float, float]:
+    """Transform a footprint-local LD2410 coordinate to PCB-local mm.
+
+    Mirrors _sen66_local_to_pcb. Currently LD2410_ROTATION = 0 so this is
+    just a translation, but the rotation matrix is kept for future-
+    flexibility (if orientation needs to change to fit other components).
+    """
+    a = math.radians(LD2410_ROTATION)
+    cos_a, sin_a = math.cos(a), math.sin(a)
+    rx =  cos_a * lx + sin_a * ly
+    ry = -sin_a * lx + cos_a * ly
+    return (LD2410_ANCHOR_X + rx, LD2410_ANCHOR_Y + ry)
+
+
+# J4 — stock KiCad PinHeader_1x05_P1.27mm_Vertical at the LD2410 connector
+# short edge. The pin column lands on the 1.27 mm OAS grid; pins centred
+# vertically on the LD2410 connector edge.
+# Pin 1 of the stock footprint sits at the footprint anchor (0, 0); pin 5
+# at (0, +5.08). To place pin 3 (centre) at the LD2410 connector centre
+# (OAS X=-10.16, Y=-17.78), the J4 anchor sits 2 grid steps north of
+# centre at OAS (-10.16, -20.32).
+J4_PCB_X = -10.16
+J4_PCB_Y = -20.32
+J4_PCB_ROTATION = 0
+
+# -----------------------------------------------------------------------------
 # KiCad 10 format constants
 # -----------------------------------------------------------------------------
 PCB_VERSION = 20260206
@@ -690,6 +774,185 @@ def gen_sen66_mechanical_footprint() -> str:
         \t(layer "F.Cu")
         \t(descr "Sensirion SEN66 mechanical-reference (no pads). SEN66-SIN-T, MPN 3.001.030. 55.2x25.6x21.5 mm. Mounts on enclosure cover via 4x zip-ties through ZipTieHole_3mm_NPTH; signal cable JST GH 6-pin to PCB connector J3.")
         \t(tags "sen66 sensirion mechanical reference cover-mounted no-pads")
+        \t(attr board_only exclude_from_pos_files exclude_from_bom)
+        """) + body_blocks + "\n)\n"
+
+
+# -----------------------------------------------------------------------------
+# 1ab) LD2410 mechanical-reference footprint (own library)
+# -----------------------------------------------------------------------------
+def gen_ld2410_mechanical_footprint() -> str:
+    """Custom LD2410_Mechanical_Reference footprint (mechanical-only).
+
+    No pads — the LD2410 module sits ABOVE the OAS PCB on its own 1.27 mm
+    pin row (the stock KiCad PinHeader_1x05_P1.27mm_Vertical footprint
+    at J4 carries the electrical pads). This mechanical-reference
+    footprint exists so the PCB designer sees a "LD2410 shadow" in
+    2D/3D views, claiming the body-projected rectangle as a keep-out
+    zone for other components (NT3H2211 NFC IC, NFC trace antenna,
+    Qwiic, decoupling caps, etc.).
+
+    Geometry (LD2410-local, anchor at body corner (0, 0)):
+      - Body rectangle: 0..LD2410_BODY_W × 0..LD2410_BODY_H
+      - Antenna patches sit roughly at LD2410-local X = 0..12.7 (the
+        -X far end). A dashed marker on F.Fab outlines the antenna zone
+        so the PCB layout knows where the 24 GHz beam emanates.
+      - Connector pin row at LD2410-local X = LD2410_BODY_W = 35.56,
+        centered at Y = 7.62. A solid marker on F.Fab outlines the
+        5-pad column footprint (pin 1 at bottom, pin 5 at top by
+        convention; matches stock PinHeader_1x05_P1.27mm_Vertical).
+    """
+    x_min, y_min = 0.0, 0.0
+    x_max, y_max = LD2410_BODY_W, LD2410_BODY_H
+    inset = LD2410_SILK_INSET
+
+    fab_outline = textwrap.dedent(f"""\
+        \t(fp_rect
+        \t\t(start {fmt(x_min)} {fmt(y_min)})
+        \t\t(end {fmt(x_max)} {fmt(y_max)})
+        \t\t(stroke (width 0.1) (type solid))
+        \t\t(fill no)
+        \t\t(layer "F.Fab")
+        \t\t(uuid "{U('ld2410:fp:fab-outline')}")
+        \t)""")
+    # Silk rectangle uses asymmetric insets — the right (connector) edge
+    # is pulled in by LD2410_SILK_INSET_CONN so the silk does NOT extend
+    # into the J4 pin-header silk area (which sits just outside the body
+    # on the connector-edge X column).
+    silk_outline = textwrap.dedent(f"""\
+        \t(fp_rect
+        \t\t(start {fmt(x_min + inset)} {fmt(y_min + inset)})
+        \t\t(end {fmt(x_max - LD2410_SILK_INSET_CONN)} {fmt(y_max - inset)})
+        \t\t(stroke (width 0.12) (type solid))
+        \t\t(fill no)
+        \t\t(layer "F.SilkS")
+        \t\t(uuid "{U('ld2410:fp:silk-outline')}")
+        \t)""")
+
+    # Antenna zone on F.Fab — dashed rectangle at the -X end of the body.
+    # Marks where the 1T2R microstrip patches sit on the LD2410 PCB so
+    # the PCB designer keeps obstacles (tall components, copper pours) out
+    # of the beam path.
+    antenna_marker = textwrap.dedent(f"""\
+        \t(fp_rect
+        \t\t(start {fmt(x_min + 1.0)} {fmt(y_min + 1.0)})
+        \t\t(end {fmt(LD2410_ANTENNA_X_END)} {fmt(y_max - 1.0)})
+        \t\t(stroke (width 0.1) (type dash))
+        \t\t(fill no)
+        \t\t(layer "F.Fab")
+        \t\t(uuid "{U('ld2410:fp:antenna')}")
+        \t)""")
+    antenna_label = textwrap.dedent(f"""\
+        \t(fp_text user "antenna ^"
+        \t\t(at {fmt((x_min + 1.0 + LD2410_ANTENNA_X_END) / 2.0)} {fmt(y_max / 2.0)} 0)
+        \t\t(layer "F.Fab")
+        \t\t(uuid "{U('ld2410:fp:antenna-label')}")
+        \t\t(effects (font (size 1.0 1.0) (thickness 0.15)))
+        \t)""")
+
+    # Connector pin-row marker on F.Fab — solid rectangle showing the
+    # 5-pin column footprint at the +X short edge. The actual electrical
+    # pads live in J4 (stock PinHeader_1x05_P1.27mm_Vertical, separate
+    # footprint placed at OAS PCB X=-10.16).
+    conn_x = LD2410_CONNECTOR_X
+    conn_y_top = LD2410_CONNECTOR_Y - 2.54   # pin 1 row
+    conn_y_bot = LD2410_CONNECTOR_Y + 2.54   # pin 5 row
+    conn_marker = textwrap.dedent(f"""\
+        \t(fp_rect
+        \t\t(start {fmt(conn_x - 1.5)} {fmt(conn_y_top - 0.7)})
+        \t\t(end {fmt(conn_x)} {fmt(conn_y_bot + 0.7)})
+        \t\t(stroke (width 0.1) (type solid))
+        \t\t(fill no)
+        \t\t(layer "F.Fab")
+        \t\t(uuid "{U('ld2410:fp:conn-marker')}")
+        \t)""")
+    conn_label = textwrap.dedent(f"""\
+        \t(fp_text user "J4 pins"
+        \t\t(at {fmt(conn_x - 5.0)} {fmt(LD2410_CONNECTOR_Y)} 0)
+        \t\t(layer "F.Fab")
+        \t\t(uuid "{U('ld2410:fp:conn-label')}")
+        \t\t(effects (font (size 1.0 1.0) (thickness 0.15)))
+        \t)""")
+
+    # Body label in the centre — HLK-LD2410B (variant) for the assembler
+    # so the right module is soldered into J4.
+    body_label = textwrap.dedent(f"""\
+        \t(fp_text user "HLK-LD2410B"
+        \t\t(at {fmt(LD2410_BODY_W / 2.0 + 3.0)} {fmt(LD2410_BODY_H / 2.0 + 3.5)} 0)
+        \t\t(layer "F.Fab")
+        \t\t(uuid "{U('ld2410:fp:body-label')}")
+        \t\t(effects (font (size 1.0 1.0) (thickness 0.15)))
+        \t)""")
+
+    ref_block = textwrap.dedent(f"""\
+        \t(property "Reference" "REF**"
+        \t\t(at {fmt(LD2410_BODY_W / 2.0)} -1.5 0)
+        \t\t(unlocked yes)
+        \t\t(layer "F.SilkS")
+        \t\t(hide yes)
+        \t\t(uuid "{U('ld2410:fp:prop-ref')}")
+        \t\t(effects (font (size 1 1) (thickness 0.15)))
+        \t)""")
+    value_block = textwrap.dedent(f"""\
+        \t(property "Value" "LD2410_Mechanical_Reference"
+        \t\t(at {fmt(LD2410_BODY_W / 2.0)} {fmt(LD2410_BODY_H + 1.5)} 0)
+        \t\t(unlocked yes)
+        \t\t(layer "F.Fab")
+        \t\t(hide yes)
+        \t\t(uuid "{U('ld2410:fp:prop-val')}")
+        \t\t(effects (font (size 1 1) (thickness 0.15)))
+        \t)""")
+    footprint_block = textwrap.dedent(f"""\
+        \t(property "Footprint" ""
+        \t\t(at 0 0 0)
+        \t\t(unlocked yes)
+        \t\t(layer "F.Fab")
+        \t\t(hide yes)
+        \t\t(uuid "{U('ld2410:fp:prop-fp')}")
+        \t\t(effects (font (size 1.27 1.27)))
+        \t)""")
+    datasheet_block = textwrap.dedent(f"""\
+        \t(property "Datasheet" "https://www.hlktech.net/index.php?id=988"
+        \t\t(at 0 0 0)
+        \t\t(unlocked yes)
+        \t\t(layer "F.Fab")
+        \t\t(hide yes)
+        \t\t(uuid "{U('ld2410:fp:prop-ds')}")
+        \t\t(effects (font (size 1.27 1.27)))
+        \t)""")
+    desc_block = textwrap.dedent(f"""\
+        \t(property "Description" "HiLink HLK-LD2410B 24 GHz mmWave presence radar daughterboard mechanical-reference. ~33x16x7 mm. Mounts via 5-pin 1.27 mm pin header (J4) above the OAS PCB; antenna patches on the LD2410 top face point toward the AK-N-94 cover."
+        \t\t(at 0 0 0)
+        \t\t(unlocked yes)
+        \t\t(layer "F.Fab")
+        \t\t(hide yes)
+        \t\t(uuid "{U('ld2410:fp:prop-desc')}")
+        \t\t(effects (font (size 1.27 1.27)))
+        \t)""")
+
+    # No F.CrtYd: J4's pads sit AT the LD2410 body's connector edge by
+    # design (LD2410 plugs into J4). A body-sized courtyard would
+    # trigger `courtyards_overlap` against J4 and `pth_inside_courtyard`
+    # for every J4 pad. The LD2410 daughterboard physically sits ABOVE
+    # the OAS PCB on its pin-header standoff (~3-5 mm), so the "shadow"
+    # is a Z-stack clearance question, not a 2D courtyard one. Designers
+    # read the F.Fab outline + Description to know what's where.
+
+    body_blocks = "\n".join([
+        ref_block, value_block, footprint_block, datasheet_block, desc_block,
+        fab_outline, silk_outline,
+        antenna_marker, antenna_label,
+        conn_marker, conn_label, body_label,
+    ])
+
+    return textwrap.dedent(f"""\
+        (footprint "LD2410_Mechanical_Reference"
+        \t(version {PCB_VERSION})
+        \t(generator "pcbnew")
+        \t(generator_version "{GEN_VERSION}")
+        \t(layer "F.Cu")
+        \t(descr "HiLink HLK-LD2410B mechanical-reference (no pads). 24 GHz mmWave presence radar daughterboard. Body ~33x16x7 mm above OAS PCB on 1.27 mm pin header (J4). Antenna patches on the top face point through the enclosure cover.")
+        \t(tags "ld2410 hilink mmwave radar mechanical reference daughterboard")
         \t(attr board_only exclude_from_pos_files exclude_from_bom)
         """) + body_blocks + "\n)\n"
 
@@ -1224,6 +1487,11 @@ _J3_LIB_FOOTPRINT_PATH = (
     / "JST_GH_SM06B-GHS-TB_1x06-1MP_P1.25mm_Horizontal.kicad_mod"
 )
 
+_J4_LIB_FOOTPRINT_PATH = (
+    _kicad_install_path() / "footprints" / "Connector_PinHeader_1.27mm.pretty"
+    / "PinHeader_1x05_P1.27mm_Vertical.kicad_mod"
+)
+
 
 def _read_kicad_lib_symbol(lib_filename: str, sym_name: str, lib_nickname: str) -> str:
     """Extract a single `(symbol "X" ...)` block from a KiCad stock symbol
@@ -1513,8 +1781,268 @@ def gen_j3_jst_gh_pcb_footprint(x: float, y: float, rotation: int) -> str:
         """) + properties + "\n" + body_text + "\n\t)"
 
 
+def gen_ld2410_reference_pcb_footprint(x: float, y: float, rotation: int) -> str:
+    """Emit the placed LD2410_Mechanical_Reference footprint instance.
+
+    Mirrors `gen_sen66_reference_pcb_footprint`: this is the embedded
+    full-body copy that pcbnew needs alongside the library definition,
+    positioned at PCB-local (x, y) with `rotation` degrees. No pads —
+    purely F.Fab + F.SilkS + F.CrtYd graphics marking the LD2410
+    daughterboard's projected shadow on the OAS PCB as a keep-out zone.
+
+    Mechanical-only: no pads, no plated holes. The 5 electrical
+    connections live in J4 (stock PinHeader_1x05_P1.27mm_Vertical
+    footprint placed separately).
+    """
+    x_min, y_min = 0.0, 0.0
+    x_max, y_max = LD2410_BODY_W, LD2410_BODY_H
+    inset = LD2410_SILK_INSET
+    uuid_tag = "ld2410-pcb"
+
+    conn_x = LD2410_CONNECTOR_X
+    conn_y_top = LD2410_CONNECTOR_Y - 2.54
+    conn_y_bot = LD2410_CONNECTOR_Y + 2.54
+
+    return textwrap.dedent(f"""\
+        \t(footprint "oas:LD2410_Mechanical_Reference"
+        \t\t(layer "F.Cu")
+        \t\t(uuid "{U('fp-inst:' + uuid_tag)}")
+        \t\t(at {fx(x)} {fy(y)} {rotation})
+        \t\t(descr "HiLink HLK-LD2410B mechanical-reference (no pads). 24 GHz mmWave presence radar daughterboard. Body ~33x16x7 mm above OAS PCB on 1.27 mm pin header (J4). Antenna patches on the LD2410 top face point through the enclosure cover.")
+        \t\t(attr board_only exclude_from_pos_files exclude_from_bom)
+        \t\t(property "Reference" "LDR1"
+        \t\t\t(at {fmt(LD2410_BODY_W / 2.0)} -1.5 0)
+        \t\t\t(layer "F.SilkS")
+        \t\t\t(hide yes)
+        \t\t\t(uuid "{U('fp-prop-ref:' + uuid_tag)}")
+        \t\t\t(effects (font (size 1 1) (thickness 0.15)))
+        \t\t)
+        \t\t(property "Value" "LD2410_Mechanical_Reference"
+        \t\t\t(at {fmt(LD2410_BODY_W / 2.0)} {fmt(LD2410_BODY_H + 1.5)} 0)
+        \t\t\t(layer "F.Fab")
+        \t\t\t(hide yes)
+        \t\t\t(uuid "{U('fp-prop-val:' + uuid_tag)}")
+        \t\t\t(effects (font (size 1 1) (thickness 0.15)))
+        \t\t)
+        \t\t(property "Footprint" "oas:LD2410_Mechanical_Reference"
+        \t\t\t(at 0 0 0)
+        \t\t\t(layer "F.Fab")
+        \t\t\t(hide yes)
+        \t\t\t(uuid "{U('fp-prop-fp:' + uuid_tag)}")
+        \t\t\t(effects (font (size 1.27 1.27)))
+        \t\t)
+        \t\t(property "Datasheet" "https://www.hlktech.net/index.php?id=988"
+        \t\t\t(at 0 0 0)
+        \t\t\t(layer "F.Fab")
+        \t\t\t(hide yes)
+        \t\t\t(uuid "{U('fp-prop-ds:' + uuid_tag)}")
+        \t\t\t(effects (font (size 1.27 1.27)))
+        \t\t)
+        \t\t(property "Description" "HiLink HLK-LD2410B 24 GHz mmWave presence radar daughterboard mechanical-reference. Body ~33x16x7 mm. Mounts via 5-pin 1.27 mm pin header (J4) above the OAS PCB; antenna patches on the LD2410 top face point toward the AK-N-94 cover."
+        \t\t\t(at 0 0 0)
+        \t\t\t(layer "F.Fab")
+        \t\t\t(hide yes)
+        \t\t\t(uuid "{U('fp-prop-desc:' + uuid_tag)}")
+        \t\t\t(effects (font (size 1.27 1.27)))
+        \t\t)
+        \t\t(fp_rect
+        \t\t\t(start {fmt(x_min)} {fmt(y_min)})
+        \t\t\t(end {fmt(x_max)} {fmt(y_max)})
+        \t\t\t(stroke (width 0.1) (type solid))
+        \t\t\t(fill no)
+        \t\t\t(layer "F.Fab")
+        \t\t\t(uuid "{U('fp-fab-outline:' + uuid_tag)}")
+        \t\t)
+        \t\t(fp_rect
+        \t\t\t(start {fmt(x_min + inset)} {fmt(y_min + inset)})
+        \t\t\t(end {fmt(x_max - LD2410_SILK_INSET_CONN)} {fmt(y_max - inset)})
+        \t\t\t(stroke (width 0.12) (type solid))
+        \t\t\t(fill no)
+        \t\t\t(layer "F.SilkS")
+        \t\t\t(uuid "{U('fp-silk-outline:' + uuid_tag)}")
+        \t\t)
+        \t\t(fp_rect
+        \t\t\t(start {fmt(x_min + 1.0)} {fmt(y_min + 1.0)})
+        \t\t\t(end {fmt(LD2410_ANTENNA_X_END)} {fmt(y_max - 1.0)})
+        \t\t\t(stroke (width 0.1) (type dash))
+        \t\t\t(fill no)
+        \t\t\t(layer "F.Fab")
+        \t\t\t(uuid "{U('fp-antenna:' + uuid_tag)}")
+        \t\t)
+        \t\t(fp_text user "antenna ^"
+        \t\t\t(at {fmt((x_min + 1.0 + LD2410_ANTENNA_X_END) / 2.0)} {fmt(y_max / 2.0)} 0)
+        \t\t\t(layer "F.Fab")
+        \t\t\t(uuid "{U('fp-antenna-label:' + uuid_tag)}")
+        \t\t\t(effects (font (size 1.0 1.0) (thickness 0.15)))
+        \t\t)
+        \t\t(fp_rect
+        \t\t\t(start {fmt(conn_x - 1.5)} {fmt(conn_y_top - 0.7)})
+        \t\t\t(end {fmt(conn_x)} {fmt(conn_y_bot + 0.7)})
+        \t\t\t(stroke (width 0.1) (type solid))
+        \t\t\t(fill no)
+        \t\t\t(layer "F.Fab")
+        \t\t\t(uuid "{U('fp-conn-marker:' + uuid_tag)}")
+        \t\t)
+        \t\t(fp_text user "J4 pins"
+        \t\t\t(at {fmt(conn_x - 5.0)} {fmt(LD2410_CONNECTOR_Y)} 0)
+        \t\t\t(layer "F.Fab")
+        \t\t\t(uuid "{U('fp-conn-label:' + uuid_tag)}")
+        \t\t\t(effects (font (size 1.0 1.0) (thickness 0.15)))
+        \t\t)
+        \t\t(fp_text user "HLK-LD2410B"
+        \t\t\t(at {fmt(LD2410_BODY_W / 2.0 + 3.0)} {fmt(LD2410_BODY_H / 2.0 + 3.5)} 0)
+        \t\t\t(layer "F.Fab")
+        \t\t\t(uuid "{U('fp-body-label:' + uuid_tag)}")
+        \t\t\t(effects (font (size 1.0 1.0) (thickness 0.15)))
+        \t\t)
+        \t)""")
+
+
+def gen_j4_pinheader_pcb_footprint(x: float, y: float, rotation: int) -> str:
+    """Emit the placed J4 — stock 5-pin 1.27 mm vertical THROUGH-HOLE pin
+    header where the HLK-LD2410B daughterboard's pins are soldered in.
+
+    Loads the KiCad 10 stock footprint
+    `Connector_PinHeader_1.27mm:PinHeader_1x05_P1.27mm_Vertical` and
+    patches it the same way as `gen_j3_jst_gh_pcb_footprint` does for
+    the SEN66 socket: drop version/generator/embedded_fonts/model;
+    rewrite the OAS-side Reference / Value / Footprint / Datasheet /
+    Description properties; inject (uuid) + (at x y rotation); and (if
+    rotation != 0) annotate each pad's rotation in (at lx ly <rotation>)
+    to silence the pcbnew lib_footprint_mismatch / pad-clearance edge
+    cases.
+    """
+    src = _J4_LIB_FOOTPRINT_PATH.read_text(encoding="utf-8")
+    uuid_tag = "j4-pinheader"
+
+    lines = src.split("\n")
+    assert lines[0].startswith("(footprint "), f"unexpected first line: {lines[0]!r}"
+
+    # Same S-expression parse as the J3 helper.
+    depth = 0
+    cur: list[str] = []
+    items: list[str] = []
+    for ch in src:
+        if ch == "(":
+            if depth == 0:
+                cur = []
+            depth += 1
+            cur.append(ch)
+        elif ch == ")":
+            depth -= 1
+            cur.append(ch)
+            if depth == 0:
+                items.append("".join(cur))
+        else:
+            if depth > 0:
+                cur.append(ch)
+    assert len(items) == 1
+    top = items[0]
+    inner = top.strip()
+    assert inner.startswith("(footprint") and inner.endswith(")")
+    inner = inner[len("(footprint"):].rstrip()
+    inner = inner.rstrip(")").rstrip().lstrip()
+    assert inner.startswith('"')
+    name_end = inner.index('"', 1)
+    fp_name = inner[1:name_end]
+    inner_after_name = inner[name_end + 1:]
+
+    children: list[str] = []
+    depth = 0
+    cur = []
+    for ch in inner_after_name:
+        if ch == "(":
+            if depth == 0:
+                cur = []
+            depth += 1
+            cur.append(ch)
+        elif ch == ")":
+            depth -= 1
+            cur.append(ch)
+            if depth == 0:
+                children.append("".join(cur))
+        else:
+            if depth > 0:
+                cur.append(ch)
+
+    SKIP_PREFIXES = (
+        "(version", "(generator", "(generator_version",
+        "(property \"Reference\"",
+        "(property \"Value\"",
+        "(property \"KiLib_Generator\"",
+        "(embedded_fonts",
+        "(model ",
+    )
+    body_children = []
+    for child in children:
+        if any(child.startswith(p) for p in SKIP_PREFIXES):
+            continue
+        body_children.append(child)
+
+    def reindent_for_pcb(s: str) -> str:
+        out_lines = []
+        for ln in s.split("\n"):
+            if ln == "":
+                out_lines.append(ln)
+            else:
+                out_lines.append("\t" + ln)
+        return "\n".join(out_lines)
+
+    body_text = "\n".join(reindent_for_pcb(c) for c in body_children)
+
+    # Replace the inline ${REFERENCE} token inside fp_text user blocks
+    # with the literal "J4".
+    body_text = body_text.replace('"${REFERENCE}"', '"J4"')
+
+    if rotation != 0:
+        body_text = _annotate_pad_rotations(body_text, rotation)
+
+    properties = textwrap.dedent(f"""\
+        \t\t(property "Reference" "J4"
+        \t\t\t(at 0 -1.9 {rotation})
+        \t\t\t(layer "F.SilkS")
+        \t\t\t(uuid "{U('fp-prop-ref:' + uuid_tag)}")
+        \t\t\t(effects (font (size 1 1) (thickness 0.15)))
+        \t\t)
+        \t\t(property "Value" "1x5 P1.27mm header (HLK-LD2410B)"
+        \t\t\t(at 0 6.98 {rotation})
+        \t\t\t(layer "F.Fab")
+        \t\t\t(uuid "{U('fp-prop-val:' + uuid_tag)}")
+        \t\t\t(effects (font (size 1 1) (thickness 0.15)))
+        \t\t)
+        \t\t(property "Footprint" "Connector_PinHeader_1.27mm:PinHeader_1x05_P1.27mm_Vertical"
+        \t\t\t(at 0 0 0)
+        \t\t\t(layer "F.Fab")
+        \t\t\t(hide yes)
+        \t\t\t(uuid "{U('fp-prop-fp:' + uuid_tag)}")
+        \t\t\t(effects (font (size 1.27 1.27)))
+        \t\t)
+        \t\t(property "Datasheet" ""
+        \t\t\t(at 0 0 0)
+        \t\t\t(layer "F.Fab")
+        \t\t\t(hide yes)
+        \t\t\t(uuid "{U('fp-prop-ds:' + uuid_tag)}")
+        \t\t\t(effects (font (size 1.27 1.27)))
+        \t\t)
+        \t\t(property "Description" "Generic 5-pin 1.27 mm pitch vertical through-hole pin header. Carries the HLK-LD2410B daughterboard's pin row: VCC/GND/TX/RX/OUT. The LD2410 body sits ~5-7 mm above the OAS PCB on these pins; the solder joints provide both electrical and mechanical retention."
+        \t\t\t(at 0 0 0)
+        \t\t\t(layer "F.Fab")
+        \t\t\t(hide yes)
+        \t\t\t(uuid "{U('fp-prop-desc:' + uuid_tag)}")
+        \t\t\t(effects (font (size 1.27 1.27)))
+        \t\t)""")
+
+    return textwrap.dedent(f"""\
+        \t(footprint "Connector_PinHeader_1.27mm:{fp_name}"
+        \t\t(layer "F.Cu")
+        \t\t(uuid "{U('fp-inst:' + uuid_tag)}")
+        \t\t(at {fx(x)} {fy(y)} {rotation})
+        """) + properties + "\n" + body_text + "\n\t)"
+
+
 def gen_sensors_pcb_footprints() -> str:
-    """Emit the SEN66 reference + 4 zip-tie holes + J3 socket as one block.
+    """Emit the SEN66 reference + 4 zip-tie holes + J3 socket
+    + LD2410 reference + J4 pin header as one block.
 
     Returns a multi-line string ready to embed inside the kicad_pcb body.
     """
@@ -1523,6 +2051,12 @@ def gen_sensors_pcb_footprints() -> str:
     # SEN66 mechanical reference (no pads, F.Fab + F.SilkS art only).
     parts.append(gen_sen66_reference_pcb_footprint(
         x=SEN66_ANCHOR_X, y=SEN66_ANCHOR_Y, rotation=SEN66_ROTATION,
+    ))
+
+    # LD2410 mechanical reference (no pads, marks the daughterboard
+    # shadow on the OAS PCB as a keep-out zone for other components).
+    parts.append(gen_ld2410_reference_pcb_footprint(
+        x=LD2410_ANCHOR_X, y=LD2410_ANCHOR_Y, rotation=LD2410_ROTATION,
     ))
 
     # 4× zip-tie holes. F.SilkS designator (ZT1..ZT4) sits 3.2 mm above
@@ -1554,6 +2088,14 @@ def gen_sensors_pcb_footprints() -> str:
     # J3 — JST GH 6-pin socket (PCB-side).
     parts.append(gen_j3_jst_gh_pcb_footprint(
         x=J3_X, y=J3_Y, rotation=J3_ROTATION,
+    ))
+
+    # J4 — stock KiCad PinHeader_1x05_P1.27mm_Vertical at the LD2410
+    # connector edge. The HLK-LD2410B's onboard 1.27 mm pin row passes
+    # through these 5 plated through-holes; pins are soldered from the
+    # OAS PCB bottom side, providing electrical + mechanical retention.
+    parts.append(gen_j4_pinheader_pcb_footprint(
+        x=J4_PCB_X, y=J4_PCB_Y, rotation=J4_PCB_ROTATION,
     ))
     return "\n".join(parts)
 
@@ -10789,6 +11331,9 @@ def main():
     (HERE / "libraries" / "oas.pretty" / "ZipTieHole_3mm_NPTH.kicad_mod").write_text(
         gen_ziptie_hole_footprint(), encoding="utf-8"
     )
+    (HERE / "libraries" / "oas.pretty" / "LD2410_Mechanical_Reference.kicad_mod").write_text(
+        gen_ld2410_mechanical_footprint(), encoding="utf-8"
+    )
     (HERE / "oas.kicad_pcb").write_text(gen_pcb(), encoding="utf-8")
     (HERE / "oas.kicad_sch").write_text(gen_root_sch(), encoding="utf-8")
     for name in SUBSHEETS:
@@ -10827,6 +11372,7 @@ def main():
         "libraries/oas.pretty/MountingHole_3.8mm_M3.kicad_mod",
         "libraries/oas.pretty/SEN66_Mechanical_Reference.kicad_mod",
         "libraries/oas.pretty/ZipTieHole_3mm_NPTH.kicad_mod",
+        "libraries/oas.pretty/LD2410_Mechanical_Reference.kicad_mod",
     ]:
         full = HERE / p
         print(f"  {p}  ({full.stat().st_size} bytes)")
