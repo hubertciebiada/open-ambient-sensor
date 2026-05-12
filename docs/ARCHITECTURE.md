@@ -25,7 +25,7 @@
 | Vishay VEML7700 | 0x10 |
 | NXP NT3H2211 | 0x55 |
 
-Pull-ups: **4.7 kΩ on the MCU side**.
+Pull-ups: **10 kΩ on the MCU side** (per SEN66 datasheet §3.1; v0.6).
 
 ## ESP32-C6-DevKitM-1-N4 pinout (v0.4, post chip-pinout validation)
 

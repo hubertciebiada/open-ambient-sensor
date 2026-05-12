@@ -8229,7 +8229,7 @@ def gen_mcu_sch() -> str:
       +3V3 rail (Y=76.20) ===================================
         |       |        |       |        |       |
         C9      R5       R6      C9b      +3V3    |
-       (10uF)  (4.7k)   (4.7k)  (100nF)   PWR     | (drop right and down)
+       (10uF)  (10k)    (10k)   (100nF)   PWR     | (drop right and down)
         |       v         v       |               |
         GND   SDA tap   SCL tap   GND             |
                                                   |
@@ -8340,9 +8340,11 @@ def gen_mcu_sch() -> str:
     C9b_BOT_Y = C9b_Y + 3.81
     C9b_GND_Y = 87.63
 
-    # ===== R5 / R6: I²C bus pull-ups, 4.7 kΩ 1% 0402 =====
-    # ARCHITECTURE.md "I²C address map" requires 4.7 kΩ pull-ups on
-    # the MCU side of the shared bus (SEN66, VEML7700, NT3H2211, Qwiic).
+    # ===== R5 / R6: I²C bus pull-ups, 10 kΩ 1% 0402 =====
+    # Sensirion SEN66 datasheet §3.1 specifies 10 kΩ pull-ups for the
+    # shared I²C bus (SEN66 + VEML7700 + NT3H2211 + Qwiic). Standard
+    # mode (100 kHz) compatible; 6-device bus + <50 mm trace fits well
+    # within rise-time budget with 10 kΩ pull-ups.
     # R5 = SDA pull-up, R6 = SCL pull-up.
     #
     # Geometry: both resistor bodies are vertical (angle=0), with pin 1
@@ -8614,12 +8616,12 @@ def gen_mcu_sch() -> str:
     # ===== Resistors (R5 SDA pull-up, R6 SCL pull-up) =====
     parts.append(_sch_resistor(
         x=R5_X, y=R5_Y, angle=0,
-        reference="R5", value="4.7k 1%",
+        reference="R5", value="10k 1%",
         uuid_tag="r5", sheet_key="mcu",
     ))
     parts.append(_sch_resistor(
         x=R6_X, y=R6_Y, angle=0,
-        reference="R6", value="4.7k 1%",
+        reference="R6", value="10k 1%",
         uuid_tag="r6", sheet_key="mcu",
     ))
 

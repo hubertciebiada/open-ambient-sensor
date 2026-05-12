@@ -2819,7 +2819,7 @@
 			(justify left)
 		)
 	)
-	(property "Value" "4.7k 1%"
+	(property "Value" "10k 1%"
 		(at 124.46 81.28 0)
 		(effects
 			(font
@@ -2889,7 +2889,7 @@
 			(justify left)
 		)
 	)
-	(property "Value" "4.7k 1%"
+	(property "Value" "10k 1%"
 		(at 127 81.28 0)
 		(effects
 			(font
