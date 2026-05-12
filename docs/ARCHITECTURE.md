@@ -27,7 +27,11 @@
 
 Pull-ups: **4.7 kΩ on the MCU side**.
 
-## ESP32-C6 SuperMini pinout (post strap-pin validation)
+## ESP32-C6-DevKitM-1-N4 pinout (v0.4, post chip-pinout validation)
+
+**Module**: ESP32-C6-DevKitM-1-N4 (Espressif official), EAN 5904422385651 (Botland), Espressif SKU `ESP32-C6-DevKitM-1-N4`. Uses the ESP32-C6-MINI-1 SoM (ESP32-C6FH4 chip with 4 MB internal SiP flash).
+
+**Critical fact**: ESP32-C6 with internal SiP flash bonds out 22 of the chip's nominal 30 GPIOs. **GPIO 10 and GPIO 11 are NOT available** — those pins serve the internal flash bus. Available GPIOs: **0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23**.
 
 | Pin | Function | Notes |
 |---|---|---|
@@ -35,16 +39,28 @@ Pull-ups: **4.7 kΩ on the MCU side**.
 | GPIO 7 | I²C SCL | shared bus, 4.7 kΩ pullups on MCU side |
 | GPIO 16 | UART1 TX → LD2410 RX | 256000 baud |
 | GPIO 17 | UART1 RX ← LD2410 TX | 256000 baud |
-| **GPIO 10** | LD2410 OUT (presence interrupt) | was GPIO 4 in earlier draft; GPIO 4 is MTMS strap pin — unsafe for general I/O |
-| **GPIO 8** | WS2812 DIN | uses **onboard WS2812** on the SuperMini module; no external WS2812 in v1 |
-| **GPIO 11** | NT3H2211 FD (NFC field-detect interrupt) | was GPIO 5 in earlier draft; GPIO 5 is MTDI strap pin — unsafe for general I/O |
-| USB D+/D− | Native USB-C on the SuperMini module itself | no external USB-C on the case wall — flash via SuperMini USB before sealing, OTA after |
+| **GPIO 2** | LD2410 OUT (presence interrupt) | safe non-strap input. Earlier drafts wrongly assigned GPIO 4 (MTMS strap) then GPIO 10 (does not exist on SiP flash variants) |
+| **GPIO 3** | NT3H2211 FD (NFC field-detect interrupt) | safe non-strap input. Earlier drafts wrongly assigned GPIO 5 (MTDI strap) then GPIO 11 (does not exist on SiP flash variants) |
+| GPIO 8 | WS2812 DIN | uses the **onboard addressable RGB NeoPixel** on DevKitM-1; no external WS2812 needed |
+| USB D+/D− | GPIO 12 / GPIO 13 — wired to the DevKitM-1's USB-C connector for native USB-Serial-JTAG | no external USB-C on the case wall — flash via the module's USB before sealing, OTA after |
 
-**Strap pins on ESP32-C6 (to avoid for general I/O)**: GPIO 4 (MTMS), 5 (MTDI), 8 (strap, but OK for WS2812 in idle-low state), 9 (must float or pull-up at boot), 12/13 (USB D−/D+), 15 (boot-mode select on some module variants).
+**Strap pins on ESP32-C6 (avoid for general I/O)**: GPIO 4 (MTMS), 5 (MTDI), 8 (strap, but OK for WS2812 in idle-low state), 9 (must float or pull-up at boot — used as the BOOT button on DevKitM-1), 15 (boot-mode select).
+
+**USB-reserved pins**: GPIO 12, 13 (internally routed to USB-C on the DevKitM-1).
+
+**Safe non-strap GPIOs (free for general I/O on DevKitM-1)**: 0, 1, 2, 3, 14, 18, 19, 20, 21, 22, 23.
 
 **Firmware framework**: ESPHome on `esp-idf` (not `arduino`) — required for adequate memory headroom with BLE-proxy + WiFi + sensor stack combined.
 
-**Antenna orientation**: SuperMini's chip antenna sits on the top edge of the module. Place the SuperMini in the MCU sector (12:00–03:00) such that its antenna edge points toward 12:00 (radial outward, toward case wall) — keeps the antenna away from the POWER sector's bucks (potential RF noise sources).
+**Antenna orientation**: ESP32-C6-MINI-1's PCB antenna sits on the top edge of the module (the short edge with no pin headers). Place the DevKitM-1 in the MCU sector (12:00–03:00) such that its antenna edge points toward 12:00 (radial outward, toward case wall) — keeps the antenna away from the POWER sector's bucks (potential RF noise sources).
+
+**Form factor**: 48.26 × 25.4 mm. The MCU sector has enough area to accommodate this, but PCB layout must avoid placing tall components directly under the module body to maintain the 17 mm front-side height limit including the module's headers + standoff (~6-8 mm total module stack).
+
+**Onboard hardware to be aware of**:
+- Power LED (always-on indicator, ~10 mA on 3.3V = ~30 mW — could be desoldered post-bringup if SEN66 measurements show a temperature bias)
+- Addressable RGB NeoPixel on GPIO 8 (= our status LED, software-controlled)
+- Reset and Boot pushbuttons (useful during development; closed enclosure makes them inaccessible — that's fine, OTA handles updates)
+- 5V→3.3V LDO on the module — bypassed in our design by feeding 3.3V directly into the 3V3 pin from our TPS62933 buck (no LDO loss, no LDO heat)
 
 ## PCB sector layout
 

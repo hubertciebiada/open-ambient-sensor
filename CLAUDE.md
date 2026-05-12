@@ -115,6 +115,7 @@ Additional features:
   - Hole positions (origin = centre of PCB outline): (±47.631, +27.500) and (0, −55.000)
   - **Cable pass-through hole** Ø12 mm at PCB centre on `Edge.Cuts` — 24 V power enters from the rear of the case (electrical wall box behind the unit), passes through the PCB, terminates at a front-side terminal block. Sized for 3× 1.5 mm² conductors. Bare 24 V conductors stay inside the case (inaccessible from outside)
 - **HARD LIMIT: max 17 mm component height on front, 5 mm on back** (back side mostly solder fillets; pin-header bottoms tolerated. Achieved by adding 2 mm washers under the mounting screws, lifting the PCB 2 mm off the enclosure mounting bosses)
+- **MCU module: ESP32-C6-DevKitM-1-N4** (Espressif official devkit, ESP32-C6-MINI-1 SoM + USB-Serial-JTAG via USB-C + buttons + onboard RGB NeoPixel + power LED). EAN: **5904422385651** (Botland), Espressif SKU `ESP32-C6-DevKitM-1-N4`. Form factor 48.26 × 25.4 mm. Chosen over generic "SuperMini" clones because of branded, deterministic pinout, full Espressif documentation, and verified availability through a Polish distributor.
 
 ### Module list (preliminary)
 
@@ -204,7 +205,7 @@ ESPHome components expected:
 3. **Ø120 mm D-shape** PCB outline from the manufacturer DXF
 4. **3× M3 mounting holes** at positions defined in the DXF
 5. **24V DC** input only (no 12V, no external 5V)
-6. **ESP32-C6** as MCU (no fallback to C3 / S3)
+6. **ESP32-C6** as MCU, **specifically ESP32-C6-DevKitM-1-N4** (Espressif official devkit with ESP32-C6-MINI-1 module; EAN 5904422385651 at Botland). No fallback to C3, S3, or to generic "SuperMini" clones with unverifiable pinouts.
 7. **AK-N-94** enclosure as the integration target (do not redesign for another case)
 8. **Both design pillars** (measurement quality, aesthetic acceptability) — no change degrades either pillar
 
@@ -358,9 +359,26 @@ If a change is awkward to express in `generate.py` (e.g. one-off ad-hoc graphic 
 ### Component selection
 - Apply both design pillars (measurement quality, aesthetic acceptability) as filters before considering cost
 - **For SMD components** going through JLCPCB assembly: prefer Basic Parts Library (free assembly), Extended Library (~$3 setup fee) acceptable when needed for the right part
-- **For manual-mount components** (modules like ESP32-C6 SuperMini, SEN66, LD2410, terminal blocks, headers): JLCPCB availability is **not required** — these can be sourced separately (AliExpress, LCSC, Mouser, Digikey) since user does final hand assembly. Pick the right part on technical merit; sourcing is secondary.
+- **For manual-mount components** (ESP32-C6-DevKitM-1, SEN66, LD2410, terminal blocks, headers): JLCPCB availability is **not required** — these can be sourced separately (AliExpress, LCSC, Mouser, Digikey, Botland) since user does final hand assembly. Pick the right part on technical merit; sourcing is secondary.
 - Report part numbers and current availability when proposing components
 - Validate prices in production quantity; do not propose parts known to be EOL or perpetually out of stock
+
+### Module identification (mandatory rule for ANY board / module / dev-kit)
+
+When recommending or specifying a module / dev-board / breakout, **never use a generic name alone** ("ESP32-C6 SuperMini", "Arduino Nano", "STM32 BluePill"). Generic names refer to clones from many vendors with **different pinouts and capabilities** — picking one at random is a setup for assembly-time surprises.
+
+Every module decision MUST include AT LEAST ONE of:
+- **EAN / GTIN** (preferred for Polish/EU retail orders) — e.g. `EAN 5904422385651`
+- **Manufacturer part number (MPN)** — e.g. `ESP32-C6-DevKitM-1-N4`, `Seeed SKU 113991254`, `Adafruit Product ID 5933`
+- **Direct supplier URL** to a specific listing (botland.store/..., adafruit.com/product/..., seeedstudio.com/...)
+
+Before committing to a module in any schematic or documentation:
+1. Read the **official datasheet or wiki** of that specific model (Espressif's docs for DevKit, Seeed wiki for XIAO, Adafruit Learning System for Feather, etc.) — NOT the first random pinout that shows up in a web search
+2. **Verify which GPIO pins are physically exposed on the external pads** — small modules typically expose only 11-15 of the chip's GPIOs, and which ones varies between vendors. Map every signal you plan to use to a specific exposed pad.
+3. **Watch for chip-level pin omissions** — e.g. ESP32-C6 with internal SiP flash physically does NOT bond out GPIO 10 or GPIO 11 (those pins serve internal flash communication). Don't rely on "chip has 30 GPIO" — count what's actually exposed on the chosen module variant.
+4. **Verify strap pins, USB-reserved pins (GPIO 12/13 on C6), and any vendor-specific reservations** (onboard LED, onboard button) BEFORE assigning signals.
+
+Past mistake to avoid: in v0.3 of this project, "GPIO 4 → GPIO 10 / GPIO 5 → GPIO 11" was prescribed as a pinout fix for ESP32-C6 strap-pin avoidance. This was incorrect — GPIO 10 and GPIO 11 don't exist on any ESP32-C6 variant with internal SiP flash (which is every popular module: MINI-1, SuperMini, XIAO, Zero). The bug took 4 review passes to catch because nobody verified physical chip pinout against the assumed pin numbers. Fixed in v0.4.
 
 ### Validation
 - Schematic: run ERC, fix or document every warning
@@ -429,3 +447,10 @@ If a change is awkward to express in `generate.py` (e.g. one-off ad-hoc graphic 
   - **Pinout corrections**: GPIO 4 → 10 (LD2410 OUT, GPIO 4 is MTMS strap), GPIO 5 → 11 (NT3H2211 FD, GPIO 5 is MTDI strap). GPIO 8 stays for WS2812 (used by onboard LED).
   - **Antenna placement constraint**: SuperMini chip antenna sits on top edge of the module. In the clock-face layout, MCU sector is 12:00–03:00 (upper-right); position SuperMini such that its antenna edge points toward 12:00 (case wall) — already aligned with the current sector layout.
   - **Component sourcing policy updated**: JLCPCB availability is **only required for SMD parts going through JLCPCB assembly**. Manual-mount modules (ESP32-C6 SuperMini, SEN66, LD2410, terminal blocks) may be sourced from any reasonable supplier (AliExpress, LCSC direct, Mouser, Digikey) since the user does final hand assembly. This relaxes part choice substantially — pick on technical merit, not assembly-line convenience.
+
+- **v0.4** — MCU module pinned down + critical pinout bug discovered:
+  - **MCU module decision: ESP32-C6-DevKitM-1-N4** (Espressif official). EAN **5904422385651** at Botland, Espressif SKU `ESP32-C6-DevKitM-1-N4`. Form factor 48.26 × 25.4 mm. Single USB-C connector (native USB-Serial-JTAG, no separate bridge IC). Onboard power LED + addressable RGB NeoPixel (the latter doubles as the OAS status LED on GPIO 8, eliminating the need for an external WS2812). Chosen over generic "SuperMini" clones because: branded + deterministic pinout, full Espressif documentation, all 22 exposed-GPIO of the ESP32-C6 are available on pin headers, verified availability through a Polish distributor with a stable EAN.
+  - Thermal trade-off vs a hypothetical bare ESP32-C6-MINI-1 module: ~30 mW extra dissipation from the always-on power LED. With the LDO bypassed (we feed 3.3V directly from TPS62933 into the 3V3 pin), no LDO loss. ~30 mW in the MCU sector (upper-right of the PCB) is far from the SEN66 inlet (mounted on the cover, ~15-20 mm above PCB) — negligible bias on temperature/humidity measurements. Pillar #1 preserved.
+  - **NEW rule in "Component selection" section: Module identification** — never use a generic module name alone in any project decision. Every module must be specified by EAN/GTIN, MPN, or a specific supplier URL. Verify each module's actual exposed GPIO before assigning signals, watch for chip-level pin omissions (e.g. ESP32-C6 with SiP flash omits GPIO 10/11), and read the official datasheet of the specific model — not the first random pinout from a web search.
+  - **CRITICAL PINOUT BUG fix**: v0.3 prescribed "GPIO 4 → GPIO 10 / GPIO 5 → GPIO 11" as the strap-pin avoidance fix. This was incorrect — **GPIO 10 and GPIO 11 don't exist as bonded pins on any ESP32-C6 variant with internal SiP flash** (MINI-1, SuperMini, XIAO, DevKitM-1 all use ESP32-C6FH4 with internal flash). Those pins serve internal flash communication. Of the chip's nominal 30 GPIOs, only 22 are physically available externally. The bug took 4 review passes to catch because no reviewer verified physical chip pinout against the assumed pin numbers — captured as a new convention rule.
+  - **Pinout v0.4 corrections**: LD2410_OUT → **GPIO 2** (was GPIO 4 → bad strap, then GPIO 10 → non-existent), NFC_FD → **GPIO 3** (was GPIO 5 → bad strap, then GPIO 11 → non-existent). Both GPIO 2 and 3 are safe non-strap, non-USB pins available on every ESP32-C6 variant. ARCHITECTURE.md pinout table and `mcu.kicad_sch` must be updated to reflect this before further chunks proceed.
