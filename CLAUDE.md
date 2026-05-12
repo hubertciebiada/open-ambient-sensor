@@ -368,6 +368,19 @@ If a change is awkward to express in `generate.py` (e.g. one-off ad-hoc graphic 
 - BOM: cross-check against manufacturer stock the same day as ordering
 - Firmware: validate ESPHome config compiles cleanly before tagging a release
 
+### KiCad schematic conventions
+
+- **`no_connect` markers** on intentionally-unused IC pins. Without them, ERC warns "pin not connected". Use freely — they are documentation that says "this is deliberate, not an oversight." Common on ESP32-C6 SuperMini pins we don't wire (5V, GPIO8 when onboard WS2812 is used, unused GPIOs).
+- **`(dnp yes)` flag** for footprints that should appear on the PCB but NOT in the assembly BOM. Use for hand-solder-on-demand parts (recovery headers, debug pads, optional features). The KiCad render shows a diagonal X overlay on the symbol to flag DNP visually. JLCPCB assembly will skip these.
+- **Hierarchical labels** for inter-sheet signals (sub-sheet exports/imports). Direction tags (`input`/`output`/`bidirectional`) are documentation, not enforced by KiCad — but they help reviewers and matter when the root sheet adds matching sheet ports.
+- **ERC warnings during incremental sheet build are expected**: when chunk N adds a sub-sheet with hierarchical labels, ERC will warn "label not connected to a sheet port" until the matching sub-sheet (chunk N+1 or later) declares the same label. These warnings are temporary and should resolve once the related sheets land. Document expected warnings in commit messages; don't treat them as bugs.
+
+### Before instructing an agent to "fix" a schematic
+
+- **Verify pin positions against the lib symbol definition, not from memory.** KiCad connector libraries (e.g. `Connector_Generic:Conn_01x06`) often have asymmetric pin coordinates — for example `Conn_01x06` has pins from lib_y = +7.62 mm to lib_y = −7.62 mm (six pins on a 2.54 mm grid, but with the symbol center between pins 3 and 4, not at pin 4's height). Standard "pin 1 at +5.08, pin 6 at −5.08" intuition is wrong for the stock 01x06.
+- **Read the actual `.kicad_sch` source** or grep the lib_symbol definition before claiming a pin is unconnected. A wire that appears to "pass by" a connector in the rendered PNG may actually be tapping the bottom pin via a junction whose position you misjudged from memory.
+- **Trust the agent's empirical inspection over your stored mental model** when in doubt. The agent reads files; you reason from memory.
+
 ---
 
 ## Reference links
