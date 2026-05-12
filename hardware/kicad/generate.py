@@ -288,8 +288,14 @@ LD2410_CONNECTOR_Y = 7.62        # mm — LD2410-local Y center of the 5-pin
 #     < 31.5; no Y overlap.
 #   - Cable hole at PCB centre (Ø12 / radius 6) — body right edge
 #     at X=-29.21 → 23.21 mm clear from the cable hole +X edge at X=-6.
-LD2410_ANCHOR_X = -29.21         # mm — OAS PCB X of LD2410-local (0, 0).
-                                  # = -1.27 × 23 (on 1.27 mm grid).
+LD2410_ANCHOR_X = -34.21         # v0.14: pushed further LEFT (was -29.21)
+                                  # to free up upper-center PCB area for
+                                  # ESP32 horizontal + MIKROE-2462 vertical.
+                                  # Body X range -49.45..-34.21 (5 mm
+                                  # further left than v0.11/0.13). Clears
+                                  # PCB outline at body top Y=-33.2:
+                                  # x_min=-49.98, body left -49.45 has
+                                  # 0.53 mm clearance.
 LD2410_ANCHOR_Y = -16.51         # mm — OAS PCB Y of LD2410-local (0, 0).
                                   # = -1.27 × 13 (on 1.27 mm grid).
 LD2410_ROTATION = 270            # degrees; long axis along PCB Y. With
@@ -344,43 +350,62 @@ def _ld2410_local_to_pcb(lx: float, ly: float) -> tuple[float, float]:
 # clearance (visual only — pin sockets on long edges are at Y much higher);
 # MIKROE bottom at Y=-9.1 has 3.1 mm clearance.
 
-ESP32_BODY_W = 25.4              # mm, short axis (X width when vertical)
-ESP32_BODY_L = 48.26             # mm, long axis  (Y height when vertical)
-ESP32_BODY_Z = 8.6               # mm, height above PCB (DevKitM-1 spec)
-ESP32_PIN_ROW_INSET = 1.27       # mm, pin row distance from each long edge
-                                  # (pin column at body edge ± 1.27 mm)
+# Dimensions per Espressif official dimensions drawing
+# https://dl.espressif.com/dl/schematics/esp32-c6-devkitm-1-dimensions.pdf
+# Body 25.40 × 48.26 mm. Pin headers 2×1×15 P2.54 mm, row spacing 22.86 mm.
+# Pin block is OFFSET along the long axis: pin 1 is 5.37 mm from the
+# antenna short edge; the opposite (USB-C) short edge has 7.33 mm of
+# board beyond pin 15. The two rows are symmetric about the long axis.
+ESP32_BODY_W = 25.4
+ESP32_BODY_L = 48.26
+ESP32_BODY_Z = 8.6                # approx Z above OAS PCB (module + std-off)
+ESP32_PIN_ROW_INSET = 1.27         # = (25.40 - 22.86) / 2
 ESP32_PIN_PITCH = 2.54
 ESP32_PIN_COUNT_PER_ROW = 15
+ESP32_PIN_START_OFFSET = 5.37      # distance from antenna short edge
+                                    # (LIB Y=0) to pin 1; per Espressif
+                                    # dimensions drawing.
 
-ESP32_ANCHOR_X = -28.5            # mm; body lower-left corner. Body X
-                                   # range -28.5..-3.1 leaves 0.7 mm gap
-                                   # to LD2410 right edge (X=-29.21) and
-                                   # ~1 mm gap to MIKROE-2462 left edge.
-ESP32_ANCHOR_Y = -52.5            # mm; body Y range -52.5..-4.24 just
-                                   # inside PCB outline (x_max=±29.05 at
-                                   # Y=-52.5). Body bottom Y=-4.24 shadows
-                                   # cable hole upper edge; pin sockets
-                                   # on long edges (X column = anchor ±
-                                   # 1.27 inset) span pin Y -46..-10 well
-                                   # above cable hole Y zone (-6..+6).
+# Placement: ESP32 HORIZONTAL at top of PCB ("godzina 12:00"), body
+# transverse axis (= long-axis centerline at body half-width) on
+# X=0 line. Achieved by helper rotation 90° (so helper's vertical
+# body 25.4 × 48.26 lays down on the PCB as 48.26 × 25.4) with anchor
+# at the body LOWER-LEFT corner. After the helper's 90° rotation,
+# that LIB (0, 0) point lands at PCB (anchor_x, anchor_y) which is
+# the body BOTTOM-LEFT in PCB orientation; body extends in +X to
+# anchor_x + body_l = +24.13 and in -Y to anchor_y - body_w = -54.94.
+ESP32_ANCHOR_X = -24.13            # body left edge X (body extends to +24.13)
+ESP32_ANCHOR_Y = -29.54            # body bottom edge Y (body extends up to -54.94)
+ESP32_ROTATION = 90                # KiCad rotation applied to helper output
 
-MIKROE2462_BODY_W = 25.4          # mm, short axis (X width when vertical)
-MIKROE2462_BODY_L = 42.9          # mm, long axis  (Y height when vertical)
-MIKROE2462_BODY_Z = 7.0           # mm, approx height above OAS PCB
-MIKROE2462_PIN_ROW_INSET = 1.27   # mikroBUS pin-row distance from each long edge
+# Dimensions per mikroBUS Standard Specifications v2.00 (June 2015), size S.
+# https://download.mikroe.com/documents/standards/mikrobus/mikrobus-standard-specification-v200.pdf
+# (NFC Tag 2 Click is mikroBUS size S — 25.4 × 28.6 mm, NOT the 42.9 mm
+# size M I mistakenly used earlier.) Pin headers 2×1×8 P2.54 mm, row
+# spacing 22.86 mm. Pin block OFFSET 2.87 mm toward pin-1 short edge:
+# pin 1 is 2.54 mm from the top short edge, pin 8 is 2.54 mm from the
+# bottom of the pin block, leaving 5.74 mm of additional board (where
+# the NFC PCB antenna spiral sits) past pin 8.
+MIKROE2462_BODY_W = 25.4
+MIKROE2462_BODY_L = 28.6
+MIKROE2462_BODY_Z = 7.0
+MIKROE2462_PIN_ROW_INSET = 1.27    # = (25.4 - 22.86) / 2
 MIKROE2462_PIN_PITCH = 2.54
 MIKROE2462_PIN_COUNT_PER_ROW = 8
+MIKROE2462_PIN_START_OFFSET = 2.54  # pin 1 at 2.54 mm from pin-1 short edge
 
-MIKROE2462_ANCHOR_X = -2.1        # body lower-left corner; body X range
-                                   # -2.1..+23.3 leaves ~1 mm gap to ESP32
-                                   # right edge (X=-3.1) and ~0.2 mm gap
-                                   # to SEN66 body left edge (X=+23.5).
-MIKROE2462_ANCHOR_Y = -53.1       # body Y range -53.1..-10.2 sits above
-                                   # the ZT3 silk circle (Y=-10..-6 at
-                                   # X=18.5..22.5; MIKROE silk Y_max=-10.4
-                                   # clears ZT3 silk Y_min=-10 by 0.4 mm).
-                                   # Pin row Y values land at -40..-22,
-                                   # well above cable hole and ZT zones.
+# Placement: vertical, immediately to the RIGHT of LD2410 (which itself
+# is pushed further left in v0.14). Body X range -33.21..-7.81 (25.4
+# wide) leaves a 1 mm gap to the LD2410 right edge at X=-34.21 and a
+# wider gap (~7.5 mm) to the cable hole right edge at X=+6. Body Y
+# range -28.54..+0.06 (28.6 long) sits 1 mm below the ESP32 horizontal
+# bar (ESP32 body bottom at Y=-29.54). The 8.28 mm strip at the bottom
+# of the MIKROE body (Y=-8.22..0.06) is where the onboard NFC PCB
+# antenna spiral lives — this is intentionally aimed AT the cable hole
+# left side so the antenna radiates outward through the AK-N-94 cover.
+MIKROE2462_ANCHOR_X = -33.21
+MIKROE2462_ANCHOR_Y = -28.54
+MIKROE2462_ROTATION = 0
 
 
 # -----------------------------------------------------------------------------
@@ -403,11 +428,12 @@ MIKROE2462_ANCHOR_Y = -53.1       # body Y range -53.1..-10.2 sits above
 # Anchor X = -34.29 = pin 1 position = body centerline (-36.83) + 2.54
 # (half the pin row width 5.08). Pin row spans X = -34.29 (pin 1, east)
 # .. -39.37 (pin 5, west); centre X = -36.83 = body centerline. ✓
-J4_PCB_X = -34.29            # mm — OAS PCB X of pin 1 (= -1.27 × 27).
-J4_PCB_Y = +19.05            # mm — OAS PCB Y of the pin row (= +1.27 × 15).
-J4_PCB_ROTATION = 270        # degrees; pad row along OAS -X from anchor
-                              # so pin row centre lands on the body
-                              # centerline (PCB X = -36.83).
+J4_PCB_X = -39.29            # mm — v0.14: shifted -5 mm in tandem with
+                              # LD2410_ANCHOR_X to keep pin row centred
+                              # on LD2410's new body centerline at
+                              # PCB X = -41.83.
+J4_PCB_Y = +19.05            # mm — OAS PCB Y of the pin row (unchanged).
+J4_PCB_ROTATION = 270        # degrees; pad row along OAS -X from anchor.
 
 # -----------------------------------------------------------------------------
 # KiCad 10 format constants
@@ -2160,11 +2186,18 @@ def _daughterboard_body_content(
     antenna_label: str | None,
     usb_label: str | None,
     uuid_tag: str,
+    pin_start_offset: float | None = None,
 ) -> str:
     """Inner body content (fp_rect on F.Fab + pin-row dots on F.Fab +
     fp_text labels) shared by the library footprint definition and the
     in-PCB placement instance for a daughterboard mech-ref. Returns the
     block ready to embed inside a (footprint ...) wrapper.
+
+    `pin_start_offset` is the distance (in LIB +Y direction) from the
+    body's pin-1-side short edge to pin 1's centerline. If None, the
+    pin block is centred along the long axis. Asymmetric daughterboards
+    (ESP32-C6 DevKitM-1 pins offset toward antenna; MIKROE-2462 pins
+    offset toward pin-1 short edge) pass an explicit value.
     """
     parts: list[str] = []
 
@@ -2180,9 +2213,12 @@ def _daughterboard_body_content(
         \t)"""))
 
     # Pin row dots on F.Fab (one column on each long edge, at pin_row_inset
-    # from the body edge, centred along the long axis).
+    # from the body edge, offset along the long axis per pin_start_offset).
     span = (pin_count_per_row - 1) * pin_pitch
-    start_offset = (body_l - span) / 2
+    if pin_start_offset is None:
+        start_offset = (body_l - span) / 2
+    else:
+        start_offset = pin_start_offset
     pin_xs = (pin_row_inset, body_w - pin_row_inset)
     pin_ys = [start_offset + i * pin_pitch for i in range(pin_count_per_row)]
     for col_idx, cx in enumerate(pin_xs):
@@ -2235,6 +2271,7 @@ def gen_daughterboard_mech_lib_file(
     antenna_label: str | None,
     usb_label: str | None,
     uuid_tag: str,
+    pin_start_offset: float | None = None,
 ) -> str:
     """Return the .kicad_mod library-file content for a daughterboard
     mechanical-reference footprint.
@@ -2255,6 +2292,7 @@ def gen_daughterboard_mech_lib_file(
         antenna_label=antenna_label,
         usb_label=usb_label,
         uuid_tag=uuid_tag + ":lib",
+        pin_start_offset=pin_start_offset,
     )
     return textwrap.dedent(f"""\
         (footprint "{name}"
@@ -2319,6 +2357,8 @@ def _emit_daughterboard_reference_pcb_footprint(
     antenna_label: str | None,
     usb_label: str | None,
     uuid_tag: str,
+    rotation: int = 0,
+    pin_start_offset: float | None = None,
 ) -> str:
     """Emit a daughterboard mechanical-reference footprint placed at
     (anchor_x, anchor_y) on the OAS PCB. The footprint is purely visual
@@ -2345,12 +2385,13 @@ def _emit_daughterboard_reference_pcb_footprint(
         antenna_label=antenna_label,
         usb_label=usb_label,
         uuid_tag=uuid_tag,
+        pin_start_offset=pin_start_offset,
     )
     return textwrap.dedent(f"""\
         \t(footprint "{lib_id}"
         \t\t(layer "F.Cu")
         \t\t(uuid "{U('fp-inst:' + uuid_tag)}")
-        \t\t(at {fx(anchor_x)} {fy(anchor_y)} 0)
+        \t\t(at {fx(anchor_x)} {fy(anchor_y)} {rotation})
         \t\t(descr "{descr}")
         \t\t(attr board_only exclude_from_pos_files exclude_from_bom)
         \t\t(property "Reference" "{reference}"
@@ -2449,16 +2490,18 @@ def gen_sensors_pcb_footprints() -> str:
     parts.append(_emit_daughterboard_reference_pcb_footprint(
         lib_id="oas:ESP32-C6-DevKitM-1_Reference",
         reference="MOD1",
-        descr="ESP32-C6-DevKitM-1-N4 daughterboard shadow (EAN 5904422385651). 25.4×48.26×8.6 mm; mounts on 2×1x15 P2.54 mm female pin sockets. Antenna at top short edge, USB-C at bottom.",
+        descr="ESP32-C6-DevKitM-1-N4 daughterboard shadow (EAN 5904422385651). 25.4×48.26×8.6 mm; mounts on 2×1x15 P2.54 mm female pin sockets. Pin block offset 0.98 mm toward antenna end per Espressif dimensions PDF.",
         anchor_x=ESP32_ANCHOR_X, anchor_y=ESP32_ANCHOR_Y,
         body_w=ESP32_BODY_W, body_l=ESP32_BODY_L,
         pin_row_inset=ESP32_PIN_ROW_INSET,
         pin_pitch=ESP32_PIN_PITCH,
         pin_count_per_row=ESP32_PIN_COUNT_PER_ROW,
         body_label="ESP32-C6 DevKitM-1",
-        antenna_label="antenna ^",
-        usb_label="USB-C v",
+        antenna_label="ant",
+        usb_label="USB",
         uuid_tag="esp32-devkitm1-pcb",
+        rotation=ESP32_ROTATION,
+        pin_start_offset=ESP32_PIN_START_OFFSET,
     ))
 
     # MIKROE-2462 NFC Tag 2 Click daughterboard shadow reservation.
@@ -2467,16 +2510,18 @@ def gen_sensors_pcb_footprints() -> str:
     parts.append(_emit_daughterboard_reference_pcb_footprint(
         lib_id="oas:MIKROE-2462_Reference",
         reference="MOD2",
-        descr="MIKROE-2462 NFC Tag 2 Click (NT3H2111 + onboard PCB NFC antenna). 25.4×42.9×7 mm; mounts on 2×1x8 P2.54 mm female pin sockets (mikroBUS).",
+        descr="MIKROE-2462 NFC Tag 2 Click (NT3H2111 + onboard PCB NFC antenna). 25.4×28.6×7 mm (mikroBUS size S); mounts on 2×1x8 P2.54 mm female pin sockets. Pin block offset 2.87 mm toward pin-1 short edge; NFC antenna spiral fills the 5.74 mm strip past pin 8.",
         anchor_x=MIKROE2462_ANCHOR_X, anchor_y=MIKROE2462_ANCHOR_Y,
         body_w=MIKROE2462_BODY_W, body_l=MIKROE2462_BODY_L,
         pin_row_inset=MIKROE2462_PIN_ROW_INSET,
         pin_pitch=MIKROE2462_PIN_PITCH,
         pin_count_per_row=MIKROE2462_PIN_COUNT_PER_ROW,
-        body_label="MIKROE-2462 NFC",
+        body_label="NFC",
         antenna_label=None,
         usb_label=None,
         uuid_tag="mikroe2462-pcb",
+        rotation=MIKROE2462_ROTATION,
+        pin_start_offset=MIKROE2462_PIN_START_OFFSET,
     ))
     return "\n".join(parts)
 
@@ -12071,30 +12116,32 @@ def main():
     (HERE / "libraries" / "oas.pretty" / "ESP32-C6-DevKitM-1_Reference.kicad_mod").write_text(
         gen_daughterboard_mech_lib_file(
             name="ESP32-C6-DevKitM-1_Reference",
-            descr="Espressif ESP32-C6-DevKitM-1-N4 daughterboard mechanical reference (no pads). EAN 5904422385651. Body 25.4×48.26×8.6 mm. Mounts on 2× 1x15 P2.54 mm female pin sockets; antenna at one short edge, dual USB-C at the other.",
+            descr="Espressif ESP32-C6-DevKitM-1-N4 daughterboard mechanical reference (no pads). EAN 5904422385651. Body 25.4×48.26×8.6 mm. Mounts on 2× 1x15 P2.54 mm female pin sockets; antenna at one short edge, dual USB-C at the other. Pin block offset 0.98 mm toward antenna end per Espressif dimensions PDF.",
             body_w=ESP32_BODY_W, body_l=ESP32_BODY_L,
             pin_row_inset=ESP32_PIN_ROW_INSET,
             pin_pitch=ESP32_PIN_PITCH,
             pin_count_per_row=ESP32_PIN_COUNT_PER_ROW,
             body_label="ESP32-C6 DevKitM-1",
-            antenna_label="antenna ^",
-            usb_label="USB-C v",
+            antenna_label="ant",
+            usb_label="USB",
             uuid_tag="esp32-devkitm1",
+            pin_start_offset=ESP32_PIN_START_OFFSET,
         ),
         encoding="utf-8",
     )
     (HERE / "libraries" / "oas.pretty" / "MIKROE-2462_Reference.kicad_mod").write_text(
         gen_daughterboard_mech_lib_file(
             name="MIKROE-2462_Reference",
-            descr="MikroElektronika NFC Tag 2 Click (NT3H2111 NTAG I²C plus + onboard PCB antenna) daughterboard mechanical reference (no pads). Body 25.4×42.9×7 mm. Mounts on 2× 1x8 P2.54 mm female pin sockets (mikroBUS).",
+            descr="MikroElektronika NFC Tag 2 Click (NT3H2111 NTAG I²C plus + onboard PCB antenna) daughterboard mechanical reference (no pads). Body 25.4×28.6×7 mm per mikroBUS size S spec. Pin block offset 2.87 mm toward pin-1 short edge; NFC antenna spiral on the 5.74 mm strip past pin 8.",
             body_w=MIKROE2462_BODY_W, body_l=MIKROE2462_BODY_L,
             pin_row_inset=MIKROE2462_PIN_ROW_INSET,
             pin_pitch=MIKROE2462_PIN_PITCH,
             pin_count_per_row=MIKROE2462_PIN_COUNT_PER_ROW,
-            body_label="MIKROE-2462 NFC",
+            body_label="NFC",
             antenna_label=None,
             usb_label=None,
             uuid_tag="mikroe2462",
+            pin_start_offset=MIKROE2462_PIN_START_OFFSET,
         ),
         encoding="utf-8",
     )
