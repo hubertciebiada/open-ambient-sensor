@@ -42,7 +42,7 @@ Pull-ups: **4.7 kΩ on the MCU side**.
 | **GPIO 2** | LD2410 OUT (presence interrupt) | safe non-strap input. Earlier drafts wrongly assigned GPIO 4 (MTMS strap) then GPIO 10 (does not exist on SiP flash variants) |
 | **GPIO 3** | NT3H2211 FD (NFC field-detect interrupt) | safe non-strap input. Earlier drafts wrongly assigned GPIO 5 (MTDI strap) then GPIO 11 (does not exist on SiP flash variants) |
 | GPIO 8 | WS2812 DIN | uses the **onboard addressable RGB NeoPixel** on DevKitM-1; no external WS2812 needed |
-| USB D+/D− | GPIO 12 / GPIO 13 — wired to the DevKitM-1's USB-C connector for native USB-Serial-JTAG | no external USB-C on the case wall — flash via the module's USB before sealing, OTA after |
+| USB D+/D− | GPIO 12 / GPIO 13 — wired to **one of the two** DevKitM-1's USB-C connectors (native USB-Serial-JTAG). The other USB-C goes to the onboard USB-to-UART bridge IC | no external USB-C on the case wall — flash via either of the module's USBs before sealing, OTA after |
 
 **Strap pins on ESP32-C6 (avoid for general I/O)**: GPIO 4 (MTMS), 5 (MTDI), 8 (strap, but OK for WS2812 in idle-low state), 9 (must float or pull-up at boot — used as the BOOT button on DevKitM-1), 15 (boot-mode select).
 
@@ -61,6 +61,7 @@ Pull-ups: **4.7 kΩ on the MCU side**.
 - Addressable RGB NeoPixel on GPIO 8 (= our status LED, software-controlled)
 - Reset and Boot pushbuttons (useful during development; closed enclosure makes them inaccessible — that's fine, OTA handles updates)
 - 5V→3.3V LDO on the module — bypassed in our design by feeding 3.3V directly into the 3V3 pin from our TPS62933 buck (no LDO loss, no LDO heat)
+- **Two USB-C connectors**: one goes through the onboard USB-to-UART bridge IC (classic flashing path), the other is wired directly to the ESP32-C6's native USB-Serial-JTAG (GPIO 12/13). With no USB cable plugged in after deployment, the bridge IC enters suspend mode and contributes negligible heat (~10 µW). Both connectors share the +5V power input net, so plugging into either one powers the module.
 
 ## PCB sector layout
 
