@@ -314,18 +314,29 @@ def _ld2410_local_to_pcb(lx: float, ly: float) -> tuple[float, float]:
 
 
 # J4 — stock KiCad PinHeader_1x05_P1.27mm_Vertical at the LD2410 connector
-# short edge. With LD2410 in its vertical orientation (rotation 270°),
-# the connector edge lies along a HORIZONTAL line at PCB Y=+19.05;
-# the 5 pads run along PCB X from -34.29 (pin 1, +X end) to -39.37
-# (pin 5, -X end).
+# short edge. With LD2410 in its vertical orientation (LD2410_ROTATION=270
+# in the .kicad_pcb file, which puts the connector edge at PCB Y=+19.05),
+# the 5 pads run along a HORIZONTAL line at Y=+19.05.
 #
-# The stock footprint's native pin row extends in local +Y from pin 1
-# at (0, 0) to pin 5 at (0, +5.08). To map +Y → -X (so pin 5 ends up
-# to the WEST of pin 1 on the PCB), we rotate the footprint by 90°
-# (CCW in KiCad's mathematical convention).
+# Anchor + rotation convention check (empirical, from rendered output):
+#   KiCad rotation N° in the .kicad_pcb file rotates the footprint
+#   CCW visually on screen (= mathematical CW with +Y-down screen
+#   convention). So a stock footprint native pad at local (0, +5.08)
+#   ends up at PCB (anchor_x + 5.08, anchor_y) under rotation 90° and
+#   at PCB (anchor_x - 5.08, anchor_y) under rotation 270°.
+#
+# We want pin 5 (local Y=+5.08) to land WEST of pin 1 (at anchor), so
+# the pin row sits centered on the LD2410 body's long-axis centerline
+# (PCB X = -36.83). That means rotation 270, not 90.
+#
+# Anchor X = -34.29 = pin 1 position = body centerline (-36.83) + 2.54
+# (half the pin row width 5.08). Pin row spans X = -34.29 (pin 1, east)
+# .. -39.37 (pin 5, west); centre X = -36.83 = body centerline. ✓
 J4_PCB_X = -34.29            # mm — OAS PCB X of pin 1 (= -1.27 × 27).
 J4_PCB_Y = +19.05            # mm — OAS PCB Y of the pin row (= +1.27 × 15).
-J4_PCB_ROTATION = 90         # degrees; pad row along OAS -X from anchor.
+J4_PCB_ROTATION = 270        # degrees; pad row along OAS -X from anchor
+                              # so pin row centre lands on the body
+                              # centerline (PCB X = -36.83).
 
 # -----------------------------------------------------------------------------
 # KiCad 10 format constants
