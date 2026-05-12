@@ -224,9 +224,15 @@ J3_ROTATION = 180  # v0.9: rotated 90 -> 180 so the cable opening (pad-side,
 #     antenna patches pointing AWAY from the OAS PCB (toward the AK-N-94
 #     perforated cover); 24 GHz beam radiates straight through the ABS
 #     cover into the room.
-#   - Orientation: long axis along OAS X; connector short edge faces the
-#     OAS centre (toward MCU / power rails for short signal traces);
-#     antenna short edge faces the PCB outline (left).
+#   - Orientation (v0.11): VERTICAL — long axis along OAS Y. Connector
+#     short edge faces SOUTH (PCB +Y, toward the chord; "piny u dołu");
+#     antenna short edge faces NORTH (PCB -Y, toward 12:00). LD2410
+#     ROTATION = 270° (mathematical CCW; visually maps local +X to
+#     PCB +Y so the connector edge ends up at body bottom).
+#   - Position: body anchored as far LEFT as practical to maximize free
+#     space around the central cable-pass-through hole (Ø12 at origin).
+#     Body right edge sits at PCB X = -29.21 → 23 mm clearance from the
+#     cable hole +X edge.
 #
 # Dimensions: LD2410B body ~30-33 × 15-16 mm in datasheet (varies by
 # revision). LD2410_BODY_W/H below are slightly enlarged + grid-aligned
@@ -258,17 +264,39 @@ LD2410_CONNECTOR_X = 35.56       # mm — LD2410-local X of the pin row (the
 LD2410_CONNECTOR_Y = 7.62        # mm — LD2410-local Y center of the 5-pin
                                   # row (centred on the short edge).
 
-# Placement on OAS PCB. Anchored at the body lower-left corner (LD2410-local
-# (0, 0) = OAS (LD2410_ANCHOR_X, LD2410_ANCHOR_Y)). With rotation 0, body
-# extends in +X and +Y from the anchor.
-LD2410_ANCHOR_X = -45.72         # mm — OAS PCB X of the LD2410 body corner.
-                                  # Body right edge (connector side) lands at
-                                  # X = -45.72 + 35.56 = -10.16 (= -8 × 1.27),
-                                  # so J4 pin column sits on the 1.27 mm grid.
-LD2410_ANCHOR_Y = -25.4          # mm — OAS PCB Y of the LD2410 body corner.
-                                  # Body extends to Y = -10.16. Pin row centred
-                                  # at OAS Y = -17.78 (mid-grid).
-LD2410_ROTATION = 0              # degrees; long axis aligned with OAS +X.
+# Placement on OAS PCB (v0.11 — vertical, left side, pins south).
+# Anchored at the LD2410-local (0, 0) corner. With rotation 270°,
+# LD2410-local +X maps to PCB +Y and LD2410-local +Y maps to PCB -X.
+# So body extends in +Y and -X from the anchor.
+#
+# Body shadow on OAS PCB:
+#   X range: anchor_x - LD2410_BODY_H .. anchor_x  =  -44.45 .. -29.21
+#   Y range: anchor_y .. anchor_y + LD2410_BODY_W  =  -16.51 .. +19.05
+# Connector short edge at PCB Y = anchor_y + LD2410_BODY_W = +19.05
+# (the southernmost body edge, closest to the chord), so the LD2410
+# daughterboard's 1.27 mm pin row lands on a horizontal line at Y=19.05
+# along OAS PCB X = -34.29..-39.37.
+#
+# Clearance checks vs the rest of the PCB:
+#   - PCB outline at body top Y=-16.51:    x_min = -57.68, body left
+#     at -44.45 → 13.23 mm clear.
+#   - PCB outline at body bottom Y=+19.05: x_min = -56.93, body left
+#     at -44.45 → 12.48 mm clear.
+#   - H2 mounting hole at (-47.6, +27.5) — Y separation between body
+#     bottom and H2 zone (Y 24.65..30.35) = 5.6 mm. No overlap.
+#   - Cutout zone C1 at (X -33.8..-21.8, Y 31.5..42.5) — body Y < +19.05
+#     < 31.5; no Y overlap.
+#   - Cable hole at PCB centre (Ø12 / radius 6) — body right edge
+#     at X=-29.21 → 23.21 mm clear from the cable hole +X edge at X=-6.
+LD2410_ANCHOR_X = -29.21         # mm — OAS PCB X of LD2410-local (0, 0).
+                                  # = -1.27 × 23 (on 1.27 mm grid).
+LD2410_ANCHOR_Y = -16.51         # mm — OAS PCB Y of LD2410-local (0, 0).
+                                  # = -1.27 × 13 (on 1.27 mm grid).
+LD2410_ROTATION = 270            # degrees; long axis along PCB Y. With
+                                  # this rotation, LD2410-local +X → PCB +Y
+                                  # (so the connector short edge at
+                                  # LD2410-local X=W lands at PCB Y=+19.05),
+                                  # and LD2410-local +Y → PCB -X.
 
 
 def _ld2410_local_to_pcb(lx: float, ly: float) -> tuple[float, float]:
@@ -286,15 +314,18 @@ def _ld2410_local_to_pcb(lx: float, ly: float) -> tuple[float, float]:
 
 
 # J4 — stock KiCad PinHeader_1x05_P1.27mm_Vertical at the LD2410 connector
-# short edge. The pin column lands on the 1.27 mm OAS grid; pins centred
-# vertically on the LD2410 connector edge.
-# Pin 1 of the stock footprint sits at the footprint anchor (0, 0); pin 5
-# at (0, +5.08). To place pin 3 (centre) at the LD2410 connector centre
-# (OAS X=-10.16, Y=-17.78), the J4 anchor sits 2 grid steps north of
-# centre at OAS (-10.16, -20.32).
-J4_PCB_X = -10.16
-J4_PCB_Y = -20.32
-J4_PCB_ROTATION = 0
+# short edge. With LD2410 in its vertical orientation (rotation 270°),
+# the connector edge lies along a HORIZONTAL line at PCB Y=+19.05;
+# the 5 pads run along PCB X from -34.29 (pin 1, +X end) to -39.37
+# (pin 5, -X end).
+#
+# The stock footprint's native pin row extends in local +Y from pin 1
+# at (0, 0) to pin 5 at (0, +5.08). To map +Y → -X (so pin 5 ends up
+# to the WEST of pin 1 on the PCB), we rotate the footprint by 90°
+# (CCW in KiCad's mathematical convention).
+J4_PCB_X = -34.29            # mm — OAS PCB X of pin 1 (= -1.27 × 27).
+J4_PCB_Y = +19.05            # mm — OAS PCB Y of the pin row (= +1.27 × 15).
+J4_PCB_ROTATION = 90         # degrees; pad row along OAS -X from anchor.
 
 # -----------------------------------------------------------------------------
 # KiCad 10 format constants
