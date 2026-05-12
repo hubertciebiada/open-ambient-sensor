@@ -92,8 +92,8 @@ The geometry constants currently match the SZOMK AK-N-94 manufacturer DXF (see [
 
 The PCB orientation in KiCad matches the physical wall-mount orientation:
 
-- **Bottom edge** (flat chord, Y=+43.5) — connector strip: 24 V terminal, JST GH (to SEN66 on cover), SWD header (unpopulated), Qwiic (no external USB-C — DevKitM-1's onboard USB-C accessible before sealing)
-- **Top half** — sensor zone: VEML7700, LD2410 mmWave radar
+- **Bottom edge** (flat chord, Y=+43.5) — connector strip: 24 V terminal, SWD header (unpopulated), Qwiic expansion (no external USB-C — DevKitM-1's onboard USB-C accessible before sealing)
+- **Top half / sensors region** — SEN66 (PCB-mounted, face-up), LD2410 mmWave radar, NT3H2211 + NFC antenna
 - **Middle** — MCU (ESP32-C6-DevKitM-1-N4, antenna toward 12:00) and status LED (onboard NeoPixel on GPIO 8)
 - **Adjacent to the 24 V terminal** — power section (TVS, PTC, buck converters)
 
@@ -105,7 +105,7 @@ See [`../../docs/ARCHITECTURE.md`](../../docs/ARCHITECTURE.md) for the full pino
 
 Roughly in order:
 
-1. **Schematic** (`oas.kicad_sch`) — place the ESP32-C6-DevKitM-1-N4 (EAN 5904422385651), SEN66 connector, LD2410 connector, VEML7700, NT3H2211, buck converters, TVS, PTC, 24 V terminal block, SWD/UART recovery header (unpopulated), Qwiic connector. No external USB-C and no external WS2812 — both are on the DevKitM-1 module. Net them up.
+1. **Schematic** (`oas.kicad_sch`) — place the ESP32-C6-DevKitM-1-N4 (EAN 5904422385651), SEN66 connector, LD2410 connector, NT3H2211, buck converters, TVS, PTC, 24 V terminal block, SWD/UART recovery header (unpopulated), Qwiic connector. No external USB-C and no external WS2812 — both are on the DevKitM-1 module. Net them up.
 2. **Footprints** — assign footprints in the schematic (most parts are stock in `Connector_*`, `Sensor_*`, `Package_DFN_QFN`, `Package_SO`). The mounting holes already use the custom `oas:MountingHole_3.8mm_M3`.
 3. **PCB layout** — update PCB from schematic, then place parts respecting:
    - 17 mm front-side height limit (5 mm back-side with washer-lifted PCB)

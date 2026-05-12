@@ -1,6 +1,6 @@
 # OAS — Open Ambient Sensor
 
-**DIY multi-sensor environmental monitor for indoor spaces.** Measures air quality, presence and ambient light; mounts on a standard wall-recessed electrical box; runs ESPHome and integrates natively with Home Assistant.
+**DIY multi-sensor environmental monitor for indoor spaces.** Measures air quality and presence; mounts on a standard wall-recessed electrical box; runs ESPHome and integrates natively with Home Assistant.
 
 [![License: GPLv3](https://img.shields.io/badge/License-GPLv3-blue.svg?style=flat-square)](./GPLv3-LICENSE.md)
 [![Status: Draft](https://img.shields.io/badge/Status-Preliminary%20Draft-orange?style=flat-square)](#status)
@@ -19,7 +19,6 @@
 
 - **Air quality** — CO₂, PM1 / PM2.5 / PM4 / PM10, VOC index, NOx index, temperature, relative humidity (Sensirion SEN66)
 - **Occupancy / presence** — mmWave radar with stillness detection (HiLink LD2410)
-- **Ambient light** — lux (Vishay VEML7700)
 
 ## Additional features
 
@@ -48,7 +47,6 @@ Both compromises (cheap-but-inaccurate, accurate-but-ugly) are rejected. See [`C
 | MCU | ESP32-C6-DevKitM-1-N4 (EAN 5904422385651) | 2× USB-C on module |
 | Air quality combo | Sensirion SEN66 | I²C (JST GH cable, mounts on cover) |
 | Presence | HiLink LD2410B/C | UART @ 256000 baud |
-| Ambient light | Vishay VEML7700 | I²C |
 | Visual indicator | onboard RGB NeoPixel on DevKitM-1 (GPIO 8) | 1-wire RMT |
 | NFC dynamic tag | NXP NT3H2211 + PCB trace antenna | I²C + NFC |
 | Power input | 24 V DC terminal block + TVS + PTC | — |

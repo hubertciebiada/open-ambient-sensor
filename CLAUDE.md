@@ -1,6 +1,6 @@
 # OAS — Open Ambient Sensor
 
-DIY multi-sensor environmental monitor for indoor spaces. Measures air quality, presence, and ambient light. Mounts on a standard wall-recessed electrical box (60 mm screw pitch). Powered from 24V DC. Integrates with Home Assistant via ESPHome.
+DIY multi-sensor environmental monitor for indoor spaces. Measures air quality and presence. Mounts on a standard wall-recessed electrical box (60 mm screw pitch). Powered from 24V DC. Integrates with Home Assistant via ESPHome.
 
 ---
 
@@ -94,7 +94,6 @@ At every step, the assistant should:
 Per-room sensor measures:
 - **Air quality**: CO2, PM1 / 2.5 / 4 / 10, VOC index, NOx index, temperature, humidity (Sensirion SEN66)
 - **Occupancy / presence**: mmWave radar with stillness detection (HiLink LD2410)
-- **Ambient light**: lux (Vishay VEML7700)
 
 Additional features:
 - RGB status LED with breathing effect; color reflects aggregated air quality index
@@ -124,7 +123,6 @@ Additional features:
 | MCU | **ESP32-C6-DevKitM-1-N4** (EAN 5904422385651) | — | confirmed v0.5 (re-evaluated against XIAO C6 + bare MINI-1 SMT alternatives) |
 | Air quality combo | Sensirion SEN66 | I²C via JST GH cable | tentative |
 | Presence | HiLink LD2410B/C | UART @ 256000 baud | tentative |
-| Ambient light | Vishay VEML7700 | I²C | tentative |
 | Visual indicator | onboard RGB NeoPixel on DevKitM-1 (GPIO 8) | 1-wire RMT | confirmed v0.4 (no external WS2812 needed) |
 | NFC dynamic tag | NXP NT3H2211 + PCB trace antenna | I²C + NFC | tentative |
 | Power input | TVS + PTC + 24V terminal block | — | confirmed v0.2 |
@@ -140,7 +138,7 @@ The schematic is split into four hierarchical sub-sheets by **function**, not by
 
 - `power.kicad_sch` — terminal block J1, reverse-polarity protection, PTC fuse, TVS, bulk cap, Y-cap, bucks 24→5V→3.3V
 - `mcu.kicad_sch` — ESP32-C6-DevKitM-1-N4, optional unpopulated SWD/UART recovery header, decoupling caps
-- `sensors.kicad_sch` — SEN66 JST-GH connector, LD2410 connector, VEML7700, NT3H2211 + NFC antenna, status LED (onboard WS2812 on DevKitM-1)
+- `sensors.kicad_sch` — SEN66 JST-GH connector, LD2410 connector, NT3H2211 + NFC antenna, status LED (onboard WS2812 on DevKitM-1)
 - `io.kicad_sch` — connector strip along the chord (24 V terminal, Qwiic, etc.)
 
 **Placement guideline (NOT a hard constraint)**: as a starting heuristic, think of the PCB roughly as a clock face with power on the upper-left, MCU on the upper-right, and sensors filling the bottom half. The 24 V cable enters through the centre, so keeping the terminal block and reverse-polarity / fusing chain near it shortens the bare-conductor span. Power flowing roughly clockwise (centre → power → MCU → sensors) tends to keep rails short, but **components may cross any imagined boundary if the layout needs it**. SEN66 in particular is large and may span what would otherwise be the "sensors" region.
@@ -153,14 +151,14 @@ The schematic is split into four hierarchical sub-sheets by **function**, not by
 - **Sensor zone below electronics** (PCB flat on bottom edge). Reason: natural convection lifts heat from MCU / power section upward, away from the SEN66 air intake.
 - **Connector strip along bottom flat**: 24V terminal, JST GH to SEN66, LD2410 connector, Qwiic, optional unpopulated SWD/UART recovery header. **No external USB-C** (use DevKitM-1's onboard USB before enclosure is sealed). Pre-defined positions exist in the manufacturer DXF; the case has matching cutouts / access.
 - **Thermal isolation slots** (1.5 mm milled gaps in FR4) separate Power, MCU, and peripheral zones.
-- **Shared I²C bus**: SEN66 (0x6B), VEML7700 (0x10), NT3H2211 (0x55), plus Qwiic expansion. Pull-ups **10 kΩ on MCU side** (per SEN66 datasheet §3.1 spec; v0.6 changed from 4.7 kΩ → 10 kΩ). Bus length kept <10 cm per Sensirion guidance (face-up PCB-mount eliminates the previous 50 mm cable, achieving <40 mm total).
+- **Shared I²C bus**: SEN66 (0x6B), NT3H2211 (0x55), plus Qwiic expansion. Pull-ups **10 kΩ on MCU side** (per SEN66 datasheet §3.1 spec; v0.6 changed from 4.7 kΩ → 10 kΩ). Bus length kept <10 cm per Sensirion guidance (face-up PCB-mount eliminates the previous 50 mm cable, achieving <40 mm total).
 - **Bluetooth proxy** = software-only; no extra hardware.
 
 ### ESP32-C6-DevKitM-1-N4 pinout (v0.4 final)
 
 | Pin | Function | Notes |
 |---|---|---|
-| GPIO 6 | I²C SDA | shared bus: SEN66 (0x6B), VEML7700 (0x10), NT3H2211 (0x55), Qwiic expansion |
+| GPIO 6 | I²C SDA | shared bus: SEN66 (0x6B), NT3H2211 (0x55), Qwiic expansion |
 | GPIO 7 | I²C SCL | shared bus, 4.7 kΩ pull-ups on MCU side |
 | GPIO 16 | UART1 TX → LD2410 RX | 256000 baud |
 | GPIO 17 | UART1 RX ← LD2410 TX | 256000 baud |
@@ -190,7 +188,6 @@ See `docs/ARCHITECTURE.md` for the canonical pinout table including onboard hard
 ESPHome components expected:
 - `sensor.sen66` (verify native availability; fallback to custom)
 - `binary_sensor.ld2410` and `sensor.ld2410` (official integration exists)
-- `sensor.veml7700`
 - `light.neopixelbus` (WS2812B with breathing effect)
 - `bluetooth_proxy`
 
@@ -224,6 +221,7 @@ These were considered and explicitly rejected. Do not propose them again without
 - ❌ External USB-C connector on the case wall (use DevKitM-1's own USB-C for programming; OTA after first flash)
 - ❌ IR transmitter / receiver
 - ❌ Microphone / acoustic sensor
+- ❌ Ambient light sensor (Vishay VEML7700) — removed in v0.10. Originally a "bolt-on" feature, not core to the OAS mission (air quality + presence). Geometric light shielding from the onboard NeoPixel + power LED inside the white perforated enclosure would require either a 3D-printed baffle, an opaque shroud over the sensor, or moving the status LED off-module with a light pipe — all adding complexity and BOM for a non-essential measurement. Home Assistant has many other indoor light sensing options (phone ambient light, smart bulbs reporting brightness, dedicated USB-powered sensors). Saved I²C bus slot + ~€1 BOM + sensors-area PCB real estate.
 
 ---
 
@@ -233,7 +231,6 @@ These were considered and explicitly rejected. Do not propose them again without
 - [ ] Select specific buck converter ICs (validate efficiency, JLCPCB Basic Library availability)
 - [ ] NFC antenna design (PCB spiral geometry, matching capacitor selection)
 - [x] ~~Validate ESP32-C6 pinout against strap pin and boot mode constraints~~ — done in v0.4 (GPIO 2/3 for LD2410_OUT/NFC_FD, GPIO 8 for onboard NeoPixel)
-- [ ] Decide whether VEML7700 placement requires its own thermal isolation slot
 - [ ] 3D model bracket for SEN66 mounting on cover (STL in `hardware/case/`)
 - [ ] KiCad schematic — full
 - [ ] KiCad PCB layout with thermal breaks
@@ -418,7 +415,6 @@ Past mistake to avoid: in v0.3 of this project, "GPIO 4 → GPIO 10 / GPIO 5 →
 - Sensirion SEN6x datasheet: https://sensirion.com/resource/datasheet/SEN6x
 - HiLink LD2410 documentation and UART protocol: https://www.hlktech.net
 - NXP NT3H2x11 antenna design AN11203: https://www.nxp.com
-- Vishay VEML7700 datasheet
 - SZOMK enclosures: https://www.chinaenclosure.com
 - ESPHome documentation: https://esphome.io
 - JLCPCB component library: https://jlcpcb.com/parts
@@ -507,3 +503,16 @@ Past mistake to avoid: in v0.3 of this project, "GPIO 4 → GPIO 10 / GPIO 5 →
   - **Decision: keep ESP32-C6-DevKitM-1-N4 for v1**. Smallest delta from current schematic; deterministic Botland availability; official ESPHome `esp32-generic/esp32-generic-c6.yaml` BLE-proxy template; all 22 exposed GPIOs map cleanly to OAS signals + 11 spares.
   - **New plan item: post-prototype desolder of DevKitM-1's power LED** (~30 mW saved). Conditional rework — triggered if first-prototype SEN66 SHT measurements show >0.1 °C bias attributable to MCU-sector dissipation. The LED is on the top side of the DevKitM-1 board, easily accessible with a hot-air rework station before the OAS enclosure is sealed. Added to `docs/CASE-VERIFICATION-CHECKLIST.md` post-prototype rework list.
   - **v2 transition path recorded**: once v1 validates the OAS architecture end-to-end, evaluate migration to bare ESP32-C6-MINI-1-N4 SMT on the OAS PCB itself. Trade-offs already analyzed; trigger conditions: (a) >5 production units planned, (b) MCU-sector area becomes constrained by Qwiic/NFC/expansion, or (c) SEN66 bias is detected and LED desolder alone is insufficient.
+
+- **v0.10** — **VEML7700 ambient light sensor REMOVED from the design.**
+  - **Trigger**: while planning chunk #5b/#5c sensor placement, the geometric light-shielding problem was raised: the DevKitM-1's onboard NeoPixel (status LED, breathing animation) and always-on power LED sit inside the same closed white-perforated AK-N-94 enclosure as the VEML7700. Internal reflection off the cover ABS + direct line-of-sight on the PCB would bias VEML7700 lux readings, especially in low-ambient conditions.
+  - **Mitigations evaluated**:
+    - (a) Geometric shielding — VEML7700 in opposite quadrant from MCU, with SEN66 body as a partial baffle, plus an opaque shroud limiting field-of-view. Workable but adds 3D-printed parts and per-unit assembly steps.
+    - (b) Internal baffle — vertical 3D-printed wall between MCU and VEML7700 quadrants reaching from PCB to cover.
+    - (c) Software compensation — read VEML7700 with LED-off baseline subtraction. Unreliable with the breathing animation already committed for the AQI indicator.
+    - (d) Move status LED off the MCU module — external WS2812 with light pipe to the front cover, so the LED radiates outward rather than inside the case. Adds BOM line + GPIO routing.
+  - **Decision**: drop VEML7700 entirely. The sensor was originally a "bolt-on" — air quality + presence are the OAS mission; ambient light measurement was a convenience feature with no hard requirement. Home Assistant has many indoor light sources (phone, smart bulbs, dedicated sensors) that fill this gap without committing OAS to the shielding work.
+  - **What this saves**: ~€1 BOM, one SMD part on the JLCPCB assembly run, ~5 × 5 mm of sensors-area PCB real estate, one I²C device address slot, one ESPHome `sensor.veml7700` component, one entry in HA-INTEGRATION docs, and the entire "geometric shielding + maybe baffle + maybe light pipe" rabbit hole.
+  - **What stays**: I²C bus on GPIO 6/7 still needed for SEN66 (0x6B), NT3H2211 NFC (0x55), and Qwiic expansion. Pull-ups R5/R6 at 10 kΩ stay (driven by SEN66 spec, not VEML7700).
+  - **Reversal cost** (if a future user wants light sensing back): re-evaluate via Qwiic expansion port — a Qwiic VEML7700 breakout could plug into the I²C expansion port and be physically mounted *outside* the case, avoiding the shielding problem altogether. ESPHome config trivial.
+  - Added to "Out of scope (decisions already made)" so future revisits require new information.

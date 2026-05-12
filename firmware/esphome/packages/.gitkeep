@@ -1,5 +1,5 @@
 # Shared ESPHome YAML fragments (packages) will be placed here:
-#   - sensors.yaml       (SEN66, VEML7700, LD2410)
+#   - sensors.yaml       (SEN66, LD2410)
 #   - status-led.yaml    (WS2812 breathing effect + AQI-to-colour mapping)
 #   - nfc.yaml           (NT3H2211 dynamic tag content updater)
 #   - ble-proxy.yaml     (Bluetooth proxy)

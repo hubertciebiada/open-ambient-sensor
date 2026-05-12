@@ -9,7 +9,6 @@
 | MCU | **ESP32-C6-DevKitM-1-N4** (EAN 5904422385651) | 2× USB-C on module | see pinout table below |
 | Air quality combo | Sensirion SEN66 | I²C (JST GH cable) | Mounts on the enclosure cover, not on the PCB |
 | Presence | HiLink LD2410B/C | UART @ 256000 baud | Plus presence-interrupt GPIO |
-| Ambient light | Vishay VEML7700 | I²C | |
 | Status LED | WS2812B (PLCC4) | 1-wire RMT | Single LED, breathing effect |
 | NFC dynamic tag | NXP NT3H2211 + PCB trace antenna | I²C + NFC | Field-detect interrupt to MCU |
 | Power input | 24 V DC + TVS + PTC | terminal block | Single 24 V rail across the deployment |
@@ -22,7 +21,6 @@
 | Device | Address |
 |---|---|
 | Sensirion SEN66 | 0x6B |
-| Vishay VEML7700 | 0x10 |
 | NXP NT3H2211 | 0x55 |
 
 Pull-ups: **10 kΩ on the MCU side** (per SEN66 datasheet §3.1; v0.6).
@@ -35,7 +33,7 @@ Pull-ups: **10 kΩ on the MCU side** (per SEN66 datasheet §3.1; v0.6).
 
 | Pin | Function | Notes |
 |---|---|---|
-| GPIO 6 | I²C SDA | shared bus: SEN66 (0x6B), VEML7700 (0x10), NT3H2211 (0x55) |
+| GPIO 6 | I²C SDA | shared bus: SEN66 (0x6B), NT3H2211 (0x55) |
 | GPIO 7 | I²C SCL | shared bus, 4.7 kΩ pullups on MCU side |
 | GPIO 16 | UART1 TX → LD2410 RX | 256000 baud |
 | GPIO 17 | UART1 RX ← LD2410 TX | 256000 baud |
@@ -76,7 +74,7 @@ As a starting heuristic, the PCB roughly behaves like a clock face — power on 
 - **Cable entry:** Ø12 mm circular cut-out at PCB centre for 24 V power (3× 1.5 mm² conductors). Wires enter from the rear of the enclosure (behind the unit, from an electrical wall box) and reach a terminal block mounted on the front side of the PCB. The bare conductors stay enclosed within the case
 - **Front-side component-height limit:** 17 mm (per manufacturer DXF)
 - **Back-side limit:** **5 mm effective** (DXF baseline 3 mm + 2 mm gained by washers under the M3 mounting screws) — fits standard through-hole pin-header bottoms without aggressive trimming; SMD components still discouraged on back side
-- **Orientation:** flat chord on the bottom; sensor zone (VEML7700, SEN66 inlet path) is below the electronics, so natural convection lifts heat upward and away from the air intake
+- **Orientation:** flat chord on the bottom; sensor zone (SEN66 inlet path) is below the electronics, so natural convection lifts heat upward and away from the air intake
 - **Thermal isolation:** 1.5 mm milled FR4 slots separate the Power, MCU and peripheral zones
 - **Connector strip along the bottom flat:** 24 V terminal, USB-C, SWD header, Qwiic, JST GH to SEN66 — positions match the manufacturer enclosure cutouts (5 keepout zones C1…C5 in `oas.kicad_pcb` block the corresponding rectangles on F.Cu/B.Cu; see [`../hardware/case/README.md`](../hardware/case/README.md#connector-cutouts-in-the-case-wall-along-the-flat-chord) for dimensions)
 
@@ -88,6 +86,5 @@ A 3D-printed bracket is required to retain the SEN66 against the cover (see [`ha
 
 ## Open architectural questions
 
-- VEML7700 placement — does it need its own thermal isolation slot to avoid bias from MCU/PSU heat?
 - NFC antenna geometry — PCB spiral dimensions and the matching capacitor value (driven by NXP AN11203)
 - Buck converter IC selection — final choice depends on efficiency at the expected load profile and JLCPCB Basic Library availability

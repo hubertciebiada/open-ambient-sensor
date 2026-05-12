@@ -12,7 +12,7 @@ substitutions:
 esphome:
   name: ${device_name}
   friendly_name: ${friendly_name}
-  comment: "Open Ambient Sensor — air quality, presence, ambient light"
+  comment: "Open Ambient Sensor — air quality and presence"
 
 esp32:
   board: esp32-c6-devkitc-1
@@ -43,7 +43,7 @@ wifi:
 
 captive_portal:
 
-# I²C bus shared between SEN66 (0x6B), VEML7700 (0x10), NT3H2211 (0x55)
+# I²C bus shared between SEN66 (0x6B), NT3H2211 (0x55), plus Qwiic expansion
 i2c:
   sda: GPIO6
   scl: GPIO7
@@ -87,14 +87,6 @@ uart:
 #       name: "Temperature"
 #     humidity:
 #       name: "Humidity"
-
-# Vishay VEML7700 — ambient light
-sensor:
-  - platform: veml7700
-    address: 0x10
-    update_interval: 30s
-    ambient_light:
-      name: "Ambient Light"
 
 # HiLink LD2410 — presence radar
 # binary_sensor:

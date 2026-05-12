@@ -14,7 +14,7 @@ OAS integrates with Home Assistant via the **native ESPHome API** — no MQTT br
 
 Once integrated, the device exposes (subject to final firmware):
 
-- **Sensors:** CO₂, PM1/2.5/4/10, VOC index, NOx index, temperature, humidity, ambient light (lux)
+- **Sensors:** CO₂, PM1/2.5/4/10, VOC index, NOx index, temperature, humidity
 - **Binary sensors:** presence, moving target, still target
 - **Light:** status RGB LED (state + colour + breathing effect)
 - **Bluetooth proxy:** automatically extends BLE range for the rest of HA

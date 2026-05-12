@@ -30,7 +30,6 @@ firmware/
 
 - `sensor.sen66` — air-quality combo (CO₂, PM1/2.5/4/10, VOC, NOx, T, RH). Native availability **TBD** — fallback to a custom external component if unavailable.
 - `binary_sensor.ld2410` and `sensor.ld2410` — mmWave presence + stillness
-- `sensor.veml7700` — ambient light
 - `light.neopixelbus` — WS2812B with breathing effect
 - `bluetooth_proxy` — extends BLE range for the rest of the home
 

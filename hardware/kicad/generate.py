@@ -118,7 +118,7 @@ CUTOUTS = [
 # height 21.5 mm > 17 mm front-side limit). The PCB carries:
 #   1. A no-pad mechanical-reference footprint (`SEN66_Mechanical_Reference`)
 #      drawn on F.Fab / F.SilkS — marks where the SEN66 body "shadow" sits
-#      so neighbouring components (VEML7700, LD2410, NT3H2211) stay clear.
+#      so neighbouring components (LD2410, NT3H2211) stay clear.
 #   2. Four NPTH zip-tie holes (Ø 3.0 mm) that pinch the SEN66 against
 #      the cover, threaded through both PCB and cover plate.
 #   3. The PCB-side JST GH 6-pin socket (J3) that mates with the SEN66's
@@ -289,7 +289,8 @@ ROOT_SHEET_UUID = str(uuid.uuid5(_OAS_NS, "sheet:root"))
 # Hierarchical sub-sheets — functional grouping (see CLAUDE.md):
 #   power   — input protection + bucks 24V → 5V → 3.3V
 #   mcu     — ESP32-C6-DevKitM-1-N4 + decoupling
-#   sensors — SEN66, VEML7700, LD2410, WS2812, NT3H2211 NFC
+#   sensors — SEN66, LD2410, NT3H2211 NFC (status LED is the onboard
+#             NeoPixel on DevKitM-1, so it lives logically in the mcu sheet)
 #   io      — connector cluster along the chord (24V terminal, Qwiic, SWD)
 #
 # Two distinct UUIDs per sub-sheet:
@@ -436,8 +437,8 @@ def gen_mounting_hole_footprint() -> str:
 #   - The PCB-side footprint is purely a placement marker — it tells the
 #     PCB designer where the SEN66 "lives" relative to the PCB centroid
 #     so the JST GH cable run length stays consistent across builds, and
-#     so the layout can place VEML7700 / LD2410 / NT3H2211 clear of
-#     the SEN66 shadow.
+#     so the layout can place LD2410 / NT3H2211 clear of the SEN66
+#     shadow.
 #   - No pads, no drilled holes (the 4× zip-tie holes are a separate
 #     footprint: `ZipTieHole_3mm_NPTH`).
 SEN66_BODY_X = 55.2
@@ -463,8 +464,8 @@ def gen_sen66_mechanical_footprint() -> str:
     No pads — the SEN66 doesn't bolt to the PCB; it lives on the enclosure
     cover. This footprint exists so the PCB designer has a visible "SEN66
     shadow" in 2D / 3D views, reserving enough clearance for the SEN66
-    cable strain relief and ensuring that future components (VEML7700,
-    LD2410, NT3H2211) avoid the SEN66 zone.
+    cable strain relief and ensuring that future components (LD2410,
+    NT3H2211) avoid the SEN66 zone.
 
     Rendered on `F.Fab` (full body outline + air openings + connector
     marker + foam-divider hint + module identification) and on
@@ -7342,8 +7343,7 @@ def gen_power_sch() -> str:
     # and steps it down to a regulated 3.3V rail that powers the ESP32-C6
     # DevKitM-1-N4 (via its 3V3 pin, bypassing the module's onboard LDO so
     # we don't dissipate ~250 mW close to the SEN66 air-quality sensor),
-    # plus the SEN66 itself, VEML7700 ambient light sensor, and NT3H2211
-    # NFC tag.
+    # plus the SEN66 itself and the NT3H2211 NFC tag.
     #
     # Component selection rationale (see commit message and CLAUDE.md):
     #   * TPS62933   : 3.8-30 V Vin range (17 V abs-max for the typical-use
@@ -7367,8 +7367,8 @@ def gen_power_sch() -> str:
     #                  voltage = 0.6 V. Vout = Vfb × (1 + R2/R3) =
     #                  0.6 × (1 + 4.42) = 3.252 V — well within the
     #                  ESP32-C6's 3.0-3.6 V supply window and the typical
-    #                  3.0-3.6 V supply requirements of SEN66, VEML7700,
-    #                  NT3H2211. R3 = 10 kΩ gives a low-current divider
+    #                  3.0-3.6 V supply requirements of SEN66 and NT3H2211.
+    #                  R3 = 10 kΩ gives a low-current divider
     #                  (~60 µA), and R2 = 44.2 kΩ is the nearest E96 value.
     #                  1% tolerance keeps the output voltage variation due
     #                  to divider tolerance below ±20 mV.
@@ -9637,9 +9637,9 @@ def gen_mcu_sch() -> str:
 
     # ===== R5 / R6: I²C bus pull-ups, 10 kΩ 1% 0402 =====
     # Sensirion SEN66 datasheet §3.1 specifies 10 kΩ pull-ups for the
-    # shared I²C bus (SEN66 + VEML7700 + NT3H2211 + Qwiic). Standard
-    # mode (100 kHz) compatible; 6-device bus + <50 mm trace fits well
-    # within rise-time budget with 10 kΩ pull-ups.
+    # shared I²C bus (SEN66 + NT3H2211 + Qwiic expansion). Standard
+    # mode (100 kHz) compatible; trace length <50 mm fits well within
+    # rise-time budget with 10 kΩ pull-ups.
     # R5 = SDA pull-up, R6 = SCL pull-up.
     #
     # Geometry: both resistor bodies are vertical (angle=0), with pin 1
@@ -9998,10 +9998,10 @@ def SENSORS_LIB_SYMBOLS() -> str:
     source for the embedded library symbols across sub-sheets means
     any future symbol-definition fix lands in exactly one place.
 
-    Later chunks (#5b VEML7700, #5c LD2410, #5d NT3H2211) will likely
-    need additional symbols (Device:R, an LD2410 connector symbol, the
-    NXP NT3H2211 IC symbol). At that point we'll either widen this
-    function or split into per-chunk concatenations.
+    Later chunks (#5b LD2410, #5c NT3H2211) will likely need additional
+    symbols (an LD2410 connector symbol, the NXP NT3H2211 IC symbol).
+    At that point we'll either widen this function or split into
+    per-chunk concatenations.
     """
     return _MCU_LIB_SYMBOLS_TAIL
 
@@ -10009,9 +10009,8 @@ def SENSORS_LIB_SYMBOLS() -> str:
 def gen_sensors_sch() -> str:
     """Sensors sub-sheet — chunk #5a: SEN66 connection (J3 + C10).
 
-    Populates the SEN66 portion only. Other sensors (VEML7700 ambient
-    light, LD2410 presence radar, NT3H2211 NFC dynamic tag) are added in
-    later chunks #5b..#5d.
+    Populates the SEN66 portion only. Other sensors (LD2410 presence
+    radar, NT3H2211 NFC dynamic tag) are added in later chunks #5b..#5c.
 
     SEN66 pinout (Sensirion SEN6x datasheet v0.92 Dec 2025, Table 16
     on p. 15) — applies to the entire SEN6x family (SEN62, SEN63C,
