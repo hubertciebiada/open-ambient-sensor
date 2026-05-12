@@ -27,20 +27,24 @@
 
 Pull-ups: **4.7 kΩ on the MCU side**.
 
-## Tentative ESP32-C6 pinout
+## ESP32-C6 SuperMini pinout (post strap-pin validation)
 
-| Pin | Function |
-|---|---|
-| GPIO 6 | I²C SDA |
-| GPIO 7 | I²C SCL |
-| GPIO 16 | UART1 TX → LD2410 RX |
-| GPIO 17 | UART1 RX ← LD2410 TX |
-| GPIO 4 | LD2410 OUT (presence interrupt) |
-| GPIO 8 | WS2812 DIN |
-| GPIO 5 | NT3H2211 FD (NFC field-detect interrupt) |
-| USB D+/D− | Native USB-C |
+| Pin | Function | Notes |
+|---|---|---|
+| GPIO 6 | I²C SDA | shared bus: SEN66 (0x6B), VEML7700 (0x10), NT3H2211 (0x55) |
+| GPIO 7 | I²C SCL | shared bus, 4.7 kΩ pullups on MCU side |
+| GPIO 16 | UART1 TX → LD2410 RX | 256000 baud |
+| GPIO 17 | UART1 RX ← LD2410 TX | 256000 baud |
+| **GPIO 10** | LD2410 OUT (presence interrupt) | was GPIO 4 in earlier draft; GPIO 4 is MTMS strap pin — unsafe for general I/O |
+| **GPIO 8** | WS2812 DIN | uses **onboard WS2812** on the SuperMini module; no external WS2812 in v1 |
+| **GPIO 11** | NT3H2211 FD (NFC field-detect interrupt) | was GPIO 5 in earlier draft; GPIO 5 is MTDI strap pin — unsafe for general I/O |
+| USB D+/D− | Native USB-C on the SuperMini module itself | no external USB-C on the case wall — flash via SuperMini USB before sealing, OTA after |
 
-**TODO:** validate against ESP32-C6 SuperMini strap/boot pin constraints.
+**Strap pins on ESP32-C6 (to avoid for general I/O)**: GPIO 4 (MTMS), 5 (MTDI), 8 (strap, but OK for WS2812 in idle-low state), 9 (must float or pull-up at boot), 12/13 (USB D−/D+), 15 (boot-mode select on some module variants).
+
+**Firmware framework**: ESPHome on `esp-idf` (not `arduino`) — required for adequate memory headroom with BLE-proxy + WiFi + sensor stack combined.
+
+**Antenna orientation**: SuperMini's chip antenna sits on the top edge of the module. Place the SuperMini in the MCU sector (12:00–03:00) such that its antenna edge points toward 12:00 (radial outward, toward case wall) — keeps the antenna away from the POWER sector's bucks (potential RF noise sources).
 
 ## PCB sector layout
 

@@ -130,7 +130,7 @@ Additional features:
 | Buck 24V → 5V | TBD (TPS62933 / MP2451 candidates) | — | tentative |
 | Buck 24V → 3.3V | TBD (TPS62840 / MP2315 candidates) | — | tentative |
 | External I²C ESD | TBD (PESD3V3L4UG candidate) | — | tentative |
-| Flashing | Native USB-C on ESP32-C6 | USB 2.0 | tentative |
+| Flashing | Native USB-C on ESP32-C6 SuperMini (onboard module only, no case-wall connector) | USB 2.0 | confirmed v0.3 |
 | Debug | SWD / UART header (unpopulated by default) | — | tentative |
 
 ### PCB sector layout (clock-face convention)
@@ -140,7 +140,7 @@ The PCB is divided into three angular sectors viewed from the front:
 | Sector | Clock hours | Quadrant in KiCad coords | Contents |
 |---|---|---|---|
 | **POWER** | 09:00 → 12:00 | upper-left (X < 0, Y < 0) | terminal block J1, reverse-polarity protection, PTC fuse, TVS, bulk cap, Y-cap, bucks 24→5V→3.3V |
-| **MCU + logic** | 12:00 → 03:00 | upper-right (X > 0, Y < 0) | ESP32-C6 SuperMini, USB-C, SWD header, decoupling caps |
+| **MCU + logic** | 12:00 → 03:00 | upper-right (X > 0, Y < 0) | ESP32-C6 SuperMini (antenna edge → 12:00), optional unpopulated SWD/UART recovery header, decoupling caps |
 | **SENSORS** | 03:00 → 09:00 | bottom half (Y > 0) | SEN66 JST-GH connector, LD2410 connector, VEML7700, WS2812, NT3H2211 + NFC antenna, status LED |
 
 Power flow runs **clockwise** (24 V enters through the centre → POWER sector → MCU sector → SENSORS sector) so signal paths and power rails never need to cross sector boundaries.
@@ -152,7 +152,7 @@ Three radial separator lines (12:00, 03:00, 09:00 azimuths) plus sector labels a
 ### Architectural decisions (current)
 - **SEN66 mounts on the enclosure cover**, NOT on the PCB. Reason: SEN66 height (21.5 mm) exceeds front-side component limit (17 mm). Connected to PCB via short JST GH 6-pin cable (~50 mm).
 - **Sensor zone below electronics** (PCB flat on bottom edge). Reason: natural convection lifts heat from MCU / power section upward, away from the SEN66 air intake.
-- **Connector strip along bottom flat**: 24V terminal, USB-C, SWD header, Qwiic, JST GH to SEN66. Pre-defined positions exist in the manufacturer DXF; the case has matching cutouts / access.
+- **Connector strip along bottom flat**: 24V terminal, JST GH to SEN66, LD2410 connector, Qwiic, optional unpopulated SWD/UART recovery header. **No external USB-C** (use SuperMini's onboard USB before enclosure is sealed). Pre-defined positions exist in the manufacturer DXF; the case has matching cutouts / access.
 - **Thermal isolation slots** (1.5 mm milled gaps in FR4) separate Power, MCU, and peripheral zones.
 - **Shared I²C bus**: SEN66 (0x6B), VEML7700 (0x10), NT3H2211 (0x55). Pull-ups 4.7 kΩ on MCU side.
 - **Bluetooth proxy** = software-only; no extra hardware.
@@ -171,6 +171,12 @@ Three radial separator lines (12:00, 03:00, 09:00 azimuths) plus sector labels a
 | USB D+/D− | Native USB-C |
 
 Pinout must be validated against ESP32-C6 SuperMini strap / boot pin constraints.
+
+**v0.3 pinout corrections** (after strap-pin verification):
+- GPIO 4 → **GPIO 10** (LD2410 OUT) — GPIO 4 is MTMS strap pin
+- GPIO 5 → **GPIO 11** (NT3H2211 FD) — GPIO 5 is MTDI strap pin
+- GPIO 8 stays for WS2812 — uses the **onboard WS2812** of the ESP32-C6 SuperMini module (no external WS2812 needed for v1; an external WS2812 footprint may be added later as DNP if positioning becomes a concern)
+- USB-C **removed from external connector strip** — flashing uses the SuperMini's own USB-C accessible at programming time (before enclosure is sealed); an unpopulated SWD/UART recovery header may be added for field-recovery edge cases
 
 ---
 
@@ -214,6 +220,7 @@ These were considered and explicitly rejected. Do not propose them again without
 - ❌ External temperature probe terminal (DS18B20 / NTC) — SEN66 is sufficient
 - ❌ Input current monitoring (INA219)
 - ❌ Display (OLED / LCD)
+- ❌ External USB-C connector on the case wall (use SuperMini's own USB-C for programming; OTA after first flash)
 - ❌ IR transmitter / receiver
 - ❌ Microphone / acoustic sensor
 
@@ -350,7 +357,8 @@ If a change is awkward to express in `generate.py` (e.g. one-off ad-hoc graphic 
 
 ### Component selection
 - Apply both design pillars (measurement quality, aesthetic acceptability) as filters before considering cost
-- Prefer **JLCPCB Basic Library** parts (free assembly) and Extended Library (~$3 setup fee) where they pass the two pillars
+- **For SMD components** going through JLCPCB assembly: prefer Basic Parts Library (free assembly), Extended Library (~$3 setup fee) acceptable when needed for the right part
+- **For manual-mount components** (modules like ESP32-C6 SuperMini, SEN66, LD2410, terminal blocks, headers): JLCPCB availability is **not required** — these can be sourced separately (AliExpress, LCSC, Mouser, Digikey) since user does final hand assembly. Pick the right part on technical merit; sourcing is secondary.
 - Report part numbers and current availability when proposing components
 - Validate prices in production quantity; do not propose parts known to be EOL or perpetually out of stock
 
@@ -399,3 +407,12 @@ If a change is awkward to express in `generate.py` (e.g. one-off ad-hoc graphic 
   - F1 originally MF-MSMF050 (PTC 500 mA / 30 V) — voltage rating below D1's 38.9 V surge clamp. **Corrected to MF-RHT075/60-2** (PTC 750 mA / 60 V); also addresses cold-start inrush margin concern.
   - L1 (33 µH / 1 A sat): saturation risk during cold-start of C4 (220 µF). Uprate to 2 A sat pending in next chunk.
   - TPS62933 SS pin currently tied to GND (no soft-start): SEN66 datasheet expects 2–10 ms power ramp. Adding 47 nF on SS pin pending in next chunk.
+
+- **v0.3** — Pre-MCU decisions and pinout corrections (no schematic changes yet; staged for chunk #4 `mcu.kicad_sch`):
+  - **External USB-C connector dropped** from the design. Programming uses the ESP32-C6 SuperMini's onboard USB-C (accessible before enclosure is sealed); OTA via ESPHome + HA handles all updates after first flash. Net wins: one fewer PCB cutout, cleaner exterior aesthetic, one fewer BOM line. Trade-off: field recovery requires opening the case (rare with OTA). Optional unpopulated SWD/UART header may be added for extreme field-recovery scenarios.
+  - **Onboard WS2812 retained as status LED** (on SuperMini's GPIO 8). No external WS2812 in v1. Position will follow SuperMini placement in the MCU sector. If positioning turns out to be aesthetically constrained after prototype, an external WS2812 with light pipe can be added later.
+  - **MCU choice reaffirmed**: ESP32-C6 SuperMini, after a fresh comparison against C3, S3, C5, H2 in early 2026. C6 has the *lowest* average WiFi-active current (~60 mA) thanks to WiFi 6 TWT/OFDMA — best for pillar #1 (low SEN66 heating). 512 KB SRAM is real headroom for BLE-proxy. ESPHome 2026 ecosystem has standardized on C6 for BLE-proxy roles.
+  - **Firmware framework**: `esp-idf` (not `arduino`) — community consensus for ESPHome BLE-proxy memory headroom.
+  - **Pinout corrections**: GPIO 4 → 10 (LD2410 OUT, GPIO 4 is MTMS strap), GPIO 5 → 11 (NT3H2211 FD, GPIO 5 is MTDI strap). GPIO 8 stays for WS2812 (used by onboard LED).
+  - **Antenna placement constraint**: SuperMini chip antenna sits on top edge of the module. In the clock-face layout, MCU sector is 12:00–03:00 (upper-right); position SuperMini such that its antenna edge points toward 12:00 (case wall) — already aligned with the current sector layout.
+  - **Component sourcing policy updated**: JLCPCB availability is **only required for SMD parts going through JLCPCB assembly**. Manual-mount modules (ESP32-C6 SuperMini, SEN66, LD2410, terminal blocks) may be sourced from any reasonable supplier (AliExpress, LCSC direct, Mouser, Digikey) since the user does final hand assembly. This relaxes part choice substantially — pick on technical merit, not assembly-line convenience.
