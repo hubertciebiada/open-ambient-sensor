@@ -11,7 +11,7 @@
 	(unlocked yes)
 	(layer "F.SilkS")
 	(hide yes)
-	(uuid "93b782fb-2c5c-5655-8ae8-fc7d7f46e75a")
+	(uuid "e91d7e9e-5a09-5bd3-af4a-7311d2d307cf")
 	(effects (font (size 1 1) (thickness 0.15)))
 )
 (property "Value" "SEN66_Mechanical_Reference"
@@ -19,7 +19,7 @@
 	(unlocked yes)
 	(layer "F.Fab")
 	(hide yes)
-	(uuid "8ef3f45e-2eca-5f73-8d0e-7733e325823e")
+	(uuid "0e52b12a-24c8-52ea-9710-fd0e8e056465")
 	(effects (font (size 1 1) (thickness 0.15)))
 )
 (property "Footprint" ""
@@ -27,7 +27,7 @@
 	(unlocked yes)
 	(layer "F.Fab")
 	(hide yes)
-	(uuid "21fe3a4d-9bb7-58c7-acc6-996cfad0bfa9")
+	(uuid "8846d221-ddf1-58c4-b697-379007e24ec2")
 	(effects (font (size 1.27 1.27)))
 )
 (property "Datasheet" "https://sensirion.com/resource/datasheet/SEN6x"
@@ -35,7 +35,7 @@
 	(unlocked yes)
 	(layer "F.Fab")
 	(hide yes)
-	(uuid "1a0613bd-2c97-5f53-bc47-feb7e7cdf20f")
+	(uuid "98cfd578-15ef-58cd-951a-954d28b91dd0")
 	(effects (font (size 1.27 1.27)))
 )
 (property "Description" "Sensirion SEN66 mechanical-reference footprint (no pads). SEN66-SIN-T, material 3.001.030. Body 55.2x25.6x21.5 mm. Mounts on enclosure cover, JST GH 6-pin cable to PCB."
@@ -43,7 +43,7 @@
 	(unlocked yes)
 	(layer "F.Fab")
 	(hide yes)
-	(uuid "3ca4d741-32cd-5df9-beea-91667d719004")
+	(uuid "f503ecaa-9fda-5fb8-bdd4-5856192c8cf5")
 	(effects (font (size 1.27 1.27)))
 )
 (fp_rect
@@ -52,7 +52,7 @@
 	(stroke (width 0.1) (type solid))
 	(fill no)
 	(layer "F.Fab")
-	(uuid "582a02b3-1f8d-5d14-b6e7-191b47da1dfb")
+	(uuid "99a2b396-2184-54bb-9460-08813d7c9df8")
 )
 (fp_rect
 	(start 0.2 0.2)
@@ -60,21 +60,21 @@
 	(stroke (width 0.12) (type solid))
 	(fill no)
 	(layer "F.SilkS")
-	(uuid "3b1a76b8-9650-560d-a16e-7a73fdac7ec4")
+	(uuid "82dd9bcb-5844-5bd2-95a7-574c65ff9a32")
 )
 (fp_line
 	(start 6.7 3.875)
 	(end 14.7 3.875)
 	(stroke (width 0.08) (type solid))
 	(layer "F.Fab")
-	(uuid "1c1cb48a-0858-598e-bdb4-27ee9d3b3a7c")
+	(uuid "acfa40dd-be34-5856-9f04-886d11b32b9d")
 )
 (fp_line
 	(start 6.7 10.925)
 	(end 14.7 10.925)
 	(stroke (width 0.08) (type solid))
 	(layer "F.Fab")
-	(uuid "89b83815-7d93-5260-9c74-49e1d56a3075")
+	(uuid "a6d85bd5-ca76-5b3b-a37a-fe511bd07647")
 )
 (fp_arc
 	(start 6.7 3.875)
@@ -82,7 +82,7 @@
 	(end 6.7 10.925)
 	(stroke (width 0.08) (type solid))
 	(layer "F.Fab")
-	(uuid "3fdf5b4b-e5b4-5912-a112-8115dd4a523e")
+	(uuid "4489a893-2ce6-575d-96c1-a56df7c4b592")
 )
 (fp_arc
 	(start 14.7 10.925)
@@ -90,7 +90,7 @@
 	(end 14.7 3.875)
 	(stroke (width 0.08) (type solid))
 	(layer "F.Fab")
-	(uuid "e4bdbfb3-0a60-5060-abdf-dfdafddbf421")
+	(uuid "87a25266-6de7-5c0c-8209-ce1a29eab2f1")
 )
 (fp_rect
 	(start 3.08 14.78)
@@ -98,7 +98,7 @@
 	(stroke (width 0.08) (type solid))
 	(fill no)
 	(layer "F.Fab")
-	(uuid "eae1f844-d23c-55be-9d11-4755a349e0da")
+	(uuid "fda9f735-f299-5a9e-8f1e-8307b331466e")
 )
 (fp_circle
 	(center 42.4 12.8)
@@ -106,14 +106,14 @@
 	(stroke (width 0.08) (type solid))
 	(fill no)
 	(layer "F.Fab")
-	(uuid "f47b7033-2444-5e9d-a872-8a372748135e")
+	(uuid "37ef384e-f7a6-5552-b4a6-01b34b6d32b8")
 )
 (fp_line
 	(start 26 1)
 	(end 26 24.6)
 	(stroke (width 0.08) (type dash))
 	(layer "F.Fab")
-	(uuid "c4d70d71-3df9-5fd0-885d-6899fb2f89bc")
+	(uuid "77ed14c6-78e1-5f2a-8e0f-7b3dec8244a9")
 )
 (fp_rect
 	(start 53.2 10.4)
@@ -121,18 +121,18 @@
 	(stroke (width 0.08) (type solid))
 	(fill no)
 	(layer "F.Fab")
-	(uuid "5443815d-2b4b-5691-a509-f3802d61581f")
+	(uuid "8cea76ef-44c4-5ac6-ae1b-08d9123dcb06")
 )
 (fp_text user "JST GH cable ->"
 	(at 50.2 17.3 0)
 	(layer "F.Fab")
-	(uuid "cbb35568-6705-5924-9660-bc0e5a0ee54d")
+	(uuid "49fdecc7-cc63-52bb-8f66-b8d53bcd789c")
 	(effects (font (size 1.0 1.0) (thickness 0.15)))
 )
 (fp_text user "SEN66-SIN-T  |  MPN 3.001.030"
 	(at 27.6 8.8 0)
 	(layer "F.Fab")
-	(uuid "4299eae5-d390-5f5b-9068-076eefa65e4a")
+	(uuid "09ec15a3-9acc-524e-adb6-f4e8753f0ccd")
 	(effects (font (size 1.0 1.0) (thickness 0.15)))
 )
 (fp_rect
@@ -141,6 +141,6 @@
 	(stroke (width 0.05) (type solid))
 	(fill no)
 	(layer "F.CrtYd")
-	(uuid "108255f8-1a9e-541a-b297-edefee4ddb19")
+	(uuid "2eeb65a2-bc07-53ab-a9aa-d5bb6b39c5f9")
 )
 )

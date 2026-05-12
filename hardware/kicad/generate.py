@@ -24,7 +24,6 @@ import json
 import math
 import textwrap
 import uuid
-from itertools import count
 from pathlib import Path
 
 HERE = Path(__file__).parent
@@ -220,17 +219,55 @@ def fy(y: float) -> str:
     return fmt(y + PAGE_CENTRE_Y)
 
 _OAS_NS = uuid.uuid5(uuid.NAMESPACE_OID, "oas.open-ambient-sensor")
-_uuid_counter = count()
+_seen_uuid_tags: set[str] = set()
+_current_sheet: str = ""
 
-def U(tag: str = "") -> str:
-    """Deterministic UUID v5 namespaced under the OAS project.
+class sheet_context:
+    """Scope-guard that namespaces every U() call made inside the `with` block
+    under the given sub-sheet name.
 
-    Each call increments a per-run counter; combined with the project
-    namespace it produces stable UUIDs across regenerations, so
-    `python generate.py` is idempotent and git diffs only show real
-    geometry changes.
+    Two sub-sheets often need UUIDs for objects with the same logical name
+    (a wire tagged "3v3-bus" exists in both power.kicad_sch and mcu.kicad_sch).
+    Wrapping each `gen_*_sch()` body in `with sheet_context("power"):` makes
+    U("wire:3v3-bus") produce different UUIDs in different sheets without
+    every helper having to know which sheet it's emitting into.
     """
-    return str(uuid.uuid5(_OAS_NS, f"{tag}:{next(_uuid_counter)}"))
+    def __init__(self, name: str):
+        self.name = name
+    def __enter__(self):
+        global _current_sheet
+        self._prev = _current_sheet
+        _current_sheet = self.name
+        return self
+    def __exit__(self, *a):
+        global _current_sheet
+        _current_sheet = self._prev
+
+
+def U(tag: str) -> str:
+    """Deterministic UUID v5 derived solely from `tag` under the OAS namespace.
+
+    If called inside a `with sheet_context(name):` block, `tag` is silently
+    prefixed with `name:` so the same tag in two different sub-sheets
+    produces two distinct UUIDs.
+
+    Stability rule: a given (sheet, tag) pair always returns the same UUID,
+    regardless of call order. Adding or removing unrelated `U(...)` calls
+    does NOT shift other UUIDs. The whole project is bit-identical across
+    regenerations.
+
+    Uniqueness is the caller's responsibility — every distinct location that
+    needs a UUID must pass a distinct (sheet, tag) pair. This function
+    asserts tags are not reused within a single run to catch accidental
+    collisions early.
+    """
+    if not tag:
+        raise ValueError("U(): tag must be a non-empty string")
+    full_tag = f"{_current_sheet}:{tag}" if _current_sheet else tag
+    if full_tag in _seen_uuid_tags:
+        raise ValueError(f"U(): duplicate tag {full_tag!r} — UUIDs must be unique by tag")
+    _seen_uuid_tags.add(full_tag)
+    return str(uuid.uuid5(_OAS_NS, full_tag))
 
 # Root project + sheet UUIDs (must match between .kicad_pro and .kicad_sch)
 # Use a tagged seed so this UUID is stable independent of call order elsewhere.
@@ -297,7 +334,7 @@ def gen_mounting_hole_footprint() -> str:
         \t\t(unlocked yes)
         \t\t(layer "F.SilkS")
         \t\t(hide yes)
-        \t\t(uuid "{U()}")
+        \t\t(uuid "{U('mh-lib:prop-ref')}")
         \t\t(effects (font (size 1 1) (thickness 0.15)))
         \t)
         \t(property "Value" "MountingHole_3.8mm_M3_NPTH"
@@ -305,7 +342,7 @@ def gen_mounting_hole_footprint() -> str:
         \t\t(unlocked yes)
         \t\t(layer "F.Fab")
         \t\t(hide yes)
-        \t\t(uuid "{U()}")
+        \t\t(uuid "{U('mh-lib:prop-val')}")
         \t\t(effects (font (size 1 1) (thickness 0.15)))
         \t)
         \t(property "Footprint" ""
@@ -313,7 +350,7 @@ def gen_mounting_hole_footprint() -> str:
         \t\t(unlocked yes)
         \t\t(layer "F.Fab")
         \t\t(hide yes)
-        \t\t(uuid "{U()}")
+        \t\t(uuid "{U('mh-lib:prop-fp')}")
         \t\t(effects (font (size 1.27 1.27)))
         \t)
         \t(property "Datasheet" ""
@@ -321,7 +358,7 @@ def gen_mounting_hole_footprint() -> str:
         \t\t(unlocked yes)
         \t\t(layer "F.Fab")
         \t\t(hide yes)
-        \t\t(uuid "{U()}")
+        \t\t(uuid "{U('mh-lib:prop-ds')}")
         \t\t(effects (font (size 1.27 1.27)))
         \t)
         \t(property "Description" "Mounting Hole, Ø3.8 mm NPTH, for M3 screw (per SZOMK AK-N-94)"
@@ -329,7 +366,7 @@ def gen_mounting_hole_footprint() -> str:
         \t\t(unlocked yes)
         \t\t(layer "F.Fab")
         \t\t(hide yes)
-        \t\t(uuid "{U()}")
+        \t\t(uuid "{U('mh-lib:prop-desc')}")
         \t\t(effects (font (size 1.27 1.27)))
         \t)
         \t(fp_circle
@@ -338,7 +375,7 @@ def gen_mounting_hole_footprint() -> str:
         \t\t(stroke (width 0.05) (type solid))
         \t\t(fill no)
         \t\t(layer "F.CrtYd")
-        \t\t(uuid "{U()}")
+        \t\t(uuid "{U('mh-lib:crtyd')}")
         \t)
         \t(fp_circle
         \t\t(center 0 0)
@@ -346,7 +383,7 @@ def gen_mounting_hole_footprint() -> str:
         \t\t(stroke (width 0.1) (type solid))
         \t\t(fill no)
         \t\t(layer "F.Fab")
-        \t\t(uuid "{U()}")
+        \t\t(uuid "{U('mh-lib:fab')}")
         \t)
         \t(pad "" np_thru_hole circle
         \t\t(at 0 0)
@@ -354,7 +391,7 @@ def gen_mounting_hole_footprint() -> str:
         \t\t(drill {fmt(HOLE_DIAMETER)})
         \t\t(layers "F&B.Cu" "*.Mask")
         \t\t(remove_unused_layers no)
-        \t\t(uuid "{U()}")
+        \t\t(uuid "{U('mh-lib:pad')}")
         \t)
         )
         """)
@@ -1651,7 +1688,7 @@ def gen_pcb() -> str:
         fp = textwrap.dedent(f"""\
             \t(footprint "oas:MountingHole_3.8mm_M3"
             \t\t(layer "F.Cu")
-            \t\t(uuid "{U()}")
+            \t\t(uuid "{U(f'mh-inst:{ref}:fp')}")
             \t\t(at {fx(x)} {fy(y)})
             \t\t(descr "M3 mounting hole NPTH, Ø3.8 mm per SZOMK AK-N-94 spec")
             \t\t(attr through_hole board_only exclude_from_pos_files exclude_from_bom)
@@ -1659,35 +1696,35 @@ def gen_pcb() -> str:
             \t\t\t(at 0 0 0)
             \t\t\t(layer "F.SilkS")
             \t\t\t(hide yes)
-            \t\t\t(uuid "{U()}")
+            \t\t\t(uuid "{U(f'mh-inst:{ref}:prop-ref')}")
             \t\t\t(effects (font (size 1 1) (thickness 0.15)))
             \t\t)
             \t\t(property "Value" "MountingHole_3.8mm_M3_NPTH"
             \t\t\t(at 0 0 0)
             \t\t\t(layer "F.Fab")
             \t\t\t(hide yes)
-            \t\t\t(uuid "{U()}")
+            \t\t\t(uuid "{U(f'mh-inst:{ref}:prop-val')}")
             \t\t\t(effects (font (size 1 1) (thickness 0.15)))
             \t\t)
             \t\t(property "Footprint" "oas:MountingHole_3.8mm_M3"
             \t\t\t(at 0 0 0)
             \t\t\t(layer "F.Fab")
             \t\t\t(hide yes)
-            \t\t\t(uuid "{U()}")
+            \t\t\t(uuid "{U(f'mh-inst:{ref}:prop-fp')}")
             \t\t\t(effects (font (size 1.27 1.27)))
             \t\t)
             \t\t(property "Datasheet" ""
             \t\t\t(at 0 0 0)
             \t\t\t(layer "F.Fab")
             \t\t\t(hide yes)
-            \t\t\t(uuid "{U()}")
+            \t\t\t(uuid "{U(f'mh-inst:{ref}:prop-ds')}")
             \t\t\t(effects (font (size 1.27 1.27)))
             \t\t)
             \t\t(property "Description" "Mounting Hole, Ø3.8 mm NPTH, for M3 screw (per SZOMK AK-N-94)"
             \t\t\t(at 0 0 0)
             \t\t\t(layer "F.Fab")
             \t\t\t(hide yes)
-            \t\t\t(uuid "{U()}")
+            \t\t\t(uuid "{U(f'mh-inst:{ref}:prop-desc')}")
             \t\t\t(effects (font (size 1.27 1.27)))
             \t\t)
             \t\t(fp_circle
@@ -1696,7 +1733,7 @@ def gen_pcb() -> str:
             \t\t\t(stroke (width 0.05) (type solid))
             \t\t\t(fill no)
             \t\t\t(layer "F.CrtYd")
-            \t\t\t(uuid "{U()}")
+            \t\t\t(uuid "{U(f'mh-inst:{ref}:crtyd')}")
             \t\t)
             \t\t(fp_circle
             \t\t\t(center 0 0)
@@ -1704,7 +1741,7 @@ def gen_pcb() -> str:
             \t\t\t(stroke (width 0.1) (type solid))
             \t\t\t(fill no)
             \t\t\t(layer "F.Fab")
-            \t\t\t(uuid "{U()}")
+            \t\t\t(uuid "{U(f'mh-inst:{ref}:fab')}")
             \t\t)
             \t\t(pad "" np_thru_hole circle
             \t\t\t(at 0 0)
@@ -1712,7 +1749,7 @@ def gen_pcb() -> str:
             \t\t\t(drill {fmt(HOLE_DIAMETER)})
             \t\t\t(layers "F&B.Cu" "*.Mask")
             \t\t\t(remove_unused_layers no)
-            \t\t\t(uuid "{U()}")
+            \t\t\t(uuid "{U(f'mh-inst:{ref}:pad')}")
             \t\t)
             \t)""")
         footprints.append(fp)
@@ -10372,14 +10409,19 @@ def main():
     (HERE / "oas.kicad_pcb").write_text(gen_pcb(), encoding="utf-8")
     (HERE / "oas.kicad_sch").write_text(gen_root_sch(), encoding="utf-8")
     for name in SUBSHEETS:
-        if name == "power":
-            content = gen_power_sch()
-        elif name == "mcu":
-            content = gen_mcu_sch()
-        elif name == "sensors":
-            content = gen_sensors_sch()
-        else:
-            content = gen_subsheet_sch(name)
+        # sheet_context auto-namespaces every U() call made by the per-sheet
+        # generator (and the _sch_* helpers it invokes) under `name:`, so two
+        # sheets that emit the same logical wire / junction / label tag do not
+        # collide on UUIDs.
+        with sheet_context(name):
+            if name == "power":
+                content = gen_power_sch()
+            elif name == "mcu":
+                content = gen_mcu_sch()
+            elif name == "sensors":
+                content = gen_sensors_sch()
+            else:
+                content = gen_subsheet_sch(name)
         (HERE / f"{name}.kicad_sch").write_text(content, encoding="utf-8")
     (HERE / "oas.kicad_pro").write_text(gen_pro(), encoding="utf-8")
     (HERE / "fp-lib-table").write_text(gen_fp_lib_table(), encoding="utf-8")

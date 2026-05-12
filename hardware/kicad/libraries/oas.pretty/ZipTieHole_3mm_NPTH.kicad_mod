@@ -11,7 +11,7 @@
 		(unlocked yes)
 		(layer "F.SilkS")
 		(hide yes)
-		(uuid "02ab4d65-6a8a-5638-8f74-ee222ea5ec6b")
+		(uuid "bfb2bcd7-0043-5d7b-a5e1-23bd1f588572")
 		(effects (font (size 1 1) (thickness 0.15)))
 	)
 	(property "Value" "ZipTieHole_3mm_NPTH"
@@ -19,7 +19,7 @@
 		(unlocked yes)
 		(layer "F.Fab")
 		(hide yes)
-		(uuid "312b041a-1987-5e0c-9448-7f24788d47ea")
+		(uuid "12692754-5887-5616-a6bb-fc5c8b240d99")
 		(effects (font (size 1 1) (thickness 0.15)))
 	)
 	(property "Footprint" ""
@@ -27,7 +27,7 @@
 		(unlocked yes)
 		(layer "F.Fab")
 		(hide yes)
-		(uuid "2a7a4cdf-6224-5fd7-b67f-687f9fe97761")
+		(uuid "c3dce102-6d3f-5797-8175-30465b3cf400")
 		(effects (font (size 1.27 1.27)))
 	)
 	(property "Datasheet" ""
@@ -35,7 +35,7 @@
 		(unlocked yes)
 		(layer "F.Fab")
 		(hide yes)
-		(uuid "f16e23db-4d28-5fa6-8897-0f497cee1670")
+		(uuid "7e676f8a-4226-550f-84f1-e05c70dacc5f")
 		(effects (font (size 1.27 1.27)))
 	)
 	(property "Description" "Zip-tie pass-through hole, Ø3.0 mm NPTH (fits 2.5 mm band zip-tie). Used in groups of 4 to retain the SEN66 module against the enclosure cover."
@@ -43,7 +43,7 @@
 		(unlocked yes)
 		(layer "F.Fab")
 		(hide yes)
-		(uuid "a0e18852-dc75-59a8-a5d0-b8b5d93db4ce")
+		(uuid "91482aea-aa32-5341-8249-dcfa72a92067")
 		(effects (font (size 1.27 1.27)))
 	)
 	(fp_circle
@@ -52,7 +52,7 @@
 		(stroke (width 0.05) (type solid))
 		(fill no)
 		(layer "F.CrtYd")
-		(uuid "0869411c-70e3-55c7-b49d-c09f9a4dd0b8")
+		(uuid "45ec14cc-50b5-5684-b091-70a3f43a4311")
 	)
 	(fp_circle
 		(center 0 0)
@@ -60,7 +60,7 @@
 		(stroke (width 0.12) (type solid))
 		(fill no)
 		(layer "F.SilkS")
-		(uuid "fd9b3736-af46-5fa2-87bb-c4b4dfd56287")
+		(uuid "fc36a6e4-b42b-5524-b79b-b8517d1816a2")
 	)
 	(fp_circle
 		(center 0 0)
@@ -68,7 +68,7 @@
 		(stroke (width 0.1) (type solid))
 		(fill no)
 		(layer "F.Fab")
-		(uuid "cd4b860d-f21d-590c-a00e-a25559e7f5d0")
+		(uuid "f5114bc2-b198-5511-9e3c-13ad4d99fd76")
 	)
 	(pad "" np_thru_hole circle
 		(at 0 0)
@@ -76,6 +76,6 @@
 		(drill 3)
 		(layers "F&B.Cu" "*.Mask")
 		(remove_unused_layers no)
-		(uuid "6a8149a3-bc32-5a4a-adb2-e9b65554f364")
+		(uuid "bf2e67f1-420e-5554-9784-46b4695aa4c7")
 	)
 )

@@ -11,7 +11,7 @@
 		(unlocked yes)
 		(layer "F.SilkS")
 		(hide yes)
-		(uuid "edfe7eb8-d7ae-5436-bcca-df483c1063e3")
+		(uuid "1d7ed316-79be-59bf-a1d0-d01d09fa1607")
 		(effects (font (size 1 1) (thickness 0.15)))
 	)
 	(property "Value" "MountingHole_3.8mm_M3_NPTH"
@@ -19,7 +19,7 @@
 		(unlocked yes)
 		(layer "F.Fab")
 		(hide yes)
-		(uuid "ce2b6a5a-ab8e-5a1d-8daa-37aa520b1c3a")
+		(uuid "df519fe2-7910-56e4-8edf-e99045e55820")
 		(effects (font (size 1 1) (thickness 0.15)))
 	)
 	(property "Footprint" ""
@@ -27,7 +27,7 @@
 		(unlocked yes)
 		(layer "F.Fab")
 		(hide yes)
-		(uuid "0199a9b2-a3f5-59ca-9e69-b402b8bee23d")
+		(uuid "9327e262-bdbb-50fd-8a13-b9d6f98ce332")
 		(effects (font (size 1.27 1.27)))
 	)
 	(property "Datasheet" ""
@@ -35,7 +35,7 @@
 		(unlocked yes)
 		(layer "F.Fab")
 		(hide yes)
-		(uuid "5af2e1d9-79b2-5078-b6d6-4f6355c6972f")
+		(uuid "8444eb82-064f-54ed-a080-f6151f58568a")
 		(effects (font (size 1.27 1.27)))
 	)
 	(property "Description" "Mounting Hole, Ø3.8 mm NPTH, for M3 screw (per SZOMK AK-N-94)"
@@ -43,7 +43,7 @@
 		(unlocked yes)
 		(layer "F.Fab")
 		(hide yes)
-		(uuid "0b32dd3f-2f43-53af-bcc8-0924d502ba02")
+		(uuid "1c5a6354-7154-5d5c-a711-40bf7483252f")
 		(effects (font (size 1.27 1.27)))
 	)
 	(fp_circle
@@ -52,7 +52,7 @@
 		(stroke (width 0.05) (type solid))
 		(fill no)
 		(layer "F.CrtYd")
-		(uuid "974468a8-d61f-539f-817d-2ff2c6a7cd96")
+		(uuid "e59c0489-fac0-5221-9bd6-3926636922c3")
 	)
 	(fp_circle
 		(center 0 0)
@@ -60,7 +60,7 @@
 		(stroke (width 0.1) (type solid))
 		(fill no)
 		(layer "F.Fab")
-		(uuid "8e026ac8-9152-571c-9ea1-a24fa6234ade")
+		(uuid "766f18fc-4c69-5ff7-b62b-28e4cb6643ed")
 	)
 	(pad "" np_thru_hole circle
 		(at 0 0)
@@ -68,6 +68,6 @@
 		(drill 3.8)
 		(layers "F&B.Cu" "*.Mask")
 		(remove_unused_layers no)
-		(uuid "9861e4c6-3628-5937-a2b3-d6bc421f60dc")
+		(uuid "b2a8259b-eaeb-5c9e-aceb-427c3e7318b5")
 	)
 )
