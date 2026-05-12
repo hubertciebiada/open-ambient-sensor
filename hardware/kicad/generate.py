@@ -584,6 +584,63 @@ def gen_pcb() -> str:
 # -----------------------------------------------------------------------------
 # 3) Hierarchical schematic — root + 4 empty per-sector sub-sheets
 # -----------------------------------------------------------------------------
+# Per-sheet hierarchical sheet pins for the root sheet block. The matching
+# hierarchical_label inside the sub-sheet binds the inter-sheet net by name.
+# Format: list of (name, shape, x_offset, y_offset, angle) tuples where
+# (x_offset, y_offset) is relative to the (sheet ...) block's anchor and
+# angle is 180 for left-edge pins (pointing out left) or 0 for right-edge
+# pins (pointing out right).
+#
+# Each block spans (x..x+sx, y..y+sy) in page-absolute mm:
+#   power:   (50.8..88.9,   50.8..63.5)
+#   mcu:     (101.6..139.7, 50.8..63.5)
+#   sensors: (50.8..88.9,   88.9..101.6)
+#   io:      (101.6..139.7, 88.9..101.6)
+#
+# Pins are added preemptively for chunk #4. The sensors / io sheets will
+# emit matching hierarchical_label entities in chunks #5 and #6.
+SUBSHEET_PINS: dict[str, list[tuple[str, str, float, float, int]]] = {
+    "power": [],
+    "mcu": [
+        # name,        shape,           dx,   dy,    angle (180=left-edge, 0=right-edge)
+        ("I2C_SDA",     "bidirectional", 0.0,  1.27, 180),
+        ("I2C_SCL",     "output",        0.0,  3.81, 180),
+        ("LD2410_OUT",  "input",         0.0,  6.35, 180),
+        ("NFC_FD",      "input",         0.0,  8.89, 180),
+        ("UART_TX",     "output",        38.1, 1.27, 0),
+        ("UART_RX",     "input",         38.1, 3.81, 0),
+    ],
+    "sensors": [],
+    "io": [],
+}
+
+
+def _gen_sheet_pin(name: str, shape: str, x: float, y: float, angle: int, uuid_tag: str) -> str:
+    """Emit a (pin ...) entry inside a root sheet block.
+
+    `(at X Y angle)`: angle 180 = pin tip points LEFT (placed on the LEFT
+    edge of the block); angle 0 = pin tip points RIGHT (RIGHT edge).
+    `justify` follows the angle convention so the text never overlaps
+    the block body.
+
+    Indented to nest inside a (sheet ...) block (2 tabs base = inside the
+    block's body, matching the other (property ...) entries).
+    """
+    justify = "right" if angle == 180 else "left"
+    return (
+        f"\t\t(pin \"{name}\" {shape}\n"
+        f"\t\t\t(at {fmt(x)} {fmt(y)} {angle})\n"
+        f"\t\t\t(uuid \"{U('sheetpin:'+uuid_tag)}\")\n"
+        f"\t\t\t(effects\n"
+        f"\t\t\t\t(font\n"
+        f"\t\t\t\t\t(size 1.27 1.27)\n"
+        f"\t\t\t\t)\n"
+        f"\t\t\t\t(justify {justify})\n"
+        f"\t\t\t)\n"
+        f"\t\t)"
+    )
+
+
 def _gen_sheet_block(name: str, page: int) -> str:
     """One (sheet ...) block placed on the root drawing.
 
@@ -600,49 +657,67 @@ def _gen_sheet_block(name: str, page: int) -> str:
     # (Sheetname above the box, Sheetfile below it).
     name_y = y - 0.7116    # 50.8 -> 50.0884 in template
     file_y = y + sy + 0.4446  # 50.8 + 12.7 + 0.4446 = 63.9446
-    return textwrap.dedent(f"""\
-        \t(sheet
-        \t\t(at {fmt(x)} {fmt(y)})
-        \t\t(size {fmt(sx)} {fmt(sy)})
-        \t\t(exclude_from_sim no)
-        \t\t(in_bom yes)
-        \t\t(on_board yes)
-        \t\t(dnp no)
-        \t\t(fields_autoplaced yes)
-        \t\t(stroke
-        \t\t\t(width 0.1524)
-        \t\t\t(type solid)
-        \t\t)
-        \t\t(fill
-        \t\t\t(color 0 0 0 0.0000)
-        \t\t)
-        \t\t(uuid "{block_uuid}")
-        \t\t(property "Sheetname" "{display}"
-        \t\t\t(at {fmt(x)} {fmt(name_y)} 0)
-        \t\t\t(effects
-        \t\t\t\t(font
-        \t\t\t\t\t(size 1.27 1.27)
-        \t\t\t\t)
-        \t\t\t\t(justify left bottom)
-        \t\t\t)
-        \t\t)
-        \t\t(property "Sheetfile" "{name}.kicad_sch"
-        \t\t\t(at {fmt(x)} {fmt(file_y)} 0)
-        \t\t\t(effects
-        \t\t\t\t(font
-        \t\t\t\t\t(size 1.27 1.27)
-        \t\t\t\t)
-        \t\t\t\t(justify left top)
-        \t\t\t)
-        \t\t)
-        \t\t(instances
-        \t\t\t(project "oas"
-        \t\t\t\t(path "/{ROOT_SHEET_UUID}"
-        \t\t\t\t\t(page "{page}")
-        \t\t\t\t)
-        \t\t\t)
-        \t\t)
-        \t)""")
+    # Sheet pins (per-net hierarchical ports). For chunk #4 only the MCU
+    # block has pins; the other blocks remain empty until their sub-sheet
+    # content is added.
+    pin_entries = "\n".join(
+        _gen_sheet_pin(
+            pname, shape, x + dx, y + dy, angle,
+            uuid_tag=f"{name}-{pname}",
+        )
+        for pname, shape, dx, dy, angle in SUBSHEET_PINS[name]
+    )
+    # Pin entries are already correctly indented at 2 tabs (nested inside
+    # the (sheet ...) block). Prepend a newline so they appear on their own
+    # lines, after the last (property ...) block and before (instances ...).
+    pin_block = ("\n" + pin_entries) if pin_entries else ""
+    # Build the (sheet ...) block with literal tabs (no textwrap.dedent so
+    # the interpolated pin_block, whose lines do not share the template's
+    # leading whitespace, remains correctly indented).
+    return (
+        f"\t(sheet\n"
+        f"\t\t(at {fmt(x)} {fmt(y)})\n"
+        f"\t\t(size {fmt(sx)} {fmt(sy)})\n"
+        f"\t\t(exclude_from_sim no)\n"
+        f"\t\t(in_bom yes)\n"
+        f"\t\t(on_board yes)\n"
+        f"\t\t(dnp no)\n"
+        f"\t\t(fields_autoplaced yes)\n"
+        f"\t\t(stroke\n"
+        f"\t\t\t(width 0.1524)\n"
+        f"\t\t\t(type solid)\n"
+        f"\t\t)\n"
+        f"\t\t(fill\n"
+        f"\t\t\t(color 0 0 0 0.0000)\n"
+        f"\t\t)\n"
+        f"\t\t(uuid \"{block_uuid}\")\n"
+        f"\t\t(property \"Sheetname\" \"{display}\"\n"
+        f"\t\t\t(at {fmt(x)} {fmt(name_y)} 0)\n"
+        f"\t\t\t(effects\n"
+        f"\t\t\t\t(font\n"
+        f"\t\t\t\t\t(size 1.27 1.27)\n"
+        f"\t\t\t\t)\n"
+        f"\t\t\t\t(justify left bottom)\n"
+        f"\t\t\t)\n"
+        f"\t\t)\n"
+        f"\t\t(property \"Sheetfile\" \"{name}.kicad_sch\"\n"
+        f"\t\t\t(at {fmt(x)} {fmt(file_y)} 0)\n"
+        f"\t\t\t(effects\n"
+        f"\t\t\t\t(font\n"
+        f"\t\t\t\t\t(size 1.27 1.27)\n"
+        f"\t\t\t\t)\n"
+        f"\t\t\t\t(justify left top)\n"
+        f"\t\t\t)\n"
+        f"\t\t){pin_block}\n"
+        f"\t\t(instances\n"
+        f"\t\t\t(project \"oas\"\n"
+        f"\t\t\t\t(path \"/{ROOT_SHEET_UUID}\"\n"
+        f"\t\t\t\t\t(page \"{page}\")\n"
+        f"\t\t\t\t)\n"
+        f"\t\t\t)\n"
+        f"\t\t)\n"
+        f"\t)"
+    )
 
 
 def gen_root_sch() -> str:
@@ -3858,16 +3933,21 @@ def _sch_junction(x: float, y: float, tag: str) -> str:
 def _sch_power_flag(
     lib_id: str, value: str, x: float, y: float, angle: int,
     reference: str, value_offset_x: float, value_offset_y: float, uuid_tag: str,
+    sheet_key: str = "power",
 ) -> str:
     """Emit a power-symbol instance (+24V / GND / Earth_Protective / PWR_FLAG).
 
     `value_offset_x/y` give the Value-label position relative to (x, y) in
     schematic mm — chosen empirically per symbol so the visible label
     matches the symbol's default placement convention.
+
+    `sheet_key` selects which sub-sheet's hierarchical path is recorded in
+    the symbol's instance block. Defaults to "power" for compatibility with
+    the existing power-section calls; the MCU sub-sheet passes "mcu".
     """
     sym_uuid = U("sym:" + uuid_tag)
     pin_uuid = U("sym-pin:" + uuid_tag)
-    sheet_path = f"/{ROOT_SHEET_UUID}/{SHEET_BLOCK_UUIDS['power']}"
+    sheet_path = f"/{ROOT_SHEET_UUID}/{SHEET_BLOCK_UUIDS[sheet_key]}"
     return textwrap.dedent(f"""\
         \t(symbol
         \t\t(lib_id "{lib_id}")
@@ -4311,6 +4391,7 @@ def _sch_diode_tvs(
 def _sch_capacitor(
     lib_id: str, x: float, y: float, angle: int,
     reference: str, value: str, uuid_tag: str,
+    sheet_key: str = "power",
 ) -> str:
     """Emit a capacitor (Device:C or Device:C_Polarized) symbol instance.
 
@@ -4325,11 +4406,14 @@ def _sch_capacitor(
     For Device:C_Polarized the pin 1 is the ANODE (+, top in default
     orientation) and pin 2 is the CATHODE (-, bottom). The filled
     rectangle on the bottom plate marks the cathode side.
+
+    `sheet_key` selects which sub-sheet's hierarchical path is recorded in
+    the symbol's instance block. Defaults to "power".
     """
     sym_uuid = U("sym:" + uuid_tag)
     pin1_uuid = U("sym-pin:" + uuid_tag + "-1")
     pin2_uuid = U("sym-pin:" + uuid_tag + "-2")
-    sheet_path = f"/{ROOT_SHEET_UUID}/{SHEET_BLOCK_UUIDS['power']}"
+    sheet_path = f"/{ROOT_SHEET_UUID}/{SHEET_BLOCK_UUIDS[sheet_key]}"
     return textwrap.dedent(f"""\
         \t(symbol
         \t\t(lib_id "{lib_id}")
@@ -4997,7 +5081,7 @@ def gen_power_sch() -> str:
     file_uuid = SHEET_FILE_UUIDS["power"]
     sheet_path = f"/{ROOT_SHEET_UUID}/{SHEET_BLOCK_UUIDS['power']}"
 
-    # ----- A4 page-frame fit shift -----
+    # ----- Page-frame fit shift -----
     # Uniform offset applied to every BASE position anchor in this function
     # so the whole power section fits inside the A4 drawing-sheet frame
     # (297 x 210 mm, usable inner area roughly X=10..280, Y=10..195 with a
@@ -5005,22 +5089,21 @@ def gen_power_sch() -> str:
     #
     # The schematic grew organically through chunks #1a..#1h, accumulating
     # rightward (24V protection -> 5V buck -> 3.3V buck) and downward
-    # (the 3.3V cascade sits below the protection block). Without this
-    # shift COL_3V3 was at X=279.40 (PWR_FLAG value-text would render at
-    # ~X=284.5 — close to the page right edge) and R3 GND text reached
-    # Y~167.6, close to the title-block top at Y=170.
+    # (the 3.3V cascade sits below the protection block). The latest
+    # additions pushed COL_3V3 to X=279.40 (PWR_FLAG value-text would
+    # render at X=279.40 + 5.08 ~= 284.5, near the page right edge) and
+    # R3_GND text to Y~167.6, close to the title-block top at Y=170.
     #
     # The shift below is a PURE LAYOUT operation: every (x, y) anchor moves
     # by the same amount. Wires, junctions, hierarchical labels, and
-    # electrical connections remain logically identical. ERC and net
-    # topology are unaffected.
+    # electrical connections remain logically identical. ERC and net topology
+    # are unaffected.
     #
     # NOTE on the inline `# 93.98 — ...` style comments scattered through
     # this function: those numbers were the PRE-SHIFT values of the
     # corresponding derived quantities, kept as readability hints. They
     # are now off by (PWR_X_SHIFT, PWR_Y_SHIFT) but the mathematical
     # derivations (e.g. `J1_Y - 2.54`) remain correct.
-    #
     # Shifts must be integer multiples of the 1.27 mm schematic connection
     # grid so wire endpoints and symbol pins stay on-grid after the shift.
     PWR_X_SHIFT = -30.48     # mm — shift entire power section LEFT (24 x 1.27 mm)
@@ -6474,6 +6557,1863 @@ def gen_power_sch() -> str:
         """)
 
 # -----------------------------------------------------------------------------
+# 3c) MCU sub-sheet — ESP32-C6 SuperMini (U3) + local decoupling + recovery header
+# -----------------------------------------------------------------------------
+# Embedded lib_symbols for the MCU sub-sheet. Self-contained: each sub-sheet
+# carries its own copy of the symbols it uses (the +3V3 / GND and Device:C /
+# Device:C_Polarized blocks are intentionally duplicated with POWER_LIB_SYMBOLS
+# so the .kicad_sch file opens identically on any machine).
+#
+# Symbol sources:
+#   - "OAS:ESP32-C6_SuperMini" : own work, defined inline below. Models a 2×8
+#     SIP header (16-pin) ESP32-C6 SuperMini module — the most common
+#     small-form-factor variant. Reference pinout cross-checked against the
+#     community pinout at https://www.espboards.dev/esp32/esp32-c6-super-mini/.
+#     Only the GPIOs actually used by OAS plus a few representative unused
+#     GPIOs are exposed; this is sufficient for the schematic because the
+#     module is hand-soldered onto the PCB as a daughter-board (the underlying
+#     ESP32-C6 chip itself is encapsulated by the SuperMini's onboard hardware).
+#   - "Connector_Generic:Conn_01x06" : copied verbatim from KiCad 10's stock
+#     Connector_Generic.kicad_sym (GPL).
+#   - "Device:C", "Device:C_Polarized", "power:+3V3", "power:GND" : copied
+#     verbatim from KiCad 10's stock libraries (GPL).
+MCU_LIB_SYMBOLS = """\
+\t\t(symbol "OAS:ESP32-C6_SuperMini"
+\t\t\t(pin_names
+\t\t\t\t(offset 1.016)
+\t\t\t)
+\t\t\t(exclude_from_sim no)
+\t\t\t(in_bom yes)
+\t\t\t(on_board yes)
+\t\t\t(in_pos_files yes)
+\t\t\t(duplicate_pin_numbers_are_jumpers no)
+\t\t\t(property "Reference" "U"
+\t\t\t\t(at 0 12.7 0)
+\t\t\t\t(show_name no)
+\t\t\t\t(do_not_autoplace no)
+\t\t\t\t(effects
+\t\t\t\t\t(font
+\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(property "Value" "ESP32-C6_SuperMini"
+\t\t\t\t(at 0 -12.7 0)
+\t\t\t\t(show_name no)
+\t\t\t\t(do_not_autoplace no)
+\t\t\t\t(effects
+\t\t\t\t\t(font
+\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(property "Footprint" ""
+\t\t\t\t(at 0 0 0)
+\t\t\t\t(show_name no)
+\t\t\t\t(do_not_autoplace no)
+\t\t\t\t(hide yes)
+\t\t\t\t(effects
+\t\t\t\t\t(font
+\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(property "Datasheet" "https://www.espboards.dev/esp32/esp32-c6-super-mini/"
+\t\t\t\t(at 0 0 0)
+\t\t\t\t(show_name no)
+\t\t\t\t(do_not_autoplace no)
+\t\t\t\t(hide yes)
+\t\t\t\t(effects
+\t\t\t\t\t(font
+\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(property "Description" "ESP32-C6 SuperMini module (2x8 SIP, ~22mm spacing). WiFi 6, BLE 5.3, Zigbee/Thread, onboard USB-C, onboard WS2812 on GPIO 8."
+\t\t\t\t(at 0 0 0)
+\t\t\t\t(show_name no)
+\t\t\t\t(do_not_autoplace no)
+\t\t\t\t(hide yes)
+\t\t\t\t(effects
+\t\t\t\t\t(font
+\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(property "ki_keywords" "esp32-c6 supermini wifi ble"
+\t\t\t\t(at 0 0 0)
+\t\t\t\t(show_name no)
+\t\t\t\t(do_not_autoplace no)
+\t\t\t\t(hide yes)
+\t\t\t\t(effects
+\t\t\t\t\t(font
+\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(symbol "ESP32-C6_SuperMini_0_1"
+\t\t\t\t(rectangle
+\t\t\t\t\t(start -10.16 -10.16)
+\t\t\t\t\t(end 10.16 10.16)
+\t\t\t\t\t(stroke
+\t\t\t\t\t\t(width 0.254)
+\t\t\t\t\t\t(type default)
+\t\t\t\t\t)
+\t\t\t\t\t(fill
+\t\t\t\t\t\t(type background)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(symbol "ESP32-C6_SuperMini_1_1"
+\t\t\t\t(pin power_in line
+\t\t\t\t\t(at -12.7 8.89 0)
+\t\t\t\t\t(length 2.54)
+\t\t\t\t\t(name "5V"
+\t\t\t\t\t\t(effects
+\t\t\t\t\t\t\t(font
+\t\t\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t\t\t)
+\t\t\t\t\t\t)
+\t\t\t\t\t)
+\t\t\t\t\t(number "1"
+\t\t\t\t\t\t(effects
+\t\t\t\t\t\t\t(font
+\t\t\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t\t\t)
+\t\t\t\t\t\t)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t\t(pin power_in line
+\t\t\t\t\t(at -12.7 6.35 0)
+\t\t\t\t\t(length 2.54)
+\t\t\t\t\t(name "GND"
+\t\t\t\t\t\t(effects
+\t\t\t\t\t\t\t(font
+\t\t\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t\t\t)
+\t\t\t\t\t\t)
+\t\t\t\t\t)
+\t\t\t\t\t(number "2"
+\t\t\t\t\t\t(effects
+\t\t\t\t\t\t\t(font
+\t\t\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t\t\t)
+\t\t\t\t\t\t)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t\t(pin power_in line
+\t\t\t\t\t(at -12.7 3.81 0)
+\t\t\t\t\t(length 2.54)
+\t\t\t\t\t(name "3V3"
+\t\t\t\t\t\t(effects
+\t\t\t\t\t\t\t(font
+\t\t\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t\t\t)
+\t\t\t\t\t\t)
+\t\t\t\t\t)
+\t\t\t\t\t(number "3"
+\t\t\t\t\t\t(effects
+\t\t\t\t\t\t\t(font
+\t\t\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t\t\t)
+\t\t\t\t\t\t)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t\t(pin bidirectional line
+\t\t\t\t\t(at -12.7 1.27 0)
+\t\t\t\t\t(length 2.54)
+\t\t\t\t\t(name "GPIO6"
+\t\t\t\t\t\t(effects
+\t\t\t\t\t\t\t(font
+\t\t\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t\t\t)
+\t\t\t\t\t\t)
+\t\t\t\t\t)
+\t\t\t\t\t(number "4"
+\t\t\t\t\t\t(effects
+\t\t\t\t\t\t\t(font
+\t\t\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t\t\t)
+\t\t\t\t\t\t)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t\t(pin bidirectional line
+\t\t\t\t\t(at -12.7 -1.27 0)
+\t\t\t\t\t(length 2.54)
+\t\t\t\t\t(name "GPIO7"
+\t\t\t\t\t\t(effects
+\t\t\t\t\t\t\t(font
+\t\t\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t\t\t)
+\t\t\t\t\t\t)
+\t\t\t\t\t)
+\t\t\t\t\t(number "5"
+\t\t\t\t\t\t(effects
+\t\t\t\t\t\t\t(font
+\t\t\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t\t\t)
+\t\t\t\t\t\t)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t\t(pin bidirectional line
+\t\t\t\t\t(at -12.7 -3.81 0)
+\t\t\t\t\t(length 2.54)
+\t\t\t\t\t(name "GPIO8"
+\t\t\t\t\t\t(effects
+\t\t\t\t\t\t\t(font
+\t\t\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t\t\t)
+\t\t\t\t\t\t)
+\t\t\t\t\t)
+\t\t\t\t\t(number "6"
+\t\t\t\t\t\t(effects
+\t\t\t\t\t\t\t(font
+\t\t\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t\t\t)
+\t\t\t\t\t\t)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t\t(pin bidirectional line
+\t\t\t\t\t(at -12.7 -6.35 0)
+\t\t\t\t\t(length 2.54)
+\t\t\t\t\t(name "GPIO10"
+\t\t\t\t\t\t(effects
+\t\t\t\t\t\t\t(font
+\t\t\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t\t\t)
+\t\t\t\t\t\t)
+\t\t\t\t\t)
+\t\t\t\t\t(number "7"
+\t\t\t\t\t\t(effects
+\t\t\t\t\t\t\t(font
+\t\t\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t\t\t)
+\t\t\t\t\t\t)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t\t(pin bidirectional line
+\t\t\t\t\t(at -12.7 -8.89 0)
+\t\t\t\t\t(length 2.54)
+\t\t\t\t\t(name "GPIO11"
+\t\t\t\t\t\t(effects
+\t\t\t\t\t\t\t(font
+\t\t\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t\t\t)
+\t\t\t\t\t\t)
+\t\t\t\t\t)
+\t\t\t\t\t(number "8"
+\t\t\t\t\t\t(effects
+\t\t\t\t\t\t\t(font
+\t\t\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t\t\t)
+\t\t\t\t\t\t)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t\t(pin input line
+\t\t\t\t\t(at 12.7 8.89 180)
+\t\t\t\t\t(length 2.54)
+\t\t\t\t\t(name "EN"
+\t\t\t\t\t\t(effects
+\t\t\t\t\t\t\t(font
+\t\t\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t\t\t)
+\t\t\t\t\t\t)
+\t\t\t\t\t)
+\t\t\t\t\t(number "9"
+\t\t\t\t\t\t(effects
+\t\t\t\t\t\t\t(font
+\t\t\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t\t\t)
+\t\t\t\t\t\t)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t\t(pin bidirectional line
+\t\t\t\t\t(at 12.7 6.35 180)
+\t\t\t\t\t(length 2.54)
+\t\t\t\t\t(name "GPIO9"
+\t\t\t\t\t\t(effects
+\t\t\t\t\t\t\t(font
+\t\t\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t\t\t)
+\t\t\t\t\t\t)
+\t\t\t\t\t)
+\t\t\t\t\t(number "10"
+\t\t\t\t\t\t(effects
+\t\t\t\t\t\t\t(font
+\t\t\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t\t\t)
+\t\t\t\t\t\t)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t\t(pin bidirectional line
+\t\t\t\t\t(at 12.7 3.81 180)
+\t\t\t\t\t(length 2.54)
+\t\t\t\t\t(name "GPIO16"
+\t\t\t\t\t\t(effects
+\t\t\t\t\t\t\t(font
+\t\t\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t\t\t)
+\t\t\t\t\t\t)
+\t\t\t\t\t)
+\t\t\t\t\t(number "11"
+\t\t\t\t\t\t(effects
+\t\t\t\t\t\t\t(font
+\t\t\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t\t\t)
+\t\t\t\t\t\t)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t\t(pin bidirectional line
+\t\t\t\t\t(at 12.7 1.27 180)
+\t\t\t\t\t(length 2.54)
+\t\t\t\t\t(name "GPIO17"
+\t\t\t\t\t\t(effects
+\t\t\t\t\t\t\t(font
+\t\t\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t\t\t)
+\t\t\t\t\t\t)
+\t\t\t\t\t)
+\t\t\t\t\t(number "12"
+\t\t\t\t\t\t(effects
+\t\t\t\t\t\t\t(font
+\t\t\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t\t\t)
+\t\t\t\t\t\t)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t\t(pin bidirectional line
+\t\t\t\t\t(at 12.7 -1.27 180)
+\t\t\t\t\t(length 2.54)
+\t\t\t\t\t(name "GPIO18"
+\t\t\t\t\t\t(effects
+\t\t\t\t\t\t\t(font
+\t\t\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t\t\t)
+\t\t\t\t\t\t)
+\t\t\t\t\t)
+\t\t\t\t\t(number "13"
+\t\t\t\t\t\t(effects
+\t\t\t\t\t\t\t(font
+\t\t\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t\t\t)
+\t\t\t\t\t\t)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t\t(pin bidirectional line
+\t\t\t\t\t(at 12.7 -3.81 180)
+\t\t\t\t\t(length 2.54)
+\t\t\t\t\t(name "GPIO19"
+\t\t\t\t\t\t(effects
+\t\t\t\t\t\t\t(font
+\t\t\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t\t\t)
+\t\t\t\t\t\t)
+\t\t\t\t\t)
+\t\t\t\t\t(number "14"
+\t\t\t\t\t\t(effects
+\t\t\t\t\t\t\t(font
+\t\t\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t\t\t)
+\t\t\t\t\t\t)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t\t(pin bidirectional line
+\t\t\t\t\t(at 12.7 -6.35 180)
+\t\t\t\t\t(length 2.54)
+\t\t\t\t\t(name "GPIO20"
+\t\t\t\t\t\t(effects
+\t\t\t\t\t\t\t(font
+\t\t\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t\t\t)
+\t\t\t\t\t\t)
+\t\t\t\t\t)
+\t\t\t\t\t(number "15"
+\t\t\t\t\t\t(effects
+\t\t\t\t\t\t\t(font
+\t\t\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t\t\t)
+\t\t\t\t\t\t)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t\t(pin bidirectional line
+\t\t\t\t\t(at 12.7 -8.89 180)
+\t\t\t\t\t(length 2.54)
+\t\t\t\t\t(name "GPIO21"
+\t\t\t\t\t\t(effects
+\t\t\t\t\t\t\t(font
+\t\t\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t\t\t)
+\t\t\t\t\t\t)
+\t\t\t\t\t)
+\t\t\t\t\t(number "16"
+\t\t\t\t\t\t(effects
+\t\t\t\t\t\t\t(font
+\t\t\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t\t\t)
+\t\t\t\t\t\t)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(embedded_fonts no)
+\t\t)
+\t\t(symbol "Connector_Generic:Conn_01x06"
+\t\t\t(pin_names
+\t\t\t\t(offset 1.016)
+\t\t\t\t(hide yes)
+\t\t\t)
+\t\t\t(exclude_from_sim no)
+\t\t\t(in_bom yes)
+\t\t\t(on_board yes)
+\t\t\t(in_pos_files yes)
+\t\t\t(duplicate_pin_numbers_are_jumpers no)
+\t\t\t(property "Reference" "J"
+\t\t\t\t(at 0 7.62 0)
+\t\t\t\t(show_name no)
+\t\t\t\t(do_not_autoplace no)
+\t\t\t\t(effects
+\t\t\t\t\t(font
+\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(property "Value" "Conn_01x06"
+\t\t\t\t(at 0 -10.16 0)
+\t\t\t\t(show_name no)
+\t\t\t\t(do_not_autoplace no)
+\t\t\t\t(effects
+\t\t\t\t\t(font
+\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(property "Footprint" ""
+\t\t\t\t(at 0 0 0)
+\t\t\t\t(show_name no)
+\t\t\t\t(do_not_autoplace no)
+\t\t\t\t(hide yes)
+\t\t\t\t(effects
+\t\t\t\t\t(font
+\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(property "Datasheet" ""
+\t\t\t\t(at 0 0 0)
+\t\t\t\t(show_name no)
+\t\t\t\t(do_not_autoplace no)
+\t\t\t\t(hide yes)
+\t\t\t\t(effects
+\t\t\t\t\t(font
+\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(property "Description" "Generic connector, single row, 01x06, script generated (kicad-library-utils/schlib/autogen/connector/)"
+\t\t\t\t(at 0 0 0)
+\t\t\t\t(show_name no)
+\t\t\t\t(do_not_autoplace no)
+\t\t\t\t(hide yes)
+\t\t\t\t(effects
+\t\t\t\t\t(font
+\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(property "ki_keywords" "connector"
+\t\t\t\t(at 0 0 0)
+\t\t\t\t(show_name no)
+\t\t\t\t(do_not_autoplace no)
+\t\t\t\t(hide yes)
+\t\t\t\t(effects
+\t\t\t\t\t(font
+\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(property "ki_fp_filters" "Connector*:*_1x??_*"
+\t\t\t\t(at 0 0 0)
+\t\t\t\t(show_name no)
+\t\t\t\t(do_not_autoplace no)
+\t\t\t\t(hide yes)
+\t\t\t\t(effects
+\t\t\t\t\t(font
+\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(symbol "Conn_01x06_1_1"
+\t\t\t\t(rectangle
+\t\t\t\t\t(start -1.27 6.35)
+\t\t\t\t\t(end 1.27 -8.89)
+\t\t\t\t\t(stroke
+\t\t\t\t\t\t(width 0.254)
+\t\t\t\t\t\t(type default)
+\t\t\t\t\t)
+\t\t\t\t\t(fill
+\t\t\t\t\t\t(type background)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t\t(rectangle
+\t\t\t\t\t(start -1.27 5.207)
+\t\t\t\t\t(end 0 4.953)
+\t\t\t\t\t(stroke
+\t\t\t\t\t\t(width 0.1524)
+\t\t\t\t\t\t(type default)
+\t\t\t\t\t)
+\t\t\t\t\t(fill
+\t\t\t\t\t\t(type none)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t\t(rectangle
+\t\t\t\t\t(start -1.27 2.667)
+\t\t\t\t\t(end 0 2.413)
+\t\t\t\t\t(stroke
+\t\t\t\t\t\t(width 0.1524)
+\t\t\t\t\t\t(type default)
+\t\t\t\t\t)
+\t\t\t\t\t(fill
+\t\t\t\t\t\t(type none)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t\t(rectangle
+\t\t\t\t\t(start -1.27 0.127)
+\t\t\t\t\t(end 0 -0.127)
+\t\t\t\t\t(stroke
+\t\t\t\t\t\t(width 0.1524)
+\t\t\t\t\t\t(type default)
+\t\t\t\t\t)
+\t\t\t\t\t(fill
+\t\t\t\t\t\t(type none)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t\t(rectangle
+\t\t\t\t\t(start -1.27 -2.413)
+\t\t\t\t\t(end 0 -2.667)
+\t\t\t\t\t(stroke
+\t\t\t\t\t\t(width 0.1524)
+\t\t\t\t\t\t(type default)
+\t\t\t\t\t)
+\t\t\t\t\t(fill
+\t\t\t\t\t\t(type none)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t\t(rectangle
+\t\t\t\t\t(start -1.27 -4.953)
+\t\t\t\t\t(end 0 -5.207)
+\t\t\t\t\t(stroke
+\t\t\t\t\t\t(width 0.1524)
+\t\t\t\t\t\t(type default)
+\t\t\t\t\t)
+\t\t\t\t\t(fill
+\t\t\t\t\t\t(type none)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t\t(rectangle
+\t\t\t\t\t(start -1.27 -7.493)
+\t\t\t\t\t(end 0 -7.747)
+\t\t\t\t\t(stroke
+\t\t\t\t\t\t(width 0.1524)
+\t\t\t\t\t\t(type default)
+\t\t\t\t\t)
+\t\t\t\t\t(fill
+\t\t\t\t\t\t(type none)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t\t(pin passive line
+\t\t\t\t\t(at -5.08 5.08 0)
+\t\t\t\t\t(length 3.81)
+\t\t\t\t\t(name "Pin_1"
+\t\t\t\t\t\t(effects
+\t\t\t\t\t\t\t(font
+\t\t\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t\t\t)
+\t\t\t\t\t\t)
+\t\t\t\t\t)
+\t\t\t\t\t(number "1"
+\t\t\t\t\t\t(effects
+\t\t\t\t\t\t\t(font
+\t\t\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t\t\t)
+\t\t\t\t\t\t)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t\t(pin passive line
+\t\t\t\t\t(at -5.08 2.54 0)
+\t\t\t\t\t(length 3.81)
+\t\t\t\t\t(name "Pin_2"
+\t\t\t\t\t\t(effects
+\t\t\t\t\t\t\t(font
+\t\t\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t\t\t)
+\t\t\t\t\t\t)
+\t\t\t\t\t)
+\t\t\t\t\t(number "2"
+\t\t\t\t\t\t(effects
+\t\t\t\t\t\t\t(font
+\t\t\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t\t\t)
+\t\t\t\t\t\t)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t\t(pin passive line
+\t\t\t\t\t(at -5.08 0 0)
+\t\t\t\t\t(length 3.81)
+\t\t\t\t\t(name "Pin_3"
+\t\t\t\t\t\t(effects
+\t\t\t\t\t\t\t(font
+\t\t\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t\t\t)
+\t\t\t\t\t\t)
+\t\t\t\t\t)
+\t\t\t\t\t(number "3"
+\t\t\t\t\t\t(effects
+\t\t\t\t\t\t\t(font
+\t\t\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t\t\t)
+\t\t\t\t\t\t)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t\t(pin passive line
+\t\t\t\t\t(at -5.08 -2.54 0)
+\t\t\t\t\t(length 3.81)
+\t\t\t\t\t(name "Pin_4"
+\t\t\t\t\t\t(effects
+\t\t\t\t\t\t\t(font
+\t\t\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t\t\t)
+\t\t\t\t\t\t)
+\t\t\t\t\t)
+\t\t\t\t\t(number "4"
+\t\t\t\t\t\t(effects
+\t\t\t\t\t\t\t(font
+\t\t\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t\t\t)
+\t\t\t\t\t\t)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t\t(pin passive line
+\t\t\t\t\t(at -5.08 -5.08 0)
+\t\t\t\t\t(length 3.81)
+\t\t\t\t\t(name "Pin_5"
+\t\t\t\t\t\t(effects
+\t\t\t\t\t\t\t(font
+\t\t\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t\t\t)
+\t\t\t\t\t\t)
+\t\t\t\t\t)
+\t\t\t\t\t(number "5"
+\t\t\t\t\t\t(effects
+\t\t\t\t\t\t\t(font
+\t\t\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t\t\t)
+\t\t\t\t\t\t)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t\t(pin passive line
+\t\t\t\t\t(at -5.08 -7.62 0)
+\t\t\t\t\t(length 3.81)
+\t\t\t\t\t(name "Pin_6"
+\t\t\t\t\t\t(effects
+\t\t\t\t\t\t\t(font
+\t\t\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t\t\t)
+\t\t\t\t\t\t)
+\t\t\t\t\t)
+\t\t\t\t\t(number "6"
+\t\t\t\t\t\t(effects
+\t\t\t\t\t\t\t(font
+\t\t\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t\t\t)
+\t\t\t\t\t\t)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(embedded_fonts no)
+\t\t)
+\t\t(symbol "Device:C"
+\t\t\t(pin_numbers
+\t\t\t\t(hide yes)
+\t\t\t)
+\t\t\t(pin_names
+\t\t\t\t(offset 0.254)
+\t\t\t)
+\t\t\t(exclude_from_sim no)
+\t\t\t(in_bom yes)
+\t\t\t(on_board yes)
+\t\t\t(in_pos_files yes)
+\t\t\t(duplicate_pin_numbers_are_jumpers no)
+\t\t\t(property "Reference" "C"
+\t\t\t\t(at 0.635 2.54 0)
+\t\t\t\t(show_name no)
+\t\t\t\t(do_not_autoplace no)
+\t\t\t\t(effects
+\t\t\t\t\t(font
+\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t)
+\t\t\t\t\t(justify left)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(property "Value" "C"
+\t\t\t\t(at 0.635 -2.54 0)
+\t\t\t\t(show_name no)
+\t\t\t\t(do_not_autoplace no)
+\t\t\t\t(effects
+\t\t\t\t\t(font
+\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t)
+\t\t\t\t\t(justify left)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(property "Footprint" ""
+\t\t\t\t(at 0.9652 -3.81 0)
+\t\t\t\t(show_name no)
+\t\t\t\t(do_not_autoplace no)
+\t\t\t\t(hide yes)
+\t\t\t\t(effects
+\t\t\t\t\t(font
+\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(property "Datasheet" ""
+\t\t\t\t(at 0 0 0)
+\t\t\t\t(show_name no)
+\t\t\t\t(do_not_autoplace no)
+\t\t\t\t(hide yes)
+\t\t\t\t(effects
+\t\t\t\t\t(font
+\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(property "Description" "Unpolarized capacitor"
+\t\t\t\t(at 0 0 0)
+\t\t\t\t(show_name no)
+\t\t\t\t(do_not_autoplace no)
+\t\t\t\t(hide yes)
+\t\t\t\t(effects
+\t\t\t\t\t(font
+\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(property "ki_keywords" "cap capacitor"
+\t\t\t\t(at 0 0 0)
+\t\t\t\t(show_name no)
+\t\t\t\t(do_not_autoplace no)
+\t\t\t\t(hide yes)
+\t\t\t\t(effects
+\t\t\t\t\t(font
+\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(property "ki_fp_filters" "C_*"
+\t\t\t\t(at 0 0 0)
+\t\t\t\t(show_name no)
+\t\t\t\t(do_not_autoplace no)
+\t\t\t\t(hide yes)
+\t\t\t\t(effects
+\t\t\t\t\t(font
+\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(symbol "C_0_1"
+\t\t\t\t(polyline
+\t\t\t\t\t(pts
+\t\t\t\t\t\t(xy -2.032 0.762) (xy 2.032 0.762)
+\t\t\t\t\t)
+\t\t\t\t\t(stroke
+\t\t\t\t\t\t(width 0.508)
+\t\t\t\t\t\t(type default)
+\t\t\t\t\t)
+\t\t\t\t\t(fill
+\t\t\t\t\t\t(type none)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t\t(polyline
+\t\t\t\t\t(pts
+\t\t\t\t\t\t(xy -2.032 -0.762) (xy 2.032 -0.762)
+\t\t\t\t\t)
+\t\t\t\t\t(stroke
+\t\t\t\t\t\t(width 0.508)
+\t\t\t\t\t\t(type default)
+\t\t\t\t\t)
+\t\t\t\t\t(fill
+\t\t\t\t\t\t(type none)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(symbol "C_1_1"
+\t\t\t\t(pin passive line
+\t\t\t\t\t(at 0 3.81 270)
+\t\t\t\t\t(length 2.794)
+\t\t\t\t\t(name ""
+\t\t\t\t\t\t(effects
+\t\t\t\t\t\t\t(font
+\t\t\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t\t\t)
+\t\t\t\t\t\t)
+\t\t\t\t\t)
+\t\t\t\t\t(number "1"
+\t\t\t\t\t\t(effects
+\t\t\t\t\t\t\t(font
+\t\t\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t\t\t)
+\t\t\t\t\t\t)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t\t(pin passive line
+\t\t\t\t\t(at 0 -3.81 90)
+\t\t\t\t\t(length 2.794)
+\t\t\t\t\t(name ""
+\t\t\t\t\t\t(effects
+\t\t\t\t\t\t\t(font
+\t\t\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t\t\t)
+\t\t\t\t\t\t)
+\t\t\t\t\t)
+\t\t\t\t\t(number "2"
+\t\t\t\t\t\t(effects
+\t\t\t\t\t\t\t(font
+\t\t\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t\t\t)
+\t\t\t\t\t\t)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(embedded_fonts no)
+\t\t)
+\t\t(symbol "Device:C_Polarized"
+\t\t\t(pin_numbers
+\t\t\t\t(hide yes)
+\t\t\t)
+\t\t\t(pin_names
+\t\t\t\t(offset 0.254)
+\t\t\t)
+\t\t\t(exclude_from_sim no)
+\t\t\t(in_bom yes)
+\t\t\t(on_board yes)
+\t\t\t(in_pos_files yes)
+\t\t\t(duplicate_pin_numbers_are_jumpers no)
+\t\t\t(property "Reference" "C"
+\t\t\t\t(at 0.635 2.54 0)
+\t\t\t\t(show_name no)
+\t\t\t\t(do_not_autoplace no)
+\t\t\t\t(effects
+\t\t\t\t\t(font
+\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t)
+\t\t\t\t\t(justify left)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(property "Value" "C_Polarized"
+\t\t\t\t(at 0.635 -2.54 0)
+\t\t\t\t(show_name no)
+\t\t\t\t(do_not_autoplace no)
+\t\t\t\t(effects
+\t\t\t\t\t(font
+\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t)
+\t\t\t\t\t(justify left)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(property "Footprint" ""
+\t\t\t\t(at 0.9652 -3.81 0)
+\t\t\t\t(show_name no)
+\t\t\t\t(do_not_autoplace no)
+\t\t\t\t(hide yes)
+\t\t\t\t(effects
+\t\t\t\t\t(font
+\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(property "Datasheet" ""
+\t\t\t\t(at 0 0 0)
+\t\t\t\t(show_name no)
+\t\t\t\t(do_not_autoplace no)
+\t\t\t\t(hide yes)
+\t\t\t\t(effects
+\t\t\t\t\t(font
+\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(property "Description" "Polarized capacitor"
+\t\t\t\t(at 0 0 0)
+\t\t\t\t(show_name no)
+\t\t\t\t(do_not_autoplace no)
+\t\t\t\t(hide yes)
+\t\t\t\t(effects
+\t\t\t\t\t(font
+\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(property "ki_keywords" "cap capacitor"
+\t\t\t\t(at 0 0 0)
+\t\t\t\t(show_name no)
+\t\t\t\t(do_not_autoplace no)
+\t\t\t\t(hide yes)
+\t\t\t\t(effects
+\t\t\t\t\t(font
+\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(property "ki_fp_filters" "CP_*"
+\t\t\t\t(at 0 0 0)
+\t\t\t\t(show_name no)
+\t\t\t\t(do_not_autoplace no)
+\t\t\t\t(hide yes)
+\t\t\t\t(effects
+\t\t\t\t\t(font
+\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(symbol "C_Polarized_0_1"
+\t\t\t\t(rectangle
+\t\t\t\t\t(start -2.286 0.508)
+\t\t\t\t\t(end 2.286 1.016)
+\t\t\t\t\t(stroke
+\t\t\t\t\t\t(width 0)
+\t\t\t\t\t\t(type default)
+\t\t\t\t\t)
+\t\t\t\t\t(fill
+\t\t\t\t\t\t(type none)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t\t(polyline
+\t\t\t\t\t(pts
+\t\t\t\t\t\t(xy -1.778 2.286) (xy -0.762 2.286)
+\t\t\t\t\t)
+\t\t\t\t\t(stroke
+\t\t\t\t\t\t(width 0)
+\t\t\t\t\t\t(type default)
+\t\t\t\t\t)
+\t\t\t\t\t(fill
+\t\t\t\t\t\t(type none)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t\t(polyline
+\t\t\t\t\t(pts
+\t\t\t\t\t\t(xy -1.27 2.794) (xy -1.27 1.778)
+\t\t\t\t\t)
+\t\t\t\t\t(stroke
+\t\t\t\t\t\t(width 0)
+\t\t\t\t\t\t(type default)
+\t\t\t\t\t)
+\t\t\t\t\t(fill
+\t\t\t\t\t\t(type none)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t\t(rectangle
+\t\t\t\t\t(start 2.286 -0.508)
+\t\t\t\t\t(end -2.286 -1.016)
+\t\t\t\t\t(stroke
+\t\t\t\t\t\t(width 0)
+\t\t\t\t\t\t(type default)
+\t\t\t\t\t)
+\t\t\t\t\t(fill
+\t\t\t\t\t\t(type outline)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(symbol "C_Polarized_1_1"
+\t\t\t\t(pin passive line
+\t\t\t\t\t(at 0 3.81 270)
+\t\t\t\t\t(length 2.794)
+\t\t\t\t\t(name ""
+\t\t\t\t\t\t(effects
+\t\t\t\t\t\t\t(font
+\t\t\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t\t\t)
+\t\t\t\t\t\t)
+\t\t\t\t\t)
+\t\t\t\t\t(number "1"
+\t\t\t\t\t\t(effects
+\t\t\t\t\t\t\t(font
+\t\t\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t\t\t)
+\t\t\t\t\t\t)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t\t(pin passive line
+\t\t\t\t\t(at 0 -3.81 90)
+\t\t\t\t\t(length 2.794)
+\t\t\t\t\t(name ""
+\t\t\t\t\t\t(effects
+\t\t\t\t\t\t\t(font
+\t\t\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t\t\t)
+\t\t\t\t\t\t)
+\t\t\t\t\t)
+\t\t\t\t\t(number "2"
+\t\t\t\t\t\t(effects
+\t\t\t\t\t\t\t(font
+\t\t\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t\t\t)
+\t\t\t\t\t\t)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(embedded_fonts no)
+\t\t)
+\t\t(symbol "power:+3V3"
+\t\t\t(power global)
+\t\t\t(pin_numbers
+\t\t\t\t(hide yes)
+\t\t\t)
+\t\t\t(pin_names
+\t\t\t\t(offset 0)
+\t\t\t\t(hide yes)
+\t\t\t)
+\t\t\t(exclude_from_sim no)
+\t\t\t(in_bom yes)
+\t\t\t(on_board yes)
+\t\t\t(in_pos_files yes)
+\t\t\t(duplicate_pin_numbers_are_jumpers no)
+\t\t\t(property "Reference" "#PWR"
+\t\t\t\t(at 0 -3.81 0)
+\t\t\t\t(show_name no)
+\t\t\t\t(do_not_autoplace no)
+\t\t\t\t(hide yes)
+\t\t\t\t(effects
+\t\t\t\t\t(font
+\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(property "Value" "+3V3"
+\t\t\t\t(at 0 3.556 0)
+\t\t\t\t(show_name no)
+\t\t\t\t(do_not_autoplace no)
+\t\t\t\t(effects
+\t\t\t\t\t(font
+\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(property "Footprint" ""
+\t\t\t\t(at 0 0 0)
+\t\t\t\t(show_name no)
+\t\t\t\t(do_not_autoplace no)
+\t\t\t\t(hide yes)
+\t\t\t\t(effects
+\t\t\t\t\t(font
+\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(property "Datasheet" ""
+\t\t\t\t(at 0 0 0)
+\t\t\t\t(show_name no)
+\t\t\t\t(do_not_autoplace no)
+\t\t\t\t(hide yes)
+\t\t\t\t(effects
+\t\t\t\t\t(font
+\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(property "Description" "Power symbol creates a global label with name \\"+3V3\\""
+\t\t\t\t(at 0 0 0)
+\t\t\t\t(show_name no)
+\t\t\t\t(do_not_autoplace no)
+\t\t\t\t(hide yes)
+\t\t\t\t(effects
+\t\t\t\t\t(font
+\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(property "ki_keywords" "global power"
+\t\t\t\t(at 0 0 0)
+\t\t\t\t(show_name no)
+\t\t\t\t(do_not_autoplace no)
+\t\t\t\t(hide yes)
+\t\t\t\t(effects
+\t\t\t\t\t(font
+\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(symbol "+3V3_0_1"
+\t\t\t\t(polyline
+\t\t\t\t\t(pts
+\t\t\t\t\t\t(xy -0.762 1.27) (xy 0 2.54)
+\t\t\t\t\t)
+\t\t\t\t\t(stroke
+\t\t\t\t\t\t(width 0)
+\t\t\t\t\t\t(type default)
+\t\t\t\t\t)
+\t\t\t\t\t(fill
+\t\t\t\t\t\t(type none)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t\t(polyline
+\t\t\t\t\t(pts
+\t\t\t\t\t\t(xy 0 2.54) (xy 0.762 1.27)
+\t\t\t\t\t)
+\t\t\t\t\t(stroke
+\t\t\t\t\t\t(width 0)
+\t\t\t\t\t\t(type default)
+\t\t\t\t\t)
+\t\t\t\t\t(fill
+\t\t\t\t\t\t(type none)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t\t(polyline
+\t\t\t\t\t(pts
+\t\t\t\t\t\t(xy 0 0) (xy 0 2.54)
+\t\t\t\t\t)
+\t\t\t\t\t(stroke
+\t\t\t\t\t\t(width 0)
+\t\t\t\t\t\t(type default)
+\t\t\t\t\t)
+\t\t\t\t\t(fill
+\t\t\t\t\t\t(type none)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(symbol "+3V3_1_1"
+\t\t\t\t(pin power_in line
+\t\t\t\t\t(at 0 0 90)
+\t\t\t\t\t(length 0)
+\t\t\t\t\t(name ""
+\t\t\t\t\t\t(effects
+\t\t\t\t\t\t\t(font
+\t\t\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t\t\t)
+\t\t\t\t\t\t)
+\t\t\t\t\t)
+\t\t\t\t\t(number "1"
+\t\t\t\t\t\t(effects
+\t\t\t\t\t\t\t(font
+\t\t\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t\t\t)
+\t\t\t\t\t\t)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(embedded_fonts no)
+\t\t)
+\t\t(symbol "power:GND"
+\t\t\t(power global)
+\t\t\t(pin_numbers
+\t\t\t\t(hide yes)
+\t\t\t)
+\t\t\t(pin_names
+\t\t\t\t(offset 0)
+\t\t\t\t(hide yes)
+\t\t\t)
+\t\t\t(exclude_from_sim no)
+\t\t\t(in_bom yes)
+\t\t\t(on_board yes)
+\t\t\t(in_pos_files yes)
+\t\t\t(duplicate_pin_numbers_are_jumpers no)
+\t\t\t(property "Reference" "#PWR"
+\t\t\t\t(at 0 -6.35 0)
+\t\t\t\t(show_name no)
+\t\t\t\t(do_not_autoplace no)
+\t\t\t\t(hide yes)
+\t\t\t\t(effects
+\t\t\t\t\t(font
+\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(property "Value" "GND"
+\t\t\t\t(at 0 -3.81 0)
+\t\t\t\t(show_name no)
+\t\t\t\t(do_not_autoplace no)
+\t\t\t\t(effects
+\t\t\t\t\t(font
+\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(property "Footprint" ""
+\t\t\t\t(at 0 0 0)
+\t\t\t\t(show_name no)
+\t\t\t\t(do_not_autoplace no)
+\t\t\t\t(hide yes)
+\t\t\t\t(effects
+\t\t\t\t\t(font
+\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(property "Datasheet" ""
+\t\t\t\t(at 0 0 0)
+\t\t\t\t(show_name no)
+\t\t\t\t(do_not_autoplace no)
+\t\t\t\t(hide yes)
+\t\t\t\t(effects
+\t\t\t\t\t(font
+\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(property "Description" "Power symbol creates a global label with name \\"GND\\" , ground"
+\t\t\t\t(at 0 0 0)
+\t\t\t\t(show_name no)
+\t\t\t\t(do_not_autoplace no)
+\t\t\t\t(hide yes)
+\t\t\t\t(effects
+\t\t\t\t\t(font
+\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(property "ki_keywords" "global power"
+\t\t\t\t(at 0 0 0)
+\t\t\t\t(show_name no)
+\t\t\t\t(do_not_autoplace no)
+\t\t\t\t(hide yes)
+\t\t\t\t(effects
+\t\t\t\t\t(font
+\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(symbol "GND_0_1"
+\t\t\t\t(polyline
+\t\t\t\t\t(pts
+\t\t\t\t\t\t(xy 0 0) (xy 0 -1.27) (xy 1.27 -1.27) (xy 0 -2.54) (xy -1.27 -1.27) (xy 0 -1.27)
+\t\t\t\t\t)
+\t\t\t\t\t(stroke
+\t\t\t\t\t\t(width 0)
+\t\t\t\t\t\t(type default)
+\t\t\t\t\t)
+\t\t\t\t\t(fill
+\t\t\t\t\t\t(type none)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(symbol "GND_1_1"
+\t\t\t\t(pin power_in line
+\t\t\t\t\t(at 0 0 270)
+\t\t\t\t\t(length 0)
+\t\t\t\t\t(name ""
+\t\t\t\t\t\t(effects
+\t\t\t\t\t\t\t(font
+\t\t\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t\t\t)
+\t\t\t\t\t\t)
+\t\t\t\t\t)
+\t\t\t\t\t(number "1"
+\t\t\t\t\t\t(effects
+\t\t\t\t\t\t\t(font
+\t\t\t\t\t\t\t\t(size 1.27 1.27)
+\t\t\t\t\t\t\t)
+\t\t\t\t\t\t)
+\t\t\t\t\t)
+\t\t\t\t)
+\t\t\t)
+\t\t\t(embedded_fonts no)
+\t\t)"""
+
+
+# -----------------------------------------------------------------------------
+# Helpers specific to the MCU sub-sheet (sheet_key="mcu" pinned)
+# -----------------------------------------------------------------------------
+def _sch_hierarchical_label(
+    name: str, shape: str, x: float, y: float, angle: int,
+    justify: str, uuid_tag: str,
+) -> str:
+    """Emit a (hierarchical_label ...) entity.
+
+    Hierarchical labels mark inter-sheet net endpoints. The label name
+    must match the corresponding sheet pin on the parent sheet's
+    (sheet ...) block. `shape` is one of "input", "output",
+    "bidirectional", "tri_state", "passive" — controls the visible
+    arrowhead style. `angle` is the label rotation in degrees:
+      0   = arrow points right (text reads L→R)
+      90  = arrow points up    (text reads bottom→top)
+      180 = arrow points left  (text reads R→L)
+      270 = arrow points down  (text reads top→bottom)
+    `justify` is "left" or "right" — controls which side of the anchor
+    the text extends to.
+    """
+    return textwrap.dedent(f"""\
+        \t(hierarchical_label "{name}"
+        \t\t(shape {shape})
+        \t\t(at {fmt(x)} {fmt(y)} {angle})
+        \t\t(effects
+        \t\t\t(font
+        \t\t\t\t(size 1.27 1.27)
+        \t\t\t)
+        \t\t\t(justify {justify})
+        \t\t)
+        \t\t(uuid "{U('hlabel:'+uuid_tag)}")
+        \t)""")
+
+
+def _sch_no_connect(x: float, y: float, uuid_tag: str) -> str:
+    """Emit a (no_connect ...) marker at the given pin tip.
+
+    Tells ERC that the unconnected pin is intentional, suppressing
+    the "unconnected pin" warning.
+    """
+    return textwrap.dedent(f"""\
+        \t(no_connect
+        \t\t(at {fmt(x)} {fmt(y)})
+        \t\t(uuid "{U('nc:'+uuid_tag)}")
+        \t)""")
+
+
+def _sch_esp32c6_supermini(
+    x: float, y: float, reference: str, value: str, uuid_tag: str,
+) -> str:
+    """Emit an ESP32-C6 SuperMini (OAS:ESP32-C6_SuperMini) symbol instance.
+
+    16 pins total in a 2×8 SIP layout. With angle=0 (no rotation), lib pin
+    positions map to schematic as:
+      Left side (pins 1-8, X = anchor_x - 12.7):
+        Pin 1 (5V):    (X-12.7, Y-8.89)
+        Pin 2 (GND):   (X-12.7, Y-6.35)
+        Pin 3 (3V3):   (X-12.7, Y-3.81)
+        Pin 4 (GPIO6): (X-12.7, Y-1.27)
+        Pin 5 (GPIO7): (X-12.7, Y+1.27)
+        Pin 6 (GPIO8): (X-12.7, Y+3.81)
+        Pin 7 (GPIO10):(X-12.7, Y+6.35)
+        Pin 8 (GPIO11):(X-12.7, Y+8.89)
+      Right side (pins 9-16, X = anchor_x + 12.7):
+        Pin 9  (EN):    (X+12.7, Y-8.89)
+        Pin 10 (GPIO9): (X+12.7, Y-6.35)
+        Pin 11 (GPIO16):(X+12.7, Y-3.81)
+        Pin 12 (GPIO17):(X+12.7, Y-1.27)
+        Pin 13 (GPIO18):(X+12.7, Y+1.27)
+        Pin 14 (GPIO19):(X+12.7, Y+3.81)
+        Pin 15 (GPIO20):(X+12.7, Y+6.35)
+        Pin 16 (GPIO21):(X+12.7, Y+8.89)
+    Body rectangle in schem: (X-10.16, Y-10.16) to (X+10.16, Y+10.16).
+    """
+    sym_uuid = U("sym:" + uuid_tag)
+    pin_uuids = [U(f"sym-pin:{uuid_tag}-{n}") for n in range(1, 17)]
+    sheet_path = f"/{ROOT_SHEET_UUID}/{SHEET_BLOCK_UUIDS['mcu']}"
+    pin_blocks = "\n".join(
+        f"\t\t(pin \"{n}\"\n\t\t\t(uuid \"{pin_uuids[n-1]}\")\n\t\t)"
+        for n in range(1, 17)
+    )
+    return textwrap.dedent(f"""\
+        \t(symbol
+        \t\t(lib_id "OAS:ESP32-C6_SuperMini")
+        \t\t(at {fmt(x)} {fmt(y)} 0)
+        \t\t(unit 1)
+        \t\t(exclude_from_sim no)
+        \t\t(in_bom yes)
+        \t\t(on_board yes)
+        \t\t(dnp no)
+        \t\t(fields_autoplaced yes)
+        \t\t(uuid "{sym_uuid}")
+        \t\t(property "Reference" "{reference}"
+        \t\t\t(at {fmt(x + 13.97)} {fmt(y - 12.7)} 0)
+        \t\t\t(effects
+        \t\t\t\t(font
+        \t\t\t\t\t(size 1.27 1.27)
+        \t\t\t\t)
+        \t\t\t\t(justify left)
+        \t\t\t)
+        \t\t)
+        \t\t(property "Value" "{value}"
+        \t\t\t(at {fmt(x + 13.97)} {fmt(y - 15.24)} 0)
+        \t\t\t(effects
+        \t\t\t\t(font
+        \t\t\t\t\t(size 1.27 1.27)
+        \t\t\t\t)
+        \t\t\t\t(justify left)
+        \t\t\t)
+        \t\t)
+        \t\t(property "Footprint" ""
+        \t\t\t(at {fmt(x)} {fmt(y)} 0)
+        \t\t\t(effects
+        \t\t\t\t(font
+        \t\t\t\t\t(size 1.27 1.27)
+        \t\t\t\t)
+        \t\t\t\t(hide yes)
+        \t\t\t)
+        \t\t)
+        \t\t(property "Datasheet" "https://www.espboards.dev/esp32/esp32-c6-super-mini/"
+        \t\t\t(at {fmt(x)} {fmt(y)} 0)
+        \t\t\t(effects
+        \t\t\t\t(font
+        \t\t\t\t\t(size 1.27 1.27)
+        \t\t\t\t)
+        \t\t\t\t(hide yes)
+        \t\t\t)
+        \t\t)
+        \t\t(property "Description" "ESP32-C6 SuperMini module (manual-mount daughter board)"
+        \t\t\t(at {fmt(x)} {fmt(y)} 0)
+        \t\t\t(effects
+        \t\t\t\t(font
+        \t\t\t\t\t(size 1.27 1.27)
+        \t\t\t\t)
+        \t\t\t\t(hide yes)
+        \t\t\t)
+        \t\t)
+        {pin_blocks}
+        \t\t(instances
+        \t\t\t(project "oas"
+        \t\t\t\t(path "{sheet_path}"
+        \t\t\t\t\t(reference "{reference}")
+        \t\t\t\t\t(unit 1)
+        \t\t\t\t)
+        \t\t\t)
+        \t\t)
+        \t)""")
+
+
+def _sch_conn_01x06(
+    x: float, y: float, angle: int, reference: str, value: str, uuid_tag: str,
+    dnp: bool = False,
+) -> str:
+    """Emit a Connector_Generic:Conn_01x06 symbol instance.
+
+    With angle=0 (no rotation), lib pin positions map to schematic as:
+      Pin 1 (top):    (X-5.08, Y-5.08)
+      Pin 2:          (X-5.08, Y-2.54)
+      Pin 3:          (X-5.08, Y)
+      Pin 4:          (X-5.08, Y+2.54)
+      Pin 5:          (X-5.08, Y+5.08)
+      Pin 6 (bottom): (X-5.08, Y+7.62)
+    All pin tips on the LEFT side, body to the right (X = -1.27..+1.27 in
+    lib → schem (X-1.27, ..., X+1.27)).
+
+    `dnp` flags the part Do-Not-Populate. The part still appears on the
+    PCB and in ERC, but a hatched overlay is drawn in eeschema and the
+    BOM exporter marks it accordingly.
+    """
+    sym_uuid = U("sym:" + uuid_tag)
+    pin_uuids = [U(f"sym-pin:{uuid_tag}-{n}") for n in range(1, 7)]
+    sheet_path = f"/{ROOT_SHEET_UUID}/{SHEET_BLOCK_UUIDS['mcu']}"
+    dnp_flag = "yes" if dnp else "no"
+    pin_blocks = "\n".join(
+        f"\t\t(pin \"{n}\"\n\t\t\t(uuid \"{pin_uuids[n-1]}\")\n\t\t)"
+        for n in range(1, 7)
+    )
+    return textwrap.dedent(f"""\
+        \t(symbol
+        \t\t(lib_id "Connector_Generic:Conn_01x06")
+        \t\t(at {fmt(x)} {fmt(y)} {angle})
+        \t\t(unit 1)
+        \t\t(exclude_from_sim no)
+        \t\t(in_bom yes)
+        \t\t(on_board yes)
+        \t\t(dnp {dnp_flag})
+        \t\t(fields_autoplaced yes)
+        \t\t(uuid "{sym_uuid}")
+        \t\t(property "Reference" "{reference}"
+        \t\t\t(at {fmt(x + 2.54)} {fmt(y - 10.16)} 0)
+        \t\t\t(effects
+        \t\t\t\t(font
+        \t\t\t\t\t(size 1.27 1.27)
+        \t\t\t\t)
+        \t\t\t\t(justify left)
+        \t\t\t)
+        \t\t)
+        \t\t(property "Value" "{value}"
+        \t\t\t(at {fmt(x + 2.54)} {fmt(y + 12.7)} 0)
+        \t\t\t(effects
+        \t\t\t\t(font
+        \t\t\t\t\t(size 1.27 1.27)
+        \t\t\t\t)
+        \t\t\t\t(justify left)
+        \t\t\t)
+        \t\t)
+        \t\t(property "Footprint" ""
+        \t\t\t(at {fmt(x)} {fmt(y)} 0)
+        \t\t\t(effects
+        \t\t\t\t(font
+        \t\t\t\t\t(size 1.27 1.27)
+        \t\t\t\t)
+        \t\t\t\t(hide yes)
+        \t\t\t)
+        \t\t)
+        \t\t(property "Datasheet" ""
+        \t\t\t(at {fmt(x)} {fmt(y)} 0)
+        \t\t\t(effects
+        \t\t\t\t(font
+        \t\t\t\t\t(size 1.27 1.27)
+        \t\t\t\t)
+        \t\t\t\t(hide yes)
+        \t\t\t)
+        \t\t)
+        \t\t(property "Description" ""
+        \t\t\t(at {fmt(x)} {fmt(y)} 0)
+        \t\t\t(effects
+        \t\t\t\t(font
+        \t\t\t\t\t(size 1.27 1.27)
+        \t\t\t\t)
+        \t\t\t\t(hide yes)
+        \t\t\t)
+        \t\t)
+        {pin_blocks}
+        \t\t(instances
+        \t\t\t(project "oas"
+        \t\t\t\t(path "{sheet_path}"
+        \t\t\t\t\t(reference "{reference}")
+        \t\t\t\t\t(unit 1)
+        \t\t\t\t)
+        \t\t\t)
+        \t\t)
+        \t)""")
+
+
+def gen_mcu_sch() -> str:
+    """MCU sub-sheet — ESP32-C6 SuperMini (U3) + C9/C9b decoupling + J2 recovery header.
+
+    Layout (schematic page-absolute mm, KiCad +Y is down on screen):
+
+      +3V3 rail (Y=76.20) ------------------------ +3V3 PWR -----
+                |                |              |
+                C9 (10uF/+)      C9b (100nF)    | (drop right and down)
+                |  pin 2 (bot)   |  pin 2 (bot) |
+                GND              GND            |
+                                                |
+                                                |     U3.3 (3V3)
+                                                +-- L-route ------- pin 3 left
+
+      Top-right of the U3 body (at 152.4, 110), the J2 header sits at
+      (200, 101.11) just to its right, with pins exiting LEFT toward U3.
+      The four signal pins (J2.3-6) align Y-row-by-row with U3.9-12 so
+      every recovery-header wire is a clean horizontal hop.
+
+      Left-edge hierarchical labels (X=120) carry the sensor-bound nets:
+      I2C_SDA, I2C_SCL, LD2410_OUT, NFC_FD.  Right-side hierarchical
+      labels (X=222) carry UART_TX / UART_RX (T-tapped on the wires that
+      already run from U3 right pins to J2).
+
+    Pinout (per v0.3 ARCHITECTURE.md, post strap-pin validation):
+      U3.1  5V          (NO-CONNECT — VBUS not used outside the SuperMini)
+      U3.2  GND
+      U3.3  3V3
+      U3.4  GPIO 6     → I2C_SDA      (shared bus: SEN66, VEML7700, NT3H2211)
+      U3.5  GPIO 7     → I2C_SCL
+      U3.6  GPIO 8     (NO-CONNECT — onboard WS2812 on SuperMini, no ext. LED)
+      U3.7  GPIO 10    → LD2410_OUT   (presence interrupt; was GPIO 4 = MTMS strap)
+      U3.8  GPIO 11    → NFC_FD       (NT3H2211 FD; was GPIO 5 = MTDI strap)
+      U3.9  EN         → J2.3         (reset / recovery)
+      U3.10 GPIO 9     → J2.4         (boot-mode strap; recovery header only)
+      U3.11 GPIO 16    → UART_TX (→J2.5)  (256000 baud to LD2410 RX)
+      U3.12 GPIO 17    → UART_RX (←J2.6)  (256000 baud from LD2410 TX)
+      U3.13-16 GPIO 18-21   (NO-CONNECT — reserved for future expansion)
+
+    Inter-sheet nets exported via hierarchical_label (matching sheet ports
+    are added to oas.kicad_sch's MCU sheet block):
+      I2C_SDA, I2C_SCL    → sensors sub-sheet (chunk #5)
+      UART_TX, UART_RX    → sensors sub-sheet (LD2410)
+      LD2410_OUT          → sensors sub-sheet
+      NFC_FD              → sensors sub-sheet
+
+    +3V3 and GND are NOT exported as hierarchical labels: the power
+    section already declared them via global power symbols, which is
+    KiCad's canonical mechanism for spanning power nets across hierarchy.
+    Adding hier labels for them would produce "multiple net names on the
+    same net" ERC noise without any electrical benefit.
+    """
+    file_uuid = SHEET_FILE_UUIDS["mcu"]
+
+    # ===== U3: ESP32-C6 SuperMini module =====
+    # All coordinates on the 1.27 mm (50 mil) KiCad connection grid:
+    # X-values are multiples of 1.27 (column index in the comment), Y-values
+    # likewise (row index). U3 anchor (152.4, 110.49) = column 120, row 87.
+    U3_X = 152.40           # column 120 (= 120 * 1.27)
+    U3_Y = 110.49           # row 87
+    # Pin tip schem positions, derived from the symbol's lib pin coords.
+    # Left side: lib X=-12.7, pins at lib Y in {+8.89, +6.35, ..., -8.89}.
+    # At angle=0, lib (Xl, Yl) maps to schem (X+Xl, Y-Yl).
+    U3_X_LEFT  = U3_X - 12.7    # 139.70 — column 110
+    U3_X_RIGHT = U3_X + 12.7    # 165.10 — column 130
+    # Pin Y rows (8 rows, 2.54 mm pitch, 5.08 mm offset for top pin)
+    PIN_Y = [
+        U3_Y - 8.89,   # row 0 — 101.60 — pin 1 / 9
+        U3_Y - 6.35,   # row 1 — 104.14 — pin 2 / 10
+        U3_Y - 3.81,   # row 2 — 106.68 — pin 3 / 11
+        U3_Y - 1.27,   # row 3 — 109.22 — pin 4 / 12
+        U3_Y + 1.27,   # row 4 — 111.76 — pin 5 / 13
+        U3_Y + 3.81,   # row 5 — 114.30 — pin 6 / 14
+        U3_Y + 6.35,   # row 6 — 116.84 — pin 7 / 15
+        U3_Y + 8.89,   # row 7 — 119.38 — pin 8 / 16
+    ]
+    # Aliases for the rows we care about (matches the comment table above).
+    U3_5V_Y    = PIN_Y[0]   # 101.60 — pin 1
+    U3_GND_Y   = PIN_Y[1]   # 104.14 — pin 2
+    U3_3V3_Y   = PIN_Y[2]   # 106.68 — pin 3
+    U3_SDA_Y   = PIN_Y[3]   # 109.22 — pin 4 (GPIO6)
+    U3_SCL_Y   = PIN_Y[4]   # 111.76 — pin 5 (GPIO7)
+    U3_LED_Y   = PIN_Y[5]   # 114.30 — pin 6 (GPIO8, onboard WS2812)
+    U3_LDR_Y   = PIN_Y[6]   # 116.84 — pin 7 (GPIO10 LD2410_OUT)
+    U3_NFC_Y   = PIN_Y[7]   # 119.38 — pin 8 (GPIO11 NFC_FD)
+    U3_EN_Y    = PIN_Y[0]   # 101.60 — pin 9 (EN)
+    U3_BOOT_Y  = PIN_Y[1]   # 104.14 — pin 10 (GPIO9)
+    U3_TX_Y    = PIN_Y[2]   # 106.68 — pin 11 (GPIO16)
+    U3_RX_Y    = PIN_Y[3]   # 109.22 — pin 12 (GPIO17)
+    # Pins 13-16 (GPIO18-21) all no-connect; addressed via PIN_Y[4..7]
+    # at X=U3_X_RIGHT.
+
+    # ===== C9: bulk decoupling, 10uF polarized =====
+    C9_X = 129.54            # column 102
+    C9_Y = 80.01             # row 63
+    C9_TOP_Y = C9_Y - 3.81   # 76.20 — pin 1 (anode +) on the +3V3 bus
+    C9_BOT_Y = C9_Y + 3.81   # 83.82 — pin 2 (cathode -) drops to GND
+    C9_GND_Y = 87.63         # row 69 — local GND symbol anchor
+
+    # ===== C9b: HF decoupling, 100nF ceramic =====
+    C9b_X = 138.43           # column 109 (just left of U3 body left edge X=142.24)
+    C9b_Y = 80.01
+    C9b_TOP_Y = C9b_Y - 3.81 # 76.20 — pin 1 on the +3V3 bus
+    C9b_BOT_Y = C9b_Y + 3.81 # 83.82
+    C9b_GND_Y = 87.63
+
+    # ===== +3V3 bus =====
+    # Horizontal at Y=76.20 from C9.pin1 (X=129.54) through C9b.pin1
+    # (X=138.43) east to an L-corner at X=140.97 (one grid step right of
+    # C9b, still 1.27 mm left of U3 body left edge X=142.24). The bus
+    # then drops south to U3.3 row (Y=106.68) and runs east into U3.3.
+    BUS_3V3_Y       = C9_TOP_Y     # 76.20
+    BUS_3V3_X_LEFT  = C9_X         # 129.54
+    BUS_3V3_X_RIGHT = 140.97       # column 111 — L-corner
+    PWR_3V3_X       = 134.62       # column 106 — between C9 and C9b
+    PWR_3V3_Y       = BUS_3V3_Y    # power symbol anchor sits on the bus
+
+    # ===== J2: SWD/UART recovery header, 6-pin, DNP =====
+    # Anchor Y chosen so J2.3 (= U3.9 row, EN) aligns with U3.9 at Y=101.60.
+    # Conn_01x06 pin 3 lib Y=0 maps to schem Y=anchor_y. So anchor_y = 101.60.
+    # J2 placed to the right of U3 so its left-facing pins connect via
+    # short horizontal wires to U3's right pins. The four signal pins
+    # (J2.3-J2.6) align row-by-row with U3.9-U3.12.
+    J2_X = 199.39            # column 157
+    J2_Y = U3_EN_Y           # 101.60
+    J2_PIN_X = J2_X - 5.08   # 194.31 — pin tip column (all 6 pins)
+    J2_P1_Y = J2_Y - 5.08    # 96.52  — 3V3
+    J2_P2_Y = J2_Y - 2.54    # 99.06  — GND
+    J2_P3_Y = J2_Y           # 101.60 — EN (← U3.9)
+    J2_P4_Y = J2_Y + 2.54    # 104.14 — GPIO 9 BOOT (← U3.10)
+    J2_P5_Y = J2_Y + 5.08    # 106.68 — UART_TX (← U3.11)
+    J2_P6_Y = J2_Y + 7.62    # 109.22 — UART_RX (← U3.12)
+
+    # ===== Hier-label columns =====
+    # All hier labels for sensor-bound nets on LEFT side at X=119.38 (signals
+    # flow OUT of MCU to the LEFT, since the sensors sheet is bottom-LEFT
+    # in the root sheet layout).
+    HLABEL_LEFT_X = 119.38   # column 94
+    # UART hier labels on the RIGHT, between J2 body and the right margin,
+    # T-tapping the existing U3→J2 wires.
+    HLABEL_RIGHT_X = 222.25  # column 175
+
+    # ===== Wires =====
+    parts: list[str] = []
+
+    # ---- +3V3 wiring ----
+    # +3V3 bus: horizontal from C9.pin1 at X=129.54 east to the L-corner at
+    # X=140.97, then south to U3.3 row at Y=106.68, then east to U3.3 pin
+    # tip at (139.70, 106.68). The downward leg sits in the 1.27 mm gap
+    # between C9b (X=138.43) and the U3 body left edge (X=142.24).
+    parts.append(_sch_wire(BUS_3V3_X_LEFT, BUS_3V3_Y, BUS_3V3_X_RIGHT, BUS_3V3_Y, "3v3-bus"))
+    parts.append(_sch_wire(BUS_3V3_X_RIGHT, BUS_3V3_Y, BUS_3V3_X_RIGHT, U3_3V3_Y, "3v3-bus-down"))
+    parts.append(_sch_wire(BUS_3V3_X_RIGHT, U3_3V3_Y, U3_X_LEFT, U3_3V3_Y, "3v3-to-u3"))
+    # Junction dots at the two mid-wire taps on the +3V3 bus:
+    #   - (PWR_3V3_X, BUS_3V3_Y) where the +3V3 power-symbol pin lands.
+    #   - (C9b_X, BUS_3V3_Y) where C9b pin 1 lands.
+    parts.append(_sch_junction(PWR_3V3_X, BUS_3V3_Y, "3v3-bus-tap-pwr"))
+    parts.append(_sch_junction(C9b_X, BUS_3V3_Y, "3v3-bus-tap-c9b"))
+    # C9.pin2 → local GND symbol
+    parts.append(_sch_wire(C9_X, C9_BOT_Y, C9_X, C9_GND_Y, "c9-to-gnd"))
+    # C9b.pin2 → local GND symbol
+    parts.append(_sch_wire(C9b_X, C9b_BOT_Y, C9b_X, C9b_GND_Y, "c9b-to-gnd"))
+
+    # ---- U3.2 (GND) → local GND symbol on the LEFT ----
+    # Short horizontal hop out of U3.2 to a GND power symbol just to the
+    # left of the pin tip. The U3_GND symbol is placed inside the same
+    # 2.54mm grid as the pin so the GND value-text doesn't overlap U3.
+    U3_GND_X = U3_X_LEFT - 3.81   # 135.89 (column 107) — GND symbol anchor
+    parts.append(_sch_wire(U3_X_LEFT, U3_GND_Y, U3_GND_X, U3_GND_Y, "u3gnd-hop"))
+
+    # ---- I2C / interrupt signal wires (U3 left pins → left hier labels) ----
+    # GPIO 6 (SDA), GPIO 7 (SCL), GPIO 10 (LD2410_OUT), GPIO 11 (NFC_FD)
+    parts.append(_sch_wire(U3_X_LEFT, U3_SDA_Y, HLABEL_LEFT_X, U3_SDA_Y, "sda-wire"))
+    parts.append(_sch_wire(U3_X_LEFT, U3_SCL_Y, HLABEL_LEFT_X, U3_SCL_Y, "scl-wire"))
+    parts.append(_sch_wire(U3_X_LEFT, U3_LDR_Y, HLABEL_LEFT_X, U3_LDR_Y, "ldr-wire"))
+    parts.append(_sch_wire(U3_X_LEFT, U3_NFC_Y, HLABEL_LEFT_X, U3_NFC_Y, "nfc-wire"))
+
+    # ---- U3 right pins → J2 / UART hier labels (4 horizontal hops) ----
+    # EN and BOOT_MODE: 2-pin nets ending at J2.3 / J2.4.
+    parts.append(_sch_wire(U3_X_RIGHT, U3_EN_Y,   J2_PIN_X, J2_P3_Y, "en-to-j2"))
+    parts.append(_sch_wire(U3_X_RIGHT, U3_BOOT_Y, J2_PIN_X, J2_P4_Y, "boot-to-j2"))
+    # UART_TX / UART_RX wires run east from U3 right pins all the way to
+    # the right-edge UART hier labels at X=HLABEL_RIGHT_X=222.25. J2.5 and
+    # J2.6 sit mid-wire at X=J2_PIN_X=194.31 — each needs a junction dot
+    # to mark the T-tap.
+    parts.append(_sch_wire(U3_X_RIGHT, U3_TX_Y,   HLABEL_RIGHT_X, U3_TX_Y, "tx-bus"))
+    parts.append(_sch_wire(U3_X_RIGHT, U3_RX_Y,   HLABEL_RIGHT_X, U3_RX_Y, "rx-bus"))
+    parts.append(_sch_junction(J2_PIN_X, U3_TX_Y, "uart-tx-j2-tap"))
+    parts.append(_sch_junction(J2_PIN_X, U3_RX_Y, "uart-rx-j2-tap"))
+
+    # ---- J2.1 (3V3) and J2.2 (GND) local power flags ----
+    # +3V3 symbol just above J2.1; wire down from symbol to pin tip.
+    PWR_J2_3V3_Y = J2_P1_Y - 3.81      # 92.71 (row 73) — symbol 3.81 mm above pin
+    parts.append(_sch_wire(J2_PIN_X, PWR_J2_3V3_Y, J2_PIN_X, J2_P1_Y, "j2-3v3-drop"))
+    # GND symbol just left of J2.2; wire from pin tip leftward to symbol.
+    PWR_J2_GND_X = J2_PIN_X - 5.08      # 189.23 (column 149)
+    parts.append(_sch_wire(J2_PIN_X, J2_P2_Y, PWR_J2_GND_X, J2_P2_Y, "j2-gnd-hop"))
+
+    # ===== Junctions =====
+    # Already emitted UART tap junctions above. No others needed: every
+    # other wire endpoint coincides exactly with a pin tip (KiCad
+    # auto-joins pin tips to wires of the same coordinate).
+
+    # ===== Hierarchical labels =====
+    # Left-edge labels: angle=180 (arrow points left, text reads R→L),
+    # justify=right (text extends to the LEFT of the anchor).
+    parts.append(_sch_hierarchical_label(
+        name="I2C_SDA", shape="bidirectional",
+        x=HLABEL_LEFT_X, y=U3_SDA_Y, angle=180, justify="right",
+        uuid_tag="i2c-sda",
+    ))
+    parts.append(_sch_hierarchical_label(
+        name="I2C_SCL", shape="output",
+        x=HLABEL_LEFT_X, y=U3_SCL_Y, angle=180, justify="right",
+        uuid_tag="i2c-scl",
+    ))
+    parts.append(_sch_hierarchical_label(
+        name="LD2410_OUT", shape="input",
+        x=HLABEL_LEFT_X, y=U3_LDR_Y, angle=180, justify="right",
+        uuid_tag="ld2410-out",
+    ))
+    parts.append(_sch_hierarchical_label(
+        name="NFC_FD", shape="input",
+        x=HLABEL_LEFT_X, y=U3_NFC_Y, angle=180, justify="right",
+        uuid_tag="nfc-fd",
+    ))
+    # Right-edge labels: angle=0 (arrow points right), justify=left.
+    parts.append(_sch_hierarchical_label(
+        name="UART_TX", shape="output",
+        x=HLABEL_RIGHT_X, y=U3_TX_Y, angle=0, justify="left",
+        uuid_tag="uart-tx",
+    ))
+    parts.append(_sch_hierarchical_label(
+        name="UART_RX", shape="input",
+        x=HLABEL_RIGHT_X, y=U3_RX_Y, angle=0, justify="left",
+        uuid_tag="uart-rx",
+    ))
+
+    # ===== No-connect markers =====
+    # U3.1 (5V), U3.6 (GPIO 8 = onboard WS2812), U3.13-16 (GPIO 18-21)
+    parts.append(_sch_no_connect(U3_X_LEFT,  U3_5V_Y, "u3-5v"))
+    parts.append(_sch_no_connect(U3_X_LEFT,  U3_LED_Y, "u3-gpio8"))
+    parts.append(_sch_no_connect(U3_X_RIGHT, PIN_Y[4], "u3-gpio18"))
+    parts.append(_sch_no_connect(U3_X_RIGHT, PIN_Y[5], "u3-gpio19"))
+    parts.append(_sch_no_connect(U3_X_RIGHT, PIN_Y[6], "u3-gpio20"))
+    parts.append(_sch_no_connect(U3_X_RIGHT, PIN_Y[7], "u3-gpio21"))
+
+    # ===== U3 symbol (ESP32-C6 SuperMini) =====
+    parts.append(_sch_esp32c6_supermini(
+        x=U3_X, y=U3_Y,
+        reference="U3", value="ESP32-C6 SuperMini",
+        uuid_tag="u3",
+    ))
+
+    # ===== J2 symbol (SWD/UART recovery header, DNP) =====
+    parts.append(_sch_conn_01x06(
+        x=J2_X, y=J2_Y, angle=0,
+        reference="J2", value="SWD/UART Recovery (DNP)",
+        uuid_tag="j2", dnp=True,
+    ))
+
+    # ===== Capacitors (C9 bulk, C9b HF) =====
+    parts.append(_sch_capacitor(
+        lib_id="Device:C_Polarized",
+        x=C9_X, y=C9_Y, angle=0,
+        reference="C9", value="10uF 10V",
+        uuid_tag="c9", sheet_key="mcu",
+    ))
+    parts.append(_sch_capacitor(
+        lib_id="Device:C",
+        x=C9b_X, y=C9b_Y, angle=0,
+        reference="C9b", value="100nF",
+        uuid_tag="c9b", sheet_key="mcu",
+    ))
+
+    # ===== Power flags =====
+    # +3V3 on the bus between C9 and C9b (angle=0, triangle points UP).
+    parts.append(_sch_power_flag(
+        lib_id="power:+3V3", value="+3V3",
+        x=PWR_3V3_X, y=PWR_3V3_Y, angle=0,
+        reference="#PWR25",
+        value_offset_x=0.0, value_offset_y=-3.556,
+        uuid_tag="pwr25-3v3-bus",
+        sheet_key="mcu",
+    ))
+    # +3V3 above J2.1 (angle=0, triangle UP).
+    parts.append(_sch_power_flag(
+        lib_id="power:+3V3", value="+3V3",
+        x=J2_PIN_X, y=PWR_J2_3V3_Y, angle=0,
+        reference="#PWR26",
+        value_offset_x=0.0, value_offset_y=-3.556,
+        uuid_tag="pwr26-3v3-j2",
+        sheet_key="mcu",
+    ))
+    # GND below C9 (angle=0 — triangle hangs DOWN by default).
+    parts.append(_sch_power_flag(
+        lib_id="power:GND", value="GND",
+        x=C9_X, y=C9_GND_Y, angle=0,
+        reference="#PWR27",
+        value_offset_x=0.0, value_offset_y=3.81,
+        uuid_tag="pwr27-gnd-c9",
+        sheet_key="mcu",
+    ))
+    # GND below C9b.
+    parts.append(_sch_power_flag(
+        lib_id="power:GND", value="GND",
+        x=C9b_X, y=C9b_GND_Y, angle=0,
+        reference="#PWR28",
+        value_offset_x=0.0, value_offset_y=3.81,
+        uuid_tag="pwr28-gnd-c9b",
+        sheet_key="mcu",
+    ))
+    # GND on U3.2 (angle=270 so the triangle points RIGHT toward the
+    # symbol; pin tip lands on the GND symbol's connection point).
+    parts.append(_sch_power_flag(
+        lib_id="power:GND", value="GND",
+        x=U3_GND_X, y=U3_GND_Y, angle=270,
+        reference="#PWR29",
+        value_offset_x=-3.81, value_offset_y=0.0,
+        uuid_tag="pwr29-gnd-u3",
+        sheet_key="mcu",
+    ))
+    # GND on J2.2 (angle=270).
+    parts.append(_sch_power_flag(
+        lib_id="power:GND", value="GND",
+        x=PWR_J2_GND_X, y=J2_P2_Y, angle=270,
+        reference="#PWR30",
+        value_offset_x=-3.81, value_offset_y=0.0,
+        uuid_tag="pwr30-gnd-j2",
+        sheet_key="mcu",
+    ))
+
+    body = "\n".join(parts)
+    return textwrap.dedent(f"""\
+        (kicad_sch
+        \t(version {SCH_VERSION})
+        \t(generator "eeschema")
+        \t(generator_version "{GEN_VERSION}")
+        \t(uuid "{file_uuid}")
+        \t(paper "A4")
+        \t(lib_symbols
+        {MCU_LIB_SYMBOLS}
+        \t)
+        {body}
+        \t(embedded_fonts no)
+        )
+        """)
+
+
+# -----------------------------------------------------------------------------
 # 4) Project file
 # -----------------------------------------------------------------------------
 def gen_pro() -> str:
@@ -6673,6 +8613,8 @@ def main():
     for name in SUBSHEETS:
         if name == "power":
             content = gen_power_sch()
+        elif name == "mcu":
+            content = gen_mcu_sch()
         else:
             content = gen_subsheet_sch(name)
         (HERE / f"{name}.kicad_sch").write_text(content, encoding="utf-8")

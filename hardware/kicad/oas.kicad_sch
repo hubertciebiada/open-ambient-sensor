@@ -6,174 +6,234 @@
 	(paper "A4")
 	(lib_symbols
 	)
-(sheet
-	(at 50.8 50.8)
-	(size 38.1 12.7)
-	(exclude_from_sim no)
-	(in_bom yes)
-	(on_board yes)
-	(dnp no)
-	(fields_autoplaced yes)
-	(stroke
-		(width 0.1524)
-		(type solid)
-	)
-	(fill
-		(color 0 0 0 0.0000)
-	)
-	(uuid "1557665b-a568-58fc-b40f-759ed4998499")
-	(property "Sheetname" "Power"
-		(at 50.8 50.0884 0)
-		(effects
-			(font
-				(size 1.27 1.27)
-			)
-			(justify left bottom)
+	(sheet
+		(at 50.8 50.8)
+		(size 38.1 12.7)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(stroke
+			(width 0.1524)
+			(type solid)
 		)
-	)
-	(property "Sheetfile" "power.kicad_sch"
-		(at 50.8 63.9446 0)
-		(effects
-			(font
-				(size 1.27 1.27)
-			)
-			(justify left top)
+		(fill
+			(color 0 0 0 0.0000)
 		)
-	)
-	(instances
-		(project "oas"
-			(path "/515343fe-5590-5fd9-97ec-5bed0f979de2"
-				(page "2")
+		(uuid "1557665b-a568-58fc-b40f-759ed4998499")
+		(property "Sheetname" "Power"
+			(at 50.8 50.0884 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left bottom)
 			)
 		)
-	)
-)
-(sheet
-	(at 101.6 50.8)
-	(size 38.1 12.7)
-	(exclude_from_sim no)
-	(in_bom yes)
-	(on_board yes)
-	(dnp no)
-	(fields_autoplaced yes)
-	(stroke
-		(width 0.1524)
-		(type solid)
-	)
-	(fill
-		(color 0 0 0 0.0000)
-	)
-	(uuid "5a2a7aae-0596-52cb-bb07-90c47115320c")
-	(property "Sheetname" "MCU"
-		(at 101.6 50.0884 0)
-		(effects
-			(font
-				(size 1.27 1.27)
+		(property "Sheetfile" "power.kicad_sch"
+			(at 50.8 63.9446 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left top)
 			)
-			(justify left bottom)
 		)
-	)
-	(property "Sheetfile" "mcu.kicad_sch"
-		(at 101.6 63.9446 0)
-		(effects
-			(font
-				(size 1.27 1.27)
-			)
-			(justify left top)
-		)
-	)
-	(instances
-		(project "oas"
-			(path "/515343fe-5590-5fd9-97ec-5bed0f979de2"
-				(page "3")
+		(instances
+			(project "oas"
+				(path "/515343fe-5590-5fd9-97ec-5bed0f979de2"
+					(page "2")
+				)
 			)
 		)
 	)
-)
-(sheet
-	(at 50.8 88.9)
-	(size 38.1 12.7)
-	(exclude_from_sim no)
-	(in_bom yes)
-	(on_board yes)
-	(dnp no)
-	(fields_autoplaced yes)
-	(stroke
-		(width 0.1524)
-		(type solid)
-	)
-	(fill
-		(color 0 0 0 0.0000)
-	)
-	(uuid "a5e13d4c-9fec-5607-b893-c0f069874d1d")
-	(property "Sheetname" "Sensors"
-		(at 50.8 88.1884 0)
-		(effects
-			(font
-				(size 1.27 1.27)
-			)
-			(justify left bottom)
+	(sheet
+		(at 101.6 50.8)
+		(size 38.1 12.7)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(stroke
+			(width 0.1524)
+			(type solid)
 		)
-	)
-	(property "Sheetfile" "sensors.kicad_sch"
-		(at 50.8 102.0446 0)
-		(effects
-			(font
-				(size 1.27 1.27)
-			)
-			(justify left top)
+		(fill
+			(color 0 0 0 0.0000)
 		)
-	)
-	(instances
-		(project "oas"
-			(path "/515343fe-5590-5fd9-97ec-5bed0f979de2"
-				(page "4")
+		(uuid "5a2a7aae-0596-52cb-bb07-90c47115320c")
+		(property "Sheetname" "MCU"
+			(at 101.6 50.0884 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left bottom)
 			)
 		)
-	)
-)
-(sheet
-	(at 101.6 88.9)
-	(size 38.1 12.7)
-	(exclude_from_sim no)
-	(in_bom yes)
-	(on_board yes)
-	(dnp no)
-	(fields_autoplaced yes)
-	(stroke
-		(width 0.1524)
-		(type solid)
-	)
-	(fill
-		(color 0 0 0 0.0000)
-	)
-	(uuid "30fc7086-1657-5b17-a13a-76780ee3d8bb")
-	(property "Sheetname" "IO"
-		(at 101.6 88.1884 0)
-		(effects
-			(font
-				(size 1.27 1.27)
-			)
-			(justify left bottom)
-		)
-	)
-	(property "Sheetfile" "io.kicad_sch"
-		(at 101.6 102.0446 0)
-		(effects
-			(font
-				(size 1.27 1.27)
-			)
-			(justify left top)
-		)
-	)
-	(instances
-		(project "oas"
-			(path "/515343fe-5590-5fd9-97ec-5bed0f979de2"
-				(page "5")
+		(property "Sheetfile" "mcu.kicad_sch"
+			(at 101.6 63.9446 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left top)
 			)
 		)
+		(pin "I2C_SDA" bidirectional
+			(at 101.6 52.07 180)
+			(uuid "23e96773-d87c-597a-a315-ab4d828e6c9d")
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify right)
+			)
+		)
+		(pin "I2C_SCL" output
+			(at 101.6 54.61 180)
+			(uuid "fc56efad-8c36-56b1-85f5-dbde5401eb85")
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify right)
+			)
+		)
+		(pin "LD2410_OUT" input
+			(at 101.6 57.15 180)
+			(uuid "2c8dd28f-d759-5178-80db-11765ddb040c")
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify right)
+			)
+		)
+		(pin "NFC_FD" input
+			(at 101.6 59.69 180)
+			(uuid "c1d31226-276b-5dc1-8a43-7eee5d6fdcbd")
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify right)
+			)
+		)
+		(pin "UART_TX" output
+			(at 139.7 52.07 0)
+			(uuid "6b3d8077-e8a0-50f8-af13-c266eadda5a3")
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(pin "UART_RX" input
+			(at 139.7 54.61 0)
+			(uuid "d0ea61a1-6eb7-55e4-8d6e-839470867ae8")
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(instances
+			(project "oas"
+				(path "/515343fe-5590-5fd9-97ec-5bed0f979de2"
+					(page "3")
+				)
+			)
+		)
 	)
-)
+	(sheet
+		(at 50.8 88.9)
+		(size 38.1 12.7)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(stroke
+			(width 0.1524)
+			(type solid)
+		)
+		(fill
+			(color 0 0 0 0.0000)
+		)
+		(uuid "a5e13d4c-9fec-5607-b893-c0f069874d1d")
+		(property "Sheetname" "Sensors"
+			(at 50.8 88.1884 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left bottom)
+			)
+		)
+		(property "Sheetfile" "sensors.kicad_sch"
+			(at 50.8 102.0446 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left top)
+			)
+		)
+		(instances
+			(project "oas"
+				(path "/515343fe-5590-5fd9-97ec-5bed0f979de2"
+					(page "4")
+				)
+			)
+		)
+	)
+	(sheet
+		(at 101.6 88.9)
+		(size 38.1 12.7)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(stroke
+			(width 0.1524)
+			(type solid)
+		)
+		(fill
+			(color 0 0 0 0.0000)
+		)
+		(uuid "30fc7086-1657-5b17-a13a-76780ee3d8bb")
+		(property "Sheetname" "IO"
+			(at 101.6 88.1884 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left bottom)
+			)
+		)
+		(property "Sheetfile" "io.kicad_sch"
+			(at 101.6 102.0446 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left top)
+			)
+		)
+		(instances
+			(project "oas"
+				(path "/515343fe-5590-5fd9-97ec-5bed0f979de2"
+					(page "5")
+				)
+			)
+		)
+	)
 	(sheet_instances
 		(path "/"
 			(page "1")
