@@ -2,7 +2,7 @@
 
 **Status:** preliminary draft.
 
-The ESP32-C6 SuperMini has native USB-C. First-time flashing is done over USB.
+The ESP32-C6-DevKitM-1-N4 (EAN 5904422385651) has **two USB-C ports**: one routed through an onboard USB-to-UART bridge IC (classic-style flashing), the other direct to the ESP32-C6's native USB-Serial-JTAG. Either one works for first-time flashing.
 
 ## Prerequisites
 
@@ -36,4 +36,4 @@ The ESP32-C6 SuperMini has native USB-C. First-time flashing is done over USB.
 
 ## Boot / strap pins
 
-The ESP32-C6 SuperMini has strap pins that affect boot behaviour. The pinout in `ARCHITECTURE.md` is **tentative** and must be validated against the strap-pin constraints before the PCB is finalised. If a future hardware revision changes a strap pin, this document must be updated.
+The ESP32-C6 has strap pins that affect boot behaviour (GPIO 4 MTMS, 5 MTDI, 9 BOOT, 15 boot-mode select). The OAS pinout in `ARCHITECTURE.md` was validated against these constraints in v0.4 and uses only safe non-strap pins for signal I/O. **GPIO 10 and GPIO 11 are physically not bonded out** on the ESP32-C6FH4 chip variant (internal SiP flash uses them) — do not assign signals to those pins on any ESP32-C6-MINI-1 / DevKitM-1 / XIAO / SuperMini module. If a future hardware revision changes the chip or module, validate the pinout against the new datasheet before flashing.

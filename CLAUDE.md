@@ -121,17 +121,17 @@ Additional features:
 
 | Function | Component | Interface | Status |
 |---|---|---|---|
-| MCU | ESP32-C6 SuperMini | — | tentative |
+| MCU | **ESP32-C6-DevKitM-1-N4** (EAN 5904422385651) | — | confirmed v0.5 (re-evaluated against XIAO C6 + bare MINI-1 SMT alternatives) |
 | Air quality combo | Sensirion SEN66 | I²C via JST GH cable | tentative |
 | Presence | HiLink LD2410B/C | UART @ 256000 baud | tentative |
 | Ambient light | Vishay VEML7700 | I²C | tentative |
-| Visual indicator | WS2812B (PLCC4) | 1-wire RMT | tentative |
+| Visual indicator | onboard RGB NeoPixel on DevKitM-1 (GPIO 8) | 1-wire RMT | confirmed v0.4 (no external WS2812 needed) |
 | NFC dynamic tag | NXP NT3H2211 + PCB trace antenna | I²C + NFC | tentative |
-| Power input | TVS + PTC + 24V terminal block | — | tentative |
-| Buck 24V → 5V | TBD (TPS62933 / MP2451 candidates) | — | tentative |
-| Buck 24V → 3.3V | TBD (TPS62840 / MP2315 candidates) | — | tentative |
+| Power input | TVS + PTC + 24V terminal block | — | confirmed v0.2 |
+| Buck 24V → 5V | LM2596S-5.0 (async) | — | confirmed v0.2 |
+| Buck 5V → 3.3V | TPS62933 (sync, ~95%) | — | confirmed v0.2 |
 | External I²C ESD | TBD (PESD3V3L4UG candidate) | — | tentative |
-| Flashing | Native USB-C on ESP32-C6 SuperMini (onboard module only, no case-wall connector) | USB 2.0 | confirmed v0.3 |
+| Flashing | Either of DevKitM-1's two onboard USB-C ports (USB-UART bridge or native USB-Serial-JTAG); module accessible before enclosure is sealed | USB 2.0 | confirmed v0.4 |
 | Debug | SWD / UART header (unpopulated by default) | — | tentative |
 
 ### PCB sector layout (clock-face convention)
@@ -141,7 +141,7 @@ The PCB is divided into three angular sectors viewed from the front:
 | Sector | Clock hours | Quadrant in KiCad coords | Contents |
 |---|---|---|---|
 | **POWER** | 09:00 → 12:00 | upper-left (X < 0, Y < 0) | terminal block J1, reverse-polarity protection, PTC fuse, TVS, bulk cap, Y-cap, bucks 24→5V→3.3V |
-| **MCU + logic** | 12:00 → 03:00 | upper-right (X > 0, Y < 0) | ESP32-C6 SuperMini (antenna edge → 12:00), optional unpopulated SWD/UART recovery header, decoupling caps |
+| **MCU + logic** | 12:00 → 03:00 | upper-right (X > 0, Y < 0) | ESP32-C6-DevKitM-1-N4 (antenna edge → 12:00), optional unpopulated SWD/UART recovery header, decoupling caps |
 | **SENSORS** | 03:00 → 09:00 | bottom half (Y > 0) | SEN66 JST-GH connector, LD2410 connector, VEML7700, WS2812, NT3H2211 + NFC antenna, status LED |
 
 Power flow runs **clockwise** (24 V enters through the centre → POWER sector → MCU sector → SENSORS sector) so signal paths and power rails never need to cross sector boundaries.
@@ -153,31 +153,31 @@ Three radial separator lines (12:00, 03:00, 09:00 azimuths) plus sector labels a
 ### Architectural decisions (current)
 - **SEN66 mounts on the enclosure cover**, NOT on the PCB. Reason: SEN66 height (21.5 mm) exceeds front-side component limit (17 mm). Connected to PCB via short JST GH 6-pin cable (~50 mm).
 - **Sensor zone below electronics** (PCB flat on bottom edge). Reason: natural convection lifts heat from MCU / power section upward, away from the SEN66 air intake.
-- **Connector strip along bottom flat**: 24V terminal, JST GH to SEN66, LD2410 connector, Qwiic, optional unpopulated SWD/UART recovery header. **No external USB-C** (use SuperMini's onboard USB before enclosure is sealed). Pre-defined positions exist in the manufacturer DXF; the case has matching cutouts / access.
+- **Connector strip along bottom flat**: 24V terminal, JST GH to SEN66, LD2410 connector, Qwiic, optional unpopulated SWD/UART recovery header. **No external USB-C** (use DevKitM-1's onboard USB before enclosure is sealed). Pre-defined positions exist in the manufacturer DXF; the case has matching cutouts / access.
 - **Thermal isolation slots** (1.5 mm milled gaps in FR4) separate Power, MCU, and peripheral zones.
 - **Shared I²C bus**: SEN66 (0x6B), VEML7700 (0x10), NT3H2211 (0x55). Pull-ups 4.7 kΩ on MCU side.
 - **Bluetooth proxy** = software-only; no extra hardware.
 
-### Tentative ESP32-C6 pinout
+### ESP32-C6-DevKitM-1-N4 pinout (v0.4 final)
 
-| Pin | Function |
-|---|---|
-| GPIO 6 | I²C SDA |
-| GPIO 7 | I²C SCL |
-| GPIO 16 | UART1 TX → LD2410 RX |
-| GPIO 17 | UART1 RX ← LD2410 TX |
-| GPIO 4 | LD2410 OUT (presence interrupt) |
-| GPIO 8 | WS2812 DIN |
-| GPIO 5 | NT3H2211 FD (NFC field detect interrupt) |
-| USB D+/D− | Native USB-C |
+| Pin | Function | Notes |
+|---|---|---|
+| GPIO 6 | I²C SDA | shared bus: SEN66 (0x6B), VEML7700 (0x10), NT3H2211 (0x55), Qwiic expansion |
+| GPIO 7 | I²C SCL | shared bus, 4.7 kΩ pull-ups on MCU side |
+| GPIO 16 | UART1 TX → LD2410 RX | 256000 baud |
+| GPIO 17 | UART1 RX ← LD2410 TX | 256000 baud |
+| **GPIO 2** | LD2410 OUT (presence interrupt) | safe non-strap input |
+| **GPIO 3** | NT3H2211 FD (NFC field-detect interrupt) | safe non-strap input |
+| GPIO 8 | WS2812 DIN (onboard NeoPixel) | strap pin but OK — LED defaults idle-low |
+| GPIO 12 / 13 | Native USB-Serial-JTAG D+ / D− | wired to one of DevKitM-1's two USB-C ports; the other USB-C uses the onboard USB-to-UART bridge |
 
-Pinout must be validated against ESP32-C6 SuperMini strap / boot pin constraints.
+**Reserved / unavailable**:
+- **GPIO 10, GPIO 11**: physically not bonded out on ESP32-C6FH4 (internal SiP flash uses these pins). Available on every external chip variant but NOT on MINI-1/SuperMini/XIAO/DevKitM-1 modules.
+- **Strap pins (avoid for general I/O)**: GPIO 4 (MTMS), 5 (MTDI), 9 (BOOT button on DevKitM-1), 15 (boot-mode select).
 
-**v0.3 pinout corrections** (after strap-pin verification):
-- GPIO 4 → **GPIO 10** (LD2410 OUT) — GPIO 4 is MTMS strap pin
-- GPIO 5 → **GPIO 11** (NT3H2211 FD) — GPIO 5 is MTDI strap pin
-- GPIO 8 stays for WS2812 — uses the **onboard WS2812** of the ESP32-C6 SuperMini module (no external WS2812 needed for v1; an external WS2812 footprint may be added later as DNP if positioning becomes a concern)
-- USB-C **removed from external connector strip** — flashing uses the SuperMini's own USB-C accessible at programming time (before enclosure is sealed); an unpopulated SWD/UART recovery header may be added for field-recovery edge cases
+**Available safe-non-strap spare GPIOs** (for future expansion beyond the 7 signals above): 0, 1, 14, 18, 19, 20, 21, 22, 23 — nine pins free.
+
+See `docs/ARCHITECTURE.md` for the canonical pinout table including onboard hardware notes (power LED desolder plan, button accessibility, etc.).
 
 ---
 
@@ -221,7 +221,7 @@ These were considered and explicitly rejected. Do not propose them again without
 - ❌ External temperature probe terminal (DS18B20 / NTC) — SEN66 is sufficient
 - ❌ Input current monitoring (INA219)
 - ❌ Display (OLED / LCD)
-- ❌ External USB-C connector on the case wall (use SuperMini's own USB-C for programming; OTA after first flash)
+- ❌ External USB-C connector on the case wall (use DevKitM-1's own USB-C for programming; OTA after first flash)
 - ❌ IR transmitter / receiver
 - ❌ Microphone / acoustic sensor
 
@@ -232,7 +232,7 @@ These were considered and explicitly rejected. Do not propose them again without
 ### Hardware
 - [ ] Select specific buck converter ICs (validate efficiency, JLCPCB Basic Library availability)
 - [ ] NFC antenna design (PCB spiral geometry, matching capacitor selection)
-- [ ] Validate ESP32-C6 SuperMini pinout against strap pin and boot mode constraints
+- [x] ~~Validate ESP32-C6 pinout against strap pin and boot mode constraints~~ — done in v0.4 (GPIO 2/3 for LD2410_OUT/NFC_FD, GPIO 8 for onboard NeoPixel)
 - [ ] Decide whether VEML7700 placement requires its own thermal isolation slot
 - [ ] 3D model bracket for SEN66 mounting on cover (STL in `hardware/case/`)
 - [ ] KiCad schematic — full
@@ -388,7 +388,7 @@ Past mistake to avoid: in v0.3 of this project, "GPIO 4 → GPIO 10 / GPIO 5 →
 
 ### KiCad schematic conventions
 
-- **`no_connect` markers** on intentionally-unused IC pins. Without them, ERC warns "pin not connected". Use freely — they are documentation that says "this is deliberate, not an oversight." Common on ESP32-C6 SuperMini pins we don't wire (5V, GPIO8 when onboard WS2812 is used, unused GPIOs).
+- **`no_connect` markers** on intentionally-unused IC pins. Without them, ERC warns "pin not connected". Use freely — they are documentation that says "this is deliberate, not an oversight." Common on ESP32-C6-DevKitM-1-N4 pins we don't wire (5V, unused GPIOs).
 - **`(dnp yes)` flag** for footprints that should appear on the PCB but NOT in the assembly BOM. Use for hand-solder-on-demand parts (recovery headers, debug pads, optional features). The KiCad render shows a diagonal X overlay on the symbol to flag DNP visually. JLCPCB assembly will skip these.
 - **Hierarchical labels** for inter-sheet signals (sub-sheet exports/imports). Direction tags (`input`/`output`/`bidirectional`) are documentation, not enforced by KiCad — but they help reviewers and matter when the root sheet adds matching sheet ports.
 - **ERC warnings during incremental sheet build are expected**: when chunk N adds a sub-sheet with hierarchical labels, ERC will warn "label not connected to a sheet port" until the matching sub-sheet (chunk N+1 or later) declares the same label. These warnings are temporary and should resolve once the related sheets land. Document expected warnings in commit messages; don't treat them as bugs.
@@ -454,3 +454,18 @@ Past mistake to avoid: in v0.3 of this project, "GPIO 4 → GPIO 10 / GPIO 5 →
   - **NEW rule in "Component selection" section: Module identification** — never use a generic module name alone in any project decision. Every module must be specified by EAN/GTIN, MPN, or a specific supplier URL. Verify each module's actual exposed GPIO before assigning signals, watch for chip-level pin omissions (e.g. ESP32-C6 with SiP flash omits GPIO 10/11), and read the official datasheet of the specific model — not the first random pinout from a web search.
   - **CRITICAL PINOUT BUG fix**: v0.3 prescribed "GPIO 4 → GPIO 10 / GPIO 5 → GPIO 11" as the strap-pin avoidance fix. This was incorrect — **GPIO 10 and GPIO 11 don't exist as bonded pins on any ESP32-C6 variant with internal SiP flash** (MINI-1, SuperMini, XIAO, DevKitM-1 all use ESP32-C6FH4 with internal flash). Those pins serve internal flash communication. Of the chip's nominal 30 GPIOs, only 22 are physically available externally. The bug took 4 review passes to catch because no reviewer verified physical chip pinout against the assumed pin numbers — captured as a new convention rule.
   - **Pinout v0.4 corrections**: LD2410_OUT → **GPIO 2** (was GPIO 4 → bad strap, then GPIO 10 → non-existent), NFC_FD → **GPIO 3** (was GPIO 5 → bad strap, then GPIO 11 → non-existent). Both GPIO 2 and 3 are safe non-strap, non-USB pins available on every ESP32-C6 variant. ARCHITECTURE.md pinout table and `mcu.kicad_sch` must be updated to reflect this before further chunks proceed.
+
+- **v0.5** — MCU module re-evaluation (deep research): DevKitM-1-N4 confirmed; post-prototype LED desolder added to plan.
+  - Triggered by the user's request for a low-heat + small-footprint review. Compared all serious 2.4 GHz / Wi-Fi 6 alternatives in May 2026:
+    - **Espressif ESP32-C6-DevKitC-1-N8** (EAN 5904422385644) — rejected: same architecture, +3.5 mm length, +€4.50, same power-LED penalty, 8 MB flash overkill.
+    - **Seeed XIAO ESP32-C6** (Seeed P/N 113991254, Botland EAN 5904422385705, ~21 × 17.5 mm, €6.90) — strong alternative: no always-on power LED (~30 mW saved), 4× smaller footprint. Rejected for v1 because: only 11 exposed GPIO on top + 4 on reverse JTAG pads (tight margin for 7-used + 6-8 spare target), FM8625H RF switch needs explicit GPIO 3/14 init at boot (ESPHome 2025.12+ has board-level support but adds a per-version validation step), ESPHome BLE-proxy config is community-only (DerekSeaman repo, not the official `esphome/bluetooth-proxies` repo). Re-eligible for v2 if PCB area pressure increases.
+    - **Bare ESP32-C6-MINI-1-N4 SMT** (LCSC C5736265, JLCPCB Basic Library, ~13.2 × 16.6 × 2.4 mm, ~$2.82/unit) — technically optimal: no power LED, no UART bridge, no LDO → ~0 mW additional dissipation; 5× cheaper per unit; smallest footprint by far. Rejected for v1 only on assembly-friction grounds (needs reflow, programming jig with pogo pins or castellated clamp, and OAS PCB must absorb bypass caps + EN reset RC + reset/boot tactile switches — ~6-10 additional SMT components). Strong v2 candidate once v1 validates the rest of the design — the same ESPHome `esp32-c6-devkitm-1` board config carries over unchanged.
+    - **Adafruit ESP32-C6 Feather** (P/N 5933) — rejected: Adafruit explicitly forbids feeding 3.3V into the 3V pin, which is core to OAS power architecture.
+    - **Waveshare ESP32-C6-Zero** — rejected: no UART-bridge fallback (native USB-Serial-JTAG only → bricking risk for 5-20 unit production), no Botland/TME listing, no EAN, only Amazon/AliExpress with shifting vendor SKUs (fails Module Identification rule).
+    - **Generic "ESP32-C6 SuperMini"** clones (TZT, AITRIP, Meshnology, LuatOS, etc.) — hard rejection per Module Identification rule (no deterministic MPN, vendor-specific pinout variations).
+    - **XIAO ESP32-C5 / ESP32-C5-DevKitC-1** — rejected for v1: ecosystem too young (no Polish retail, ESPHome `bluetooth-proxies` official repo has no C5 entry as of May 2026, community config exists but is unproven). Revisit late 2026 / H1 2027.
+    - **ESP32-S3** — rejected: WiFi 4 only, higher average WiFi-active current than C6 (no TWT/OFDMA).
+    - **ESP32-H2** — rejected: no WiFi (Thread/Zigbee/BLE only).
+  - **Decision: keep ESP32-C6-DevKitM-1-N4 for v1**. Smallest delta from current schematic; deterministic Botland availability; official ESPHome `esp32-generic/esp32-generic-c6.yaml` BLE-proxy template; all 22 exposed GPIOs map cleanly to OAS signals + 11 spares.
+  - **New plan item: post-prototype desolder of DevKitM-1's power LED** (~30 mW saved). Conditional rework — triggered if first-prototype SEN66 SHT measurements show >0.1 °C bias attributable to MCU-sector dissipation. The LED is on the top side of the DevKitM-1 board, easily accessible with a hot-air rework station before the OAS enclosure is sealed. Added to `docs/CASE-VERIFICATION-CHECKLIST.md` post-prototype rework list.
+  - **v2 transition path recorded**: once v1 validates the OAS architecture end-to-end, evaluate migration to bare ESP32-C6-MINI-1-N4 SMT on the OAS PCB itself. Trade-offs already analyzed; trigger conditions: (a) >5 production units planned, (b) MCU-sector area becomes constrained by Qwiic/NFC/expansion, or (c) SEN66 bias is detected and LED desolder alone is insufficient.

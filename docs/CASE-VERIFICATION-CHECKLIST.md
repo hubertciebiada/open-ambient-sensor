@@ -122,6 +122,24 @@ If the answer to any of the above is "no", **this is a critical issue** — pill
 - If a gland is included: thread spec (M12? PG7? metric?) — needed for cable selection
 - Verify the cable bend radius inside the case — short bend at the hole exit might over-stress the insulation. May need to relocate J1 if bend radius is insufficient.
 
+## 11. Post-prototype rework opportunities (planned)
+
+These are not enclosure verifications but **planned post-bringup modifications** that depend on first-prototype measurements. Triggered conditionally based on what the assembled board shows.
+
+### 11a. DevKitM-1-N4 power LED desolder
+
+**Trigger**: SEN66 SHT temperature reading shows >0.1 °C bias vs an external reference thermometer placed at the same height, in steady state with the enclosure fully assembled and powered.
+
+**Action**: With a hot-air rework station, desolder the always-on power LED on the top side of the DevKitM-1-N4 module (estimated ~10 mA × 3.3 V = ~30 mW dissipation in the MCU sector). LED is typically a 0603 or 0402 part with a series resistor; removing the LED alone is sufficient (the resistor can stay).
+
+**Expected effect**: ~30 mW reduction in MCU-sector dissipation; SEN66 SHT bias should drop proportionally.
+
+**When**: After first-prototype assembly, before sealing the enclosure. The DevKitM-1's top face is exposed when the OAS PCB is unscrewed from the enclosure bosses.
+
+**Cost**: One-time per unit, ~2 min rework time. Could be batched at build time once the bias is confirmed across a few prototypes.
+
+**See also**: CLAUDE.md changelog v0.5 for the rationale; v2 transition to bare ESP32-C6-MINI-1-N4 SMT is the long-term answer if rework friction becomes a per-unit concern.
+
 ---
 
 ## Decisions to revisit AFTER verification

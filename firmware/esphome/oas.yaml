@@ -1,8 +1,9 @@
 # OAS — Open Ambient Sensor
 # Base ESPHome configuration. PRELIMINARY DRAFT — not validated against real hardware.
 #
-# Pinout and component selections follow CLAUDE.md. Validate against ESP32-C6 SuperMini
-# strap / boot pin constraints before flashing.
+# Pinout and component selections follow CLAUDE.md (v0.4 ESP32-C6-DevKitM-1-N4).
+# Strap pins (GPIO 4/5/9/15) and SiP-flash-reserved pins (GPIO 10/11) are already
+# avoided — see docs/ARCHITECTURE.md for the canonical pinout.
 
 substitutions:
   device_name: oas-living-room
