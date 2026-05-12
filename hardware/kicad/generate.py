@@ -1225,6 +1225,40 @@ _J3_LIB_FOOTPRINT_PATH = (
 )
 
 
+def _read_kicad_lib_symbol(lib_filename: str, sym_name: str, lib_nickname: str) -> str:
+    """Extract a single `(symbol "X" ...)` block from a KiCad stock symbol
+    library file, prefix the symbol name with `lib_nickname:` (so it matches
+    KiCad's `LibName:SymName` lookup convention inside embedded schematic
+    lib_symbols), and re-indent to 2 tabs deep so it slots straight into our
+    sub-sheet `(lib_symbols ...)` block.
+
+    The stock libraries indent symbol blocks 1 tab deep (one level inside
+    `(kicad_symbol_lib ...)`); our embedded copies live inside
+    `(kicad_sch ... (lib_symbols ...))` which puts them 2 tabs deep.
+    """
+    src = (_kicad_install_path() / "symbols" / lib_filename).read_text(encoding="utf-8")
+    needle = f'(symbol "{sym_name}"'
+    start = src.find(needle)
+    if start < 0:
+        raise RuntimeError(f"symbol {sym_name!r} not found in {lib_filename}")
+    depth = 0
+    end = start
+    for i in range(start, len(src)):
+        if src[i] == "(":
+            depth += 1
+        elif src[i] == ")":
+            depth -= 1
+            if depth == 0:
+                end = i + 1
+                break
+    block = src[start:end]
+    # Prefix the symbol name with the library nickname so KiCad resolves it
+    # as e.g. `Connector_Generic:Conn_01x05`.
+    block = block.replace(needle, f'(symbol "{lib_nickname}:{sym_name}"', 1)
+    # Re-indent: stock-library symbols are indented 1 tab; we want 2 tabs.
+    return "\n".join("\t" + line for line in block.split("\n"))
+
+
 def _annotate_pad_rotations(body_text: str, rotation: int) -> str:
     """Inject the footprint rotation into every `(pad ...)` block's `(at)`.
 
@@ -1843,8 +1877,14 @@ SUBSHEET_PINS: dict[str, list[tuple[str, str, float, float, int]]] = {
         # merge by name is independent of geometry, so the side these sit on
         # is purely visual. We put them on the RIGHT edge to keep them clear
         # of the left-edge cluster on the MCU sheet block above.
-        ("I2C_SDA",     "bidirectional", 38.1, 1.27, 0),
-        ("I2C_SCL",     "input",         38.1, 3.81, 0),
+        ("I2C_SDA",     "bidirectional", 38.1,  1.27, 0),
+        ("I2C_SCL",     "input",         38.1,  3.81, 0),
+        # chunk #5b: LD2410 mmWave radar — UART (256 kbd) + presence GPIO.
+        # Directions are from the sensors-sub-sheet perspective and are
+        # opposite-polarity to the matching mcu sub-sheet pins (see above).
+        ("LD2410_OUT",  "output",        38.1,  6.35, 0),
+        ("UART_TX",     "input",         38.1,  8.89, 0),
+        ("UART_RX",     "output",        38.1, 11.43, 0),
     ],
     "io": [],
 }
@@ -2019,6 +2059,30 @@ def gen_root_sch() -> str:
     inter_wires.append(_root_wire(88.9, 92.71, 97.79, 92.71, "scl-east-from-sensors"))
     inter_wires.append(_root_wire(97.79, 92.71, 97.79, 54.61, "scl-vertical"))
     inter_wires.append(_root_wire(97.79, 54.61, 101.60, 54.61, "scl-east-into-mcu"))
+    # chunk #5b inter-sheet wires for the LD2410 nets.
+    # LD2410_OUT — sensors right-edge (88.9, 95.25) ↔ MCU left-edge
+    # (101.60, 57.15). Same simple east-stub / vertical / east-stub
+    # routing as the I²C nets. Vertical leg at X=100.33 (next 2.54 mm
+    # slot after the SCL vertical at 97.79; still 1.27 mm west of the
+    # MCU block's left edge at 101.60).
+    inter_wires.append(_root_wire(88.9, 95.25, 100.33, 95.25, "ldr-east-from-sensors"))
+    inter_wires.append(_root_wire(100.33, 95.25, 100.33, 57.15, "ldr-vertical"))
+    inter_wires.append(_root_wire(100.33, 57.15, 101.60, 57.15, "ldr-east-into-mcu"))
+    # UART_TX / UART_RX — sensors right-edge ↔ MCU right-edge (139.7).
+    # The MCU's UART pins sit on the right edge of its block because the
+    # internal U3 symbol exposes GPIO16/17 on its right side. To reach
+    # them, the wire goes east past the io block's right edge (139.7),
+    # vertical up the east side of the page, then west into the MCU pin.
+    # The east-going horizontal segments at Y=97.79 and Y=100.33 traverse
+    # the io block area — which is empty for now, so visually fine.
+    # Vertical legs at X=143.51 (UART_TX) and X=146.05 (UART_RX) keep the
+    # two nets on distinct columns.
+    inter_wires.append(_root_wire(88.9, 97.79, 143.51, 97.79, "uart-tx-east-from-sensors"))
+    inter_wires.append(_root_wire(143.51, 97.79, 143.51, 52.07, "uart-tx-vertical"))
+    inter_wires.append(_root_wire(143.51, 52.07, 139.7, 52.07, "uart-tx-west-into-mcu"))
+    inter_wires.append(_root_wire(88.9, 100.33, 146.05, 100.33, "uart-rx-east-from-sensors"))
+    inter_wires.append(_root_wire(146.05, 100.33, 146.05, 54.61, "uart-rx-vertical"))
+    inter_wires.append(_root_wire(146.05, 54.61, 139.7, 54.61, "uart-rx-west-into-mcu"))
     wires_text = "\n".join(inter_wires)
 
     return textwrap.dedent(f"""\
@@ -9515,6 +9579,102 @@ def _sch_conn_01x06(
         \t)""")
 
 
+def _sch_conn_01x05(
+    x: float, y: float, angle: int, reference: str, value: str, uuid_tag: str,
+    dnp: bool = False, sheet_key: str = "sensors",
+) -> str:
+    """Emit a Connector_Generic:Conn_01x05 symbol instance.
+
+    Mirrors `_sch_conn_01x06` for the 5-pin LD2410 cable. With angle=0,
+    lib pin positions map to schematic as:
+      Pin 1 (top):    (X-5.08, Y-5.08)
+      Pin 2:          (X-5.08, Y-2.54)
+      Pin 3:          (X-5.08, Y)
+      Pin 4:          (X-5.08, Y+2.54)
+      Pin 5 (bottom): (X-5.08, Y+5.08)
+    All pin tips on the LEFT side, body to the right (X = -1.27..+1.27 in
+    lib → schem (X-1.27, ..., X+1.27)).
+
+    Property anchors differ from the 6-pin variant only at the Value
+    field, which sits one row higher because the bottom pin is at Y+5.08
+    (vs Y+7.62 for 6 pins): Value is anchored at Y+10.16 instead of Y+12.7.
+    """
+    sym_uuid = U("sym:" + uuid_tag)
+    pin_uuids = [U(f"sym-pin:{uuid_tag}-{n}") for n in range(1, 6)]
+    sheet_path = f"/{ROOT_SHEET_UUID}/{SHEET_BLOCK_UUIDS[sheet_key]}"
+    dnp_flag = "yes" if dnp else "no"
+    pin_blocks = "\n".join(
+        f"\t\t(pin \"{n}\"\n\t\t\t(uuid \"{pin_uuids[n-1]}\")\n\t\t)"
+        for n in range(1, 6)
+    )
+    return textwrap.dedent(f"""\
+        \t(symbol
+        \t\t(lib_id "Connector_Generic:Conn_01x05")
+        \t\t(at {fmt(x)} {fmt(y)} {angle})
+        \t\t(unit 1)
+        \t\t(exclude_from_sim no)
+        \t\t(in_bom yes)
+        \t\t(on_board yes)
+        \t\t(dnp {dnp_flag})
+        \t\t(fields_autoplaced yes)
+        \t\t(uuid "{sym_uuid}")
+        \t\t(property "Reference" "{reference}"
+        \t\t\t(at {fmt(x + 2.54)} {fmt(y - 10.16)} 0)
+        \t\t\t(effects
+        \t\t\t\t(font
+        \t\t\t\t\t(size 1.27 1.27)
+        \t\t\t\t)
+        \t\t\t\t(justify left)
+        \t\t\t)
+        \t\t)
+        \t\t(property "Value" "{value}"
+        \t\t\t(at {fmt(x + 2.54)} {fmt(y + 10.16)} 0)
+        \t\t\t(effects
+        \t\t\t\t(font
+        \t\t\t\t\t(size 1.27 1.27)
+        \t\t\t\t)
+        \t\t\t\t(justify left)
+        \t\t\t)
+        \t\t)
+        \t\t(property "Footprint" ""
+        \t\t\t(at {fmt(x)} {fmt(y)} 0)
+        \t\t\t(effects
+        \t\t\t\t(font
+        \t\t\t\t\t(size 1.27 1.27)
+        \t\t\t\t)
+        \t\t\t\t(hide yes)
+        \t\t\t)
+        \t\t)
+        \t\t(property "Datasheet" ""
+        \t\t\t(at {fmt(x)} {fmt(y)} 0)
+        \t\t\t(effects
+        \t\t\t\t(font
+        \t\t\t\t\t(size 1.27 1.27)
+        \t\t\t\t)
+        \t\t\t\t(hide yes)
+        \t\t\t)
+        \t\t)
+        \t\t(property "Description" ""
+        \t\t\t(at {fmt(x)} {fmt(y)} 0)
+        \t\t\t(effects
+        \t\t\t\t(font
+        \t\t\t\t\t(size 1.27 1.27)
+        \t\t\t\t)
+        \t\t\t\t(hide yes)
+        \t\t\t)
+        \t\t)
+        {pin_blocks}
+        \t\t(instances
+        \t\t\t(project "oas"
+        \t\t\t\t(path "{sheet_path}"
+        \t\t\t\t\t(reference "{reference}")
+        \t\t\t\t\t(unit 1)
+        \t\t\t\t)
+        \t\t\t)
+        \t\t)
+        \t)""")
+
+
 def gen_mcu_sch() -> str:
     """MCU sub-sheet — ESP32-C6-DevKitM-1-N4 (U3) + C9/C9b decoupling
     + R5/R6 I²C pull-ups + J2 recovery header.
@@ -9998,19 +10158,30 @@ def SENSORS_LIB_SYMBOLS() -> str:
     source for the embedded library symbols across sub-sheets means
     any future symbol-definition fix lands in exactly one place.
 
-    Later chunks (#5b LD2410, #5c NT3H2211) will likely need additional
-    symbols (an LD2410 connector symbol, the NXP NT3H2211 IC symbol).
-    At that point we'll either widen this function or split into
-    per-chunk concatenations.
+    Chunk #5b adds:
+      - Connector_Generic:Conn_01x05  (5-pin connector for the HLK-LD2410B
+                                       presence radar cable)
+      - power:+5V                     (LD2410 module supply rail)
+
+    Both are pulled verbatim from the KiCad 10 stock libraries at
+    generation time via `_read_kicad_lib_symbol()`. The next chunk
+    (#5c NT3H2211 NFC) will append more symbols here.
     """
-    return _MCU_LIB_SYMBOLS_TAIL
+    extras = "\n".join([
+        _read_kicad_lib_symbol("Connector_Generic.kicad_sym", "Conn_01x05",
+                               lib_nickname="Connector_Generic"),
+        _read_kicad_lib_symbol("power.kicad_sym", "+5V",
+                               lib_nickname="power"),
+    ])
+    return _MCU_LIB_SYMBOLS_TAIL + "\n" + extras
 
 
 def gen_sensors_sch() -> str:
-    """Sensors sub-sheet — chunk #5a: SEN66 connection (J3 + C10).
+    """Sensors sub-sheet — chunks #5a + #5b.
 
-    Populates the SEN66 portion only. Other sensors (LD2410 presence
-    radar, NT3H2211 NFC dynamic tag) are added in later chunks #5b..#5c.
+    Chunk #5a — SEN66 connection (J3 + C10).
+    Chunk #5b — HLK-LD2410B mmWave radar connection (J4 + C11).
+    The NFC tag (NT3H2211) is added in chunk #5c.
 
     SEN66 pinout (Sensirion SEN6x datasheet v0.92 Dec 2025, Table 16
     on p. 15) — applies to the entire SEN6x family (SEN62, SEN63C,
@@ -10214,6 +10385,154 @@ def gen_sensors_sch() -> str:
         x=C10_X, y=C10_Y, angle=0,
         reference="C10", value="100nF",
         uuid_tag="c10-sen66-decoupling",
+        sheet_key="sensors",
+    ))
+
+    # =========================================================================
+    # chunk #5b — HLK-LD2410B mmWave radar (J4 + C11)
+    # =========================================================================
+    # HLK-LD2410B ships with a 5-pin 1.25 mm pitch JST GH cable. Pin order
+    # per the HiLink datasheet (looking at the module connector with pin 1
+    # on the side marked "1"):
+    #
+    #   Pin 1: VCC   — 5 V supply. The HLK-LD2410B is a 5 V-supply module;
+    #                  TX/RX/OUT logic levels are 3.3 V TTL so the ESP32-C6
+    #                  UART and GPIO see compatible levels without a
+    #                  level shifter. Power comes from the +5V rail
+    #                  produced by U1 (LM2596S-5.0) in the power sheet.
+    #   Pin 2: GND
+    #   Pin 3: TX    — UART output FROM the radar (data flowing → MCU GPIO 17).
+    #                  Net name UART_RX in this sheet: the signal is the MCU's
+    #                  RX, i.e. it ARRIVES at the MCU's RX pin, so we keep
+    #                  the MCU-centric net name (matches the hier label
+    #                  declared by the mcu sub-sheet).
+    #   Pin 4: RX    — UART input TO the radar (MCU GPIO 16 drives it).
+    #                  Net name UART_TX (MCU-centric, see above).
+    #   Pin 5: OUT   — digital presence (HIGH = target detected, 3.3 V CMOS).
+    #                  Wires to MCU GPIO 2 via the LD2410_OUT net so ESPHome
+    #                  can attach a binary_sensor to it without polling the
+    #                  UART. Useful for fast wake-up; the UART data still
+    #                  drives the full ESPHome ld2410 component.
+    #
+    # Local decoupling: C11 (100 nF 0402 X7R) between VCC and GND of the
+    # LD2410 plug. The radar's switching draw can pull noticeable transient
+    # current on the +5V cable; cheap insurance for stable supply at the
+    # connector.
+    #
+    # Connector: PCB-side socket on OAS is JST SM05B-GHS-TB (1.25 mm pitch,
+    # horizontal entry, SMD), same JST GH series as J3 — single BOM family.
+    # Mating cable: any 5-pin JST GH cable. HLK-LD2410B ships with a stock
+    # cable in the box.
+
+    # ===== J4: LD2410 JST-GH 5-pin connector =====
+    # Placed below J3 in the schematic. With angle=0 + _sch_conn_01x05's
+    # layout, lib pin positions map to (J4_X-5.08, J4_Y + 2.54*(n-3)) for
+    # pin n = 1..5. Pin tips on the LEFT side.
+    # J4_Y = 146.05 is on the 1.27 mm KiCad connection grid (1.27 × 115);
+    # picking a non-grid Y (e.g. 145.00) triggers `endpoint_off_grid` ERC
+    # warnings on every pin/wire of J4 + C11.
+    J4_X = 180.34
+    J4_Y = 146.05
+    J4_PIN_X = J4_X - 5.08    # 175.26 — tip column for all 5 pin tips
+    J4_PIN_Y = {
+        1: J4_Y - 5.08,        # 140.97 — VCC (top)
+        2: J4_Y - 2.54,        # 143.51 — GND
+        3: J4_Y,               # 146.05 — TX (LD2410 → MCU)
+        4: J4_Y + 2.54,        # 148.59 — RX (MCU → LD2410)
+        5: J4_Y + 5.08,        # 151.13 — OUT (presence interrupt)
+    }
+
+    # ===== C11: 100 nF local decoupling cap =====
+    # Sits to the LEFT of J4, between VCC and GND. Same column as C10 so
+    # both decoupling caps line up visually.
+    C11_X = 170.18
+    C11_Y = 146.05
+    C11_TOP_Y = C11_Y - 3.81   # 142.24 — pin 1 (top) → +5V
+    C11_BOT_Y = C11_Y + 3.81   # 149.86 — pin 2 (bottom) → GND
+
+    # ----- Pin 1 (VCC, top): wire UP to a local +5V flag -----
+    PWR_J4P1_5V_Y = J4_PIN_Y[1] - 3.81   # 137.16 — flag anchor above pin
+    parts.append(_sch_wire(J4_PIN_X, PWR_J4P1_5V_Y, J4_PIN_X, J4_PIN_Y[1], "j4-p1-vcc-up"))
+    parts.append(_sch_power_flag(
+        lib_id="power:+5V", value="+5V",
+        x=J4_PIN_X, y=PWR_J4P1_5V_Y, angle=0,
+        reference="#PWR46",
+        value_offset_x=0.0, value_offset_y=-3.556,
+        uuid_tag="pwr46-5v-j4-p1",
+        sheet_key="sensors",
+    ))
+
+    # ----- Pin 2 (GND): hop LEFT and place a local GND flag -----
+    PWR_J4P2_GND_X = J4_PIN_X - 5.08      # 170.18 — flag anchor west of pin
+    parts.append(_sch_wire(J4_PIN_X, J4_PIN_Y[2], PWR_J4P2_GND_X, J4_PIN_Y[2], "j4-p2-gnd-hop"))
+    parts.append(_sch_power_flag(
+        lib_id="power:GND", value="GND",
+        x=PWR_J4P2_GND_X, y=J4_PIN_Y[2], angle=270,
+        reference="#PWR47",
+        value_offset_x=-3.81, value_offset_y=0.0,
+        uuid_tag="pwr47-gnd-j4-p2",
+        sheet_key="sensors",
+    ))
+
+    # ----- Pin 3 (LD2410 TX → MCU RX): wire LEFT to UART_RX hier label -----
+    parts.append(_sch_wire(J4_PIN_X, J4_PIN_Y[3], HLABEL_LEFT_X, J4_PIN_Y[3], "j4-p3-tx"))
+    parts.append(_sch_hierarchical_label(
+        name="UART_RX", shape="output",
+        x=HLABEL_LEFT_X, y=J4_PIN_Y[3], angle=180, justify="right",
+        uuid_tag="uart-rx-j4",
+    ))
+
+    # ----- Pin 4 (LD2410 RX ← MCU TX): wire LEFT to UART_TX hier label -----
+    parts.append(_sch_wire(J4_PIN_X, J4_PIN_Y[4], HLABEL_LEFT_X, J4_PIN_Y[4], "j4-p4-rx"))
+    parts.append(_sch_hierarchical_label(
+        name="UART_TX", shape="input",
+        x=HLABEL_LEFT_X, y=J4_PIN_Y[4], angle=180, justify="right",
+        uuid_tag="uart-tx-j4",
+    ))
+
+    # ----- Pin 5 (OUT): wire LEFT to LD2410_OUT hier label -----
+    parts.append(_sch_wire(J4_PIN_X, J4_PIN_Y[5], HLABEL_LEFT_X, J4_PIN_Y[5], "j4-p5-out"))
+    parts.append(_sch_hierarchical_label(
+        name="LD2410_OUT", shape="output",
+        x=HLABEL_LEFT_X, y=J4_PIN_Y[5], angle=180, justify="right",
+        uuid_tag="ld2410-out-j4",
+    ))
+
+    # ----- C11 decoupling: +5V (top) and GND (bottom) local flags -----
+    C11_5V_Y = C11_TOP_Y - 3.81           # 138.43 — flag anchor above C11
+    parts.append(_sch_wire(C11_X, C11_5V_Y, C11_X, C11_TOP_Y, "c11-top-5v"))
+    parts.append(_sch_power_flag(
+        lib_id="power:+5V", value="+5V",
+        x=C11_X, y=C11_5V_Y, angle=0,
+        reference="#PWR48",
+        value_offset_x=0.0, value_offset_y=-3.556,
+        uuid_tag="pwr48-5v-c11",
+        sheet_key="sensors",
+    ))
+    C11_GND_Y = C11_BOT_Y + 3.81          # 153.67 — flag anchor below C11
+    parts.append(_sch_wire(C11_X, C11_BOT_Y, C11_X, C11_GND_Y, "c11-bot-gnd"))
+    parts.append(_sch_power_flag(
+        lib_id="power:GND", value="GND",
+        x=C11_X, y=C11_GND_Y, angle=0,
+        reference="#PWR49",
+        value_offset_x=0.0, value_offset_y=3.81,
+        uuid_tag="pwr49-gnd-c11",
+        sheet_key="sensors",
+    ))
+
+    # ===== J4 + C11 symbols =====
+    parts.append(_sch_conn_01x05(
+        x=J4_X, y=J4_Y, angle=0,
+        reference="J4",
+        value="JST SM05B-GHS-TB (HLK-LD2410B mmWave radar cable, 5-pin)",
+        uuid_tag="j4-ld2410",
+        sheet_key="sensors",
+    ))
+    parts.append(_sch_capacitor(
+        lib_id="Device:C",
+        x=C11_X, y=C11_Y, angle=0,
+        reference="C11", value="100nF",
+        uuid_tag="c11-ld2410-decoupling",
         sheet_key="sensors",
     ))
 

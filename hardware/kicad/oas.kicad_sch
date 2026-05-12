@@ -204,6 +204,36 @@
 				(justify left)
 			)
 		)
+		(pin "LD2410_OUT" output
+			(at 88.9 95.25 0)
+			(uuid "c40ecf7c-01c1-5499-b428-a66519a6e4dc")
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(pin "UART_TX" input
+			(at 88.9 97.79 0)
+			(uuid "17f47397-d072-545b-ba93-3a3c9ae32345")
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(pin "UART_RX" output
+			(at 88.9 100.33 0)
+			(uuid "a24cb635-33c6-5c13-a11f-1ea18f128721")
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
 		(instances
 			(project "oas"
 				(path "/515343fe-5590-5fd9-97ec-5bed0f979de2"
@@ -313,6 +343,96 @@
 		(type default)
 	)
 	(uuid "50fe4e05-025f-58b2-83f6-7bf9bf4dbe1d")
+)
+(wire
+	(pts
+		(xy 88.9 95.25) (xy 100.33 95.25)
+	)
+	(stroke
+		(width 0)
+		(type default)
+	)
+	(uuid "383083f1-8e85-58d7-890f-932aa1755173")
+)
+(wire
+	(pts
+		(xy 100.33 95.25) (xy 100.33 57.15)
+	)
+	(stroke
+		(width 0)
+		(type default)
+	)
+	(uuid "6f0ed8fa-df08-583c-9f29-1d9de95dbb23")
+)
+(wire
+	(pts
+		(xy 100.33 57.15) (xy 101.6 57.15)
+	)
+	(stroke
+		(width 0)
+		(type default)
+	)
+	(uuid "4aa302e7-10b0-5686-919a-0e4dcdd90cee")
+)
+(wire
+	(pts
+		(xy 88.9 97.79) (xy 143.51 97.79)
+	)
+	(stroke
+		(width 0)
+		(type default)
+	)
+	(uuid "923ba7e2-1e33-58f5-9b12-b71d4480beaa")
+)
+(wire
+	(pts
+		(xy 143.51 97.79) (xy 143.51 52.07)
+	)
+	(stroke
+		(width 0)
+		(type default)
+	)
+	(uuid "b6f6d5c1-8d62-5ede-bd6a-8c57a31df7e4")
+)
+(wire
+	(pts
+		(xy 143.51 52.07) (xy 139.7 52.07)
+	)
+	(stroke
+		(width 0)
+		(type default)
+	)
+	(uuid "da0165b8-667c-5916-b4b0-472f11208a75")
+)
+(wire
+	(pts
+		(xy 88.9 100.33) (xy 146.05 100.33)
+	)
+	(stroke
+		(width 0)
+		(type default)
+	)
+	(uuid "89679ba2-5137-54fe-bc69-961e7434311e")
+)
+(wire
+	(pts
+		(xy 146.05 100.33) (xy 146.05 54.61)
+	)
+	(stroke
+		(width 0)
+		(type default)
+	)
+	(uuid "724d2721-b653-519d-aaad-864f6b26f11f")
+)
+(wire
+	(pts
+		(xy 146.05 54.61) (xy 139.7 54.61)
+	)
+	(stroke
+		(width 0)
+		(type default)
+	)
+	(uuid "42b2e881-01f7-5188-994d-e487e14a93f2")
 )
 	(sheet_instances
 		(path "/"
