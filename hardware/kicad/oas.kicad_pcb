@@ -358,7 +358,7 @@
 (footprint "oas:SEN66_Mechanical_Reference"
 	(layer "F.Cu")
 	(uuid "c1ef6aff-60fb-5663-bd5c-1a156bffa33f")
-	(at 165.5 130 90)
+	(at 172 127 90)
 	(descr "Sensirion SEN66 mechanical-reference (no pads). SEN66-SIN-T, MPN 3.001.030. 55.2x25.6x21.5 mm. Mounts on enclosure cover; signal cable JST GH 6-pin to PCB connector J3.")
 	(attr board_only exclude_from_pos_files exclude_from_bom)
 	(property "Reference" "SENS1"
@@ -497,7 +497,7 @@
         	(footprint "ZipTieHole_3mm_NPTH"
         		(layer "F.Cu")
         		(uuid "d3216e4e-5d73-5b59-ac1a-e95fc07f8541")
-        		(at 162.5 108)
+        		(at 169 105)
         		(descr "Zip-tie pass-through hole, Ø3.0 mm NPTH (fits 2.5 mm band zip-tie). Used in groups of 4 to retain the SEN66 module against the enclosure cover.")
         		(attr through_hole board_only exclude_from_pos_files exclude_from_bom)
         		(property "Reference" "ZT1"
@@ -577,7 +577,7 @@
         	(footprint "ZipTieHole_3mm_NPTH"
         		(layer "F.Cu")
         		(uuid "1915f2c2-ccee-5181-8aca-a88995dc8b55")
-        		(at 194.1 108)
+        		(at 200.6 105)
         		(descr "Zip-tie pass-through hole, Ø3.0 mm NPTH (fits 2.5 mm band zip-tie). Used in groups of 4 to retain the SEN66 module against the enclosure cover.")
         		(attr through_hole board_only exclude_from_pos_files exclude_from_bom)
         		(property "Reference" "ZT2"
@@ -657,7 +657,7 @@
         	(footprint "ZipTieHole_3mm_NPTH"
         		(layer "F.Cu")
         		(uuid "0e0045df-d9d5-5721-9b56-aadc3e956904")
-        		(at 162.5 100)
+        		(at 169 97)
         		(descr "Zip-tie pass-through hole, Ø3.0 mm NPTH (fits 2.5 mm band zip-tie). Used in groups of 4 to retain the SEN66 module against the enclosure cover.")
         		(attr through_hole board_only exclude_from_pos_files exclude_from_bom)
         		(property "Reference" "ZT3"
@@ -737,7 +737,7 @@
         	(footprint "ZipTieHole_3mm_NPTH"
         		(layer "F.Cu")
         		(uuid "2bab4adc-961a-5bf3-9d30-0f990a184f43")
-        		(at 194.1 100)
+        		(at 200.6 97)
         		(descr "Zip-tie pass-through hole, Ø3.0 mm NPTH (fits 2.5 mm band zip-tie). Used in groups of 4 to retain the SEN66 module against the enclosure cover.")
         		(attr through_hole board_only exclude_from_pos_files exclude_from_bom)
         		(property "Reference" "ZT4"
@@ -817,15 +817,15 @@
 (footprint "Connector_JST:JST_GH_SM06B-GHS-TB_1x06-1MP_P1.25mm_Horizontal"
 	(layer "F.Cu")
 	(uuid "921a0799-32e4-576f-977b-a649c6a604e5")
-	(at 201.5 112 90)
+	(at 184.5 132 180)
 (property "Reference" "J3"
-	(at 0 -3.9 90)
+	(at 0 -3.9 180)
 	(layer "F.SilkS")
 	(uuid "8ac2be3a-5e45-5fbd-a4c8-12f50fcb0fdf")
 	(effects (font (size 1 1) (thickness 0.15)))
 )
 (property "Value" "JST SM06B-GHS-TB (SEN66 connector)"
-	(at 0 3.9 90)
+	(at 0 3.9 180)
 	(layer "F.Fab")
 	(uuid "cf224fa9-f6c5-5cc4-a763-5bc983851d39")
 	(effects (font (size 1 1) (thickness 0.15)))
@@ -1119,74 +1119,58 @@
 			)
 		)
 	(pad "1" smd roundrect
-			(at -3.125 -1.85 90)
+			(at -3.125 -1.85 180)
 			(size 0.6 1.7)
 			(layers "F.Cu" "F.Mask" "F.Paste")
 			(roundrect_rratio 0.25)
 		)
 	(pad "2" smd roundrect
-			(at -1.875 -1.85 90)
+			(at -1.875 -1.85 180)
 			(size 0.6 1.7)
 			(layers "F.Cu" "F.Mask" "F.Paste")
 			(roundrect_rratio 0.25)
 		)
 	(pad "3" smd roundrect
-			(at -0.625 -1.85 90)
+			(at -0.625 -1.85 180)
 			(size 0.6 1.7)
 			(layers "F.Cu" "F.Mask" "F.Paste")
 			(roundrect_rratio 0.25)
 		)
 	(pad "4" smd roundrect
-			(at 0.625 -1.85 90)
+			(at 0.625 -1.85 180)
 			(size 0.6 1.7)
 			(layers "F.Cu" "F.Mask" "F.Paste")
 			(roundrect_rratio 0.25)
 		)
 	(pad "5" smd roundrect
-			(at 1.875 -1.85 90)
+			(at 1.875 -1.85 180)
 			(size 0.6 1.7)
 			(layers "F.Cu" "F.Mask" "F.Paste")
 			(roundrect_rratio 0.25)
 		)
 	(pad "6" smd roundrect
-			(at 3.125 -1.85 90)
+			(at 3.125 -1.85 180)
 			(size 0.6 1.7)
 			(layers "F.Cu" "F.Mask" "F.Paste")
 			(roundrect_rratio 0.25)
 		)
 	(pad "MP" smd roundrect
-			(at -4.975 1.35 90)
+			(at -4.975 1.35 180)
 			(size 1 2.7)
 			(layers "F.Cu" "F.Mask" "F.Paste")
 			(roundrect_rratio 0.25)
 		)
 	(pad "MP" smd roundrect
-			(at 4.975 1.35 90)
+			(at 4.975 1.35 180)
 			(size 1 2.7)
 			(layers "F.Cu" "F.Mask" "F.Paste")
 			(roundrect_rratio 0.25)
 		)
 	)
 (gr_text "SEN66 air quality"
-	(at 178.3 131.2 0)
+	(at 184.8 102 0)
 	(layer "F.SilkS")
 	(uuid "a8aa26d6-067a-5856-9570-0510da278d70")
-	(effects
-		(font (size 1 1) (thickness 0.15))
-	)
-)
-(gr_text "-> J3"
-	(at 178.3 80 0)
-	(layer "F.SilkS")
-	(uuid "7400bea7-8ef4-5814-82bc-127db00dd968")
-	(effects
-		(font (size 1 1) (thickness 0.15))
-	)
-)
-(gr_text "to SEN66"
-	(at 201.5 120 0)
-	(layer "F.SilkS")
-	(uuid "2a26f7d1-a874-51b4-b096-50e1ba84371f")
 	(effects
 		(font (size 1 1) (thickness 0.15))
 	)

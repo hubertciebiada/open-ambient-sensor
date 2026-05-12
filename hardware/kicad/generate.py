@@ -138,12 +138,15 @@ CUTOUTS = [
 # toward 3:00). Anchor (0, 0) in footprint coords is the corner of the
 # 55.2 × 25.6 mm body face; placing this anchor at PCB (cx, cy) puts
 # the body in PCB X = cx..cx+25.6, Y = cy-55.2..cy.
-SEN66_ANCHOR_X = 17.0   # v0.8: shifted right +5 mm from v0.7 (12 → 17) to
-                        # open more PCB area on the left for power-section
-                        # placement; ZT2/ZT4 land at PCB X=45.6, ~2 mm clear
-                        # of H1 courtyard left edge (44.78)
-SEN66_ANCHOR_Y = 25.0   # v0.7: shifted up from 40 so body Y max=25 clears
-                        # cutout zones C1..C5 (lowest cutout Y=27.2 at C2)
+SEN66_ANCHOR_X = 23.5   # v0.9: pushed near max-right. Body right edge X=49.1
+                        # leaves ~0.8 mm to PCB outline at body top (Y=-33.2,
+                        # PCB outline x_max=49.98). H1 courtyard cleared in Y
+                        # since body bottom now sits above H1 zone.
+SEN66_ANCHOR_Y = 22.0   # v0.9: lifted up 3 mm (was 25). Body bottom Y=22 clears
+                        # H1 courtyard top (Y=24.65) by 2.65 mm so the body
+                        # right edge is free to enter H1's X range without
+                        # courtyard collision. Also opens 3 mm of room
+                        # between SEN66 body bottom and J3 north edge.
 SEN66_ROTATION = 90   # degrees; long axis radial, connector toward PCB center
 
 
@@ -197,10 +200,17 @@ SEN66_ZIPTIE_LOCAL = [
 # faces PCB -X. Verified clear of mounting hole H1 at (+47.6, +27.5)
 # (15.6 mm centre-to-centre, ~6.8 mm courtyard-to-courtyard clearance)
 # and clear of cutout C5 at (X 27.9..35.4, Y 36.5..42.5).
-J3_X = 53.0   # v0.8: shifted right +5 mm in tandem with SEN66 anchor
-              # (keeps cable run distance to SEN66 connector unchanged)
-J3_Y = 7.0    # v0.7: lifted up 5 mm so socket sits closer to SEN66 connector
-J3_ROTATION = 90
+J3_X = 36.0   # v0.9: re-located under SEN66 body (was east of body in v0.7/0.8).
+              # Centred horizontally on body mid-X = SEN66_ANCHOR_X + SEN66_BODY_Y/2
+              # = 23.5 + 12.8 = 36.3 -> rounded to 36.
+J3_Y = 27.0   # v0.9: sits 3 mm south (PCB +Y) of SEN66 body bottom (Y=22).
+              # With J3_ROTATION=180, J3 body extends north of pads
+              # (pads at PCB Y = J3_Y + 1.85 = 28.85), so the J3 body north
+              # edge sits ~Y=25 — i.e. 3 mm below SEN66 body bottom edge.
+J3_ROTATION = 180  # v0.9: rotated 90 -> 180 so the cable opening (pad-side,
+                   # native "north" of footprint) faces PCB +Y (south, toward
+                   # chord). The SEN66 cable plug enters J3 from below in the
+                   # natural viewing orientation (chord at bottom of screen).
 
 # -----------------------------------------------------------------------------
 # KiCad 10 format constants
@@ -1556,22 +1566,18 @@ def gen_silk_labels() -> str:
             \t)""")
 
     parts = []
-    # SEN66 body label. With v0.8 anchor (17, 25), body shadow occupies
-    # PCB X=17..42.6, Y=-30.2..25. Place label below body bottom edge
-    # (Y=25) in the gap toward the chord, well clear of cutout zones
-    # (lowest cutout C2 starts at Y=27.2). Centred horizontally on body
-    # mid-X = anchor_x + SEN66_BODY_Y/2 = 17 + 12.8 = 29.8.
+    # SEN66 body label. With v0.9 anchor (23.5, 22), body shadow occupies
+    # PCB X=23.5..49.1, Y=-33.2..22. Place the label INSIDE the body in
+    # the empty corridor between the inlets (PCB Y ≈ +3.8..+18.9) and the
+    # outlet (PCB Y ≈ -30.8..-10.0); the corridor Y=-10..+3.8 has no
+    # air-opening markers on F.Fab and is unobstructed on F.SilkS.
+    # Centred horizontally on body mid-X = anchor_x + SEN66_BODY_Y/2 = 36.3.
     body_mid_x = SEN66_ANCHOR_X + SEN66_BODY_Y / 2
-    parts.append(_silk("SEN66 air quality", body_mid_x, 26.2, "sen66-body"))
-    # Cable-direction hint near the SEN66 connector. Connector sits at
-    # PCB (body_mid_x, anchor_y - 55.2) = (29.8, -30.2). Place arrow just
-    # south of the connector edge, between connector and the outlet
-    # (which sits at PCB Y ≈ -17.4).
-    parts.append(_silk("-> J3", body_mid_x, -25.0, "sen66-cable-arrow"))
-    # J3 destination label. With v0.8 J3 at (53, 7), rotation 90°, the
-    # footprint courtyard sits roughly X=49.8..56.2, Y=1..13. Place the
-    # destination text just south of the courtyard.
-    parts.append(_silk("to SEN66", J3_X, 15.0, "j3-dest"))
+    parts.append(_silk("SEN66 air quality", body_mid_x, -3.0, "sen66-body"))
+    # v0.9: previous "-> J3" cable-direction arrow at the SEN66 connector
+    # and the "to SEN66" label at J3 are dropped — with J3 now directly
+    # below the SEN66 body shadow, the SEN66 ↔ J3 association is visually
+    # obvious from the silk outlines alone.
 
     # ---- v0.7: cutout-zone reservation labels + outlines on F.SilkS ----
     # Each cutout C1..C5 along the chord is reserved for a future
