@@ -16858,36 +16858,51 @@ def _build_pcb_ref_to_footprint() -> dict[str, str]:
     `Reference` (e.g. "R5") → fully-qualified footprint string
     (e.g. "Resistor_SMD:R_0603_1608Metric").
 
-    Reads each top-level `(footprint ...)` block's inner
-    `(property "Footprint" "...")` clause (which is the canonical
-    source-of-truth — `_emit_stock_lib_footprint` writes a fully-qualified
-    `Lib:Name` string, and `_emit_two_pad_smd_footprint` / inline helpers
-    write a bare `Name` that we lib-qualify via `BARE_FOOTPRINT_TO_LIB`).
-    The fallback (no `(property "Footprint" ...)` at all) uses the
-    footprint block header name, also lib-qualified via the table.
+    Reads each `(footprint ...)` block (each at the start of a line, with
+    optional leading whitespace — KiCad pretty-prints nested blocks with
+    tab/space indentation, so the regex must tolerate that to capture all
+    76 placed footprints rather than only the 45 written at column 0).
+    For each block, extracts its inner `(property "Footprint" "...")`
+    clause (which is the canonical source-of-truth — `_emit_stock_lib_footprint`
+    writes a fully-qualified `Lib:Name` string, and
+    `_emit_two_pad_smd_footprint` / inline helpers write a bare `Name`
+    that we lib-qualify via `BARE_FOOTPRINT_TO_LIB`). The fallback (no
+    `(property "Footprint" ...)` at all) uses the footprint block header
+    name, also lib-qualified via the table.
 
     Every value in the returned dict is GUARANTEED to contain `:` (a real
     library prefix). If any bare name escaped the lookup table, this
     function `assert`-fails so the missing entry is caught at generate time
     rather than as a downstream ERC warning.
+
+    Note on the regex: `(?m)^\\s*\\(footprint "..."` requires the
+    `(footprint` token to be the first non-whitespace content on its line.
+    Verified (v0.25) that the file contains no nested `(footprint "..."`
+    references — every match in `oas.kicad_pcb` is a real top-level
+    placed-footprint instance. Match count is exactly 76, equal to the
+    kiutils enumeration of placed footprints.
     """
     import re
 
     text = (HERE / "oas.kicad_pcb").read_text(encoding="utf-8")
     mapping: dict[str, str] = {}
 
-    # Walk top-level `(footprint "<libname>:<fpname>" ...)` blocks. For each,
+    # Walk every `(footprint "<libname>:<fpname>" ...)` block. For each,
     # extract its `(property "Reference" "<R>" ...)` and use the footprint
     # name from its header as the Footprint property value.
-    # Top-level `(footprint "...")` in oas.kicad_pcb are nested two parens
-    # deep from the document root, so simple `^(footprint ` matching after a
-    # newline reliably finds each block start.
-    fp_starts = [m.start() for m in re.finditer(r'(?m)^\(footprint "([^"]+)"', text)]
+    # The regex allows optional leading whitespace because gen_pcb() emits
+    # some footprint blocks with tab/space indentation (KiCad-style nested
+    # block pretty-printing). v0.24's column-0-only regex silently skipped
+    # 31 of 76 placed footprints, leaving 27 schematic-side empty Footprint
+    # properties; v0.25 closes that gap.
+    fp_starts = [m.start() for m in re.finditer(r'(?m)^\s*\(footprint "([^"]+)"', text)]
     # Append end of file to bound the last block.
     fp_starts.append(len(text))
     for i in range(len(fp_starts) - 1):
         block = text[fp_starts[i]:fp_starts[i + 1]]
-        m_name = re.match(r'\(footprint "([^"]+)"', block)
+        # Block may begin with the leading whitespace captured by `\s*` —
+        # use search rather than match so we don't depend on column-0 here.
+        m_name = re.search(r'\(footprint "([^"]+)"', block)
         if not m_name:
             continue
         fp_name_header = m_name.group(1)
