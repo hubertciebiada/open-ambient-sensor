@@ -330,21 +330,24 @@ def _ld2410_local_to_pcb(lx: float, ly: float) -> tuple[float, float]:
 # footprints (F.Fab body outline + F.SilkS marker + pin-row hints + labels).
 # The actual electrical female pin sockets land in chunk #7 (PCB routing).
 #
-# Layout (v0.15):
+# Layout (v0.15.1):
 #
 #   ESP32-C6 DevKitM-1-N4    MIKROE-2462 (NFC Tag 2 Click)
 #   body: 48.26 × 25.4 mm     body: 25.4 × 28.6 mm (size S)
-#   anchor (-37.16, -14.03)   anchor (-33.21, -13.03)
-#   body X=-37.16..+11.10     body X=-33.21..-7.81
-#   body Y=-39.43..-14.03     body Y=-13.03..+15.57
+#   anchor (-37.16, -20.43)   anchor (-38.66, -13.03)
+#   body X=-37.16..+11.10     body X=-38.66..-13.26
+#   body Y=-45.83..-20.43     body Y=-13.03..+15.57
 #   horizontal at UPPER-LEFT  vertical, center Y aligned with LD2410
 #   antenna LEFT (-X)         pins on long edges (1×8 + 1×8)
 #   USB-C RIGHT (+X)          NFC antenna spiral at bottom strip Y=+9.83..+15.57
 #
 # LD2410 + NFC share the same horizontal Y band (centers at Y=+1.27).
-# ESP32 sits 1 mm above NFC top edge, 2.5 mm right of LD2410 right edge.
-# SEN66 (right side, anchor +23.5/+22.0) unchanged. See per-constant
-# comments below for clearance breakdowns.
+# v0.15.1 tweaks: ESP32 pushed UP "prawie do brzegu" (top-left corner
+# 1.0 mm from PCB outline); NFC pushed LEFT "prawie przy czujniku
+# obecności" (1.0 mm gap to LD2410's right edge).
+# ESP32 sits 7.4 mm above NFC top edge. SEN66 (right side, anchor
+# +23.5/+22.0) unchanged. See per-constant comments below for
+# clearance breakdowns.
 
 # Dimensions per Espressif official dimensions drawing
 # https://dl.espressif.com/dl/schematics/esp32-c6-devkitm-1-dimensions.pdf
@@ -376,12 +379,16 @@ ESP32_ANCHOR_X = -37.16            # v0.15: -10 LEFT of v0.14's -24.13.
                                     # Body X range -37.16..+11.10 (was
                                     # -24.13..+24.13). Antenna short edge
                                     # toward -X (~09:00), USB-C toward +X.
-ESP32_ANCHOR_Y = -14.03            # v0.15: +15.51 DOWN from v0.14's -29.54
-                                    # (maximum southward shift). Body Y
-                                    # range -39.43..-14.03 (was -54.94..
-                                    # -29.54). 1 mm clearance above NFC
-                                    # top at Y=-13.03; 15.57 mm gap above
-                                    # ESP32 top to H3 hole at Y=-55.
+ESP32_ANCHOR_Y = -20.43            # v0.15.1: pushed UP "prawie do brzegu".
+                                    # Body Y range -45.83..-20.43 (was
+                                    # -39.43..-14.03 in v0.15). Top-left
+                                    # corner at (-37.16, -45.83); distance
+                                    # to origin √(37.16² + 45.83²) = 59.00
+                                    # → 1.00 mm clearance from PCB outline
+                                    # at the most constraining corner.
+                                    # 7.4 mm gap to NFC top at Y=-13.03;
+                                    # 6.27 mm gap below ESP32 top to H3
+                                    # zone edge at Y~-52 (H3 at Y=-55).
 ESP32_ROTATION = 90                # KiCad rotation applied to helper output
 
 # Dimensions per mikroBUS Standard Specifications v2.00 (June 2015), size S.
@@ -412,7 +419,12 @@ MIKROE2462_PIN_START_OFFSET = 2.54  # pin 1 at 2.54 mm from pin-1 short edge
 # The 5.74 mm antenna spiral strip at the bottom of the MIKROE body
 # is now at PCB Y=+9.83..+15.57 — well clear of the cable hole zone
 # and aimed outward toward the AK-N-94 perforated cover.
-MIKROE2462_ANCHOR_X = -33.21
+MIKROE2462_ANCHOR_X = -38.66       # v0.15.1: -5.45 LEFT of v0.15's -33.21.
+                                    # Body X range -38.66..-13.26. NFC left
+                                    # edge sits 1.00 mm right of LD2410's
+                                    # right edge at X=-39.66 ("prawie przy
+                                    # czujniku obecności"). NFC right edge
+                                    # is 7.26 mm from cable hole at X=-6.
 MIKROE2462_ANCHOR_Y = -13.03       # v0.15: +15.51 DOWN from v0.14's -28.54
                                     # (= LD2410 center Y +1.27 − body_L/2).
 MIKROE2462_ROTATION = 0
