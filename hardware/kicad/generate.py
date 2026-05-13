@@ -3357,12 +3357,19 @@ def gen_pinsocket_pcb_footprint(
 
 def gen_sk6812_side_pcb_footprint(
     *, x: float, y: float, rotation: int, reference: str, uuid_tag: str,
+    hide_ref: bool = True,
 ) -> str:
     """Emit a placed SK6812-SIDE footprint instance at PCB (x, y).
 
     Embeds the same body content as `gen_sk6812_side_footprint()` (the
     library file body) directly into the PCB file so opening pcbnew
     without the project-local library still renders the placement.
+
+    `hide_ref` defaults to True for the LED ring use-case: the 11 LEDs
+    sit on a Ø22 mm pitch circle with various rotations (270° → 300°
+    around the ring), so per-LED designators are emitted as board-level
+    `gr_text` outside the ring instead (see `gen_silk_labels`), keeping
+    them horizontal and avoiding silk_overlap with the cap ring inside.
     """
     body_hw = SK6812SIDE_BODY_W / 2.0
     body_hh = SK6812SIDE_BODY_H / 2.0
@@ -3388,6 +3395,7 @@ def gen_sk6812_side_pcb_footprint(
             \t\t\t(uuid "{U(f'fp-pad:{uuid_tag}:{pin_num}')}")
             \t\t)"""))
     pads = "\n".join(pad_blocks)
+    ref_hide_line = "\n\t\t\t(hide yes)" if hide_ref else ""
     return textwrap.dedent(f"""\
         \t(footprint "oas:SK6812-SIDE"
         \t\t(layer "F.Cu")
@@ -3397,8 +3405,7 @@ def gen_sk6812_side_pcb_footprint(
         \t\t(attr smd)
         \t\t(property "Reference" "{reference}"
         \t\t\t(at 0 -1.5 {rotation})
-        \t\t\t(layer "F.SilkS")
-        \t\t\t(hide yes)
+        \t\t\t(layer "F.SilkS"){ref_hide_line}
         \t\t\t(uuid "{U('fp-prop-ref:' + uuid_tag)}")
         \t\t\t(effects (font (size 1.0 1.0) (thickness 0.15)))
         \t\t)
@@ -3481,12 +3488,18 @@ def gen_sk6812_side_pcb_footprint(
 def gen_capacitor_0402_pcb_footprint(
     *, x: float, y: float, rotation: int, reference: str, value: str,
     uuid_tag: str, descr: str = "100 nF 0402 X7R decoupling capacitor",
+    hide_ref: bool = True,
 ) -> str:
     """Emit a placed Capacitor_SMD:C_0402_1005Metric footprint instance.
 
     Uses a self-contained 0402 pad pattern (pad pitch 0.85 mm, pad size
     0.62 × 0.70 mm) so the .kicad_pcb file remains stand-alone (no
     library lookup needed). Pad 1 sits at footprint-local +X, pad 2 at -X.
+
+    `hide_ref` defaults to True; the OAS PCB emits per-instance designators
+    as board-level `gr_text` from `gen_designator_labels()` instead (so we
+    can place them away from neighbouring silk and keep them horizontal
+    regardless of footprint rotation).
     """
     pad_x = 0.425                 # half of 0.85 mm pad pitch
     pad_w = 0.62
@@ -3496,6 +3509,7 @@ def gen_capacitor_0402_pcb_footprint(
     crty_x = pad_x + pad_w / 2.0 + 0.10
     crty_y = max(pad_h, 0.5) / 2.0 + 0.10
     rot_clause = f" {rotation}" if rotation != 0 else ""
+    ref_hide_line = "\n\t\t\t(hide yes)" if hide_ref else ""
     return textwrap.dedent(f"""\
         \t(footprint "C_0402_1005Metric"
         \t\t(layer "F.Cu")
@@ -3505,8 +3519,7 @@ def gen_capacitor_0402_pcb_footprint(
         \t\t(attr smd)
         \t\t(property "Reference" "{reference}"
         \t\t\t(at 0 -1.0 {rotation})
-        \t\t\t(layer "F.SilkS")
-        \t\t\t(hide yes)
+        \t\t\t(layer "F.SilkS"){ref_hide_line}
         \t\t\t(uuid "{U('fp-prop-ref:' + uuid_tag)}")
         \t\t\t(effects (font (size 1.0 1.0) (thickness 0.15)))
         \t\t)
@@ -3604,6 +3617,7 @@ def _emit_two_pad_smd_footprint(
     pad_shape: str = "roundrect",
     pad_roundrect_rratio: float = 0.25,
     footprint_lib: str | None = None,
+    hide_ref: bool = True,
 ) -> str:
     """Emit a generic two-pad SMD footprint (Cap/Res/Diode/Inductor SMD).
 
@@ -3612,6 +3626,15 @@ def _emit_two_pad_smd_footprint(
     matches every two-terminal passive in the KiCad symbol library
     (Device:C, Device:R, Device:D, Device:L), so the net-sync pass
     binds them correctly without per-component override.
+
+    `hide_ref` defaults to True. The OAS PCB instead emits a per-component
+    board-level `gr_text` designator from `gen_designator_labels()` for
+    every populated component — that gives us per-instance positioning
+    control (avoiding silk_overlap with J5/J6/J7/J8 socket frames, the
+    MOD1/MOD2 daughterboard outlines, and the LED-ring cap collisions
+    that the in-footprint Reference text would otherwise trigger). Pass
+    `hide_ref=False` only if you really want the in-footprint reference
+    text on a future board where no curated gr_text label exists.
     """
     pad_x = pad_pitch / 2.0
     crty_x = pad_x + pad_w / 2.0 + 0.10
@@ -3626,6 +3649,7 @@ def _emit_two_pad_smd_footprint(
     fp_property_value = (
         f"{footprint_lib}:{footprint_name}" if footprint_lib else footprint_name
     )
+    ref_hide_line = "\n\t\t\t(hide yes)" if hide_ref else ""
     return textwrap.dedent(f"""\
         \t(footprint "{footprint_name}"
         \t\t(layer "F.Cu")
@@ -3635,8 +3659,7 @@ def _emit_two_pad_smd_footprint(
         \t\t(attr {attr})
         \t\t(property "Reference" "{reference}"
         \t\t\t(at 0 -{fmt(crty_y + 0.8)} {rotation})
-        \t\t\t(layer "F.SilkS")
-        \t\t\t(hide yes)
+        \t\t\t(layer "F.SilkS"){ref_hide_line}
         \t\t\t(uuid "{U('fp-prop-ref:' + uuid_tag)}")
         \t\t\t(effects (font (size 1.0 1.0) (thickness 0.15)))
         \t\t)
@@ -3701,7 +3724,8 @@ def _emit_two_pad_smd_footprint(
 
 def gen_resistor_0603_pcb_footprint(*, x: float, y: float, rotation: int,
                                      reference: str, value: str, uuid_tag: str,
-                                     descr: str = "Resistor 0603") -> str:
+                                     descr: str = "Resistor 0603",
+                                     hide_ref: bool = True) -> str:
     """0603 SMD resistor placement. Pad 0.95×0.95 mm, pitch 1.7 mm."""
     return _emit_two_pad_smd_footprint(
         x=x, y=y, rotation=rotation,
@@ -3710,12 +3734,14 @@ def gen_resistor_0603_pcb_footprint(*, x: float, y: float, rotation: int,
         footprint_lib="Resistor_SMD",
         pad_pitch=1.7, pad_w=0.95, pad_h=0.95,
         body_w=1.6, body_h=0.8,
+        hide_ref=hide_ref,
     )
 
 
 def gen_capacitor_0603_pcb_footprint(*, x: float, y: float, rotation: int,
                                       reference: str, value: str, uuid_tag: str,
-                                      descr: str = "Capacitor 0603") -> str:
+                                      descr: str = "Capacitor 0603",
+                                      hide_ref: bool = True) -> str:
     """0603 SMD ceramic capacitor."""
     return _emit_two_pad_smd_footprint(
         x=x, y=y, rotation=rotation,
@@ -3724,12 +3750,14 @@ def gen_capacitor_0603_pcb_footprint(*, x: float, y: float, rotation: int,
         footprint_lib="Capacitor_SMD",
         pad_pitch=1.7, pad_w=0.95, pad_h=0.95,
         body_w=1.6, body_h=0.8,
+        hide_ref=hide_ref,
     )
 
 
 def gen_capacitor_0805_pcb_footprint(*, x: float, y: float, rotation: int,
                                       reference: str, value: str, uuid_tag: str,
-                                      descr: str = "Capacitor 0805") -> str:
+                                      descr: str = "Capacitor 0805",
+                                      hide_ref: bool = True) -> str:
     """0805 SMD ceramic capacitor — for 10 µF / 22 µF input/output bulk
     on the 3.3 V buck stage."""
     return _emit_two_pad_smd_footprint(
@@ -3739,12 +3767,14 @@ def gen_capacitor_0805_pcb_footprint(*, x: float, y: float, rotation: int,
         footprint_lib="Capacitor_SMD",
         pad_pitch=1.8, pad_w=1.15, pad_h=1.4,
         body_w=2.0, body_h=1.25,
+        hide_ref=hide_ref,
     )
 
 
 def gen_diode_sma_pcb_footprint(*, x: float, y: float, rotation: int,
                                  reference: str, value: str, uuid_tag: str,
-                                 descr: str = "Diode SMA") -> str:
+                                 descr: str = "Diode SMA",
+                                 hide_ref: bool = True) -> str:
     """SMA package — Schottky / TVS / Zener. Cathode is pin 1 (KiCad
     convention for Device:D / Device:D_Schottky), anode pin 2.
     Footprint sized per `D_SMA` in Diode_SMD.pretty: pads 2.4×1.7 mm at
@@ -3756,12 +3786,14 @@ def gen_diode_sma_pcb_footprint(*, x: float, y: float, rotation: int,
         footprint_lib="Diode_SMD",
         pad_pitch=4.5, pad_w=2.4, pad_h=1.7,
         body_w=4.3, body_h=2.7,
+        hide_ref=hide_ref,
     )
 
 
 def gen_diode_smb_pcb_footprint(*, x: float, y: float, rotation: int,
                                  reference: str, value: str, uuid_tag: str,
-                                 descr: str = "Diode SMB") -> str:
+                                 descr: str = "Diode SMB",
+                                 hide_ref: bool = True) -> str:
     """SMB package — larger TVS / Schottky. Pads 2.7×2.1 mm at pitch
     5.1 mm per `D_SMB` in Diode_SMD.pretty."""
     return _emit_two_pad_smd_footprint(
@@ -3771,12 +3803,14 @@ def gen_diode_smb_pcb_footprint(*, x: float, y: float, rotation: int,
         footprint_lib="Diode_SMD",
         pad_pitch=5.1, pad_w=2.7, pad_h=2.2,
         body_w=4.5, body_h=3.6,
+        hide_ref=hide_ref,
     )
 
 
 def gen_diode_sod323_pcb_footprint(*, x: float, y: float, rotation: int,
                                     reference: str, value: str, uuid_tag: str,
-                                    descr: str = "Diode SOD-323") -> str:
+                                    descr: str = "Diode SOD-323",
+                                    hide_ref: bool = True) -> str:
     """SOD-323 small Zener / TVS package. Pads 0.7×0.9 mm at pitch
     2.4 mm per `D_SOD-323`."""
     return _emit_two_pad_smd_footprint(
@@ -3786,12 +3820,14 @@ def gen_diode_sod323_pcb_footprint(*, x: float, y: float, rotation: int,
         footprint_lib="Diode_SMD",
         pad_pitch=2.4, pad_w=0.9, pad_h=0.9,
         body_w=1.7, body_h=1.25,
+        hide_ref=hide_ref,
     )
 
 
 def gen_inductor_smd_5x5_pcb_footprint(*, x: float, y: float, rotation: int,
                                          reference: str, value: str, uuid_tag: str,
-                                         descr: str = "Inductor SMD ~5×5 mm") -> str:
+                                         descr: str = "Inductor SMD ~5×5 mm",
+                                         hide_ref: bool = True) -> str:
     """Power inductor footprint sized for typical 33 µH / 2.2 µH shielded
     SMD parts (~5×5 mm, NR5040 / Wurth WE-PD-S size). Two large pads on
     short edges; pitch 3.4 mm. The Device:L symbol's pins 1 and 2 map
@@ -3809,12 +3845,14 @@ def gen_inductor_smd_5x5_pcb_footprint(*, x: float, y: float, rotation: int,
         footprint_lib="Inductor_SMD",
         pad_pitch=3.5, pad_w=1.8, pad_h=4.4,
         body_w=5.0, body_h=5.0,
+        hide_ref=hide_ref,
     )
 
 
 def gen_polyfuse_smd_pcb_footprint(*, x: float, y: float, rotation: int,
                                     reference: str, value: str, uuid_tag: str,
-                                    descr: str = "Polyfuse SMD 2920") -> str:
+                                    descr: str = "Polyfuse SMD 2920",
+                                    hide_ref: bool = True) -> str:
     """SMD PTC polyfuse — 2920 size for MF-RHT075/60-2-class parts
     (60 V / 750 mA).
 
@@ -3830,6 +3868,7 @@ def gen_polyfuse_smd_pcb_footprint(*, x: float, y: float, rotation: int,
         footprint_lib="Fuse",
         pad_pitch=5.7, pad_w=2.0, pad_h=5.4,
         body_w=7.3, body_h=5.0,
+        hide_ref=hide_ref,
     )
 
 
@@ -3837,7 +3876,8 @@ def gen_capacitor_polarized_radial_pcb_footprint(*, x: float, y: float, rotation
                                                    reference: str, value: str, uuid_tag: str,
                                                    diameter_mm: float = 6.3,
                                                    pitch_mm: float = 2.5,
-                                                   descr: str = "Electrolytic radial through-hole") -> str:
+                                                   descr: str = "Electrolytic radial through-hole",
+                                                   hide_ref: bool = True) -> str:
     """Polarized electrolytic capacitor — radial through-hole. Pad 1
     (anode, +) on -X side, pad 2 (cathode, -) on +X side. Drill 0.8 mm,
     pad diameter 1.6 mm. Body diameter sized per `diameter_mm`.
@@ -3856,6 +3896,7 @@ def gen_capacitor_polarized_radial_pcb_footprint(*, x: float, y: float, rotation
     # Stock KiCad spelling uses single-decimal diameter (e.g. D8.0mm,
     # D6.3mm) and two-decimal pitch (e.g. P3.50mm, P2.50mm).
     fp_basename = f"CP_Radial_D{diameter_mm:.1f}mm_P{pitch_mm:.2f}mm"
+    ref_hide_line = "\n\t\t\t(hide yes)" if hide_ref else ""
     return textwrap.dedent(f"""\
         \t(footprint "{fp_basename}"
         \t\t(layer "F.Cu")
@@ -3865,8 +3906,7 @@ def gen_capacitor_polarized_radial_pcb_footprint(*, x: float, y: float, rotation
         \t\t(attr through_hole)
         \t\t(property "Reference" "{reference}"
         \t\t\t(at 0 -{fmt(crty_r + 0.6)} {rotation})
-        \t\t\t(layer "F.SilkS")
-        \t\t\t(hide yes)
+        \t\t\t(layer "F.SilkS"){ref_hide_line}
         \t\t\t(uuid "{U('fp-prop-ref:' + uuid_tag)}")
         \t\t\t(effects (font (size 1.0 1.0) (thickness 0.15)))
         \t\t)
@@ -3934,7 +3974,8 @@ def gen_capacitor_polarized_radial_pcb_footprint(*, x: float, y: float, rotation
 def gen_sot23_3pin_pcb_footprint(*, x: float, y: float, rotation: int,
                                   reference: str, value: str, uuid_tag: str,
                                   descr: str = "SOT-23 3-pin",
-                                  pin_names: tuple[str, str, str] = ("1", "2", "3")) -> str:
+                                  pin_names: tuple[str, str, str] = ("1", "2", "3"),
+                                  hide_ref: bool = True) -> str:
     """SOT-23 footprint — 3 pads. Pin 1 at bottom-left (-X, +Y), pin 2 at
     bottom-right (+X, +Y), pin 3 at top (0, -Y). Matches KiCad's stock
     SOT-23 footprint orientation, which in turn matches both the
@@ -3969,6 +4010,7 @@ def gen_sot23_3pin_pcb_footprint(*, x: float, y: float, rotation: int,
             \t\t\t(roundrect_rratio 0.25)
             \t\t\t(uuid "{U(f'fp-pad-{pin}:' + uuid_tag)}")
             \t\t)"""))
+    ref_hide_line = "\n\t\t\t(hide yes)" if hide_ref else ""
     return textwrap.dedent(f"""\
         \t(footprint "SOT-23"
         \t\t(layer "F.Cu")
@@ -3978,8 +4020,7 @@ def gen_sot23_3pin_pcb_footprint(*, x: float, y: float, rotation: int,
         \t\t(attr smd)
         \t\t(property "Reference" "{reference}"
         \t\t\t(at 0 -2.3 {rotation})
-        \t\t\t(layer "F.SilkS")
-        \t\t\t(hide yes)
+        \t\t\t(layer "F.SilkS"){ref_hide_line}
         \t\t\t(uuid "{U('fp-prop-ref:' + uuid_tag)}")
         \t\t\t(effects (font (size 1.0 1.0) (thickness 0.15)))
         \t\t)
@@ -4032,7 +4073,8 @@ def gen_sot23_3pin_pcb_footprint(*, x: float, y: float, rotation: int,
 
 def gen_to263_5_pcb_footprint(*, x: float, y: float, rotation: int,
                                reference: str, value: str, uuid_tag: str,
-                               descr: str = "TO-263-5 LM2596S") -> str:
+                               descr: str = "TO-263-5 LM2596S",
+                               hide_ref: bool = True) -> str:
     """TO-263-5 (D2PAK-5) footprint for LM2596S-5.0. Five signal pads
     along the bottom edge (pitch 1.7 mm), large thermal tab on the top
     edge (pad 6, same net as pad 3 = GND on LM2596).
@@ -4067,6 +4109,7 @@ def gen_to263_5_pcb_footprint(*, x: float, y: float, rotation: int,
         \t\t\t(roundrect_rratio 0.05)
         \t\t\t(uuid "{U('fp-pad-tab:' + uuid_tag)}")
         \t\t)"""))
+    ref_hide_line = "\n\t\t\t(hide yes)" if hide_ref else ""
     return textwrap.dedent(f"""\
         \t(footprint "TO-263-5_LM2596"
         \t\t(layer "F.Cu")
@@ -4076,8 +4119,7 @@ def gen_to263_5_pcb_footprint(*, x: float, y: float, rotation: int,
         \t\t(attr smd)
         \t\t(property "Reference" "{reference}"
         \t\t\t(at 0 -5.8 {rotation})
-        \t\t\t(layer "F.SilkS")
-        \t\t\t(hide yes)
+        \t\t\t(layer "F.SilkS"){ref_hide_line}
         \t\t\t(uuid "{U('fp-prop-ref:' + uuid_tag)}")
         \t\t\t(effects (font (size 1.0 1.0) (thickness 0.15)))
         \t\t)
@@ -4130,7 +4172,8 @@ def gen_to263_5_pcb_footprint(*, x: float, y: float, rotation: int,
 
 def gen_sot583_pcb_footprint(*, x: float, y: float, rotation: int,
                               reference: str, value: str, uuid_tag: str,
-                              descr: str = "SOT-583 8-pin TPS62933") -> str:
+                              descr: str = "SOT-583 8-pin TPS62933",
+                              hide_ref: bool = True) -> str:
     """SOT-583-8 / VSON-8 footprint for TPS62933.
     Pin layout per TPS62933 datasheet TI lit no SNVSCQ3D:
       Pin 1=SW, 2=PG, 3=GND, 4=FB, 5=EN, 6=VOS, 7=SS, 8=VIN
@@ -4161,6 +4204,7 @@ def gen_sot583_pcb_footprint(*, x: float, y: float, rotation: int,
             \t\t\t(roundrect_rratio 0.25)
             \t\t\t(uuid "{U(f'fp-pad-{pin}:' + uuid_tag)}")
             \t\t)"""))
+    ref_hide_line = "\n\t\t\t(hide yes)" if hide_ref else ""
     return textwrap.dedent(f"""\
         \t(footprint "SOT-583_TPS62933"
         \t\t(layer "F.Cu")
@@ -4170,8 +4214,7 @@ def gen_sot583_pcb_footprint(*, x: float, y: float, rotation: int,
         \t\t(attr smd)
         \t\t(property "Reference" "{reference}"
         \t\t\t(at 0 -1.8 {rotation})
-        \t\t\t(layer "F.SilkS")
-        \t\t\t(hide yes)
+        \t\t\t(layer "F.SilkS"){ref_hide_line}
         \t\t\t(uuid "{U('fp-prop-ref:' + uuid_tag)}")
         \t\t\t(effects (font (size 1.0 1.0) (thickness 0.15)))
         \t\t)
@@ -4224,7 +4267,8 @@ def gen_sot583_pcb_footprint(*, x: float, y: float, rotation: int,
 
 def gen_pinheader_6_recovery_pcb_footprint(*, x: float, y: float, rotation: int,
                                             reference: str, value: str, uuid_tag: str,
-                                            descr: str = "PinHeader 1x06 P2.54 mm THT (DNP recovery)") -> str:
+                                            descr: str = "PinHeader 1x06 P2.54 mm THT (DNP recovery)",
+                                            hide_ref: bool = True) -> str:
     """1×6 2.54 mm pitch through-hole pin header (J2 — schematic-side
     DNP recovery header). 6 round THT pads at 2.54 mm pitch."""
     pin_count = 6
@@ -4249,6 +4293,7 @@ def gen_pinheader_6_recovery_pcb_footprint(*, x: float, y: float, rotation: int,
     # generator and BOM export both treat J2 as Do-Not-Populate (pads
     # remain on the PCB for hand-soldering during emergency recovery,
     # but JLCPCB pick-and-place + BOM ordering skip it).
+    ref_hide_line = "\n\t\t\t(hide yes)" if hide_ref else ""
     return textwrap.dedent(f"""\
         \t(footprint "PinHeader_1x06_P2.54mm_Vertical"
         \t\t(layer "F.Cu")
@@ -4258,8 +4303,7 @@ def gen_pinheader_6_recovery_pcb_footprint(*, x: float, y: float, rotation: int,
         \t\t(attr through_hole exclude_from_pos_files exclude_from_bom dnp)
         \t\t(property "Reference" "{reference}"
         \t\t\t(at 2.5 6.35 {rotation})
-        \t\t\t(layer "F.SilkS")
-        \t\t\t(hide yes)
+        \t\t\t(layer "F.SilkS"){ref_hide_line}
         \t\t\t(uuid "{U('fp-prop-ref:' + uuid_tag)}")
         \t\t\t(effects (font (size 1.0 1.0) (thickness 0.15)))
         \t\t)
@@ -5603,6 +5647,268 @@ def gen_silk_labels() -> str:
             label, tx, ty, f"cutout-silk-{name}",
             size=1.0, angle=text_angle,
         ))
+
+    # ---- v0.27: per-component designator labels on F.SilkS ----
+    # Every populated component on the OAS PCB gets a short Reference
+    # designator label as board-level `gr_text` (horizontal, ~1.0 mm
+    # high) placed in a clear zone adjacent to its body. The
+    # in-footprint Reference text stays hidden (set via `hide_ref=True`
+    # on the stub footprint generators) because:
+    #   - the LED-ring caps + LEDs sit at 0..330° rotations around the
+    #     ring, so the in-footprint Reference would rotate with each
+    #     part into illegible 180°/270° angles;
+    #   - the south-flank power-section caps (C5..C8, C15, C16) sit
+    #     immediately north of the J6 pin-socket silk frame, leaving
+    #     <1.5 mm gap above the body — too tight for a 1.0 mm
+    #     in-footprint Reference;
+    #   - several refs (C3, C10, D3, U2 et al.) would otherwise sit
+    #     directly over neighbouring pads (silk_over_copper DRC).
+    # Per-instance board-level gr_text lets us place each label in
+    # whatever clear zone is closest to its body.
+    #
+    # Position convention: for each anchor (ax, ay) the label sits at
+    # (ax + dx, ay + dy) with rotation 0 (always horizontal) unless an
+    # override is supplied. dx, dy are tuned per component to land in
+    # an empty silk strip.
+    #
+    # The list below MUST stay in sync with the actual footprint
+    # placements in gen_power_pcb_footprints() and the LED-ring loop
+    # in gen_sensors_pcb_footprints().
+
+    # ---- 1) Power-section + sensor-decoupling components ----
+    # Layout reference (v0.26):
+    #   Row Y=-30  small SMDs (HF caps + I²C pull-ups + R7) — sits in
+    #              the strip between J5 silk (Y=-27.30..-24.64) and the
+    #              Buck1-satellite row at Y=-37. INSIDE the ESP32
+    #              daughterboard shadow.
+    #   Row Y=-37  D2 (SMA), L1 (5x5) — INSIDE ESP32 shadow.
+    #   Row Y=-43.5..-44  U2, L2, R2, R3 — Buck2 main, INSIDE ESP32 shadow.
+    #   Row Y=-46  south flank (C5..C8, C15, C16) — sits 1.5 mm above
+    #              J6 silk frame at Y=-47.5. INSIDE ESP32 shadow.
+    # Components INSIDE a daughterboard shadow get their designator
+    # label on F.Fab — they're physically covered by the daughterboard
+    # at assembly time, so silkscreen ink would be invisible anyway.
+    # F.Fab is also exempt from `silk_over_copper` / `silk_overlap` /
+    # `min_text_height` DRC rules, which the cramped under-shadow layout
+    # would otherwise hit (cap-to-cap pad-overlap, J6 silk overlap, etc.).
+    # The 2D-top render still shows F.Fab text so reviewers see every
+    # designator without launching pcbnew.
+    #
+    # Each entry: (designator, dx, dy, layer)
+    POWER_LABELS = [
+        # input-protection cluster (NOT under any daughterboard shadow)
+        ("D1",  0.0, -3.0, "F.SilkS"),
+        ("F1",  0.0, -4.5, "F.SilkS"),
+        # Q1 north offset constrained: body Y=23.6..26.4, SENS1 silk
+        # south edge at Y=+21.8. Label at offset -2.3 sits in the
+        # 0.325 mm-clear window between SENS1 silk and Q1 body north.
+        ("Q1",  0.0, -2.3, "F.SilkS"),
+        # D3 label SOUTH of body — east-of-body (+3, 0) collided with
+        # J3 (JST GH SEN66 socket) MP mounting pad at PCB (+31.025,
+        # +28.35); north-of-body has only 0.975 mm gap to Q1 (too
+        # tight for 1.0 mm text). South strip between D3 and R1 is
+        # 3.975 mm wide — plenty.
+        ("D3",  0.0,  2.0, "F.SilkS"),
+        ("R1",  3.0,  0.0, "F.SilkS"),
+        # R4 label EAST of body but ROTATED 90° (vertical) so the
+        # narrower 1.0 mm width fits in the 1.0 mm strip between R4
+        # body east (X=25.8) and the J9 Qwiic cutout label west bbox
+        # at X=28.5. Vertical orientation is allowed per CLAUDE.md
+        # (0° or 90°, not 180°/270°).
+        ("R4",  2.5,  0.0, "F.SilkS", 90.0),
+        # Buck1 cluster
+        # C1 sits south of SEN66, outside daughterboard shadows
+        ("C1",  0.0, -5.5, "F.SilkS"),
+        # C3 north of body (offset y=-2): C3 east-of-body offset (+6)
+        # collided with MOD1 (ESP32 daughterboard) silk west edge at
+        # X=-27.56. Label NORTH of body sits clear of MOD1 silk.
+        ("C3",  0.0, -2.0, "F.SilkS"),
+        ("U1", -6.5,  0.0, "F.SilkS"),
+        # D2, L1 INSIDE ESP32 shadow → F.Fab
+        ("D2",  0.0, -3.0, "F.Fab"),
+        ("L1",  0.0, -4.0, "F.Fab"),
+        # C4 in east-of-ESP32 / north-of-SEN66 strip — outside shadows
+        ("C4",  0.0, -4.5, "F.SilkS"),
+        # Buck2 cluster INSIDE ESP32 shadow → F.Fab
+        ("U2",  0.0, -2.5, "F.Fab"),
+        ("L2",  0.0, -4.0, "F.Fab"),
+        ("R2",  0.0, -2.0, "F.Fab"),
+        ("R3",  0.0, -2.0, "F.Fab"),
+        # north-flank row Y=-30 INSIDE ESP32 shadow → F.Fab
+        ("C9",  0.0, -2.0, "F.Fab"),
+        ("C13", 0.0, -2.0, "F.Fab"),
+        ("C14", 0.0, -2.0, "F.Fab"),
+        ("C17", 0.0, -2.0, "F.Fab"),
+        ("R5",  0.0, -2.0, "F.Fab"),
+        ("R6",  0.0, -2.0, "F.Fab"),
+        ("R7",  0.0, -2.0, "F.Fab"),
+        # south-flank row Y=-46 INSIDE ESP32 shadow → F.Fab.
+        # Labels EAST of each body so the F.Fab text doesn't pile up.
+        ("C5",  2.5,  0.0, "F.Fab"),
+        ("C15", 2.0,  0.0, "F.Fab"),
+        ("C6",  2.0,  0.0, "F.Fab"),
+        ("C16", 2.0,  0.0, "F.Fab"),
+        ("C7",  2.0,  0.0, "F.Fab"),
+        ("C8",  2.0,  0.0, "F.Fab"),
+        # C2 west of ESP32 (X=-46 outside shadow) → F.SilkS
+        ("C2",  0.0, -2.0, "F.SilkS"),
+        # sensor decoupling caps
+        # C10 near H1 (outside shadows). Label WEST of body — clear
+        # of H1 designator at (+47.6+3.5, +27.5) and of C10's own pads.
+        ("C10", -4.0, 0.0, "F.SilkS"),
+        # C11 west of LD2410 (LD2410 has F.CrtYd but no daughterboard
+        # shadow per se — body label gr_text is at center; C11 at
+        # X=-42 is INSIDE LD2410 X range -51..-43.47 but C11 sits south
+        # of LD2410 silk frame Y=-16.51-0.5=-17.01 to ~-15.91. C11
+        # at Y=+14 is well south. Safe to use F.SilkS.
+        ("C11", 0.0, -2.0, "F.SilkS"),
+        # C12 INSIDE MIKROE shadow (X=-38.16..-12.76, Y=-16.51..+40.64,
+        # C12 anchor (-25, +23) is inside) → F.Fab
+        ("C12", 0.0, -2.0, "F.Fab"),
+        # J2 DNP recovery — outside shadows
+        ("J2",  0.0, -2.0, "F.SilkS"),
+    ]
+    # Component anchors mirror the placements in gen_power_pcb_footprints().
+    # Keep this dict in lock-step with that function.
+    COMPONENT_ANCHORS = {
+        "D1":  (+16, +9.5),
+        "F1":  (+54, +9),
+        "Q1":  (+27, +25),
+        "D3":  (+27, +28),
+        "R1":  (+25, +33),
+        "R4":  (+25, +35.5),
+        "C1":  (+40, +36),
+        "C3":  (-34, -24),
+        "U1":  (-34, -34),
+        "D2":  (+2, -37),
+        "L1":  (+9, -37),
+        "C4":  (+25, -47),
+        "U2":  (-2, -43.5),
+        "L2":  (+4, -44),
+        "R2":  (+10, -44),
+        "R3":  (+13, -44),
+        "C9":  (+0, -30),
+        "C13": (-14, -30),
+        "C14": (-6, -30),
+        "C17": (+4, -30),
+        "R5":  (+8, -30),
+        "R6":  (+11, -30),
+        "R7":  (+14, -30),
+        "C5":  (-25, -46),
+        "C15": (-17, -46),
+        "C6":  (-14, -46),
+        "C16": (-10, -46),
+        "C7":  (-6, -46),
+        "C8":  (-2, -46),
+        "C2":  (-46, -25),
+        "C10": (+46, +32),
+        "C11": (-42, +14),
+        "C12": (-25, +23),
+        "J2":  (-54, -8),
+    }
+    for entry in POWER_LABELS:
+        # Optional 5th tuple element: explicit angle (deg) override.
+        # Default 0 (horizontal).
+        if len(entry) == 5:
+            ref, dx, dy, layer, angle = entry
+        else:
+            ref, dx, dy, layer = entry
+            angle = 0.0
+        ax, ay = COMPONENT_ANCHORS[ref]
+        parts.append(_silk(ref, ax + dx, ay + dy, f"desig:{ref}",
+                           size=1.0, layer=layer, angle=angle))
+
+    # ---- 2) Pin sockets J5/J6/J7/J8 ----
+    # Each pin socket lives at one of the two long edges of an ESP32
+    # (J5/J6) or MIKROE (J7/J8) daughterboard. Place the designator
+    # OUTSIDE the daughterboard silk frame, near one short edge of
+    # the row, so it remains visible even when the daughterboard plugs
+    # in (and during bare-PCB assembly the user can identify which row
+    # is which).
+    #
+    # J5 row A at PCB (-22.39, -25.97), rotation 90, 15 pins along
+    # PCB +X. ESP32 (MOD1) daughterboard silk rect Y range [-50.6, -24.2].
+    # Label at PCB Y=-22.5 — 1.125 mm clear of MOD1 silk north edge
+    # at Y=-24.2 (with label-bbox half-h ≈0.575 mm).
+    parts.append(_silk("J5", -22.39 + 5.37, -22.5, "desig:J5", size=1.0))
+    # J6 label south of MOD1 silk south edge at Y=-50.6: label at
+    # Y=-52.5 gives 1.325 mm clearance.
+    parts.append(_silk("J6", -22.39 + 5.37, -52.5, "desig:J6", size=1.0))
+    # J7 row A at PCB (-14.03, +38.10), rotation 180. MIKROE-2462
+    # daughterboard silk rect Y range [-16.71, +40.84]. Label at
+    # PCB X = -14.03, Y = +42.2 — 0.785 mm south of MIKROE silk
+    # frame south edge (+40.84). Chord at Y=+43.5 → 0.725 mm to
+    # label bbox bottom (+42.775), well clear.
+    parts.append(_silk("J7", -14.03, +42.2, "desig:J7", size=1.0))
+    parts.append(_silk("J8", -36.89, +42.2, "desig:J8", size=1.0))
+
+    # ---- 3) Mounting holes H1/H2/H3 ----
+    # Per CLAUDE.md "Designators on PCB features: when a footprint's
+    # Reference property is hidden ... emit a separate fp_text user
+    # on F.SilkS with the designator (H1, H2, ZT1..ZT4) so the
+    # hand-assembler can identify each hole at a glance."
+    # ZT1..ZT4 already have silk_label fp_text. Add H1/H2/H3 as
+    # board-level gr_text — the in-footprint fp_text approach hits
+    # silk_overlap with MOD1 (for H3) and silk_over_copper with C10
+    # (for H1) given the v0.26 placement.
+    #
+    # H1 at (+47.6, +27.5), pitch-circle. Label SOUTH-EAST of hole
+    # at (+47.6+3.0, +27.5+0.0) = (+50.6, +27.5). With courtyard
+    # radius 2.85, label-center is 3.0 mm east of hole centre — gap
+    # 0.15 mm. Need slightly more.
+    parts.append(_silk("H1", +47.6 + 3.5, +27.5, "desig:H1", size=1.0))
+    parts.append(_silk("H2", -47.6 - 3.5, +27.5, "desig:H2", size=1.0))
+    # H3 hole at (0, -55) — PCB north arc. H3 silk circle radius
+    # 1.9 mm (south edge at Y=-53.1). MOD1 (ESP32) silk rect north
+    # edge at Y=-50.6. Strip Y=-53.1..-50.6 = 2.5 mm of clear silk
+    # available. Centre the H3 label at Y=-51.85: 0.675 mm clear of
+    # the hole silk circle south edge AND 0.675 mm clear of MOD1
+    # silk north edge (both > 0.15 mm DRC rule).
+    parts.append(_silk("H3", 0.0, -51.85, "desig:H3", size=1.0))
+
+    # ---- 4) LED ring caps C20..C31 + LEDs D11..D22 ----
+    # The LED ring + decoupling cap ring is the densest copper zone on
+    # the PCB. LEDs at R=11, caps at R=7.6, cable hole at R=6. The only
+    # silk-free annular bands are R<6 (cable hole — no PCB) and
+    # R>14 (ZT/H1/H2 zone, also already populated). Placing per-LED /
+    # per-cap silkscreen designators on F.SilkS triggers silk_over_copper
+    # DRC against the LED pads (at R~9.5-10.5 inner edge) and silk_overlap
+    # against the J1 terminal block at θ=60-120°.
+    #
+    # Use F.Fab (assembly-doc layer, exempt from silk_over_copper /
+    # silk_overlap / min_text_height rules) so each LED and cap remains
+    # identifiable in the 2D-top render and pcbnew without DRC noise.
+    # Same precedent as the ESP32 body label move in v0.22.
+    DESIG_LABEL_R_CAP = 8.9   # between cap outer edge (8.1) and LED inner (10.0)
+    DESIG_LABEL_R_LED = 13.6  # radially outside LED outer edge (12.0)
+    DESIG_LABEL_SIZE = 1.0
+    for i in range(LED_RING_COUNT):
+        if i in LED_RING_SKIP_INDICES:
+            continue
+        theta_deg = LED_RING_THETA_START_DEG + i * LED_RING_THETA_STEP_DEG
+        theta_rad = math.radians(theta_deg)
+        # Tangential rotation, clamped to [0, 180) so KiCad never
+        # renders text mirrored upside-down.
+        text_angle = (theta_deg + 90.0) % 180.0
+        # Cap designator (F.Fab — text sits over LED inner pads).
+        cap_label_x = DESIG_LABEL_R_CAP * math.cos(theta_rad)
+        cap_label_y = DESIG_LABEL_R_CAP * math.sin(theta_rad)
+        cap_ref = f"C{20 + i}"
+        parts.append(_silk(
+            cap_ref, cap_label_x, cap_label_y, f"desig:{cap_ref}",
+            size=DESIG_LABEL_SIZE, angle=text_angle, layer="F.Fab",
+        ))
+        # LED designator (F.Fab — at angles 60°..120° the F.SilkS
+        # position collides with J1 terminal block silk frame north edge
+        # at PCB Y=+12.29).
+        led_label_x = DESIG_LABEL_R_LED * math.cos(theta_rad)
+        led_label_y = DESIG_LABEL_R_LED * math.sin(theta_rad)
+        led_ref = f"D{11 + i}"
+        parts.append(_silk(
+            led_ref, led_label_x, led_label_y, f"desig:{led_ref}",
+            size=DESIG_LABEL_SIZE, angle=text_angle, layer="F.Fab",
+        ))
+
     return "\n".join(parts)
 
 
@@ -5695,7 +6001,12 @@ def gen_pcb() -> str:
         \t\t(uuid "{U('cable_hole')}")
         \t)""")
 
-    # 3 mounting holes
+    # 3 mounting holes. v0.27: per-hole designators (H1/H2/H3) are
+    # emitted as board-level `gr_text` in `gen_designator_labels()` so
+    # we can place each one in the clear zone next to its hole without
+    # colliding with neighbouring silk (MOD1 daughterboard frame for H3,
+    # C10 / J6 silk for H1). Mirrors the v0.27 approach used for every
+    # populated component.
     footprints = []
     for i, (x, y) in enumerate(HOLE_POSITIONS, start=1):
         ref = f"H{i}"
