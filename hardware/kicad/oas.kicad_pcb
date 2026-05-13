@@ -447,12 +447,6 @@
 		(uuid "e3d64ee8-0d36-5753-aa31-cef6eee6e2ca")
 		(effects (font (size 1.0 1.0) (thickness 0.15)))
 	)
-	(fp_text user "SEN66 SIN-T"
-		(at 27.6 12.8 0)
-		(layer "F.SilkS")
-		(uuid "6c4a1ea8-ddc4-5d7b-abcc-fd9b04ea7daf")
-		(effects (font (size 1.0 1.0) (thickness 0.15)))
-	)
 	(fp_rect
 		(start 0 0)
 		(end 55.2 25.6)
@@ -465,7 +459,7 @@
 (footprint "oas:LD2410_Mechanical_Reference"
 	(layer "F.Cu")
 	(uuid "045fc015-22de-5ec7-948c-b5134992d360")
-	(at 108.84 88.49 270)
+	(at 105.03 88.49 270)
 	(descr "HiLink HLK-LD2410B mechanical-reference (no pads). 24 GHz mmWave presence radar daughterboard. Body ~33x16x7 mm above OAS PCB on 1.27 mm pin header (J4). Antenna patches on the LD2410 top face point through the enclosure cover.")
 	(attr board_only exclude_from_pos_files exclude_from_bom)
 	(property "Reference" "LDR1"
@@ -476,7 +470,7 @@
 		(effects (font (size 1 1) (thickness 0.15)))
 	)
 	(property "Value" "LD2410_Mechanical_Reference"
-		(at 17.78 16.74 0)
+		(at 17.78 9.12 0)
 		(layer "F.Fab")
 		(hide yes)
 		(uuid "0681740a-49ee-5e41-80bb-fd366d2c38b0")
@@ -505,53 +499,27 @@
 	)
 	(fp_rect
 		(start 0 0)
-		(end 35.56 15.24)
+		(end 35.56 7.62)
 		(stroke (width 0.1) (type solid))
 		(fill no)
 		(layer "F.Fab")
 		(uuid "2928e9b1-9e08-502b-bdc8-16a133dd8e7c")
 	)
 	(fp_rect
-		(start 0.2 0.2)
-		(end 37.06 15.04)
-		(stroke (width 0.12) (type solid))
-		(fill no)
-		(layer "F.SilkS")
-		(uuid "65826b7a-80f3-51d9-a3de-834896e7a8f4")
-	)
-	(fp_rect
 		(start 1 1)
-		(end 12.7 14.24)
+		(end 12.7 6.62)
 		(stroke (width 0.1) (type dash))
 		(fill no)
 		(layer "F.Fab")
 		(uuid "97c0c24b-7a48-534c-9316-48a18e9f3a35")
 	)
-	(fp_text user "antenna ^"
-		(at 6.85 7.62 0)
-		(layer "F.SilkS")
-		(uuid "286bdd92-4abf-564b-9268-ab42cdcbd855")
-		(effects (font (size 1.0 1.0) (thickness 0.15)))
-	)
 	(fp_rect
-		(start 34.06 4.38)
-		(end 35.56 10.86)
+		(start 34.06 0.57)
+		(end 35.56 7.05)
 		(stroke (width 0.1) (type solid))
 		(fill no)
 		(layer "F.Fab")
 		(uuid "6165d00d-7f02-5715-a970-f8fc3a28eb70")
-	)
-	(fp_text user "J4 pins"
-		(at 27.56 7.62 0)
-		(layer "F.SilkS")
-		(uuid "685e8dd3-db6e-58ec-8856-38b5d6945f9c")
-		(effects (font (size 1.0 1.0) (thickness 0.15)))
-	)
-	(fp_text user "HLK-LD2410B"
-		(at 17.78 7.62 0)
-		(layer "F.SilkS")
-		(uuid "d0be36fd-83bd-5035-9c27-aded79a94764")
-		(effects (font (size 1.0 1.0) (thickness 0.15)))
 	)
 )
         	(footprint "ZipTieHole_3mm_NPTH"
@@ -877,15 +845,15 @@
 (footprint "Connector_JST:JST_GH_SM06B-GHS-TB_1x06-1MP_P1.25mm_Horizontal"
 	(layer "F.Cu")
 	(uuid "921a0799-32e4-576f-977b-a649c6a604e5")
-	(at 184.5 132 180)
+	(at 184.5 132 0)
 (property "Reference" "J3"
-	(at 0 -3.9 180)
+	(at 0 -3.9 0)
 	(layer "F.SilkS")
 	(uuid "8ac2be3a-5e45-5fbd-a4c8-12f50fcb0fdf")
 	(effects (font (size 1 1) (thickness 0.15)))
 )
 (property "Value" "JST SM06B-GHS-TB (SEN66 connector)"
-	(at 0 3.9 180)
+	(at 0 3.9 0)
 	(layer "F.Fab")
 	(uuid "cf224fa9-f6c5-5cc4-a763-5bc983851d39")
 	(effects (font (size 1 1) (thickness 0.15)))
@@ -1179,49 +1147,49 @@
 			)
 		)
 	(pad "1" smd roundrect
-			(at -3.125 -1.85 180)
+			(at -3.125 -1.85)
 			(size 0.6 1.7)
 			(layers "F.Cu" "F.Mask" "F.Paste")
 			(roundrect_rratio 0.25)
 		)
 	(pad "2" smd roundrect
-			(at -1.875 -1.85 180)
+			(at -1.875 -1.85)
 			(size 0.6 1.7)
 			(layers "F.Cu" "F.Mask" "F.Paste")
 			(roundrect_rratio 0.25)
 		)
 	(pad "3" smd roundrect
-			(at -0.625 -1.85 180)
+			(at -0.625 -1.85)
 			(size 0.6 1.7)
 			(layers "F.Cu" "F.Mask" "F.Paste")
 			(roundrect_rratio 0.25)
 		)
 	(pad "4" smd roundrect
-			(at 0.625 -1.85 180)
+			(at 0.625 -1.85)
 			(size 0.6 1.7)
 			(layers "F.Cu" "F.Mask" "F.Paste")
 			(roundrect_rratio 0.25)
 		)
 	(pad "5" smd roundrect
-			(at 1.875 -1.85 180)
+			(at 1.875 -1.85)
 			(size 0.6 1.7)
 			(layers "F.Cu" "F.Mask" "F.Paste")
 			(roundrect_rratio 0.25)
 		)
 	(pad "6" smd roundrect
-			(at 3.125 -1.85 180)
+			(at 3.125 -1.85)
 			(size 0.6 1.7)
 			(layers "F.Cu" "F.Mask" "F.Paste")
 			(roundrect_rratio 0.25)
 		)
 	(pad "MP" smd roundrect
-			(at -4.975 1.35 180)
+			(at -4.975 1.35)
 			(size 1 2.7)
 			(layers "F.Cu" "F.Mask" "F.Paste")
 			(roundrect_rratio 0.25)
 		)
 	(pad "MP" smd roundrect
-			(at 4.975 1.35 180)
+			(at 4.975 1.35)
 			(size 1 2.7)
 			(layers "F.Cu" "F.Mask" "F.Paste")
 			(roundrect_rratio 0.25)
@@ -1732,24 +1700,6 @@
 	(layer "F.Fab")
 	(uuid "5dae6272-8ff1-5847-b04f-95645e033098")
 )
-(fp_text user "ESP32-C6 DevKitM-1"
-	(at 12.7 24.13 90)
-	(layer "F.SilkS")
-	(uuid "9a92361f-056e-5d8b-b1bb-5f589666cbde")
-	(effects (font (size 1.0 1.0) (thickness 0.15)))
-)
-(fp_text user "ant"
-	(at 12.7 2.5 90)
-	(layer "F.SilkS")
-	(uuid "5a647c6b-57a1-5b06-be2a-3a3b2c20257d")
-	(effects (font (size 1.0 1.0) (thickness 0.15)))
-)
-(fp_text user "USB"
-	(at 12.7 42.26 90)
-	(layer "F.SilkS")
-	(uuid "7a2faba2-e9f9-5c02-8bd3-95d3fec12375")
-	(effects (font (size 1.0 1.0) (thickness 0.15)))
-)
 	)
 (footprint "oas:MIKROE-2462_Reference"
 	(layer "F.Cu")
@@ -1928,12 +1878,6 @@
 	(fill no)
 	(layer "F.Fab")
 	(uuid "71dc008c-4430-50ec-a26e-8a3cabbf7174")
-)
-(fp_text user "MIKROE-2462"
-	(at 12.7 28.575 90)
-	(layer "F.SilkS")
-	(uuid "5e568412-ec73-59ce-a8f2-9609ccf9d240")
-	(effects (font (size 1.0 1.0) (thickness 0.15)))
 )
 	)
 (footprint "Connector_PinSocket_2.54mm:PinSocket_1x15_P2.54mm_Vertical"
@@ -3022,6 +2966,62 @@
 	(at 184.8 102 0)
 	(layer "F.SilkS")
 	(uuid "a8aa26d6-067a-5856-9570-0510da278d70")
+	(effects
+		(font (size 1 1) (thickness 0.15))
+	)
+)
+(gr_text "HLK-LD2410B"
+	(at 101.22 106.27 0)
+	(layer "F.SilkS")
+	(uuid "6f2e2d07-50a1-53e3-a2b9-197222491680")
+	(effects
+		(font (size 1 1) (thickness 0.15))
+	)
+)
+(gr_text "antenna ^"
+	(at 101.22 95.34 0)
+	(layer "F.SilkS")
+	(uuid "c2498a92-def5-5d29-8ac2-4e8c3b225778")
+	(effects
+		(font (size 1 1) (thickness 0.15))
+	)
+)
+(gr_text "SEN66 SIN-T"
+	(at 184.8 107.4 0)
+	(layer "F.SilkS")
+	(uuid "2c9361da-f4d6-5081-961e-ba72931485ae")
+	(effects
+		(font (size 1 1) (thickness 0.15))
+	)
+)
+(gr_text "ESP32-C6 DevKitM-1"
+	(at 144.87 67.6 0)
+	(layer "F.SilkS")
+	(uuid "e5c5f8b8-3a1d-592f-a740-15f1e95151ab")
+	(effects
+		(font (size 1 1) (thickness 0.15))
+	)
+)
+(gr_text "ant"
+	(at 123.24 67.6 0)
+	(layer "F.SilkS")
+	(uuid "4f04fdd2-9dd6-5443-b9c6-6473e201851a")
+	(effects
+		(font (size 1 1) (thickness 0.15))
+	)
+)
+(gr_text "USB"
+	(at 163 67.6 0)
+	(layer "F.SilkS")
+	(uuid "275c22c6-5a9a-5717-a90b-49bdd45e0c93")
+	(effects
+		(font (size 1 1) (thickness 0.15))
+	)
+)
+(gr_text "MIKROE-2462"
+	(at 123.04 117.065 0)
+	(layer "F.SilkS")
+	(uuid "a4765db0-758e-5348-9262-94cf413c4608")
 	(effects
 		(font (size 1 1) (thickness 0.15))
 	)

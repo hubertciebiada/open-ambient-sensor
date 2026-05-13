@@ -188,33 +188,31 @@ SEN66_ZIPTIE_LOCAL = [
 ]
 
 # J3 (JST GH 6-pin board-side socket — SM06B-GHS-TB, horizontal SMD).
-# Placed to the PCB-RIGHT (east) of the SEN66 body shadow in the SENSORS
-# sensors area, just past body_max_X (= 35.6 mm) with room for the JST cable's
-# minimum bend radius (~10 mm). The cable from the SEN66 enclosure-cover
-# mount runs from the SEN66 connector at PCB (22.8, -15.2) (top edge of
-# body shadow, +X short edge of SEN66) → up and around (cable comes up
-# off the cover, then bends back down to the PCB) → into J3 from the
-# PCB -X (west) direction. Total cable run ≈ 50 mm, well under the
-# 500 mm SEN6x datasheet maximum.
-#
-# Rotation 90° (counter-clockwise in KiCad's convention) reorients the
-# native horizontal JST footprint so its cable-opening side (pads at
-# local Y = -1.85, "north" in native orientation) faces PCB -X (west,
-# toward SEN66). At rotation 90, local Y → PCB X, so the pad-side
-# faces PCB -X. Verified clear of mounting hole H1 at (+47.6, +27.5)
-# (15.6 mm centre-to-centre, ~6.8 mm courtyard-to-courtyard clearance)
-# and clear of cutout C5 at (X 27.9..35.4, Y 36.5..42.5).
-J3_X = 36.0   # v0.9: re-located under SEN66 body (was east of body in v0.7/0.8).
-              # Centred horizontally on body mid-X = SEN66_ANCHOR_X + SEN66_BODY_Y/2
-              # = 23.5 + 12.8 = 36.3 -> rounded to 36.
+# Placed below the SEN66 body shadow (PCB +Y direction past body bottom
+# edge at Y=22). With v0.6 the SEN66 is PCB-mounted directly (no enclosure
+# cover mount), so the JST GH cable run is purely on-PCB. The SEN66's
+# JST GH connector is on its +X short edge at PCB Y=-33.2 (the body's
+# NORTH edge after the SEN66's rotation 90°); the cable enters J3 from
+# PCB -Y (north). With J3_ROTATION=0 (v0.15.8 fix), the J3 cable opening
+# also faces PCB -Y so the cable enters straight without a U-turn.
+# Verified clear of mounting hole H1 at (+47.6, +27.5) and clear of
+# cutout C5 at (X 27.9..35.4, Y 36.5..42.5).
+J3_X = 36.0   # v0.9: located below SEN66 body shadow. Centred horizontally
+              # on body mid-X = SEN66_ANCHOR_X + SEN66_BODY_Y/2 = 23.5 + 12.8
+              # = 36.3 -> rounded to 36.
 J3_Y = 27.0   # v0.9: sits 3 mm south (PCB +Y) of SEN66 body bottom (Y=22).
-              # With J3_ROTATION=180, J3 body extends north of pads
-              # (pads at PCB Y = J3_Y + 1.85 = 28.85), so the J3 body north
-              # edge sits ~Y=25 — i.e. 3 mm below SEN66 body bottom edge.
-J3_ROTATION = 180  # v0.9: rotated 90 -> 180 so the cable opening (pad-side,
-                   # native "north" of footprint) faces PCB +Y (south, toward
-                   # chord). The SEN66 cable plug enters J3 from below in the
-                   # natural viewing orientation (chord at bottom of screen).
+              # With J3_ROTATION=0 (v0.15.8), J3 body extends south of pads
+              # (pads at PCB Y = J3_Y - 1.85 = 25.15), so the J3 body south
+              # edge sits ~Y=29. Cable opening (pads side) faces NORTH
+              # toward SEN66, eliminating the 180° U-turn.
+J3_ROTATION = 0    # v0.15.8: flipped 180 -> 0 so the cable opening (pad-side,
+                   # native "north" of footprint) faces PCB -Y (north, toward
+                   # the SEN66 body). Eliminates the 180° U-turn the cable
+                   # previously had to make when J3 opened south (away from
+                   # SEN66). Per independent code review M1: SEN66 connector
+                   # sits on body +X short edge at PCB Y=-33.2 (north side
+                   # of body); cable now runs SOUTH from SEN66 → into J3
+                   # opening (no U-turn).
 
 # -----------------------------------------------------------------------------
 # LD2410 PCB placement (mechanical reference + J4 pin header) — chunk #5b
@@ -243,71 +241,81 @@ J3_ROTATION = 180  # v0.9: rotated 90 -> 180 so the cable opening (pad-side,
 # (multiples of 1.27 mm) for keep-out planning. The mechanical-reference
 # footprint claims this rectangle so future PCB components (NT3H2211 NFC,
 # Qwiic, decoupling caps) keep clear of the LD2410 shadow.
-LD2410_BODY_W = 35.56            # mm, long axis (28 × 1.27)
-LD2410_BODY_H = 15.24            # mm, short axis (12 × 1.27)
+LD2410_BODY_W = 35.56            # mm, long axis (28 × 1.27). Matches the
+                                  # HLK-LD2410B datasheet V1.04 §4.1
+                                  # "Module size: 7mm × 35mm", with a small
+                                  # margin (0.56 mm) for silkscreen breathing
+                                  # room.
+LD2410_BODY_H = 7.62             # mm, short axis (6 × 1.27). v0.15.8 fix:
+                                  # corrected from 15.24 — datasheet V1.04
+                                  # §4.1 specifies 7 mm; the older 15.24 mm
+                                  # value matched the LD2410C (16 × 22 mm,
+                                  # different variant) or a dev-kit carrier
+                                  # board, NOT the bare HLK-LD2410B. Gives
+                                  # silk breathing room over the 7 mm spec.
 LD2410_BODY_Z = 7.0              # mm, approx height above PCB (pin-header
                                   # standoff + LD2410 PCB + onboard SMD).
                                   # Well within the 17 mm front-side limit.
 LD2410_SILK_INSET = 0.2          # F.SilkS inset from F.Fab outline (top/
-                                  # bottom/left). The right edge uses a
-                                  # larger inset (LD2410_SILK_INSET_CONN
-                                  # below) so the silk rectangle does NOT
-                                  # extend into the J4 pin-header silk area
-                                  # at the connector edge.
-LD2410_SILK_INSET_CONN = -1.5    # NEGATIVE inset: F.SilkS body rect EXTENDS
-                                  # 1.5 mm beyond body edge on the connector
-                                  # side so the WHOLE J4 footprint (pads +
-                                  # stock silk frame + ref text) sits inside
-                                  # the LD2410 silk rect — per user request
-                                  # "J4 musi być w obrębie płytki". Clearance
-                                  # to J4 silk frame outer edge (PCB Y=20.21):
-                                  # silk_y_max = -16.51 + (35.56-(-1.5)) =
-                                  # +20.55, gap 0.34 mm edge-to-edge (>0.15
-                                  # silk_overlap minimum).
-                                  # side so the LD2410 silk rectangle stops
-                                  # ~4 mm short of the body's connector edge,
-                                  # leaving room for the J4 pin-header silk
-                                  # graphics (5 pads + ref text) at OAS PCB
-                                  # X = -10.16.
+                                  # bottom/left).
+LD2410_SILK_INSET_CONN = 0.2     # v0.15.8: with body_h shrunk to 7.62 mm,
+                                  # symmetric inset matches the other 3 edges.
+LD2410_EMIT_SILK_OUTLINE = False  # v0.15.8: F.SilkS body rectangle DROPPED.
+                                  # With body_h=7.62 mm, J4 silk frame is
+                                  # WIDER than the body itself; any LD2410
+                                  # silk rect would either overlap J4 silk
+                                  # (silk_overlap) or sit so far inside the
+                                  # body that it provides no useful
+                                  # identification. Rely instead on the
+                                  # F.Fab body outline (mechanical docs) +
+                                  # J4 silk frame (which is the visible silk
+                                  # at the connector edge) + a board-level
+                                  # "HLK-LD2410B" gr_text label emitted by
+                                  # gen_silk_labels(). The board-level text
+                                  # also reads horizontally regardless of
+                                  # the LD2410 footprint's 270° rotation.
 LD2410_ANTENNA_X_END = 12.7      # mm — LD2410-local X end of antenna zone
                                   # (patches sit at LD2410-local X ≈ 0..12 mm,
                                   # at the short edge OPPOSITE the connector).
 LD2410_CONNECTOR_X = 35.56       # mm — LD2410-local X of the pin row (the
                                   # +X short edge, the connector end).
-LD2410_CONNECTOR_Y = 7.62        # mm — LD2410-local Y center of the 5-pin
-                                  # row (centred on the short edge).
+LD2410_CONNECTOR_Y = LD2410_BODY_H / 2.0   # mm — LD2410-local Y center of
+                                            # the 5-pin row (centred on the
+                                            # short edge). v0.15.8: derived
+                                            # from LD2410_BODY_H so the pin
+                                            # row marker remains centred on
+                                            # the short edge for any body_h.
 
 # Placement on OAS PCB (v0.11 — vertical, left side, pins south).
 # Anchored at the LD2410-local (0, 0) corner. With rotation 270°,
 # LD2410-local +X maps to PCB +Y and LD2410-local +Y maps to PCB -X.
 # So body extends in +Y and -X from the anchor.
 #
-# Body shadow on OAS PCB (v0.15):
-#   X range: anchor_x - LD2410_BODY_H .. anchor_x  =  -54.90 .. -39.66
+# Body shadow on OAS PCB (v0.15.8, after LD2410_BODY_H 15.24 → 7.62 fix):
+#   X range: anchor_x - LD2410_BODY_H .. anchor_x  =  -51.09 .. -43.47
 #   Y range: anchor_y .. anchor_y + LD2410_BODY_W  =  -16.51 .. +19.05
-# Connector short edge at PCB Y = anchor_y + LD2410_BODY_W = +19.05
-# (the southernmost body edge, closest to the chord), so the LD2410
-# daughterboard's 1.27 mm pin row lands on a horizontal line at Y=19.05
-# along OAS PCB X = -44.74..-49.82; pin 3 (middle) at X=-47.28.
+# Body centre X = anchor_x - LD2410_BODY_H/2 = -47.28 — aligned with
+# J4 pin 3 (middle of the 5-pin row) at PCB X=-47.28. The pin row
+# stays at OAS PCB X = -44.74..-49.82 (J4_PCB_X=-44.74 unchanged).
 #
-# Clearance checks vs the rest of the PCB:
-#   - PCB outline at body top-left corner Y=-16.51:    x_min=-57.68,
-#     body left at -54.90 → 2.78 mm clear.
+# Clearance checks vs the rest of the PCB (post-shrink, with body_h=7.62):
 #   - PCB outline at body bottom-left corner Y=+19.05: x_min=-56.90,
-#     body left at -54.90 → 2.00 mm clear (user spec: 1-2 mm).
-#   - H2 mounting hole at (-47.6, +27.5) — Y separation between body
-#     bottom and H2 zone (Y 24.65..30.35) = 5.6 mm. No overlap.
+#     body left at -51.09 → 5.81 mm clear (more than v0.15's 2.0 mm).
+#   - PCB outline at body top-left corner Y=-16.51:    x_min=-57.68,
+#     body left at -51.09 → 6.59 mm clear.
+#   - H2 mounting hole at (-47.6, +27.5) — H2 at X=-47.6 sits within
+#     body X range [-51.09, -43.47] but Y separation 5.6 mm.
+#     No overlap.
 #   - Cutout zone C1 at (X -33.8..-21.8, Y 31.5..42.5) — body Y < +19.05
 #     < 31.5; no Y overlap.
 #   - Cable hole at PCB centre (Ø12 / radius 6) — body right edge
-#     at X=-39.66 → 33.66 mm clear from the cable hole +X edge at X=-6.
-LD2410_ANCHOR_X = -39.66         # v0.15: pushed further LEFT to the wall
-                                  # (was -34.21 in v0.14). Body X range
-                                  # -54.90..-39.66. PCB outline at body
-                                  # bottom-left corner Y=+19.05: x_min=-56.90
-                                  # → 2.0 mm clearance (user spec 1-2 mm).
-                                  # PCB outline at body top-left corner
-                                  # Y=-16.51: x_min=-57.68 → 2.78 mm.
+#     at X=-43.47 → 37.47 mm clear from the cable hole +X edge at X=-6.
+LD2410_ANCHOR_X = -43.47         # v0.15.8: shifted +3.81 mm from -39.66
+                                  # to recentre the (now smaller) body
+                                  # shadow on the J4 pin row at PCB X=-47.28.
+                                  # = -39.66 + (15.24 - 7.62)/2; body
+                                  # centerline X = anchor - body_h/2 = -47.28.
+                                  # Body X range -51.09..-43.47.
 LD2410_ANCHOR_Y = -16.51         # mm — OAS PCB Y of LD2410-local (0, 0).
                                   # = -1.27 × 13 (on 1.27 mm grid).
 LD2410_ROTATION = 270            # degrees; long axis along PCB Y. With
@@ -867,16 +875,10 @@ def gen_sen66_mechanical_footprint() -> str:
         \t\t(effects (font (size 1.0 1.0) (thickness 0.15)))
         \t)""")
 
-    # Module identification text in the centre — SEN66-SIN-T (MPN) +
-    # Sensirion material number 3.001.030 (per CLAUDE.md Module
-    # Identification rule).
-    body_label = textwrap.dedent(f"""\
-        \t(fp_text user "SEN66 SIN-T"
-        \t\t(at {fmt(SEN66_BODY_X / 2.0)} {fmt(SEN66_BODY_Y / 2.0)} 0)
-        \t\t(layer "F.SilkS")
-        \t\t(uuid "{U('sen66:fp:body-label')}")
-        \t\t(effects (font (size 1.0 1.0) (thickness 0.15)))
-        \t)""")
+    # v0.15.8: "SEN66 SIN-T" module-identification label moved to a
+    # board-level gr_text emitted by gen_silk_labels(), so the label
+    # reads horizontally instead of rotating with the SEN66 footprint
+    # rotation 90°.
 
     # Reference + Value properties (hidden — this is a mechanical reference
     # and shouldn't clutter the silk).
@@ -945,7 +947,7 @@ def gen_sen66_mechanical_footprint() -> str:
         ref_block, value_block, footprint_block, datasheet_block, desc_block,
         fab_outline, silk_outline,
         inlet1_top, inlet1_bot, inlet1_left_arc, inlet1_right_arc,
-        inlet2, outlet, divider, conn_marker, conn_label, body_label,
+        inlet2, outlet, divider, conn_marker, conn_label,
         courtyard,
     ])
 
@@ -998,11 +1000,11 @@ def gen_ld2410_mechanical_footprint() -> str:
         \t\t(layer "F.Fab")
         \t\t(uuid "{U('ld2410:fp:fab-outline')}")
         \t)""")
-    # Silk rectangle uses asymmetric insets — the right (connector) edge
-    # is pulled in by LD2410_SILK_INSET_CONN so the silk does NOT extend
-    # into the J4 pin-header silk area (which sits just outside the body
-    # on the connector-edge X column).
-    silk_outline = textwrap.dedent(f"""\
+    # v0.15.8: F.SilkS body rectangle DROPPED (see LD2410_EMIT_SILK_OUTLINE
+    # constant comment). The F.Fab outline below is retained for assembly
+    # documentation; the silk identification is now the board-level
+    # "HLK-LD2410B" gr_text emitted by gen_silk_labels().
+    silk_outline = "" if not LD2410_EMIT_SILK_OUTLINE else textwrap.dedent(f"""\
         \t(fp_rect
         \t\t(start {fmt(x_min + inset)} {fmt(y_min + inset)})
         \t\t(end {fmt(x_max - LD2410_SILK_INSET_CONN)} {fmt(y_max - inset)})
@@ -1025,13 +1027,14 @@ def gen_ld2410_mechanical_footprint() -> str:
         \t\t(layer "F.Fab")
         \t\t(uuid "{U('ld2410:fp:antenna')}")
         \t)""")
-    antenna_label = textwrap.dedent(f"""\
-        \t(fp_text user "antenna ^"
-        \t\t(at {fmt((x_min + 1.0 + LD2410_ANTENNA_X_END) / 2.0)} {fmt(y_max / 2.0)} 0)
-        \t\t(layer "F.SilkS")
-        \t\t(uuid "{U('ld2410:fp:antenna-label')}")
-        \t\t(effects (font (size 1.0 1.0) (thickness 0.15)))
-        \t)""")
+    # v0.15.8: "antenna ^", "J4 pins", and "HLK-LD2410B" labels removed
+    # from the footprint and emitted as board-level gr_text by
+    # gen_silk_labels() so they remain rotation-independent and read
+    # horizontally even though the LD2410 footprint is rotated 270°.
+    # With the body shrunk from 15.24 mm to 7.62 mm (correct datasheet
+    # short-axis spec), the rotated in-footprint text bboxes triggered
+    # silk_overlap DRC violations against the silk rect; moving to
+    # board-level gr_text eliminates the rotation issue entirely.
 
     # Connector pin-row marker on F.Fab — solid rectangle showing the
     # 5-pin column footprint at the +X short edge. The actual electrical
@@ -1048,25 +1051,6 @@ def gen_ld2410_mechanical_footprint() -> str:
         \t\t(fill no)
         \t\t(layer "F.Fab")
         \t\t(uuid "{U('ld2410:fp:conn-marker')}")
-        \t)""")
-    conn_label = textwrap.dedent(f"""\
-        \t(fp_text user "J4 pins"
-        \t\t(at {fmt(conn_x - 8.0)} {fmt(LD2410_CONNECTOR_Y)} 0)
-        \t\t(layer "F.SilkS")
-        \t\t(uuid "{U('ld2410:fp:conn-label')}")
-        \t\t(effects (font (size 1.0 1.0) (thickness 0.15)))
-        \t)""")
-
-    # Body label in the centre — HLK-LD2410B (variant) for the assembler
-    # so the right module is soldered into J4. Position at body center
-    # so silk-overlap clearance with the (asymmetric-inset) silk rect
-    # has comfortable margin all around.
-    body_label = textwrap.dedent(f"""\
-        \t(fp_text user "HLK-LD2410B"
-        \t\t(at {fmt(LD2410_BODY_W / 2.0)} {fmt(LD2410_BODY_H / 2.0)} 0)
-        \t\t(layer "F.SilkS")
-        \t\t(uuid "{U('ld2410:fp:body-label')}")
-        \t\t(effects (font (size 1.0 1.0) (thickness 0.15)))
         \t)""")
 
     ref_block = textwrap.dedent(f"""\
@@ -1123,12 +1107,14 @@ def gen_ld2410_mechanical_footprint() -> str:
     # is a Z-stack clearance question, not a 2D courtyard one. Designers
     # read the F.Fab outline + Description to know what's where.
 
-    body_blocks = "\n".join([
-        ref_block, value_block, footprint_block, datasheet_block, desc_block,
-        fab_outline, silk_outline,
-        antenna_marker, antenna_label,
-        conn_marker, conn_label, body_label,
-    ])
+    body_blocks = "\n".join(
+        block for block in (
+            ref_block, value_block, footprint_block, datasheet_block, desc_block,
+            fab_outline, silk_outline,
+            antenna_marker,
+            conn_marker,
+        ) if block
+    )
 
     return textwrap.dedent(f"""\
         (footprint "LD2410_Mechanical_Reference"
@@ -1628,12 +1614,6 @@ def gen_sen66_reference_pcb_footprint(x: float, y: float, rotation: int) -> str:
         \t\t\t(uuid "{U('fp-conn-label:' + uuid_tag)}")
         \t\t\t(effects (font (size 1.0 1.0) (thickness 0.15)))
         \t\t)
-        \t\t(fp_text user "SEN66 SIN-T"
-        \t\t\t(at {fmt(SEN66_BODY_X / 2.0)} {fmt(SEN66_BODY_Y / 2.0)} 0)
-        \t\t\t(layer "F.SilkS")
-        \t\t\t(uuid "{U('fp-body-label:' + uuid_tag)}")
-        \t\t\t(effects (font (size 1.0 1.0) (thickness 0.15)))
-        \t\t)
         \t\t(fp_rect
         \t\t\t(start {fmt(x_min)} {fmt(y_min)})
         \t\t\t(end {fmt(x_max)} {fmt(y_max)})
@@ -2046,26 +2026,12 @@ def gen_ld2410_reference_pcb_footprint(x: float, y: float, rotation: int) -> str
         \t\t\t(uuid "{U('fp-fab-outline:' + uuid_tag)}")
         \t\t)
         \t\t(fp_rect
-        \t\t\t(start {fmt(x_min + inset)} {fmt(y_min + inset)})
-        \t\t\t(end {fmt(x_max - LD2410_SILK_INSET_CONN)} {fmt(y_max - inset)})
-        \t\t\t(stroke (width 0.12) (type solid))
-        \t\t\t(fill no)
-        \t\t\t(layer "F.SilkS")
-        \t\t\t(uuid "{U('fp-silk-outline:' + uuid_tag)}")
-        \t\t)
-        \t\t(fp_rect
         \t\t\t(start {fmt(x_min + 1.0)} {fmt(y_min + 1.0)})
         \t\t\t(end {fmt(LD2410_ANTENNA_X_END)} {fmt(y_max - 1.0)})
         \t\t\t(stroke (width 0.1) (type dash))
         \t\t\t(fill no)
         \t\t\t(layer "F.Fab")
         \t\t\t(uuid "{U('fp-antenna:' + uuid_tag)}")
-        \t\t)
-        \t\t(fp_text user "antenna ^"
-        \t\t\t(at {fmt((x_min + 1.0 + LD2410_ANTENNA_X_END) / 2.0)} {fmt(y_max / 2.0)} 0)
-        \t\t\t(layer "F.SilkS")
-        \t\t\t(uuid "{U('fp-antenna-label:' + uuid_tag)}")
-        \t\t\t(effects (font (size 1.0 1.0) (thickness 0.15)))
         \t\t)
         \t\t(fp_rect
         \t\t\t(start {fmt(conn_x - 1.5)} {fmt(conn_y_top - 0.7)})
@@ -2074,18 +2040,6 @@ def gen_ld2410_reference_pcb_footprint(x: float, y: float, rotation: int) -> str
         \t\t\t(fill no)
         \t\t\t(layer "F.Fab")
         \t\t\t(uuid "{U('fp-conn-marker:' + uuid_tag)}")
-        \t\t)
-        \t\t(fp_text user "J4 pins"
-        \t\t\t(at {fmt(conn_x - 8.0)} {fmt(LD2410_CONNECTOR_Y)} 0)
-        \t\t\t(layer "F.SilkS")
-        \t\t\t(uuid "{U('fp-conn-label:' + uuid_tag)}")
-        \t\t\t(effects (font (size 1.0 1.0) (thickness 0.15)))
-        \t\t)
-        \t\t(fp_text user "HLK-LD2410B"
-        \t\t\t(at {fmt(LD2410_BODY_W / 2.0)} {fmt(LD2410_BODY_H / 2.0)} 0)
-        \t\t\t(layer "F.SilkS")
-        \t\t\t(uuid "{U('fp-body-label:' + uuid_tag)}")
-        \t\t\t(effects (font (size 1.0 1.0) (thickness 0.15)))
         \t\t)
         \t)""")
 
@@ -2447,34 +2401,20 @@ def _daughterboard_body_content(
                 \t\t(uuid "{U(f'fp-pin:{uuid_tag}:{col_idx}-{row_idx}')}")
                 \t)"""))
 
-    # Centre body label — F.SilkS so it shows on the physical board and 3D.
-    # Position at body center (along long axis) with rotation 90 so the
-    # text reads along the body. Centering avoids text bbox extending past
-    # the silk rect (silk_overlap) when the body label string is long.
-    parts.append(textwrap.dedent(f"""\
-        \t(fp_text user "{body_label}"
-        \t\t(at {fmt(body_w / 2.0)} {fmt(body_l / 2.0)} 90)
-        \t\t(layer "F.SilkS")
-        \t\t(uuid "{U('fp-body-label:' + uuid_tag)}")
-        \t\t(effects (font (size 1.0 1.0) (thickness 0.15)))
-        \t)"""))
+    # v0.15.8: Centre body label removed — emitted as board-level
+    # gr_text by gen_silk_labels() instead, so the label reads
+    # horizontally regardless of the daughterboard footprint's rotation.
+    # `body_label` argument retained for backward compatibility / docs
+    # but no longer rendered inside the footprint.
+    _ = body_label  # noqa: F841 (argument deliberately unused after v0.15.8)
 
-    if antenna_label:
-        parts.append(textwrap.dedent(f"""\
-            \t(fp_text user "{antenna_label}"
-            \t\t(at {fmt(body_w / 2.0)} {fmt(2.5)} 90)
-            \t\t(layer "F.SilkS")
-            \t\t(uuid "{U('fp-antenna-label:' + uuid_tag)}")
-            \t\t(effects (font (size 1.0 1.0) (thickness 0.15)))
-            \t)"""))
-    if usb_label:
-        parts.append(textwrap.dedent(f"""\
-            \t(fp_text user "{usb_label}"
-            \t\t(at {fmt(body_w / 2.0)} {fmt(body_l - 6.0)} 90)
-            \t\t(layer "F.SilkS")
-            \t\t(uuid "{U('fp-usb-label:' + uuid_tag)}")
-            \t\t(effects (font (size 1.0 1.0) (thickness 0.15)))
-            \t)"""))
+    # v0.15.8: antenna_label and usb_label arguments are also retained
+    # for compatibility but no longer rendered inside the footprint.
+    # ESP32-C6 "ant" / "USB" hints are emitted as board-level gr_text
+    # by gen_silk_labels() so they read horizontally regardless of
+    # daughterboard rotation. MIKROE-2462 passes None for both.
+    _ = antenna_label  # noqa: F841 (argument deliberately unused after v0.15.8)
+    _ = usb_label  # noqa: F841 (argument deliberately unused after v0.15.8)
 
     return "\n".join(parts)
 
@@ -2862,6 +2802,58 @@ def gen_silk_labels() -> str:
     # and the "to SEN66" label at J3 are dropped — with J3 now directly
     # below the SEN66 body shadow, the SEN66 ↔ J3 association is visually
     # obvious from the silk outlines alone.
+
+    # ---- v0.15.8: LD2410 board-level labels (board-level gr_text so
+    # they read horizontally even with the LD2410 footprint rotated 270°).
+    # Replaces in-footprint fp_text "HLK-LD2410B" + "antenna ^" + "J4 pins"
+    # which became cramped after LD2410_BODY_H was corrected from 15.24
+    # to 7.62 mm (datasheet short-axis spec).
+    # Convert LD2410-local positions to PCB via the helper.
+    ld_body_pcb = _ld2410_local_to_pcb(LD2410_BODY_W / 2.0, LD2410_BODY_H / 2.0)
+    ld_antenna_pcb = _ld2410_local_to_pcb((1.0 + LD2410_ANTENNA_X_END) / 2.0,
+                                            LD2410_BODY_H / 2.0)
+    parts.append(_silk("HLK-LD2410B", ld_body_pcb[0], ld_body_pcb[1],
+                       "ld2410-body", size=1.0))
+    parts.append(_silk("antenna ^", ld_antenna_pcb[0], ld_antenna_pcb[1],
+                       "ld2410-antenna", size=1.0))
+
+    # ---- v0.15.8: SEN66 module identification label as board-level
+    # gr_text (the in-footprint "SEN66 SIN-T" fp_text rotates with the
+    # SEN66's rotation 90° and ends up vertical on the rendered PCB).
+    # Placed at the SEN66 body centre.
+    sen66_body_cx = SEN66_ANCHOR_X + SEN66_BODY_Y / 2
+    sen66_body_cy = SEN66_ANCHOR_Y - SEN66_BODY_X / 2
+    parts.append(_silk("SEN66 SIN-T", sen66_body_cx, sen66_body_cy + 8.0,
+                       "sen66-mpn", size=1.0))
+
+    # ---- v0.15.8: ESP32 and MIKROE-2462 body-label boards (mirror Task
+    # #8 for these daughterboards). The body labels live INSIDE the
+    # respective body silk rects but rotate with the footprint, making
+    # them upside-down or vertical depending on placement. Board-level
+    # gr_text keeps them horizontal.
+    # ESP32 body centre (rotation 90 -> LIB +Y → PCB +X, +X → PCB -Y).
+    # Body LIB extent: 0..body_w × 0..body_l. Centre LIB = (body_w/2,
+    # body_l/2). PCB = (anchor_x + body_l/2, anchor_y - body_w/2).
+    esp32_body_cx = ESP32_ANCHOR_X + ESP32_BODY_L / 2.0
+    esp32_body_cy = ESP32_ANCHOR_Y - ESP32_BODY_W / 2.0
+    parts.append(_silk("ESP32-C6 DevKitM-1", esp32_body_cx, esp32_body_cy,
+                       "esp32-body", size=1.0))
+    # ESP32 antenna ("ant") and USB-C ("USB") short-edge hints. LIB
+    # (body_w/2, 2.5) and (body_w/2, body_l - 6.0). After rotation 90.
+    esp32_ant_cx = ESP32_ANCHOR_X + 2.5
+    esp32_ant_cy = ESP32_ANCHOR_Y - ESP32_BODY_W / 2.0
+    parts.append(_silk("ant", esp32_ant_cx, esp32_ant_cy,
+                       "esp32-antenna", size=1.0))
+    esp32_usb_cx = ESP32_ANCHOR_X + (ESP32_BODY_L - 6.0)
+    esp32_usb_cy = ESP32_ANCHOR_Y - ESP32_BODY_W / 2.0
+    parts.append(_silk("USB", esp32_usb_cx, esp32_usb_cy,
+                       "esp32-usb", size=1.0))
+    # MIKROE-2462 body centre (rotation 180 -> LIB (lx, ly) → PCB
+    # (anchor_x - lx, anchor_y - ly)).
+    mikroe_body_cx = MIKROE2462_ANCHOR_X - MIKROE2462_BODY_W / 2.0
+    mikroe_body_cy = MIKROE2462_ANCHOR_Y - MIKROE2462_BODY_L / 2.0
+    parts.append(_silk("MIKROE-2462", mikroe_body_cx, mikroe_body_cy,
+                       "mikroe-body", size=1.0))
 
     # ---- v0.7: cutout-zone reservation labels + outlines on F.SilkS ----
     # Each cutout C1..C5 along the chord is reserved for a future
