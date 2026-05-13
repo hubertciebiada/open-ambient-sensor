@@ -2986,6 +2986,7 @@ def _emit_stock_lib_footprint(
     val_offset_y: float = 3.0,
     hide_ref: bool = False,
     hide_value: bool = True,
+    dnp: bool = False,
 ) -> str:
     """Generic helper to embed a KiCad stock-library footprint into the PCB.
 
@@ -3088,6 +3089,20 @@ def _emit_stock_lib_footprint(
 
     body_text = "\n".join(reindent_for_pcb(c) for c in body_children)
     body_text = body_text.replace('"${REFERENCE}"', f'"{reference}"')
+
+    # v0.23 fix for review Mn4: when the matching schematic symbol carries
+    # `(dnp yes)`, mirror it on the PCB-side `(attr ...)` clause so the
+    # position file + BOM export honor DNP. Stock-library `_emit_stock_lib_*`
+    # footprints inherit `(attr through_hole)` or `(attr smd)` from the
+    # source .kicad_mod; append the JLCPCB-recognised flags here.
+    if dnp:
+        import re as _re
+        body_text = _re.sub(
+            r"\(attr\s+([^)]+?)\)",
+            lambda m: f"(attr {m.group(1).strip()} exclude_from_pos_files exclude_from_bom dnp)",
+            body_text,
+            count=1,
+        )
 
     if rotation != 0:
         body_text = _annotate_pad_rotations(body_text, rotation)
@@ -3193,6 +3208,9 @@ def gen_j10_recovery_pcb_footprint(x: float, y: float, rotation: int) -> str:
         # The board-level "J10 flash" cutout silk label + per-pin
         # F.Fab labels identify the connector.
         hide_ref=True, hide_value=True,
+        # v0.23 fix for review Mn4: schematic symbol carries `(dnp yes)`;
+        # mirror it on the PCB so pos files + BOM exclude J10.
+        dnp=True,
     )
 
 
@@ -4187,13 +4205,19 @@ def gen_pinheader_6_recovery_pcb_footprint(*, x: float, y: float, rotation: int,
             \t\t\t(layers "*.Cu" "*.Mask")
             \t\t\t(uuid "{U(f'fp-pad-{pin_num}:' + uuid_tag)}")
             \t\t)"""))
+    # v0.23 fix for review Mn4: schematic symbol carries `(dnp yes)` for
+    # the SWD/UART recovery header (J2). Mirror this on the PCB side via
+    # `exclude_from_pos_files exclude_from_bom dnp` so the position file
+    # generator and BOM export both treat J2 as Do-Not-Populate (pads
+    # remain on the PCB for hand-soldering during emergency recovery,
+    # but JLCPCB pick-and-place + BOM ordering skip it).
     return textwrap.dedent(f"""\
         \t(footprint "PinHeader_1x06_P2.54mm_Vertical"
         \t\t(layer "F.Cu")
         \t\t(uuid "{U('fp-inst:' + uuid_tag)}")
         \t\t(at {fx(x)} {fy(y)} {rotation})
         \t\t(descr "{descr}")
-        \t\t(attr through_hole)
+        \t\t(attr through_hole exclude_from_pos_files exclude_from_bom dnp)
         \t\t(property "Reference" "{reference}"
         \t\t\t(at 2.5 6.35 {rotation})
         \t\t\t(layer "F.SilkS")
@@ -4455,6 +4479,13 @@ def _emit_daughterboard_reference_pcb_footprint(
     CAN be placed under their shadow within the standoff Z budget.
     Adding a body-sized courtyard would spuriously block legitimate
     component placement.
+
+    Contrast with SENS1 (SEN66 mech-ref): the SEN66 lies FLAT on the PCB
+    on its 25.6 × 55.2 mm back face — ZERO standoff. SENS1 therefore
+    DOES carry an F.CrtYd courtyard (programmed in v0.22) to catch
+    accidental SMD placement under it. Do NOT copy that pattern to
+    MOD1 / MOD2 / LDR1 without rethinking the standoff budget (v0.22
+    review Mn5).
     """
     body_blocks = _daughterboard_body_content(
         body_w=body_w, body_l=body_l,
@@ -16082,6 +16113,16 @@ def gen_pro() -> str:
             "erc_exclusions": [],
             "meta": {"version": 0},
             "pin_map": [],
+            # `rule_severities` is intentionally an empty object: it carries
+            # explicit overrides only. KiCad's `kicad-cli sch erc` falls back
+            # to its built-in default severity list for every ERC category
+            # NOT present here (e.g. "Global label only appears once",
+            # "Four connection points are joined together", "SPICE model
+            # issue", "Assigned footprint doesn't match footprint filters" —
+            # all of which the ERC report shows as "ignored" categories).
+            # If a future maintainer wonders where those default-ignores
+            # come from: they are not in this file, they are baked into
+            # kicad-cli (v0.23 review Nt1).
             "rule_severities": {},
         },
         "libraries": {
@@ -16711,6 +16752,126 @@ def sync_pcb_nets_from_schematic(kicad_cli: str | None = None) -> int:
 
 
 # -----------------------------------------------------------------------------
+# Schematic Footprint property back-fill (v0.23 — closes review Mn3)
+# -----------------------------------------------------------------------------
+# Every real component symbol in the sub-sheets is emitted with an EMPTY
+# `(property "Footprint" "")` field by the `_sch_*` helpers (they don't know
+# which footprint reference each symbol will end up wearing). The PCB-side
+# footprint reference is authoritative for the JLCPCB BOM workflow that walks
+# the PCB; however, running the schematic-driven netlist exporter or KiCad's
+# "Update PCB from Schematic" path would surface a "no footprint assigned"
+# warning per missing field. This post-process function back-fills the
+# property by reading the PCB file (already written at this point in main())
+# and copying each footprint's library reference into the matching schematic
+# symbol's Footprint property.
+#
+# Note: power flags (#PWR*, #FLG*) intentionally retain the empty Footprint
+# field — they are graphical / power-bus markers, not real parts and do not
+# appear on the PCB.
+def _build_pcb_ref_to_footprint() -> dict[str, str]:
+    """Parse the freshly-written oas.kicad_pcb and return a mapping of
+    `Reference` (e.g. "R5") → fully-qualified footprint string
+    (e.g. "Resistor_SMD:R_0603_1608Metric")."""
+    import re
+
+    text = (HERE / "oas.kicad_pcb").read_text(encoding="utf-8")
+    mapping: dict[str, str] = {}
+
+    # Walk top-level `(footprint "<libname>:<fpname>" ...)` blocks. For each,
+    # extract its `(property "Reference" "<R>" ...)` and use the footprint
+    # name from its header as the Footprint property value.
+    # Top-level `(footprint "...")` in oas.kicad_pcb are nested two parens
+    # deep from the document root, so simple `^(footprint ` matching after a
+    # newline reliably finds each block start.
+    fp_starts = [m.start() for m in re.finditer(r'(?m)^\(footprint "([^"]+)"', text)]
+    # Append end of file to bound the last block.
+    fp_starts.append(len(text))
+    for i in range(len(fp_starts) - 1):
+        block = text[fp_starts[i]:fp_starts[i + 1]]
+        m_name = re.match(r'\(footprint "([^"]+)"', block)
+        if not m_name:
+            continue
+        fp_name = m_name.group(1)
+        # Inside this block, the FIRST `(property "Reference" "..."` line is
+        # the reference designator for the placed footprint. Subsequent
+        # `(property "Footprint" "..."` carries the canonical library path,
+        # which we prefer over the bare-name header (which may lack the
+        # `lib:` prefix for stock-library footprints inserted via Update PCB).
+        m_ref = re.search(r'\(property "Reference" "([^"]+)"', block)
+        if not m_ref:
+            continue
+        ref = m_ref.group(1)
+        m_fp_prop = re.search(r'\(property "Footprint" "([^"]+)"', block)
+        canonical = m_fp_prop.group(1) if m_fp_prop else fp_name
+        mapping[ref] = canonical
+    return mapping
+
+
+def _apply_schematic_footprints(content: str, ref_to_fp: dict[str, str]) -> str:
+    """Post-process a sub-sheet schematic string, replacing every
+    `(property "Footprint" "")` field of a real-component symbol instance
+    with `(property "Footprint" "<libname>:<fpname>")` looked up from the
+    PCB-side mapping. Symbols whose Reference begins with `#` (power /
+    flag markers) are left untouched because they have no physical
+    footprint on the PCB.
+
+    Walks each top-level `(symbol ...)` block, reads its Reference, and
+    if a non-#-prefixed Reference has a mapped footprint, rewrites the
+    block's first `(property "Footprint" "")` occurrence.
+    """
+    import re
+
+    # Find each (symbol ...) block at the top level. Use a depth-counter.
+    out_parts: list[str] = []
+    i = 0
+    n = len(content)
+    while i < n:
+        idx = content.find("(symbol", i)
+        if idx == -1:
+            out_parts.append(content[i:])
+            break
+        # Copy text before the block as-is.
+        out_parts.append(content[i:idx])
+        # Find matching close paren.
+        depth = 0
+        j = idx
+        while j < n:
+            ch = content[j]
+            if ch == "(":
+                depth += 1
+            elif ch == ")":
+                depth -= 1
+                if depth == 0:
+                    j += 1
+                    break
+            j += 1
+        block = content[idx:j]
+        # Extract Reference. The first `(property "Reference" "..."` inside
+        # the block is the designator.
+        m_ref = re.search(r'\(property "Reference" "([^"]+)"', block)
+        if m_ref:
+            ref = m_ref.group(1)
+            fp_value = ref_to_fp.get(ref)
+            if fp_value and not ref.startswith("#"):
+                # Rewrite first `(property "Footprint" "")` -> `("Footprint" "<fp>")`.
+                # Use count=1 so only the schematic-symbol-instance Footprint
+                # property is touched (lib_symbol templates handled in the
+                # `(symbol ...)` library section at top of file have their
+                # own `(property "Footprint" "")` which stays untouched
+                # because library-template symbols live INSIDE the
+                # `(lib_symbols ...)` block, not at top level — but defensive
+                # count=1 keeps the behavior deterministic regardless).
+                block = block.replace(
+                    '(property "Footprint" ""',
+                    f'(property "Footprint" "{fp_value}"',
+                    1,
+                )
+        out_parts.append(block)
+        i = j
+    return "".join(out_parts)
+
+
+# -----------------------------------------------------------------------------
 # Write everything
 # -----------------------------------------------------------------------------
 def main():
@@ -16765,6 +16926,13 @@ def main():
     )
     (HERE / "oas.kicad_pcb").write_text(gen_pcb(), encoding="utf-8")
     (HERE / "oas.kicad_sch").write_text(gen_root_sch(), encoding="utf-8")
+
+    # v0.23: build Reference → Footprint map from the freshly-written PCB,
+    # used to back-fill every schematic symbol's Footprint property (review
+    # Mn3 — empty Footprint property triggered a "no footprint assigned"
+    # warning when running the schematic-driven netlist / Update-PCB path).
+    pcb_ref_to_fp = _build_pcb_ref_to_footprint()
+
     for name in SUBSHEETS:
         # sheet_context auto-namespaces every U() call made by the per-sheet
         # generator (and the _sch_* helpers it invokes) under `name:`, so two
@@ -16781,6 +16949,10 @@ def main():
                 content = gen_io_sch()
             else:
                 content = gen_subsheet_sch(name)
+        # Back-fill Footprint property for every real-component symbol so
+        # the schematic-side netlist export carries the same footprint
+        # reference the PCB does (v0.23 fix for review Mn3).
+        content = _apply_schematic_footprints(content, pcb_ref_to_fp)
         (HERE / f"{name}.kicad_sch").write_text(content, encoding="utf-8")
     (HERE / "oas.kicad_pro").write_text(gen_pro(), encoding="utf-8")
     (HERE / "fp-lib-table").write_text(gen_fp_lib_table(), encoding="utf-8")

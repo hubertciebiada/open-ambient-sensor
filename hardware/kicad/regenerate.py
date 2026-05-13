@@ -77,6 +77,34 @@ def run(cmd: list[str], *, hide_output: bool = False) -> None:
         subprocess.run(cmd, check=True)
 
 
+def _kicad_source_files() -> list[Path]:
+    """Return all generated KiCad source-files whose content must be
+    bit-identical across consecutive regenerations (v0.23 review Nt2 —
+    determinism self-check). Excludes the renders/ directory and the
+    auto-managed .kicad_prl runtime state file."""
+    files: list[Path] = [
+        HERE / "oas.kicad_pcb",
+        HERE / "oas.kicad_sch",
+        HERE / "oas.kicad_pro",
+        HERE / "power.kicad_sch",
+        HERE / "mcu.kicad_sch",
+        HERE / "sensors.kicad_sch",
+        HERE / "io.kicad_sch",
+        HERE / "fp-lib-table",
+        HERE / "sym-lib-table",
+    ]
+    lib_dir = HERE / "libraries"
+    if lib_dir.exists():
+        files.extend(sorted(lib_dir.rglob("*.kicad_mod")))
+        files.extend(sorted(lib_dir.rglob("*.kicad_sym")))
+    return [p for p in files if p.exists()]
+
+
+def _hash_file(path: Path) -> str:
+    import hashlib
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
 def main() -> None:
     t0 = time.time()
     kcli = find_kicad_cli()
@@ -85,6 +113,34 @@ def main() -> None:
     # 1) Regenerate KiCad source files from Python
     step("1/4  Regenerating KiCad source files (generate.py)")
     run([sys.executable, str(HERE / "generate.py")])
+
+    # 1b) Determinism self-check (v0.23 review Nt2): snapshot every
+    #     generated source file's hash, run generate.py a second time, then
+    #     verify nothing changed. All UUIDs in generate.py are deterministic
+    #     v5; two consecutive runs MUST produce bit-identical sources. If
+    #     they don't, that's a real bug to fix (e.g. an accidental
+    #     dependency on Python's hash randomization or dict-iteration
+    #     order) — flag loudly rather than silently committing flapping
+    #     diffs.
+    step("1b/4  Determinism self-check (re-run generate.py)")
+    pre_hashes: dict[Path, str] = {p: _hash_file(p) for p in _kicad_source_files()}
+    run([sys.executable, str(HERE / "generate.py")])
+    post_hashes: dict[Path, str] = {p: _hash_file(p) for p in _kicad_source_files()}
+    drifted: list[Path] = []
+    for p, post_h in post_hashes.items():
+        pre_h = pre_hashes.get(p)
+        if pre_h is None:
+            # File didn't exist before the second run — that's only
+            # possible if generate.py creates files conditionally, which
+            # it doesn't. Flag as drift defensively.
+            drifted.append(p)
+        elif pre_h != post_h:
+            drifted.append(p)
+    if drifted:
+        for p in drifted:
+            print(f"  DRIFT: {p.relative_to(HERE)}")
+        sys.exit("ERROR: regenerate.py is not deterministic — see drifted files above.")
+    print(f"  OK — generate.py output is bit-identical across consecutive runs ({len(post_hashes)} files checked).")
 
     # 2) DRC + ERC
     step("2/4  Running DRC + ERC")
