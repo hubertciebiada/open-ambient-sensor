@@ -3532,6 +3532,692 @@ def gen_capacitor_0402_pcb_footprint(
         \t)""")
 
 
+# -----------------------------------------------------------------------------
+# v0.20 C2 fix: stub generators for power-section / decoupling footprints
+# -----------------------------------------------------------------------------
+# These emit minimal self-contained footprints (pads + small F.Fab body
+# outline + F.CrtYd rectangle) for the schematic-side components that
+# previously had no PCB placement. They are intentionally minimalist:
+# the goal is to land each part at a sensible location on the PCB with
+# pads correctly numbered so the v0.20 net-sync pass attaches schematic
+# nets to them — NOT to provide production-quality 3D models or
+# silkscreen typography. Final placement / silk artwork should be
+# refined during routing iterations.
+#
+# Footprint conventions:
+#   - Reference text on F.SilkS, hidden (the board-level gr_text labels
+#     in gen_silk_labels() can be added later if desired).
+#   - Value text on F.Fab, hidden.
+#   - Footprint property carries the canonical KiCad library:footprint
+#     name so BOM / position-file exports work out of the box.
+#   - One inline footprint per component instance (no library lookup);
+#     the .kicad_pcb remains stand-alone.
+#   - All footprints declare `(attr smd)` or `(attr through_hole)` so
+#     KiCad's position-file exporter treats them correctly.
+
+
+def _emit_two_pad_smd_footprint(
+    *, x: float, y: float, rotation: int,
+    reference: str, value: str, uuid_tag: str,
+    descr: str, footprint_name: str,
+    pad_pitch: float, pad_w: float, pad_h: float,
+    body_w: float, body_h: float,
+    attr: str = "smd",
+    pad_type: str = "smd",
+    pad_shape: str = "roundrect",
+    pad_roundrect_rratio: float = 0.25,
+) -> str:
+    """Emit a generic two-pad SMD footprint (Cap/Res/Diode/Inductor SMD).
+
+    Pads 1 and 2 are at footprint-local ±(pad_pitch/2) on the X axis,
+    centered on Y = 0. Pin numbering is 1 (left/-X) → 2 (right/+X) which
+    matches every two-terminal passive in the KiCad symbol library
+    (Device:C, Device:R, Device:D, Device:L), so the net-sync pass
+    binds them correctly without per-component override.
+    """
+    pad_x = pad_pitch / 2.0
+    crty_x = pad_x + pad_w / 2.0 + 0.10
+    crty_y = max(pad_h, body_h) / 2.0 + 0.10
+    rot_clause = f" {rotation}" if rotation != 0 else ""
+    extra = ""
+    if pad_shape == "roundrect":
+        extra = f"\n\t\t\t(roundrect_rratio {pad_roundrect_rratio})"
+    return textwrap.dedent(f"""\
+        \t(footprint "{footprint_name}"
+        \t\t(layer "F.Cu")
+        \t\t(uuid "{U('fp-inst:' + uuid_tag)}")
+        \t\t(at {fx(x)} {fy(y)} {rotation})
+        \t\t(descr "{descr}")
+        \t\t(attr {attr})
+        \t\t(property "Reference" "{reference}"
+        \t\t\t(at 0 -{fmt(crty_y + 0.8)} {rotation})
+        \t\t\t(layer "F.SilkS")
+        \t\t\t(hide yes)
+        \t\t\t(uuid "{U('fp-prop-ref:' + uuid_tag)}")
+        \t\t\t(effects (font (size 1.0 1.0) (thickness 0.15)))
+        \t\t)
+        \t\t(property "Value" "{value}"
+        \t\t\t(at 0 {fmt(crty_y + 0.8)} {rotation})
+        \t\t\t(layer "F.Fab")
+        \t\t\t(hide yes)
+        \t\t\t(uuid "{U('fp-prop-val:' + uuid_tag)}")
+        \t\t\t(effects (font (size 1.0 1.0) (thickness 0.15)))
+        \t\t)
+        \t\t(property "Footprint" "{footprint_name}"
+        \t\t\t(at 0 0 0)
+        \t\t\t(layer "F.Fab")
+        \t\t\t(hide yes)
+        \t\t\t(uuid "{U('fp-prop-fp:' + uuid_tag)}")
+        \t\t\t(effects (font (size 1.27 1.27)))
+        \t\t)
+        \t\t(property "Datasheet" ""
+        \t\t\t(at 0 0 0)
+        \t\t\t(layer "F.Fab")
+        \t\t\t(hide yes)
+        \t\t\t(uuid "{U('fp-prop-ds:' + uuid_tag)}")
+        \t\t\t(effects (font (size 1.27 1.27)))
+        \t\t)
+        \t\t(property "Description" "{descr}"
+        \t\t\t(at 0 0 0)
+        \t\t\t(layer "F.Fab")
+        \t\t\t(hide yes)
+        \t\t\t(uuid "{U('fp-prop-desc:' + uuid_tag)}")
+        \t\t\t(effects (font (size 1.27 1.27)))
+        \t\t)
+        \t\t(fp_rect
+        \t\t\t(start -{fmt(body_w/2)} -{fmt(body_h/2)})
+        \t\t\t(end {fmt(body_w/2)} {fmt(body_h/2)})
+        \t\t\t(stroke (width 0.1) (type solid))
+        \t\t\t(fill no)
+        \t\t\t(layer "F.Fab")
+        \t\t\t(uuid "{U('fp-fab-body:' + uuid_tag)}")
+        \t\t)
+        \t\t(fp_rect
+        \t\t\t(start -{fmt(crty_x)} -{fmt(crty_y)})
+        \t\t\t(end {fmt(crty_x)} {fmt(crty_y)})
+        \t\t\t(stroke (width 0.05) (type solid))
+        \t\t\t(fill no)
+        \t\t\t(layer "F.CrtYd")
+        \t\t\t(uuid "{U('fp-crtyd:' + uuid_tag)}")
+        \t\t)
+        \t\t(pad "1" {pad_type} {pad_shape}
+        \t\t\t(at -{fmt(pad_x)} 0{rot_clause})
+        \t\t\t(size {fmt(pad_w)} {fmt(pad_h)})
+        \t\t\t(layers "F.Cu" "F.Paste" "F.Mask"){extra}
+        \t\t\t(uuid "{U('fp-pad-1:' + uuid_tag)}")
+        \t\t)
+        \t\t(pad "2" {pad_type} {pad_shape}
+        \t\t\t(at {fmt(pad_x)} 0{rot_clause})
+        \t\t\t(size {fmt(pad_w)} {fmt(pad_h)})
+        \t\t\t(layers "F.Cu" "F.Paste" "F.Mask"){extra}
+        \t\t\t(uuid "{U('fp-pad-2:' + uuid_tag)}")
+        \t\t)
+        \t)""")
+
+
+def gen_resistor_0603_pcb_footprint(*, x: float, y: float, rotation: int,
+                                     reference: str, value: str, uuid_tag: str,
+                                     descr: str = "Resistor 0603") -> str:
+    """0603 SMD resistor placement. Pad 0.95×0.95 mm, pitch 1.7 mm."""
+    return _emit_two_pad_smd_footprint(
+        x=x, y=y, rotation=rotation,
+        reference=reference, value=value, uuid_tag=uuid_tag,
+        descr=descr, footprint_name="R_0603_1608Metric",
+        pad_pitch=1.7, pad_w=0.95, pad_h=0.95,
+        body_w=1.6, body_h=0.8,
+    )
+
+
+def gen_capacitor_0603_pcb_footprint(*, x: float, y: float, rotation: int,
+                                      reference: str, value: str, uuid_tag: str,
+                                      descr: str = "Capacitor 0603") -> str:
+    """0603 SMD ceramic capacitor."""
+    return _emit_two_pad_smd_footprint(
+        x=x, y=y, rotation=rotation,
+        reference=reference, value=value, uuid_tag=uuid_tag,
+        descr=descr, footprint_name="C_0603_1608Metric",
+        pad_pitch=1.7, pad_w=0.95, pad_h=0.95,
+        body_w=1.6, body_h=0.8,
+    )
+
+
+def gen_capacitor_0805_pcb_footprint(*, x: float, y: float, rotation: int,
+                                      reference: str, value: str, uuid_tag: str,
+                                      descr: str = "Capacitor 0805") -> str:
+    """0805 SMD ceramic capacitor — for 10 µF / 22 µF input/output bulk
+    on the 3.3 V buck stage."""
+    return _emit_two_pad_smd_footprint(
+        x=x, y=y, rotation=rotation,
+        reference=reference, value=value, uuid_tag=uuid_tag,
+        descr=descr, footprint_name="C_0805_2012Metric",
+        pad_pitch=1.8, pad_w=1.15, pad_h=1.4,
+        body_w=2.0, body_h=1.25,
+    )
+
+
+def gen_diode_sma_pcb_footprint(*, x: float, y: float, rotation: int,
+                                 reference: str, value: str, uuid_tag: str,
+                                 descr: str = "Diode SMA") -> str:
+    """SMA package — Schottky / TVS / Zener. Cathode is pin 1 (KiCad
+    convention for Device:D / Device:D_Schottky), anode pin 2.
+    Footprint sized per `D_SMA` in Diode_SMD.pretty: pads 2.4×1.7 mm at
+    pitch 4.5 mm."""
+    return _emit_two_pad_smd_footprint(
+        x=x, y=y, rotation=rotation,
+        reference=reference, value=value, uuid_tag=uuid_tag,
+        descr=descr, footprint_name="D_SMA",
+        pad_pitch=4.5, pad_w=2.4, pad_h=1.7,
+        body_w=4.3, body_h=2.7,
+    )
+
+
+def gen_diode_smb_pcb_footprint(*, x: float, y: float, rotation: int,
+                                 reference: str, value: str, uuid_tag: str,
+                                 descr: str = "Diode SMB") -> str:
+    """SMB package — larger TVS / Schottky. Pads 2.7×2.1 mm at pitch
+    5.1 mm per `D_SMB` in Diode_SMD.pretty."""
+    return _emit_two_pad_smd_footprint(
+        x=x, y=y, rotation=rotation,
+        reference=reference, value=value, uuid_tag=uuid_tag,
+        descr=descr, footprint_name="D_SMB",
+        pad_pitch=5.1, pad_w=2.7, pad_h=2.2,
+        body_w=4.5, body_h=3.6,
+    )
+
+
+def gen_diode_sod323_pcb_footprint(*, x: float, y: float, rotation: int,
+                                    reference: str, value: str, uuid_tag: str,
+                                    descr: str = "Diode SOD-323") -> str:
+    """SOD-323 small Zener / TVS package. Pads 0.7×0.9 mm at pitch
+    2.4 mm per `D_SOD-323`."""
+    return _emit_two_pad_smd_footprint(
+        x=x, y=y, rotation=rotation,
+        reference=reference, value=value, uuid_tag=uuid_tag,
+        descr=descr, footprint_name="D_SOD-323",
+        pad_pitch=2.4, pad_w=0.9, pad_h=0.9,
+        body_w=1.7, body_h=1.25,
+    )
+
+
+def gen_inductor_smd_5x5_pcb_footprint(*, x: float, y: float, rotation: int,
+                                         reference: str, value: str, uuid_tag: str,
+                                         descr: str = "Inductor SMD ~5×5 mm") -> str:
+    """Power inductor footprint sized for typical 33 µH / 2.2 µH shielded
+    SMD parts (~5×5 mm, NR5040 / Wurth WE-PD-S size). Two large pads on
+    short edges; pitch 3.4 mm. The Device:L symbol's pins 1 and 2 map
+    to footprint pads 1 and 2."""
+    return _emit_two_pad_smd_footprint(
+        x=x, y=y, rotation=rotation,
+        reference=reference, value=value, uuid_tag=uuid_tag,
+        descr=descr, footprint_name="L_NR5040",
+        pad_pitch=3.5, pad_w=1.8, pad_h=4.4,
+        body_w=5.0, body_h=5.0,
+    )
+
+
+def gen_polyfuse_smd_pcb_footprint(*, x: float, y: float, rotation: int,
+                                    reference: str, value: str, uuid_tag: str,
+                                    descr: str = "Polyfuse SMD 2920") -> str:
+    """SMD PTC polyfuse — 2920 size for MF-RHT075/60-2-class parts
+    (60 V / 750 mA)."""
+    return _emit_two_pad_smd_footprint(
+        x=x, y=y, rotation=rotation,
+        reference=reference, value=value, uuid_tag=uuid_tag,
+        descr=descr, footprint_name="R_2920_7351Metric",
+        pad_pitch=5.7, pad_w=2.0, pad_h=5.4,
+        body_w=7.3, body_h=5.0,
+    )
+
+
+def gen_capacitor_polarized_radial_pcb_footprint(*, x: float, y: float, rotation: int,
+                                                   reference: str, value: str, uuid_tag: str,
+                                                   diameter_mm: float = 6.3,
+                                                   pitch_mm: float = 2.5,
+                                                   descr: str = "Electrolytic radial through-hole") -> str:
+    """Polarized electrolytic capacitor — radial through-hole. Pad 1
+    (anode, +) on -X side, pad 2 (cathode, -) on +X side. Drill 0.8 mm,
+    pad diameter 1.6 mm. Body diameter sized per `diameter_mm`."""
+    pad_pitch = pitch_mm
+    pad_x = pad_pitch / 2.0
+    body_r = diameter_mm / 2.0
+    crty_r = body_r + 0.25
+    rot_clause = f" {rotation}" if rotation != 0 else ""
+    return textwrap.dedent(f"""\
+        \t(footprint "CP_Radial_D{fmt(diameter_mm)}mm_P{fmt(pitch_mm)}mm"
+        \t\t(layer "F.Cu")
+        \t\t(uuid "{U('fp-inst:' + uuid_tag)}")
+        \t\t(at {fx(x)} {fy(y)} {rotation})
+        \t\t(descr "{descr}")
+        \t\t(attr through_hole)
+        \t\t(property "Reference" "{reference}"
+        \t\t\t(at 0 -{fmt(crty_r + 0.6)} {rotation})
+        \t\t\t(layer "F.SilkS")
+        \t\t\t(hide yes)
+        \t\t\t(uuid "{U('fp-prop-ref:' + uuid_tag)}")
+        \t\t\t(effects (font (size 1.0 1.0) (thickness 0.15)))
+        \t\t)
+        \t\t(property "Value" "{value}"
+        \t\t\t(at 0 {fmt(crty_r + 0.6)} {rotation})
+        \t\t\t(layer "F.Fab")
+        \t\t\t(hide yes)
+        \t\t\t(uuid "{U('fp-prop-val:' + uuid_tag)}")
+        \t\t\t(effects (font (size 1.0 1.0) (thickness 0.15)))
+        \t\t)
+        \t\t(property "Footprint" "CP_Radial_D{fmt(diameter_mm)}mm_P{fmt(pitch_mm)}mm"
+        \t\t\t(at 0 0 0)
+        \t\t\t(layer "F.Fab")
+        \t\t\t(hide yes)
+        \t\t\t(uuid "{U('fp-prop-fp:' + uuid_tag)}")
+        \t\t\t(effects (font (size 1.27 1.27)))
+        \t\t)
+        \t\t(property "Datasheet" ""
+        \t\t\t(at 0 0 0)
+        \t\t\t(layer "F.Fab")
+        \t\t\t(hide yes)
+        \t\t\t(uuid "{U('fp-prop-ds:' + uuid_tag)}")
+        \t\t\t(effects (font (size 1.27 1.27)))
+        \t\t)
+        \t\t(property "Description" "{descr}"
+        \t\t\t(at 0 0 0)
+        \t\t\t(layer "F.Fab")
+        \t\t\t(hide yes)
+        \t\t\t(uuid "{U('fp-prop-desc:' + uuid_tag)}")
+        \t\t\t(effects (font (size 1.27 1.27)))
+        \t\t)
+        \t\t(fp_circle
+        \t\t\t(center 0 0)
+        \t\t\t(end {fmt(body_r)} 0)
+        \t\t\t(stroke (width 0.1) (type solid))
+        \t\t\t(fill no)
+        \t\t\t(layer "F.Fab")
+        \t\t\t(uuid "{U('fp-fab-body:' + uuid_tag)}")
+        \t\t)
+        \t\t(fp_circle
+        \t\t\t(center 0 0)
+        \t\t\t(end {fmt(crty_r)} 0)
+        \t\t\t(stroke (width 0.05) (type solid))
+        \t\t\t(fill no)
+        \t\t\t(layer "F.CrtYd")
+        \t\t\t(uuid "{U('fp-crtyd:' + uuid_tag)}")
+        \t\t)
+        \t\t(pad "1" thru_hole rect
+        \t\t\t(at -{fmt(pad_x)} 0{rot_clause})
+        \t\t\t(size 1.6 1.6)
+        \t\t\t(drill 0.8)
+        \t\t\t(layers "*.Cu" "*.Mask")
+        \t\t\t(uuid "{U('fp-pad-1:' + uuid_tag)}")
+        \t\t)
+        \t\t(pad "2" thru_hole circle
+        \t\t\t(at {fmt(pad_x)} 0{rot_clause})
+        \t\t\t(size 1.6 1.6)
+        \t\t\t(drill 0.8)
+        \t\t\t(layers "*.Cu" "*.Mask")
+        \t\t\t(uuid "{U('fp-pad-2:' + uuid_tag)}")
+        \t\t)
+        \t)""")
+
+
+def gen_sot23_3pin_pcb_footprint(*, x: float, y: float, rotation: int,
+                                  reference: str, value: str, uuid_tag: str,
+                                  descr: str = "SOT-23 3-pin") -> str:
+    """SOT-23 footprint — 3 pads. Pin 1 at bottom-left (-X, +Y), pin 2 at
+    bottom-right (+X, +Y), pin 3 at top (0, -Y). Matches KiCad's stock
+    SOT-23 footprint orientation, which in turn matches both the
+    Device:Q_PMOS_GDS / Device:Q_NMOS_GDS symbol pinout (1=G, 2=S, 3=D)
+    AND the Diode:BAT54 etc. orientation."""
+    # Standard SOT-23 pad positions per Package_TO_SOT_SMD.pretty SOT-23
+    pads = [
+        ("1", -0.95,  1.10),
+        ("2",  0.95,  1.10),
+        ("3",  0.00, -1.10),
+    ]
+    pad_w, pad_h = 1.0, 0.6
+    rot_clause = f" {rotation}" if rotation != 0 else ""
+    pad_blocks = []
+    for pin, px, py in pads:
+        pad_blocks.append(textwrap.dedent(f"""\
+            \t\t(pad "{pin}" smd roundrect
+            \t\t\t(at {fmt(px)} {fmt(py)}{rot_clause})
+            \t\t\t(size {fmt(pad_w)} {fmt(pad_h)})
+            \t\t\t(layers "F.Cu" "F.Paste" "F.Mask")
+            \t\t\t(roundrect_rratio 0.25)
+            \t\t\t(uuid "{U(f'fp-pad-{pin}:' + uuid_tag)}")
+            \t\t)"""))
+    return textwrap.dedent(f"""\
+        \t(footprint "SOT-23"
+        \t\t(layer "F.Cu")
+        \t\t(uuid "{U('fp-inst:' + uuid_tag)}")
+        \t\t(at {fx(x)} {fy(y)} {rotation})
+        \t\t(descr "{descr}")
+        \t\t(attr smd)
+        \t\t(property "Reference" "{reference}"
+        \t\t\t(at 0 -2.3 {rotation})
+        \t\t\t(layer "F.SilkS")
+        \t\t\t(hide yes)
+        \t\t\t(uuid "{U('fp-prop-ref:' + uuid_tag)}")
+        \t\t\t(effects (font (size 1.0 1.0) (thickness 0.15)))
+        \t\t)
+        \t\t(property "Value" "{value}"
+        \t\t\t(at 0 2.3 {rotation})
+        \t\t\t(layer "F.Fab")
+        \t\t\t(hide yes)
+        \t\t\t(uuid "{U('fp-prop-val:' + uuid_tag)}")
+        \t\t\t(effects (font (size 1.0 1.0) (thickness 0.15)))
+        \t\t)
+        \t\t(property "Footprint" "SOT-23"
+        \t\t\t(at 0 0 0)
+        \t\t\t(layer "F.Fab")
+        \t\t\t(hide yes)
+        \t\t\t(uuid "{U('fp-prop-fp:' + uuid_tag)}")
+        \t\t\t(effects (font (size 1.27 1.27)))
+        \t\t)
+        \t\t(property "Datasheet" ""
+        \t\t\t(at 0 0 0)
+        \t\t\t(layer "F.Fab")
+        \t\t\t(hide yes)
+        \t\t\t(uuid "{U('fp-prop-ds:' + uuid_tag)}")
+        \t\t\t(effects (font (size 1.27 1.27)))
+        \t\t)
+        \t\t(property "Description" "{descr}"
+        \t\t\t(at 0 0 0)
+        \t\t\t(layer "F.Fab")
+        \t\t\t(hide yes)
+        \t\t\t(uuid "{U('fp-prop-desc:' + uuid_tag)}")
+        \t\t\t(effects (font (size 1.27 1.27)))
+        \t\t)
+        \t\t(fp_rect
+        \t\t\t(start -1.4 -1.4)
+        \t\t\t(end 1.4 1.4)
+        \t\t\t(stroke (width 0.1) (type solid))
+        \t\t\t(fill no)
+        \t\t\t(layer "F.Fab")
+        \t\t\t(uuid "{U('fp-fab-body:' + uuid_tag)}")
+        \t\t)
+        \t\t(fp_rect
+        \t\t\t(start -1.9 -1.9)
+        \t\t\t(end 1.9 1.9)
+        \t\t\t(stroke (width 0.05) (type solid))
+        \t\t\t(fill no)
+        \t\t\t(layer "F.CrtYd")
+        \t\t\t(uuid "{U('fp-crtyd:' + uuid_tag)}")
+        \t\t)
+        """) + "\n".join(pad_blocks) + "\n\t)"
+
+
+def gen_to263_5_pcb_footprint(*, x: float, y: float, rotation: int,
+                               reference: str, value: str, uuid_tag: str,
+                               descr: str = "TO-263-5 LM2596S") -> str:
+    """TO-263-5 (D2PAK-5) footprint for LM2596S-5.0. Five signal pads
+    along the bottom edge (pitch 1.7 mm), large thermal tab on the top
+    edge (pad 6, same net as pad 3 = GND on LM2596).
+    Pin order per LM2596 datasheet TI lit no SNVS124N Table 1:
+      1=VIN, 2=OUT (switch node), 3=GND (tab+pin3), 4=FB, 5=~ON/OFF
+    """
+    pads_signal = [
+        ("1", -3.4),
+        ("2", -1.7),
+        ("3",  0.0),
+        ("4",  1.7),
+        ("5",  3.4),
+    ]
+    rot_clause = f" {rotation}" if rotation != 0 else ""
+    pad_blocks = []
+    for pin, px in pads_signal:
+        pad_blocks.append(textwrap.dedent(f"""\
+            \t\t(pad "{pin}" smd roundrect
+            \t\t\t(at {fmt(px)} 3.45{rot_clause})
+            \t\t\t(size 1.2 2.7)
+            \t\t\t(layers "F.Cu" "F.Paste" "F.Mask")
+            \t\t\t(roundrect_rratio 0.25)
+            \t\t\t(uuid "{U(f'fp-pad-{pin}:' + uuid_tag)}")
+            \t\t)"""))
+    # Tab pad: net same as pin 3 (GND). We label it pad "3" too so
+    # KiCad merges them on the same net automatically.
+    pad_blocks.append(textwrap.dedent(f"""\
+        \t\t(pad "3" smd roundrect
+        \t\t\t(at 0 -2.0{rot_clause})
+        \t\t\t(size 8.4 6.0)
+        \t\t\t(layers "F.Cu" "F.Paste" "F.Mask")
+        \t\t\t(roundrect_rratio 0.05)
+        \t\t\t(uuid "{U('fp-pad-tab:' + uuid_tag)}")
+        \t\t)"""))
+    return textwrap.dedent(f"""\
+        \t(footprint "TO-263-5_LM2596"
+        \t\t(layer "F.Cu")
+        \t\t(uuid "{U('fp-inst:' + uuid_tag)}")
+        \t\t(at {fx(x)} {fy(y)} {rotation})
+        \t\t(descr "{descr}")
+        \t\t(attr smd)
+        \t\t(property "Reference" "{reference}"
+        \t\t\t(at 0 -5.8 {rotation})
+        \t\t\t(layer "F.SilkS")
+        \t\t\t(hide yes)
+        \t\t\t(uuid "{U('fp-prop-ref:' + uuid_tag)}")
+        \t\t\t(effects (font (size 1.0 1.0) (thickness 0.15)))
+        \t\t)
+        \t\t(property "Value" "{value}"
+        \t\t\t(at 0 5.8 {rotation})
+        \t\t\t(layer "F.Fab")
+        \t\t\t(hide yes)
+        \t\t\t(uuid "{U('fp-prop-val:' + uuid_tag)}")
+        \t\t\t(effects (font (size 1.0 1.0) (thickness 0.15)))
+        \t\t)
+        \t\t(property "Footprint" "Package_TO_SOT_SMD:TO-263-5_TabPin3"
+        \t\t\t(at 0 0 0)
+        \t\t\t(layer "F.Fab")
+        \t\t\t(hide yes)
+        \t\t\t(uuid "{U('fp-prop-fp:' + uuid_tag)}")
+        \t\t\t(effects (font (size 1.27 1.27)))
+        \t\t)
+        \t\t(property "Datasheet" "http://www.ti.com/lit/ds/symlink/lm2596.pdf"
+        \t\t\t(at 0 0 0)
+        \t\t\t(layer "F.Fab")
+        \t\t\t(hide yes)
+        \t\t\t(uuid "{U('fp-prop-ds:' + uuid_tag)}")
+        \t\t\t(effects (font (size 1.27 1.27)))
+        \t\t)
+        \t\t(property "Description" "{descr}"
+        \t\t\t(at 0 0 0)
+        \t\t\t(layer "F.Fab")
+        \t\t\t(hide yes)
+        \t\t\t(uuid "{U('fp-prop-desc:' + uuid_tag)}")
+        \t\t\t(effects (font (size 1.27 1.27)))
+        \t\t)
+        \t\t(fp_rect
+        \t\t\t(start -5.0 -4.7)
+        \t\t\t(end 5.0 2.5)
+        \t\t\t(stroke (width 0.1) (type solid))
+        \t\t\t(fill no)
+        \t\t\t(layer "F.Fab")
+        \t\t\t(uuid "{U('fp-fab-body:' + uuid_tag)}")
+        \t\t)
+        \t\t(fp_rect
+        \t\t\t(start -5.3 -5.3)
+        \t\t\t(end 5.3 5.0)
+        \t\t\t(stroke (width 0.05) (type solid))
+        \t\t\t(fill no)
+        \t\t\t(layer "F.CrtYd")
+        \t\t\t(uuid "{U('fp-crtyd:' + uuid_tag)}")
+        \t\t)
+        """) + "\n".join(pad_blocks) + "\n\t)"
+
+
+def gen_sot583_pcb_footprint(*, x: float, y: float, rotation: int,
+                              reference: str, value: str, uuid_tag: str,
+                              descr: str = "SOT-583 8-pin TPS62933") -> str:
+    """SOT-583-8 / VSON-8 footprint for TPS62933.
+    Pin layout per TPS62933 datasheet TI lit no SNVSCQ3D:
+      Pin 1=SW, 2=PG, 3=GND, 4=FB, 5=EN, 6=VOS, 7=SS, 8=VIN
+    Pads sized for the 1.6×2.1 mm body with 0.5 mm pitch."""
+    # 8 pads in two rows of 4: pins 1-4 on -X side, 5-8 on +X side
+    pin_pitch = 0.5
+    pad_x = 0.95   # half of row spacing
+    pad_w, pad_h = 0.3, 0.35
+    pads = []
+    # Pin 1 at bottom-left, then CCW: 2 above 1, 3 above 2, 4 top-left, then
+    # 5 top-right, 6 below 5, ..., 8 bottom-right.
+    # Each column spans 4 * pitch = 2 mm so pads from -0.75 to +0.75 in Y.
+    for i in range(4):
+        py = -1.5 * pin_pitch + i * pin_pitch  # -0.75, -0.25, +0.25, +0.75
+        pads.append((str(i + 1), -pad_x, py))
+    for i in range(4):
+        # mirror: pin 5 top-right (-0.75), pin 8 bottom-right (+0.75)
+        py = -1.5 * pin_pitch + (3 - i) * pin_pitch
+        pads.append((str(5 + i), pad_x, py))
+    rot_clause = f" {rotation}" if rotation != 0 else ""
+    pad_blocks = []
+    for pin, px, py in pads:
+        pad_blocks.append(textwrap.dedent(f"""\
+            \t\t(pad "{pin}" smd roundrect
+            \t\t\t(at {fmt(px)} {fmt(py)}{rot_clause})
+            \t\t\t(size {fmt(pad_w)} {fmt(pad_h)})
+            \t\t\t(layers "F.Cu" "F.Paste" "F.Mask")
+            \t\t\t(roundrect_rratio 0.25)
+            \t\t\t(uuid "{U(f'fp-pad-{pin}:' + uuid_tag)}")
+            \t\t)"""))
+    return textwrap.dedent(f"""\
+        \t(footprint "SOT-583_TPS62933"
+        \t\t(layer "F.Cu")
+        \t\t(uuid "{U('fp-inst:' + uuid_tag)}")
+        \t\t(at {fx(x)} {fy(y)} {rotation})
+        \t\t(descr "{descr}")
+        \t\t(attr smd)
+        \t\t(property "Reference" "{reference}"
+        \t\t\t(at 0 -1.8 {rotation})
+        \t\t\t(layer "F.SilkS")
+        \t\t\t(hide yes)
+        \t\t\t(uuid "{U('fp-prop-ref:' + uuid_tag)}")
+        \t\t\t(effects (font (size 1.0 1.0) (thickness 0.15)))
+        \t\t)
+        \t\t(property "Value" "{value}"
+        \t\t\t(at 0 1.8 {rotation})
+        \t\t\t(layer "F.Fab")
+        \t\t\t(hide yes)
+        \t\t\t(uuid "{U('fp-prop-val:' + uuid_tag)}")
+        \t\t\t(effects (font (size 1.0 1.0) (thickness 0.15)))
+        \t\t)
+        \t\t(property "Footprint" "Package_SO:VSON-8-1EP_2x2mm_P0.5mm_EP0.9x1.6mm"
+        \t\t\t(at 0 0 0)
+        \t\t\t(layer "F.Fab")
+        \t\t\t(hide yes)
+        \t\t\t(uuid "{U('fp-prop-fp:' + uuid_tag)}")
+        \t\t\t(effects (font (size 1.27 1.27)))
+        \t\t)
+        \t\t(property "Datasheet" "https://www.ti.com/lit/ds/symlink/tps62933.pdf"
+        \t\t\t(at 0 0 0)
+        \t\t\t(layer "F.Fab")
+        \t\t\t(hide yes)
+        \t\t\t(uuid "{U('fp-prop-ds:' + uuid_tag)}")
+        \t\t\t(effects (font (size 1.27 1.27)))
+        \t\t)
+        \t\t(property "Description" "{descr}"
+        \t\t\t(at 0 0 0)
+        \t\t\t(layer "F.Fab")
+        \t\t\t(hide yes)
+        \t\t\t(uuid "{U('fp-prop-desc:' + uuid_tag)}")
+        \t\t\t(effects (font (size 1.27 1.27)))
+        \t\t)
+        \t\t(fp_rect
+        \t\t\t(start -1.05 -1.3)
+        \t\t\t(end 1.05 1.3)
+        \t\t\t(stroke (width 0.1) (type solid))
+        \t\t\t(fill no)
+        \t\t\t(layer "F.Fab")
+        \t\t\t(uuid "{U('fp-fab-body:' + uuid_tag)}")
+        \t\t)
+        \t\t(fp_rect
+        \t\t\t(start -1.4 -1.5)
+        \t\t\t(end 1.4 1.5)
+        \t\t\t(stroke (width 0.05) (type solid))
+        \t\t\t(fill no)
+        \t\t\t(layer "F.CrtYd")
+        \t\t\t(uuid "{U('fp-crtyd:' + uuid_tag)}")
+        \t\t)
+        """) + "\n".join(pad_blocks) + "\n\t)"
+
+
+def gen_pinheader_6_recovery_pcb_footprint(*, x: float, y: float, rotation: int,
+                                            reference: str, value: str, uuid_tag: str,
+                                            descr: str = "PinHeader 1x06 P2.54 mm THT (DNP recovery)") -> str:
+    """1×6 2.54 mm pitch through-hole pin header (J2 — schematic-side
+    DNP recovery header). 6 round THT pads at 2.54 mm pitch."""
+    pin_count = 6
+    pitch = 2.54
+    rot_clause = f" {rotation}" if rotation != 0 else ""
+    pad_blocks = []
+    for i in range(pin_count):
+        pin_num = i + 1
+        py = i * pitch
+        shape = "rect" if i == 0 else "circle"
+        pad_blocks.append(textwrap.dedent(f"""\
+            \t\t(pad "{pin_num}" thru_hole {shape}
+            \t\t\t(at 0 {fmt(py)}{rot_clause})
+            \t\t\t(size 1.7 1.7)
+            \t\t\t(drill 1.0)
+            \t\t\t(layers "*.Cu" "*.Mask")
+            \t\t\t(uuid "{U(f'fp-pad-{pin_num}:' + uuid_tag)}")
+            \t\t)"""))
+    return textwrap.dedent(f"""\
+        \t(footprint "PinHeader_1x06_P2.54mm_Vertical"
+        \t\t(layer "F.Cu")
+        \t\t(uuid "{U('fp-inst:' + uuid_tag)}")
+        \t\t(at {fx(x)} {fy(y)} {rotation})
+        \t\t(descr "{descr}")
+        \t\t(attr through_hole)
+        \t\t(property "Reference" "{reference}"
+        \t\t\t(at 2.5 6.35 {rotation})
+        \t\t\t(layer "F.SilkS")
+        \t\t\t(hide yes)
+        \t\t\t(uuid "{U('fp-prop-ref:' + uuid_tag)}")
+        \t\t\t(effects (font (size 1.0 1.0) (thickness 0.15)))
+        \t\t)
+        \t\t(property "Value" "{value}"
+        \t\t\t(at -2.5 6.35 {rotation})
+        \t\t\t(layer "F.Fab")
+        \t\t\t(hide yes)
+        \t\t\t(uuid "{U('fp-prop-val:' + uuid_tag)}")
+        \t\t\t(effects (font (size 1.0 1.0) (thickness 0.15)))
+        \t\t)
+        \t\t(property "Footprint" "Connector_PinHeader_2.54mm:PinHeader_1x06_P2.54mm_Vertical"
+        \t\t\t(at 0 0 0)
+        \t\t\t(layer "F.Fab")
+        \t\t\t(hide yes)
+        \t\t\t(uuid "{U('fp-prop-fp:' + uuid_tag)}")
+        \t\t\t(effects (font (size 1.27 1.27)))
+        \t\t)
+        \t\t(property "Datasheet" ""
+        \t\t\t(at 0 0 0)
+        \t\t\t(layer "F.Fab")
+        \t\t\t(hide yes)
+        \t\t\t(uuid "{U('fp-prop-ds:' + uuid_tag)}")
+        \t\t\t(effects (font (size 1.27 1.27)))
+        \t\t)
+        \t\t(property "Description" "{descr}"
+        \t\t\t(at 0 0 0)
+        \t\t\t(layer "F.Fab")
+        \t\t\t(hide yes)
+        \t\t\t(uuid "{U('fp-prop-desc:' + uuid_tag)}")
+        \t\t\t(effects (font (size 1.27 1.27)))
+        \t\t)
+        \t\t(fp_rect
+        \t\t\t(start -1.27 -1.27)
+        \t\t\t(end 1.27 {fmt((pin_count - 1) * pitch + 1.27)})
+        \t\t\t(stroke (width 0.1) (type solid))
+        \t\t\t(fill no)
+        \t\t\t(layer "F.Fab")
+        \t\t\t(uuid "{U('fp-fab-body:' + uuid_tag)}")
+        \t\t)
+        \t\t(fp_rect
+        \t\t\t(start -1.6 -1.6)
+        \t\t\t(end 1.6 {fmt((pin_count - 1) * pitch + 1.6)})
+        \t\t\t(stroke (width 0.05) (type solid))
+        \t\t\t(fill no)
+        \t\t\t(layer "F.CrtYd")
+        \t\t\t(uuid "{U('fp-crtyd:' + uuid_tag)}")
+        \t\t)
+        """) + "\n".join(pad_blocks) + "\n\t)"
+
+
 def _daughterboard_body_content(
     body_w: float, body_l: float,
     pin_row_inset: float, pin_pitch: float, pin_count_per_row: int,
@@ -3786,6 +4472,385 @@ def _emit_daughterboard_reference_pcb_footprint(
         \t\t\t(effects (font (size 1.27 1.27)))
         \t\t)
         """) + body_blocks + "\n\t)"
+
+
+# -----------------------------------------------------------------------------
+# v0.20 C2 fix: power-section + sensor decoupling + J2 footprint placements
+# -----------------------------------------------------------------------------
+# Pre-routing review v0.19 finding C2: 30+ schematic components had no PCB
+# placement. This function emits them in a coherent cluster on the PCB's
+# UPPER-RIGHT quadrant (X ∈ [+10, +50], Y ∈ [-55, -10]), east of the
+# ESP32 module and west of the SEN66 body.
+#
+# Placement strategy (rough — final positions to be refined during routing):
+#   Buck1 cluster (24 V → 5 V): U1 (LM2596S) + L1 (33 µH) + D2 (SS14) +
+#     C3/C13 (input bulk + HF) + C4/C14 (output bulk + HF).
+#   Buck2 cluster (5 V → 3.3 V): U2 (TPS62933) + L2 + R2/R3 FB divider +
+#     C5/C15 (input) + C6/C16 (output) + C7 (FB) + C8 (BST).
+#   Input protection: D1 (SMBJ24A TVS) + Q1 (PMV65XP) + F1 (PTC) +
+#     D3 (Zener Vgs clamp) + R1 (100k pulldown) + R4 (1k gate) +
+#     C1 (100µF bulk) + C2 (10 nF Y2) — sits closest to J1 / cable hole.
+#   MCU decoupling: C9, C17, R5, R6 (I2C pull-ups). Sits near J5/J6
+#     ESP32 socket.
+#   Sensor decoupling: C10 (SEN66), C11 (LD2410), C12 (NFC) — near each
+#     sensor's socket.
+#   J2 — DNP recovery header, placed off in a free corner.
+#
+# All components use the stub footprint generators above. Pin numbering
+# matches the corresponding KiCad symbol library so the v0.20 net-sync
+# pass attaches schematic nets correctly.
+
+
+def gen_power_pcb_footprints() -> str:
+    """Emit PCB footprints for all power-section schematic components,
+    plus sensor decoupling C10/C11/C12 and the DNP J2 recovery header.
+
+    Placement is in the open band between the LED ring outer (R=12 ≈
+    Y=-13/+13) and the ESP32 daughterboard bottom (Y=-24.7), which is
+    the largest free strip on the PCB. Buck stages occupy this Y band;
+    input-protection cluster sits in the small strip between the cable
+    hole (Y=+6) and J1's north courtyard (Y=+11.9) — actually too tight
+    so we use the +12 to +20 band west of J1.
+
+    All placements are tentative; user will refine during routing.
+    """
+    parts: list[str] = []
+
+    # ============================================================
+    # ROW A — Buck1 + Buck2 + protected-rail bulk
+    # Y band: -22 (LED ring outer is at Y=-12) to -8 (ESP32 bottom Y=-24.7
+    # but ESP32 sits on standoff above PCB, so SMD parts can be under
+    # the ESP32 shadow). The Y band ROW A actually lives at:
+    #   Y = -22..-13 in the OPEN strip between LED ring + ESP32 socket.
+    # ============================================================
+
+    # ---- Input protection cluster (north of cable hole, in front of J1)
+    # The strip Y ∈ [+12, +18] between J1 north (Y=+11.9 → +25 incl. body)
+    # and LED ring outer (Y=+12). Tight. The strip is approx 6 mm tall and
+    # extends from PCB X=-50 to +50 minus J1 / cutouts.
+    # Actually wait — J1 occupies Y=+11.9..+24.9. So the strip Y ∈ [+6, +12]
+    # (between cable hole at +6 and LED at +12) — actually LED ring outer
+    # at R=12 → outer edge of LED bodies at +12, so PCB area inside LED
+    # ring is reserved by LEDs. But the strip BELOW the LED ring inner edge
+    # — there's a tangential gap.
+    # Simpler: place input protection EAST of cable hole, in the strip
+    # X ∈ [+10, +20], Y ∈ [-8, +10] (east of LED ring, west of SEN66).
+    # Input protection cluster — placed in the open strip BELOW the LED
+    # ring (Y > +12) and ABOVE J1's courtyard (Y < +12). Wait — those
+    # don't co-exist. Use the AUX region: south of cable hole (Y > +6),
+    # west of J1 (X < -10). Strip X ∈ [-30, -10], Y ∈ [+8, +12]. ~20×4 mm.
+    # Actually too narrow for everything; spread input protection more.
+    #
+    # Final layout: input protection on the NORTH side of the LED ring,
+    # in the strip between ESP32 J5 row (Y=-25.97) and LED ring outer
+    # (Y=-12 at θ=270°). Already used by Buck1. So input protection
+    # has to go SOMEWHERE. Pick: just south of J3 SEN66 socket, north
+    # of J1, X around 0 to +5 — strip Y ∈ [+10, +25] between cable
+    # hole south (Y+6) and J1 north (Y+11.9) — too thin.
+    #
+    # Final compromise: spread input protection vertically along the
+    # WEST edge of the LED ring (between LED ring outer at X=-12 and
+    # the NFC body right edge at X=-12.76). Tight: nowhere to fit a
+    # 2.7×2.7 SMB diode.
+    #
+    # Pragmatic approach: input protection sits north of Buck1, in the
+    # narrow strip Y ∈ [-30, -27] between ESP32 J5 row (Y=-25.97) and
+    # the Buck1 row (Y=-18). That's at most 3 mm tall — too tight for
+    # the SMB body.
+    #
+    # Accept reality: stack the components TIGHTLY in a single vertical
+    # column at X=+17 (east edge of LED ring, west of ZT1 at +20.5).
+    # Column width ~2.5 mm, plenty for 0603 / SOT-23 / SOD-323 with
+    # vertical orientation (rotation 90). Y range -10 to +8.
+    # Input protection cluster placed in Strip F-west: PCB Y ∈ [+6, +11.9]
+    # (between cable hole south edge Y=+6 and J1 north courtyard Y=+11.9),
+    # X ∈ [-30, -10] (west of J1, east of NFC body bottom edge X=-12.76 ...
+    # actually NFC body extends Y=+40.64..-16.51 at X=-38.16..-12.76, so
+    # NFC OCCUPIES this Y region. Need to thread around NFC bottom edge).
+    # NFC body bottom edge is at PCB Y=+40.64; that's south of the chord.
+    # NFC body top edge at Y=-16.51 → NFC occupies X=-38.16..-12.76 all
+    # the way down past Y=+40. So we CANNOT place SMD parts in
+    # X ∈ [-38, -13] at Y ∈ [+6, +12] without going UNDER the NFC body
+    # (which would be a Z-collision: NFC sits 7-11 mm above PCB so SMD
+    # parts <2 mm tall CAN go beneath it, but only if their pads aren't
+    # blocked by the NFC daughterboard's own bottom-side components or
+    # solder fillets). Conservative: avoid the NFC body shadow.
+    # Final compromise: input protection goes EAST of cable hole, in Strip
+    # F-east. X ∈ [+9, +50] (avoiding J1 body which extends X=-7..+11.9 at
+    # the J1 anchor). With J1 east edge at +11.9 (incl. body), available
+    # X ∈ [+13, +22] (avoid ZT1 at +20.5).
+    # Row Y=+9 (mid Strip-F).
+    parts.append(gen_diode_smb_pcb_footprint(
+        x=+15, y=+9, rotation=0,
+        reference="D1", value="SMBJ24A",
+        uuid_tag="d1-tvs-smbj24a",
+        descr="SMBJ24A TVS surge clamp, 24 V standoff, 38.9 V clamp @ 1 A.",
+    ))
+    parts.append(gen_sot23_3pin_pcb_footprint(
+        x=+22, y=+9, rotation=0,
+        reference="Q1", value="PMV65XP",
+        uuid_tag="q1-pmos",
+        descr="P-MOSFET reverse-polarity protection. SOT-23. Vds=-50 V / Vgs=±20 V.",
+    ))
+    # F1 — 7.3 × 5 mm polyfuse, place under the SEN66 body shadow at
+    # PCB Y=+18, X around +30 (between SEN66 body left edge +23.5 and
+    # right edge +49.1, well west of SEN66 connector at X≈+49.1).
+    # SEN66 body is 21.5 mm above PCB (clearance for 5 mm body height).
+    parts.append(gen_polyfuse_smd_pcb_footprint(
+        x=+30, y=+18, rotation=0,
+        reference="F1", value="MF-RHT075/60-2",
+        uuid_tag="f1-ptc",
+        descr="PTC polyfuse 750 mA hold / 1.5 A trip / 60 V (Bourns MF-RHT075/60-2).",
+    ))
+    # D3, R1, R4 — small parts, place in the cluster strip above J1
+    # extending east of Q1.
+    parts.append(gen_diode_sod323_pcb_footprint(
+        x=+26, y=+9, rotation=0,
+        reference="D3", value="BZT52C18",
+        uuid_tag="d3-zener",
+        descr="18 V Zener clamp on Q1 gate-source to keep |Vgs| ≤ 18 V.",
+    ))
+    parts.append(gen_resistor_0603_pcb_footprint(
+        x=+34, y=+10, rotation=0,
+        reference="R1", value="100k",
+        uuid_tag="r1-gate-pulldown",
+        descr="100 kΩ gate-GND pulldown for Q1 (P-MOSFET reverse-polarity).",
+    ))
+    parts.append(gen_resistor_0603_pcb_footprint(
+        x=+38, y=+10, rotation=0,
+        reference="R4", value="1k",
+        uuid_tag="r4-gate-series",
+        descr="1 kΩ gate series resistor between Q1.G and Vgs clamp junction.",
+    ))
+
+    # ---- Buck1 cluster (24 V → 5 V): U1 LM2596S + L1 + D2 + bulk caps.
+    # Place in the strip between LED ring outer (Y=-12) and J5 ESP32
+    # row at Y=-25.97. Available Y ∈ [-24, -12]. U1's TO-263-5 footprint
+    # has courtyard Y range -5.3..+5.0 (centered on body); placing U1
+    # anchor at Y=-18 gives U1 courtyard Y=-23.3..-13 — fits.
+    parts.append(gen_to263_5_pcb_footprint(
+        x=-12, y=-18, rotation=0,
+        reference="U1", value="LM2596S-5.0",
+        uuid_tag="u1-lm2596",
+        descr="LM2596S-5.0 5 V 3 A asynchronous step-down buck (TI), TO-263-5.",
+    ))
+    # L1 — 5x5 mm SMD inductor, place east of U1 with 3 mm gap
+    parts.append(gen_inductor_smd_5x5_pcb_footprint(
+        x=-3, y=-18, rotation=0,
+        reference="L1", value="33uH",
+        uuid_tag="l1-buck1",
+        descr="33 µH ≥2 A SMD shielded power inductor (Wurth WE-PD-S or eq).",
+    ))
+    # D2 SMA — place east of L1
+    parts.append(gen_diode_sma_pcb_footprint(
+        x=+4, y=-18, rotation=0,
+        reference="D2", value="SS14",
+        uuid_tag="d2-schottky",
+        descr="SS14 Schottky diode 40 V / 1 A, SMA, freewheeling for U1 buck.",
+    ))
+    # C3 input bulk — radial 8 mm cap, west of U1
+    parts.append(gen_capacitor_polarized_radial_pcb_footprint(
+        x=-22, y=-18, rotation=0,
+        reference="C3", value="100uF/50V",
+        uuid_tag="c3-u1-vin-bulk",
+        diameter_mm=8.0, pitch_mm=3.5,
+        descr="100 µF / 50 V radial electrolytic input bulk for U1 buck.",
+    ))
+    parts.append(gen_capacitor_0603_pcb_footprint(
+        x=-22, y=-12, rotation=0,
+        reference="C13", value="100nF",
+        uuid_tag="c13-u1-vin-hf",
+        descr="100 nF input HF ceramic bypass at U1.VIN (paired with C3).",
+    ))
+    # C4 output bulk + C14 HF — east of D2, on the +5V output rail. C4
+    # is 6.3 mm diameter radial; place at X=+10 leaves D2 east edge at
+    # X=+4+2.15=+6.15 vs C4 west edge at +10-3.15=+6.85 → 0.7 mm gap.
+    # C4 east edge at +10+3.15=+13.15 still west of LED ring outer X=+12
+    # at θ=0... LED D11 at θ=0: PCB (+11, 0), with body half-width 2 mm
+    # → east edge X=+13. Overlap. Move C4 to NORTH-EAST of D2.
+    # Better: place C4 in the cap-LED gap. Actually C4 has been moved.
+    # New plan: U1+L1+D2 row at Y=-18; C4 sits ABOVE D2, at Y=-23.
+    # That keeps it within the ESP32-shadow keepaway strip.
+    # C4 — radial 6.3 mm cap. Place east of D2, north of input protection,
+    # in the strip Y=-15..-12 above the LED ring outer (R=12, +Y=12 at θ=90°
+    # but irrelevant in this X range). Anchor (+7, -14).
+    parts.append(gen_capacitor_polarized_radial_pcb_footprint(
+        x=+7, y=-15, rotation=0,
+        reference="C4", value="220uF/10V",
+        uuid_tag="c4-u1-vout-bulk",
+        diameter_mm=6.3, pitch_mm=2.5,
+        descr="220 µF / 10 V radial electrolytic output bulk on +5V rail.",
+    ))
+    parts.append(gen_capacitor_0603_pcb_footprint(
+        x=+2, y=-13, rotation=0,
+        reference="C14", value="100nF",
+        uuid_tag="c14-u1-vout-hf",
+        descr="100 nF HF ceramic bypass on +5V rail (paired with C4).",
+    ))
+
+    # ---- Buck2 cluster (5 V → 3.3 V): U2 TPS62933 + L2 + FB divider + caps.
+    # Place under the ESP32 body shadow (PCB Y between ESP32 J5 row at
+    # Y=-25.97 and J6 row at Y=-48.83) where the 8.6 mm ESP32 standoff
+    # leaves plenty of vertical room for SMD parts. Buck1 is in the
+    # strip Y=-13..-25 east of the ESP32; Buck2 sits SOUTH of Buck1.
+    # Strip: X ∈ [-27, +20], Y ∈ [-45, -30]. Lots of room.
+    parts.append(gen_sot583_pcb_footprint(
+        x=-22, y=-37, rotation=0,
+        reference="U2", value="TPS62933",
+        uuid_tag="u2-tps62933",
+        descr="TPS62933 5 V→3.3 V synchronous buck (TI), SOT-583/VSON-8.",
+    ))
+    parts.append(gen_inductor_smd_5x5_pcb_footprint(
+        x=-13, y=-37, rotation=0,
+        reference="L2", value="2.2uH",
+        uuid_tag="l2-buck2",
+        descr="2.2 µH ≥2 A SMD shielded power inductor for U2 buck.",
+    ))
+    parts.append(gen_resistor_0603_pcb_footprint(
+        x=-8, y=-37, rotation=0,
+        reference="R2", value="100k",
+        uuid_tag="r2-fb-top",
+        descr="FB top divider for TPS62933 (sets +3.3V).",
+    ))
+    parts.append(gen_resistor_0603_pcb_footprint(
+        x=-8, y=-40, rotation=0,
+        reference="R3", value="30.9k",
+        uuid_tag="r3-fb-bot",
+        descr="FB bottom divider for TPS62933 (sets +3.3V).",
+    ))
+    parts.append(gen_capacitor_0805_pcb_footprint(
+        x=-26, y=-37, rotation=0,
+        reference="C5", value="10uF",
+        uuid_tag="c5-u2-vin-bulk",
+        descr="10 µF 0805 ceramic input bulk for U2.VIN (+5V).",
+    ))
+    parts.append(gen_capacitor_0603_pcb_footprint(
+        x=-26, y=-40, rotation=0,
+        reference="C15", value="100nF",
+        uuid_tag="c15-u2-vin-hf",
+        descr="100 nF input HF ceramic bypass at U2.VIN.",
+    ))
+    parts.append(gen_capacitor_0805_pcb_footprint(
+        x=-3, y=-37, rotation=0,
+        reference="C6", value="22uF",
+        uuid_tag="c6-u2-vout-bulk",
+        descr="22 µF 0805 ceramic output bulk on +3.3V rail.",
+    ))
+    parts.append(gen_capacitor_0603_pcb_footprint(
+        x=-3, y=-40, rotation=0,
+        reference="C16", value="100nF",
+        uuid_tag="c16-u2-vout-hf",
+        descr="100 nF HF ceramic bypass on +3.3V rail.",
+    ))
+    parts.append(gen_capacitor_0603_pcb_footprint(
+        x=-22, y=-40, rotation=0,
+        reference="C7", value="22pF",
+        uuid_tag="c7-fb-feedforward",
+        descr="FB feedforward cap (BW shaping for TPS62933).",
+    ))
+    parts.append(gen_capacitor_0603_pcb_footprint(
+        x=-19, y=-40, rotation=0,
+        reference="C8", value="100nF",
+        uuid_tag="c8-u2-bst",
+        descr="Bootstrap cap C(BST) between U2.SW and U2.VOS.",
+    ))
+
+    # ---- C1 (+24V protected bulk) + C2 (Y2 GND-PE) — between LED ring and
+    # cable hole, west side
+    parts.append(gen_capacitor_polarized_radial_pcb_footprint(
+        x=-32, y=-19, rotation=0,
+        reference="C1", value="100uF/50V",
+        uuid_tag="c1-protected-bulk",
+        diameter_mm=8.0, pitch_mm=3.5,
+        descr="100 µF / 50 V radial electrolytic bulk on protected +24V rail.",
+    ))
+    parts.append(gen_capacitor_0805_pcb_footprint(
+        x=-32, y=-12, rotation=0,
+        reference="C2", value="10nF Y2",
+        uuid_tag="c2-y2",
+        descr="10 nF Y2 safety class — GND ↔ Earth_Protective EMI bridge.",
+    ))
+
+    # ---- C9 ESP32 bulk + C17 HF, R5/R6 I2C pullups ---
+    # Place between ESP32 J5 row (Y=-25.97) and Buck2 cluster (Y around -37).
+    # Strip Y=-28..-34, X centered between ESP32 and SEN66 area, X ∈ [+5, +15].
+    parts.append(gen_capacitor_0805_pcb_footprint(
+        x=+10, y=-30, rotation=0,
+        reference="C9", value="10uF",
+        uuid_tag="c9-esp32-bulk",
+        descr="10 µF 0805 ceramic bulk on ESP32 +3V3.",
+    ))
+    parts.append(gen_capacitor_0603_pcb_footprint(
+        x=+10, y=-33, rotation=0,
+        reference="C17", value="100nF",
+        uuid_tag="c17-esp32-hf",
+        descr="100 nF HF ceramic decoupling on ESP32 +3V3.",
+    ))
+    parts.append(gen_resistor_0603_pcb_footprint(
+        x=+14, y=-30, rotation=0,
+        reference="R5", value="10k",
+        uuid_tag="r5-i2c-sda-pullup",
+        descr="I²C SDA 10 kΩ pull-up to +3V3 (per SEN66 datasheet §3.1).",
+    ))
+    parts.append(gen_resistor_0603_pcb_footprint(
+        x=+14, y=-33, rotation=0,
+        reference="R6", value="10k",
+        uuid_tag="r6-i2c-scl-pullup",
+        descr="I²C SCL 10 kΩ pull-up to +3V3 (per SEN66 datasheet §3.1).",
+    ))
+
+    # Sensor decoupling caps: C10 (SEN66 +3V3), C11 (LD2410 +5V), C12 (NFC +3V3).
+    # SEN66 J3 socket is at (+36, +27). Place C10 east of J3 in the gap
+    # between J3 east edge (~+38.5) and H1 mounting hole at (+47.6, +27.5)
+    # (NPTH courtyard radius ~1.43 mm so keep-clear X > +45). Plenty of
+    # room at PCB (+42, +33).
+    parts.append(gen_capacitor_0603_pcb_footprint(
+        x=+42, y=+33, rotation=0,
+        reference="C10", value="100nF",
+        uuid_tag="c10-sen66-decoupling",
+        descr="100 nF local decoupling for SEN66 (J3 +3V3 pin 1/6).",
+    ))
+    # LD2410 J4 pads at PCB X=-44.74, Y=+19.05 (1×5 P1.27 row going south
+    # from anchor). Place C11 NORTH of the pad row (toward LD2410 body).
+    # C11 schematic shows top pin (pin 1) → +5V (J4 pin 5), bottom (pin 2) → GND.
+    # Anchor (-44, +14) — north of J4 pin 5 (+5V) at PCB Y=+19.05.
+    parts.append(gen_capacitor_0603_pcb_footprint(
+        x=-44, y=+14, rotation=0,
+        reference="C11", value="100nF",
+        uuid_tag="c11-ld2410-decoupling-pcb",
+        descr="100 nF local decoupling for LD2410 (J4 pin 5 / +5V).",
+    ))
+    # NFC J7/J8 socket: pin 7 (+3V3) at row A position. Row A at PCB X=-14.03.
+    # Pin 7 is the 7th from pin 1; pin 1 at PCB Y=+38.10, going north (LIB +Y → PCB -Y).
+    # So pin 7 at PCB Y = +38.10 - 6*2.54 = +22.86. C12 just below pin 7.
+    # C12 next to NFC pin 7 (+3.3V). NFC J7 row A at PCB X=-14.03,
+    # Y=+38.10 (pin 1) ... Y=+20.32 (pin 8). Pin 7 = pin 1 - 6 = PCB Y=+22.86.
+    # Place C12 BETWEEN J7 (X=-14.03) and J8 (X=-36.89), at Y near pin 7
+    # height. Under the NFC body shadow (7 mm clearance available).
+    parts.append(gen_capacitor_0603_pcb_footprint(
+        x=-25, y=+23, rotation=0,
+        reference="C12", value="100nF",
+        uuid_tag="c12-nfc-decoupling",
+        descr="100 nF local decoupling for MIKROE-2462 NFC (mikroBUS pin 7 / +3V3).",
+    ))
+
+    # J2 — DNP recovery pin header. Place in the NW corner near LD2410's
+    # left edge. LD2410 body left edge at X=-51.09, PCB outline at X≈-57.7
+    # at Y=-16.5 (top of LD2410). Strip X ∈ [-57, -51], Y ∈ [-16, +19],
+    # ~6 mm wide and 35 mm tall. Drop J2 into this strip with pins
+    # running north-south. With rotation 0, pads at LIB Y=0..+12.7
+    # → PCB Y = anchor_y..anchor_y+12.7. Anchor (-54, -8) puts 6 pads
+    # at Y=-8..+4.7. All inside the strip; clearance to LD2410 body
+    # left edge X=-51.09 is 51.09 - 54 = 2.91 mm (with pad half-width
+    # 0.85, pad outer edge at X=-53.15 — clearance ~2.06 mm).
+    parts.append(gen_pinheader_6_recovery_pcb_footprint(
+        x=-54, y=-8, rotation=0,
+        reference="J2", value="SWD/UART Recovery (DNP)",
+        uuid_tag="j2-recovery-header",
+        descr="1x6 P2.54 mm THT recovery header (Do-Not-Populate by default).",
+    ))
+
+    return "\n".join(parts)
 
 
 def gen_sensors_pcb_footprints() -> str:
@@ -4484,6 +5549,7 @@ def gen_pcb() -> str:
 
     keepouts, markers = gen_cutouts()
     sensor_footprints = gen_sensors_pcb_footprints()
+    power_footprints = gen_power_pcb_footprints()
     silk_labels = gen_silk_labels()
 
     body = textwrap.dedent(f"""\
@@ -4502,7 +5568,7 @@ def gen_pcb() -> str:
         {setup}
         \t(net 0 "")
         {outline}
-        """) + markers + "\n" + "\n".join(footprints) + "\n" + sensor_footprints + "\n" + silk_labels + "\n" + keepouts + "\n)\n"
+        """) + markers + "\n" + "\n".join(footprints) + "\n" + sensor_footprints + "\n" + power_footprints + "\n" + silk_labels + "\n" + keepouts + "\n)\n"
     return body
 
 # -----------------------------------------------------------------------------
