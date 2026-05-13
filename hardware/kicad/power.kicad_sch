@@ -3452,7 +3452,7 @@
 			(justify right)
 		)
 	)
-	(property "Footprint" ""
+	(property "Footprint" "Connector_Phoenix_MSTB:PhoenixContact_MSTBA_2,5_3-G-5,08_1x03_P5.08mm_Horizontal"
 		(at 57.15 86.36 0)
 		(effects
 			(font
@@ -3461,7 +3461,7 @@
 			(hide yes)
 		)
 	)
-	(property "Datasheet" ""
+	(property "Datasheet" "https://www.phoenixcontact.com/online/portal/us?uri=pxc-oc-itemdetail:pid=1757255"
 		(at 57.15 86.36 0)
 		(effects
 			(font
@@ -3470,7 +3470,7 @@
 			(hide yes)
 		)
 	)
-	(property "Description" ""
+	(property "Description" "Phoenix Contact MSTBA 2,5/3-G-5,08 — 3-pin 5.08 mm pitch pluggable terminal block base. 24 V supply input: pin 1 = +24V_unprotected, pin 2 = GND, pin 3 = PE. Mates with a Phoenix COMBICON 5.08 mm 3-pin plug. Order code 1757255 (12 A) or 1923872 (16 A HC)."
 		(at 57.15 86.36 0)
 		(effects
 			(font

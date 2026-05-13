@@ -418,13 +418,25 @@ ESP32_ANCHOR_X = -27.76            # v0.15.3: -2 mm LEFT of v0.15.2.
                                     # X = -3.63. Right edge clearance to
                                     # SEN66 (+23.5) grows to 3.00 mm
                                     # (was 1.00 in v0.15.2).
-ESP32_ANCHOR_Y = -24.70            # v0.15.3: +2 mm DOWN from v0.15.2's
-                                    # -26.70. Body Y range -50.10..-24.70.
-                                    # Top edge 3.00 mm above H3 hole top
-                                    # at Y=-53.1 (was 1.0 mm). Top-left
-                                    # corner (-27.76, -50.10): distance
-                                    # √(770.6+2510.0)=57.27 → 2.73 mm
-                                    # clearance to PCB outline.
+ESP32_ANCHOR_Y = -26.20            # v0.17: shifted 1.5 mm NORTH (was
+                                    # -24.70) to free up vertical room
+                                    # between the ESP32 body bottom and
+                                    # the AQI LED ring north corners for
+                                    # the J1 24V terminal block. Body Y
+                                    # range -51.60..-26.20. Top-left
+                                    # corner (-27.76, -51.60): distance
+                                    # √(770.6+2662.6)=√3433.2≈58.59 →
+                                    # 1.41 mm clearance to PCB outline
+                                    # (was 2.73 mm at -24.70). H3
+                                    # mounting hole top edge at Y=-53.1
+                                    # still 1.5 mm south of ESP32 top
+                                    # edge. Gap to AQI LED ring north
+                                    # corners (D19/D21 at Y=-11.67) is
+                                    # now 14.53 mm — accommodates the
+                                    # 13.0 mm courtyard depth of the
+                                    # MSTBA terminal block with ~0.7 mm
+                                    # clearance to ESP32 and ~0.8 mm to
+                                    # LED courtyards.
 ESP32_ROTATION = 90                # KiCad rotation applied to helper output
 
 # Dimensions per mikroBUS Standard Specifications v2.00 (June 2015), size L.
@@ -507,6 +519,91 @@ J4_PCB_Y = +19.05            # mm — OAS PCB Y of the pin row (unchanged).
 J4_PCB_ROTATION = 270        # degrees; pad row along OAS -X from anchor.
 
 # -----------------------------------------------------------------------------
+# J1 PCB placement (v0.17) — 24 V Phoenix MSTBA terminal block
+# -----------------------------------------------------------------------------
+# v0.17 relocates J1 from the (so-far unplaced) chord-edge connector strip
+# to the central region of the PCB, immediately north of the Ø12 mm cable
+# hole. The 24 V supply cable enters from the rear of the enclosure
+# (electrical wall box behind the unit), passes through the central hole,
+# bends ~90° on the front side, and enters the terminal-block clamp from
+# its south face. The previously-cover-mount LED slot D20 (θ=270°,
+# PCB (0, -11)) is removed in v0.17 to open a corridor through the AQI
+# ring for the cable.
+#
+# Footprint: Connector_Phoenix_MSTB :
+#   PhoenixContact_MSTBA_2,5_3-G-5,08_1x03_P5.08mm_Horizontal
+# (matches the schematic's "Phoenix_MSTBA_2,5/3-G-5,08" library symbol).
+# Stock footprint geometry (footprint-local):
+#   - Pin 1 at (0, 0), pin 2 at (+5.08, 0), pin 3 at (+10.16, 0)
+#   - F.Fab body: X = -3.54..+13.70, Y = -2.00..+10.00
+#   - Courtyard:  X = -4.04..+14.21, Y = -2.50..+10.50
+#   - Cable-entry face on the body's LIB +Y side (body bulk side,
+#     with terminal-screw indicators at LIB Y = +8.61..+10.11 marking
+#     each pin's cable insertion guide). The LIB -Y side (Y = -2.31..
+#     -2.91) carries the small pin-1 indicator triangle but no cable
+#     features — that's the PCB-edge / pin-solder side.
+#
+# Placement: PCB anchor (pin 1 PCB position) is offset so pin 2 (middle
+# pin) lands at PCB X = 0. Rotation 0° places the cable-entry face on
+# PCB +Y (SOUTH, facing the cable hole), and the body's +Y bulk
+# (terminal screws) on PCB +Y side (toward the chord). The pin solder
+# side (LIB -Y, Y = -2..0) maps to PCB -Y (NORTH), where it occupies
+# 2 mm of the gap between the LED ring and ESP32 daughterboard.
+#
+# Wait — this leaves the body BULK on the cable-entry/chord side. That
+# is correct: the cable enters the body bulk through its +Y face. The
+# pin-solder side (LIB -Y) is just the 2 mm extension where the pins
+# protrude DOWN through the PCB.
+#
+# Clearance budget (rotation 0°, pin 2 centred at PCB X=0):
+#   - Courtyard PCB Y range = [pin_y − 2.5, pin_y + 10.5] (13 mm depth)
+#   - Courtyard PCB X range = [−9.13, +9.12]
+#   - At pin_y = −22.7:
+#       Courtyard Y = [−25.20, −12.20]
+#       J5 (ESP32 row A) courtyard south = −25.70 → 0.50 mm clearance
+#         to J1 courtyard north edge
+#       Nearest LED-courtyard north corner (D19/D21 at PCB Y = −11.67):
+#         0.53 mm clearance to J1 courtyard south edge
+#
+# Cable bend geometry: the cable enters the connector through the south
+# (cable-hole-facing) face at PCB Y = pin_y + 10.11 = −12.59 (F.SilkS
+# edge) or pin_y + 10.5 = −12.20 (courtyard edge). The cable hole's
+# north edge sits at PCB Y = −6 (Ø12 mm hole, radius 6). Effective
+# horizontal travel for the cable bend: 12.59 − 6.00 = 6.59 mm. Each
+# 1.5 mm² conductor enters its own screw clamp; the three conductors
+# fan out from the hole exit, so each bends independently rather than
+# as a bundle. A single 1.5 mm² insulated wire (OD ~3 mm) has a typical
+# minimum bend radius of ~10 mm — slightly larger than the available
+# travel, so the cable will bend somewhat aggressively at the hole
+# exit. Acceptable for a low-flex installation (the cable is fixed at
+# both ends and is not manipulated after assembly).
+J1_PCB_X = -5.08             # PCB X of pin 1. With rotation 0°, pin 2
+                              # (middle) lands at PCB X = J1_PCB_X +
+                              # 5.08 = 0. Pin row spans PCB X = -5.08
+                              # (pin 1, +24V) .. +5.08 (pin 3, PE),
+                              # centred on the PCB X axis and aligned
+                              # with the D20 LED slot now vacated.
+J1_PCB_Y = -22.4             # PCB Y of pin row (footprint-local Y = 0).
+                              # See clearance budget above for derivation.
+                              # At pin_y = −22.4 with rot 0:
+                              #   J1 courtyard Y = (−24.90, −11.90)
+                              #   J1 F.SilkS north edge (incl. pin-1 indicator
+                              #     triangle at LIB Y = −2.91 → PCB Y = −25.31)
+                              #     vs MOD1 F.SilkS south edge at PCB Y = −25.70:
+                              #     0.39 mm clearance > 0.15 mm DRC rule.
+                              #   J1 F.SilkS south edge at PCB Y = −12.29 vs
+                              #     D19/D21 north F.Fab corner at PCB Y =
+                              #     −11.67: 0.62 mm clearance.
+                              #   J5 (ESP32 row A) courtyard south PCB Y =
+                              #     −25.70 → 0.80 mm clearance to J1
+                              #     courtyard north edge.
+J1_PCB_ROTATION = 0          # Rotation 0° keeps the cable-entry face
+                              # of the body (LIB +Y) on PCB +Y (south,
+                              # facing the cable hole). Pin 1 (+24V)
+                              # at PCB -X (west), pin 3 (PE) at PCB +X
+                              # (east).
+
+# -----------------------------------------------------------------------------
 # AQI status LED ring (v0.16) — 12 × SK6812-SIDE side-emit addressable RGB
 # -----------------------------------------------------------------------------
 # Twelve side-emit RGB LEDs on a Ø22 mm pitch circle around the central
@@ -547,6 +644,15 @@ LED_RING_RADIUS = 11.0
 LED_RING_COUNT = 12
 LED_RING_THETA_START_DEG = 0.0       # first LED (D11) sits on PCB +X axis
 LED_RING_THETA_STEP_DEG = 360.0 / LED_RING_COUNT   # = 30°
+
+# v0.17: One LED slot is removed from the ring to open a corridor for the
+# 24 V supply cable to pass from the central Ø12 mm cable hole northward
+# to the J1 terminal block placed in the gap between the LED ring and the
+# ESP32 daughterboard. Index 9 = D20 = θ=270° = PCB (0, -11) — the slot
+# directly opposite the chord. Removing D20 also drops its decoupling cap
+# C29; the daisy-chain wire is rerouted D19.DOUT → D21.DIN, skipping the
+# now-empty D20 position. The final ring has 11 LEDs (D11..D19, D21..D22).
+LED_RING_SKIP_INDICES = (9,)         # i=9 → D20 (and C29) at θ=270°
 
 # Decoupling cap radial offset from LED centre: cap sits ~3.4 mm radially
 # INWARD from the LED centre (so total radius = LED_RING_RADIUS - 3.4 =
@@ -1972,6 +2078,15 @@ _J4_LIB_FOOTPRINT_PATH = (
     / "PinHeader_1x05_P1.27mm_Vertical.kicad_mod"
 )
 
+# v0.17: J1 — 24 V Phoenix MSTBA 5.08 mm pitch 3-pin pluggable terminal
+# block (base PCB-side header). Matches the schematic part library symbol
+# `Connector:Screw_Terminal_01x03` placed in `power.kicad_sch` with the
+# value `Phoenix_MSTBA_2,5/3-G-5,08`.
+_J1_LIB_FOOTPRINT_PATH = (
+    _kicad_install_path() / "footprints" / "Connector_Phoenix_MSTB.pretty"
+    / "PhoenixContact_MSTBA_2,5_3-G-5,08_1x03_P5.08mm_Horizontal.kicad_mod"
+)
+
 
 def _pinsocket_lib_footprint_path(pin_count: int):
     return (
@@ -2526,6 +2641,155 @@ def gen_j4_pinheader_pcb_footprint(x: float, y: float, rotation: int) -> str:
 
     return textwrap.dedent(f"""\
         \t(footprint "Connector_PinHeader_1.27mm:{fp_name}"
+        \t\t(layer "F.Cu")
+        \t\t(uuid "{U('fp-inst:' + uuid_tag)}")
+        \t\t(at {fx(x)} {fy(y)} {rotation})
+        """) + properties + "\n" + body_text + "\n\t)"
+
+
+def gen_j1_terminal_block_pcb_footprint(x: float, y: float, rotation: int) -> str:
+    """Emit the placed J1 — 24 V Phoenix MSTBA 5.08 mm pitch 3-pin pluggable
+    terminal block (PCB-side header / "base") at PCB (x, y) with `rotation`
+    degrees.
+
+    Reads the KiCad 10 stock library footprint
+    `Connector_Phoenix_MSTB:PhoenixContact_MSTBA_2,5_3-G-5,08_1x03_P5.08mm_Horizontal`
+    from the system KiCad install, then mirrors the same patching logic as
+    `gen_j3_jst_gh_pcb_footprint` / `gen_j4_pinheader_pcb_footprint`:
+      - prefix the footprint name with library nickname so DRC matches it
+      - drop (version), (generator), library Reference/Value/KiLib_Generator
+        properties, embedded_fonts, model
+      - inject our own (uuid) + (at x y rotation) + OAS-side
+        Reference="J1" / Value / Footprint / Datasheet / Description
+      - replace inline ${REFERENCE} → "J1"
+      - if rotation != 0, annotate each pad's (at lx ly) with the rotation
+        so DRC rotates pad geometry with the footprint
+    """
+    src = _J1_LIB_FOOTPRINT_PATH.read_text(encoding="utf-8")
+    uuid_tag = "j1-terminal-block"
+
+    # Parse top-level (footprint ...) S-expression and split into children
+    # (same parser as gen_j3 / gen_j4).
+    lines = src.split("\n")
+    assert lines[0].startswith("(footprint "), f"unexpected first line: {lines[0]!r}"
+
+    depth = 0
+    cur: list[str] = []
+    items: list[str] = []
+    for ch in src:
+        if ch == "(":
+            if depth == 0:
+                cur = []
+            depth += 1
+            cur.append(ch)
+        elif ch == ")":
+            depth -= 1
+            cur.append(ch)
+            if depth == 0:
+                items.append("".join(cur))
+        else:
+            if depth > 0:
+                cur.append(ch)
+    assert len(items) == 1
+    top = items[0]
+    inner = top.strip()
+    assert inner.startswith("(footprint") and inner.endswith(")")
+    inner = inner[len("(footprint"):].rstrip()
+    inner = inner.rstrip(")").rstrip().lstrip()
+    assert inner.startswith('"')
+    name_end = inner.index('"', 1)
+    fp_name = inner[1:name_end]
+    inner_after_name = inner[name_end + 1:]
+
+    children: list[str] = []
+    depth = 0
+    cur = []
+    for ch in inner_after_name:
+        if ch == "(":
+            if depth == 0:
+                cur = []
+            depth += 1
+            cur.append(ch)
+        elif ch == ")":
+            depth -= 1
+            cur.append(ch)
+            if depth == 0:
+                children.append("".join(cur))
+        else:
+            if depth > 0:
+                cur.append(ch)
+
+    SKIP_PREFIXES = (
+        "(version", "(generator", "(generator_version",
+        "(property \"Reference\"",
+        "(property \"Value\"",
+        "(property \"KiLib_Generator\"",
+        "(embedded_fonts",
+        "(model ",
+    )
+    body_children = []
+    for child in children:
+        if any(child.startswith(p) for p in SKIP_PREFIXES):
+            continue
+        body_children.append(child)
+
+    def reindent_for_pcb(s: str) -> str:
+        out_lines = []
+        for ln in s.split("\n"):
+            if ln == "":
+                out_lines.append(ln)
+            else:
+                out_lines.append("\t" + ln)
+        return "\n".join(out_lines)
+
+    body_text = "\n".join(reindent_for_pcb(c) for c in body_children)
+
+    # Replace the inline ${REFERENCE} token inside fp_text user blocks
+    # with the literal "J1".
+    body_text = body_text.replace('"${REFERENCE}"', '"J1"')
+
+    if rotation != 0:
+        body_text = _annotate_pad_rotations(body_text, rotation)
+
+    properties = textwrap.dedent(f"""\
+        \t\t(property "Reference" "J1"
+        \t\t\t(at 5.08 -3.2 {rotation})
+        \t\t\t(layer "F.SilkS")
+        \t\t\t(hide yes)
+        \t\t\t(uuid "{U('fp-prop-ref:' + uuid_tag)}")
+        \t\t\t(effects (font (size 1 1) (thickness 0.15)))
+        \t\t)
+        \t\t(property "Value" "Phoenix_MSTBA_2,5/3-G-5,08 (24V input)"
+        \t\t\t(at 5.08 11.2 {rotation})
+        \t\t\t(layer "F.Fab")
+        \t\t\t(hide yes)
+        \t\t\t(uuid "{U('fp-prop-val:' + uuid_tag)}")
+        \t\t\t(effects (font (size 1 1) (thickness 0.15)))
+        \t\t)
+        \t\t(property "Footprint" "Connector_Phoenix_MSTB:PhoenixContact_MSTBA_2,5_3-G-5,08_1x03_P5.08mm_Horizontal"
+        \t\t\t(at 0 0 0)
+        \t\t\t(layer "F.Fab")
+        \t\t\t(hide yes)
+        \t\t\t(uuid "{U('fp-prop-fp:' + uuid_tag)}")
+        \t\t\t(effects (font (size 1.27 1.27)))
+        \t\t)
+        \t\t(property "Datasheet" "https://www.phoenixcontact.com/online/portal/us?uri=pxc-oc-itemdetail:pid=1757255"
+        \t\t\t(at 0 0 0)
+        \t\t\t(layer "F.Fab")
+        \t\t\t(hide yes)
+        \t\t\t(uuid "{U('fp-prop-ds:' + uuid_tag)}")
+        \t\t\t(effects (font (size 1.27 1.27)))
+        \t\t)
+        \t\t(property "Description" "Phoenix Contact MSTBA 2,5/3-G-5,08 — 3-pin 5.08 mm pitch pluggable terminal block base (PCB-side header). 24 V supply input: pin 1 = +24V_unprotected, pin 2 = GND, pin 3 = PE. Mates with a Phoenix COMBICON 5.08 mm 3-pin plug; the user-removable plug accepts solid or stranded 0.2-2.5 mm² conductors. Order code 1757255 (12 A) or 1923872 (16 A HC)."
+        \t\t\t(at 0 0 0)
+        \t\t\t(layer "F.Fab")
+        \t\t\t(hide yes)
+        \t\t\t(uuid "{U('fp-prop-desc:' + uuid_tag)}")
+        \t\t\t(effects (font (size 1.27 1.27)))
+        \t\t)""")
+
+    return textwrap.dedent(f"""\
+        \t(footprint "Connector_Phoenix_MSTB:{fp_name}"
         \t\t(layer "F.Cu")
         \t\t(uuid "{U('fp-inst:' + uuid_tag)}")
         \t\t(at {fx(x)} {fy(y)} {rotation})
@@ -3200,6 +3464,15 @@ def gen_sensors_pcb_footprints() -> str:
         x=J4_PCB_X, y=J4_PCB_Y, rotation=J4_PCB_ROTATION,
     ))
 
+    # J1 — Phoenix MSTBA 5.08 mm 3-pin pluggable terminal block for the
+    # 24 V supply input. v0.17 placed in the central PCB area, immediately
+    # north of the Ø12 mm cable hole, replacing the AQI LED slot at θ=270°
+    # (D20). See `J1_PCB_*` constants near the top of the file for the
+    # placement rationale, clearance budget, and cable-bend geometry.
+    parts.append(gen_j1_terminal_block_pcb_footprint(
+        x=J1_PCB_X, y=J1_PCB_Y, rotation=J1_PCB_ROTATION,
+    ))
+
     # ESP32-C6 DevKitM-1-N4 daughterboard shadow reservation. Mounted on
     # 2× 1x15 P2.54 mm female pin sockets (chunk #7); module sits face-up
     # ~8 mm above OAS PCB. Antenna at TOP short edge (Y=anchor_y), USB-C
@@ -3305,12 +3578,19 @@ def gen_sensors_pcb_footprints() -> str:
         uuid_tag="j8-mikroe-row-b",
     ))
 
-    # AQI status LED ring (v0.16) — 12 × SK6812-SIDE on a Ø22 mm pitch
-    # circle around the central cable hole, each LED radiating outward
-    # into the AK-N-94 perforated cover. Plus one 100 nF 0402 decoupling
-    # cap per LED (C20..C31), sited radially inward from each LED so the
-    # cap pads are positioned near the corresponding VDD pad.
+    # AQI status LED ring (v0.16; v0.17 removed D20) — 11 × SK6812-SIDE on
+    # a Ø22 mm pitch circle around the central cable hole, each LED
+    # radiating outward into the AK-N-94 perforated cover. Plus one 100 nF
+    # 0402 decoupling cap per LED, sited radially inward from each LED so
+    # the cap pads are positioned near the corresponding VDD pad.
+    #
+    # v0.17 skips the LED slot at index 9 (D20, θ=270°, PCB (0, -11)) and
+    # its decoupling cap (C29). The freed-up corridor lets the 24 V supply
+    # cable from the central Ø12 mm hole reach the J1 terminal block which
+    # now sits between the LED ring and the ESP32 daughterboard.
     for i in range(LED_RING_COUNT):
+        if i in LED_RING_SKIP_INDICES:
+            continue
         led_x, led_y, led_rot = _led_ring_position(i)
         led_ref = f"D{11 + i}"      # D11..D22 (D1..D5 used by power section)
         parts.append(gen_sk6812_side_pcb_footprint(
@@ -3458,6 +3738,53 @@ def gen_silk_labels() -> str:
         aqi_label_r * math.sin(aqi_label_theta),
         "aqi-ring", size=1.0,
     ))
+
+    # ---- v0.17: J1 24 V terminal block board-level labels ----
+    # Board-level gr_text labels (not in-footprint) so they remain
+    # horizontal regardless of the J1 footprint's rotation, and because
+    # the in-footprint Reference / Value text positions of the stock
+    # Phoenix MSTBA footprint would overlap with the LED ring south
+    # corners or the ESP32 J5 socket courtyard depending on rotation.
+    #
+    # J1 footprint at PCB (J1_PCB_X=-5.08, J1_PCB_Y=-22.7), rotation 0°:
+    #   - Pin 1 (+24V) at PCB X = -5.08
+    #   - Pin 2 (GND)  at PCB X = 0.00
+    #   - Pin 3 (PE)   at PCB X = +5.08
+    #   - Body F.SilkS rect: PCB X = -8.73..+8.73, Y = -24.81..-12.59
+    #   - Body courtyard:    PCB X = -9.13..+9.13, Y = -25.20..-12.20
+    #   - Cable entry on south face at PCB Y = -12.59 (toward cable
+    #     hole at origin).
+    #
+    # Free F.SilkS regions near J1 (no silk_overlap with the stock
+    # footprint silk or with neighbouring component silk):
+    #   - South strip: PCB Y in [body south +0.15, LED ring north -0.15]
+    #     = [-12.44, -11.82]. Width 0.62 mm — too narrow for 1.0 mm tall
+    #     text.
+    #   - North strip: PCB Y in [J5 south +0.15, body north -0.15] =
+    #     [-25.55, -24.96]. Width 0.59 mm — too narrow.
+    #
+    # Therefore: per-pin labels (24V/GND/PE) go on F.Fab (assembly-doc
+    # layer, no silk_overlap rule), positioned directly above each pin
+    # so they read with the assembly drawing. A SINGLE F.SilkS label
+    # "J1 (24V)" sits OUTSIDE the immediate J1 zone — placed in the
+    # open quadrant west of J1 between the LD2410 body (east edge at
+    # PCB X = -43.47) and J1 body west edge at PCB X = -8.73. The
+    # label sits at PCB (-15, -22) — ~6 mm west of J1, well clear of
+    # both LED ring (D17 at PCB X = -11) and the body, on the same Y
+    # row as the J1 body centre for easy visual association.
+    parts.append(_silk("J1 (24V)", -15.0, J1_PCB_Y, "j1-body-id", size=1.0))
+    # Per-pin function labels on F.Fab. Pin-row Y + 0.8 mm south →
+    # inside the body's south face, near each pin clamp. F.Fab is
+    # silk-overlap-exempt so positioning right next to the silk body
+    # rect is fine. F.Fab is rendered in assembly drawings, not on the
+    # physical PCB silkscreen — but pcbnew shows it in-editor.
+    j1_pin_fab_y = J1_PCB_Y + 0.8
+    parts.append(_silk("24V", -5.08, j1_pin_fab_y, "j1-pin1-24v",
+                       size=0.8, layer="F.Fab"))
+    parts.append(_silk("GND",  0.00, j1_pin_fab_y, "j1-pin2-gnd",
+                       size=0.8, layer="F.Fab"))
+    parts.append(_silk("PE",  +5.08, j1_pin_fab_y, "j1-pin3-pe",
+                       size=0.8, layer="F.Fab"))
 
     # ---- v0.7: cutout-zone reservation labels + outlines on F.SilkS ----
     # Each cutout C1..C5 along the chord is reserved for a future
@@ -8688,7 +9015,7 @@ def gen_power_sch() -> str:
         \t\t\t\t(justify right)
         \t\t\t)
         \t\t)
-        \t\t(property "Footprint" ""
+        \t\t(property "Footprint" "Connector_Phoenix_MSTB:PhoenixContact_MSTBA_2,5_3-G-5,08_1x03_P5.08mm_Horizontal"
         \t\t\t(at {fmt(J1_X)} {fmt(J1_Y)} 0)
         \t\t\t(effects
         \t\t\t\t(font
@@ -8697,7 +9024,7 @@ def gen_power_sch() -> str:
         \t\t\t\t(hide yes)
         \t\t\t)
         \t\t)
-        \t\t(property "Datasheet" ""
+        \t\t(property "Datasheet" "https://www.phoenixcontact.com/online/portal/us?uri=pxc-oc-itemdetail:pid=1757255"
         \t\t\t(at {fmt(J1_X)} {fmt(J1_Y)} 0)
         \t\t\t(effects
         \t\t\t\t(font
@@ -8706,7 +9033,7 @@ def gen_power_sch() -> str:
         \t\t\t\t(hide yes)
         \t\t\t)
         \t\t)
-        \t\t(property "Description" ""
+        \t\t(property "Description" "Phoenix Contact MSTBA 2,5/3-G-5,08 — 3-pin 5.08 mm pitch pluggable terminal block base. 24 V supply input: pin 1 = +24V_unprotected, pin 2 = GND, pin 3 = PE. Mates with a Phoenix COMBICON 5.08 mm 3-pin plug. Order code 1757255 (12 A) or 1923872 (16 A HC)."
         \t\t\t(at {fmt(J1_X)} {fmt(J1_Y)} 0)
         \t\t\t(effects
         \t\t\t\t(font
@@ -13087,9 +13414,18 @@ def gen_sensors_sch() -> str:
                                                # 35.56, DOUT tips at 45.72).
     # Track the DOUT (pin 3) tip of the previous LED so we can wire it
     # to the current LED's DIN (pin 1) on each iteration.
+    #
+    # v0.17: LED slots in `LED_RING_SKIP_INDICES` are skipped (D20). The
+    # chain skips over them — when the next non-skipped LED renders, its
+    # DIN connects to the most recent prev_dout, leaving the schematic
+    # row at the skipped index visually empty. The chain wire spans the
+    # full multi-row gap (e.g. D19.DOUT → D21.DIN spans two row pitches
+    # of vertical schematic distance).
     prev_dout_x: float | None = None
     prev_dout_y: float | None = None
     for i in range(LED_RING_COUNT):
+        if i in LED_RING_SKIP_INDICES:
+            continue
         led_ref = f"D{11 + i}"
         cap_ref = f"C{20 + i}"
         led_sch_x = LED_RING_SCH_X
