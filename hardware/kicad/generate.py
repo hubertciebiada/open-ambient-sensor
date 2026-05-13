@@ -347,13 +347,13 @@ def _ld2410_local_to_pcb(lx: float, ly: float) -> tuple[float, float]:
 #
 #   ESP32-C6 DevKitM-1-N4    MIKROE-2462 (NFC Tag 2 Click)
 #   body: 48.26 × 25.4 mm     body: 25.4 × 57.15 mm (size L)
-#   anchor (-27.76, -24.70)   anchor (-38.16, -16.51)
+#   anchor (-27.76, -24.70)   anchor (-12.76, +40.64) rot 180°
 #   body X=-27.76..+20.50     body X=-38.16..-12.76
 #   body Y=-50.10..-24.70     body Y=-16.51..+40.64
 #   center X = -3.63          NFC center X = -25.46
-#   horizontal at TOP-CENTER  vertical, top edge aligned with LD2410 top
-#   antenna LEFT (-X)         pins on long edges (1×8 + 1×8)
-#   USB-C RIGHT (+X)          NFC antenna spiral at far end (Y=+24..+40.64)
+#   horizontal at TOP-CENTER  vertical, flipped 180° (pins at PCB +Y)
+#   antenna LEFT (-X)         pins on long edges (J7+J8 at PCB Y=+20.32..+38.10)
+#   USB-C RIGHT (+X)          NFC antenna spiral at PCB Y=-16.51..+18.64 (top half)
 #
 # LD2410 + NFC share the same top edge at Y=-16.51 (left side group).
 # C1 and C2 AUX cutouts removed in v0.15.6 to free bottom-left region
@@ -436,18 +436,20 @@ MIKROE2462_PIN_START_OFFSET = 2.54  # pin 1 at 2.54 mm from pin-1 short edge
 # The 5.74 mm antenna spiral strip at the bottom of the MIKROE body
 # is now at PCB Y=+9.83..+15.57 — well clear of the cable hole zone
 # and aimed outward toward the AK-N-94 perforated cover.
-MIKROE2462_ANCHOR_X = -38.16       # v0.15.6: -2 mm w lewo od v0.15.5.
-                                    # Body X = -38.16..-12.76. Gap do
-                                    # LD2410 right edge at X=-39.66: 1.50
-                                    # mm. NFC right edge X=-12.76 do cable
-                                    # hole left edge at X=-6: gap 6.76 mm.
-MIKROE2462_ANCHOR_Y = -16.51       # v0.15.6: aligned NFC top edge with
-                                    # LD2410 top edge (LD2410_ANCHOR_Y).
-                                    # Body Y = -16.51..+40.64. Bottom Y
+MIKROE2462_ANCHOR_X = -12.76       # v0.15.7: rotated 180° around body
+                                    # center. Anchor now at body BOTTOM-RIGHT
+                                    # corner in PCB (was top-left in v0.15.6).
+                                    # Body PCB range unchanged: X=-38.16..-12.76.
+MIKROE2462_ANCHOR_Y = +40.64       # v0.15.7: bottom edge of body in PCB
+                                    # (was top edge -16.51 in v0.15.6).
+                                    # Body PCB range unchanged: Y=-16.51..+40.64.
                                     # 2.86 mm above PCB chord at +43.5.
-                                    # Note: extends into former C1/C2 AUX
-                                    # zones (now removed in CUTOUTS).
-MIKROE2462_ROTATION = 0
+MIKROE2462_ROTATION = 180           # v0.15.7: flipped 180° per user request
+                                    # "nfc przerzuc w pionie. piny na dole".
+                                    # Pin block now at PCB Y=+20.32..+38.10
+                                    # (was -13.97..+3.81). NFC antenna spiral
+                                    # now at PCB Y=-16.51..+18.64 — radiates
+                                    # toward UPPER part of cover (was lower).
 
 
 # -----------------------------------------------------------------------------
@@ -2773,15 +2775,22 @@ def gen_sensors_pcb_footprints() -> str:
 
     # MIKROE-2462 NFC Tag 2 Click — 2×1×8 mikroBUS, row spacing 22.86 mm,
     # pitch 2.54 mm, pin block offset 2.54 mm from pin-1 short edge.
-    # In PCB after rotation 0, LIB axes are identity. Row A (LIB X=1.27)
-    # at PCB X = anchor_x + 1.27. Row B (LIB X=24.13) at PCB X = anchor_x + 24.13.
-    # Pin 1 of each row at PCB Y = anchor_y + 2.54.
-    mikroe_row_a_x = MIKROE2462_ANCHOR_X + MIKROE2462_PIN_ROW_INSET                          # -36.89
-    mikroe_row_b_x = MIKROE2462_ANCHOR_X + (MIKROE2462_BODY_W - MIKROE2462_PIN_ROW_INSET)    # -14.03
-    mikroe_row_y_start = MIKROE2462_ANCHOR_Y + MIKROE2462_PIN_START_OFFSET                   # -13.97
+    # v0.15.7: NFC body flipped 180° so pin block sits at PCB +Y (chord
+    # side, bottom of body). Anchor moved to body's PCB bottom-right
+    # corner. After rotation 180, LIB (lx, ly) → PCB (anchor_x - lx,
+    # anchor_y - ly):
+    #   Row A (LIB X=1.27, mikroBUS pins 1..8): PCB X = anchor_x - 1.27 = -14.03
+    #   Row B (LIB X=24.13, pins 9..16):        PCB X = anchor_x - 24.13 = -36.89
+    #   Pin 1 of each row at PCB Y = anchor_y - 2.54 = +38.10 (close to chord)
+    #   Pin 8/16 of each row at PCB Y = anchor_y - 20.32 = +20.32
+    # Pin sockets placed at pin-1 position with rotation 180 so LIB +Y
+    # (toward pin 8) → PCB -Y (away from chord, toward body interior).
+    mikroe_row_a_x = MIKROE2462_ANCHOR_X - MIKROE2462_PIN_ROW_INSET                          # -14.03
+    mikroe_row_b_x = MIKROE2462_ANCHOR_X - (MIKROE2462_BODY_W - MIKROE2462_PIN_ROW_INSET)    # -36.89
+    mikroe_row_y_start = MIKROE2462_ANCHOR_Y - MIKROE2462_PIN_START_OFFSET                   # +38.10
     parts.append(gen_pinsocket_pcb_footprint(
         pin_count=MIKROE2462_PIN_COUNT_PER_ROW,
-        x=mikroe_row_a_x, y=mikroe_row_y_start, rotation=0,
+        x=mikroe_row_a_x, y=mikroe_row_y_start, rotation=180,
         reference="J7",
         value="MIKROE row A (mikroBUS pins 1..8, AN/RST/CS/SCK/MISO/MOSI/+3V3/GND)",
         descr="Stock 1x8 P2.54 mm female pin socket. MIKROE-2462 plugs into this row + J8 (other row). mikroBUS standard pin block, offset 2.54 mm from pin-1 short edge.",
@@ -2789,7 +2798,7 @@ def gen_sensors_pcb_footprints() -> str:
     ))
     parts.append(gen_pinsocket_pcb_footprint(
         pin_count=MIKROE2462_PIN_COUNT_PER_ROW,
-        x=mikroe_row_b_x, y=mikroe_row_y_start, rotation=0,
+        x=mikroe_row_b_x, y=mikroe_row_y_start, rotation=180,
         reference="J8",
         value="MIKROE row B (mikroBUS pins 9..16, PWM/INT/RX/TX/SCL/SDA/+5V/GND)",
         descr="Stock 1x8 P2.54 mm female pin socket. MIKROE-2462 plugs into this row + J7 (other row).",
