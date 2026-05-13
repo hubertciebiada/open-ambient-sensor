@@ -14778,6 +14778,488 @@ def gen_oas_symbol_library() -> str:
         """) + body_text + "\n)\n"
 
 # -----------------------------------------------------------------------------
+# Netlist post-processor (Option A from pre-routing-review v0.19 / C1)
+# -----------------------------------------------------------------------------
+#
+# After generate.py emits oas.kicad_pcb (with every pad on net 0), we re-run
+# `kicad-cli sch export netlist` to produce a KiCad-flavoured S-expression
+# netlist describing every electrical net in the just-written schematic.
+# We then parse that netlist and rewrite oas.kicad_pcb in-place so that
+# every pad whose (footprint_reference, pad_number) appears in the netlist
+# gets the matching (net <code> "<name>") clause. The net dictionary is
+# also added to the PCB header so KiCad can reference net codes by ID.
+#
+# This is the script-driven equivalent of the user opening pcbnew and
+# pressing F8 (Tools → Update PCB from Schematic). After this pass the
+# PCB has full electrical linkage for every PCB-side footprint that has a
+# matching schematic symbol — making the next-step copper routing
+# meaningful.
+#
+# Footprints WITHOUT a matching schematic reference (mechanical-only
+# refs like SENS1 / LDR1 / MOD1 / MOD2 / H1..H3 / ZT1..ZT4, plus any
+# orphan socket footprints) keep their pads on net 0. Those refs are
+# expected to remain mechanical and are excluded from the BOM (attr
+# board_only / exclude_from_bom).
+
+
+def _parse_sexp_list(text: str, start: int) -> tuple[list, int]:
+    """Tiny S-expression list parser. Returns (tokens, next_index)
+    where tokens is a nested list of strings + sub-lists.
+    Expects text[start] == '(' and returns at the index just past the
+    matching close paren."""
+    assert text[start] == "(", f"expected ( at {start}, got {text[start]!r}"
+    out: list = []
+    i = start + 1
+    while i < len(text):
+        ch = text[i]
+        if ch.isspace():
+            i += 1
+        elif ch == "(":
+            sub, i = _parse_sexp_list(text, i)
+            out.append(sub)
+        elif ch == ")":
+            return out, i + 1
+        elif ch == '"':
+            # quoted string — find next un-escaped quote
+            j = i + 1
+            while j < len(text):
+                if text[j] == "\\" and j + 1 < len(text):
+                    j += 2
+                elif text[j] == '"':
+                    break
+                else:
+                    j += 1
+            # Decode standard escapes the same way KiCad writes them
+            raw = text[i + 1:j]
+            decoded = raw.encode().decode("unicode_escape")
+            out.append(("str", decoded))
+            i = j + 1
+        else:
+            # atom — read until whitespace or paren
+            j = i
+            while j < len(text) and not text[j].isspace() and text[j] not in "()":
+                j += 1
+            out.append(("atom", text[i:j]))
+            i = j
+    raise ValueError("unterminated S-expression")
+
+
+def _sexp_head(node) -> str | None:
+    """Return the 'head' atom of a sub-list (e.g. 'net', 'node', 'ref')."""
+    if isinstance(node, list) and node:
+        first = node[0]
+        if isinstance(first, tuple) and first[0] == "atom":
+            return first[1]
+    return None
+
+
+def _sexp_string_arg(node, index: int) -> str | None:
+    """If node is a list and node[index] is a ('str', X) or ('atom', X),
+    return X; otherwise None."""
+    if isinstance(node, list) and len(node) > index:
+        item = node[index]
+        if isinstance(item, tuple) and item[0] in ("str", "atom"):
+            return item[1]
+    return None
+
+
+def parse_netlist_for_pad_nets(netlist_path: Path) -> tuple[dict, list]:
+    """Parse a KiCad S-expression netlist (exported with --format kicadsexpr)
+    and return:
+      - pad_nets: dict mapping (reference, pin_number_str) -> (net_code:int, net_name:str)
+      - nets: list of (net_code, net_name) in order of appearance.
+
+    Net code 0 (KiCad's "no net") is excluded. The netlist exporter
+    starts numbering at 1.
+    """
+    text = netlist_path.read_text(encoding="utf-8")
+    # Strip leading whitespace before first ( so the parser starts cleanly
+    i = 0
+    while i < len(text) and text[i].isspace():
+        i += 1
+    root, _ = _parse_sexp_list(text, i)
+    # root is the (export ...) list. Find the (nets ...) child.
+    nets_block = None
+    for child in root[1:]:
+        if _sexp_head(child) == "nets":
+            nets_block = child
+            break
+    if nets_block is None:
+        raise ValueError("no (nets ...) block in netlist")
+
+    pad_nets: dict[tuple[str, str], tuple[int, str]] = {}
+    nets: list[tuple[int, str]] = []
+    for net in nets_block[1:]:
+        if _sexp_head(net) != "net":
+            continue
+        code_str = None
+        name = None
+        nodes: list[tuple[str, str]] = []
+        for entry in net[1:]:
+            head = _sexp_head(entry)
+            if head == "code":
+                code_str = _sexp_string_arg(entry, 1)
+            elif head == "name":
+                name = _sexp_string_arg(entry, 1)
+            elif head == "node":
+                ref = None
+                pin = None
+                for sub in entry[1:]:
+                    sh = _sexp_head(sub)
+                    if sh == "ref":
+                        ref = _sexp_string_arg(sub, 1)
+                    elif sh == "pin":
+                        pin = _sexp_string_arg(sub, 1)
+                if ref is not None and pin is not None:
+                    nodes.append((ref, pin))
+        if code_str is None or name is None:
+            continue
+        code = int(code_str)
+        if code == 0:
+            continue
+        nets.append((code, name))
+        for (ref, pin) in nodes:
+            pad_nets[(ref, pin)] = (code, name)
+    return pad_nets, nets
+
+
+def apply_nets_to_pcb(pcb_text: str, pad_nets: dict, nets: list) -> str:
+    """Rewrite an oas.kicad_pcb text so that:
+      - the (net 0 "") header is followed by (net N "<name>") declarations
+        for every net in `nets`.
+      - every (pad "<pin>" ...) inside a (footprint ... (property "Reference" "<R>") ...)
+        block gets an additional (net <code> "<name>") clause IF (R, pin) is
+        in pad_nets. Pads without a matching key are left alone (no
+        (net 0 "") inserted — KiCad parses absent nets as net 0).
+
+    Implementation: text-level scan that finds each top-level `(footprint`
+    block, extracts the reference from its `(property "Reference" "..."`
+    child, walks its pads, and re-emits each pad block with the inserted
+    `(net ...)` clause."""
+
+    # 1) Insert net dictionary right after `(net 0 "")` (which is unique
+    #    in the file's top-level `(net 0 "")` declaration).
+    net_decls = "\n".join(
+        f"\t(net {code} {json.dumps(name)})"
+        for code, name in nets
+    )
+    # KiCad accepts net names quoted with either " or escaped chars; using
+    # json.dumps ensures we re-quote names like "+3V3" / "GND" / signal
+    # names with slashes correctly. (No `Net-(...)` placeholder appears
+    # in this design yet, but if KiCad ever emits one this still escapes
+    # it cleanly.)
+    marker = '\t(net 0 "")'
+    if marker not in pcb_text:
+        raise ValueError("expected '(net 0 \"\")' marker in PCB text")
+    pcb_text = pcb_text.replace(marker, marker + "\n" + net_decls, 1)
+
+    # 2) Walk top-level footprints. For each, find its Reference property,
+    #    then find all its pads (sub-list whose head is 'pad') and inject
+    #    `(net ...)` clauses.
+    #
+    # We use the same S-expression parser as the netlist parsing path but
+    # locate each footprint by its raw text region in the original file so
+    # we can produce a surgical edit (preserving every other byte of the
+    # PCB file verbatim, which keeps round-tripping bit-stable and the
+    # diff easy to review).
+
+    # Find all top-level `(footprint ` openings — depth 1 inside the
+    # outer `(kicad_pcb ...)` wrapper.
+    out_chunks: list[str] = []
+    cursor = 0
+    depth = 0
+    in_string = False
+    string_escape = False
+    fp_starts: list[int] = []
+    fp_ends: list[int] = []
+    for idx, ch in enumerate(pcb_text):
+        if in_string:
+            if string_escape:
+                string_escape = False
+            elif ch == "\\":
+                string_escape = True
+            elif ch == '"':
+                in_string = False
+            continue
+        if ch == '"':
+            in_string = True
+            continue
+        if ch == "(":
+            depth += 1
+            if depth == 2 and pcb_text[idx:idx + len("(footprint")] == "(footprint":
+                fp_starts.append(idx)
+        elif ch == ")":
+            if depth == 2 and fp_starts and len(fp_ends) < len(fp_starts):
+                fp_ends.append(idx + 1)
+            depth -= 1
+
+    assert len(fp_starts) == len(fp_ends), (
+        f"mismatched footprint paren count: {len(fp_starts)} starts vs {len(fp_ends)} ends"
+    )
+
+    rewritten_pieces: list[str] = []
+    last = 0
+    for fp_start, fp_end in zip(fp_starts, fp_ends):
+        rewritten_pieces.append(pcb_text[last:fp_start])
+        fp_text = pcb_text[fp_start:fp_end]
+        fp_text_new = _patch_footprint_pad_nets(fp_text, pad_nets)
+        rewritten_pieces.append(fp_text_new)
+        last = fp_end
+    rewritten_pieces.append(pcb_text[last:])
+    return "".join(rewritten_pieces)
+
+
+def _patch_footprint_pad_nets(fp_text: str, pad_nets: dict) -> str:
+    """Given the source text of one (footprint ...) block, find its
+    Reference property and inject (net ...) clauses into each pad that
+    has a matching schematic node."""
+    # 1) Extract Reference. Look for the (property "Reference" "<ref>" ...)
+    #    child. The Reference property always appears before any (pad ...)
+    #    child in our generated footprints, but we don't rely on order —
+    #    we parse via a small state machine.
+    ref = None
+    # Search for the literal pattern; one Reference per footprint.
+    m_idx = fp_text.find('(property "Reference" "')
+    if m_idx >= 0:
+        q_start = m_idx + len('(property "Reference" "')
+        q_end = fp_text.find('"', q_start)
+        if q_end > q_start:
+            ref = fp_text[q_start:q_end]
+    if ref is None:
+        return fp_text  # no Reference -> leave untouched
+
+    # Skip mech-only refs (these have attr `board_only` or `exclude_from_bom`).
+    # They have no schematic counterpart by design.
+    # We still walk pads (they may have nets explicitly assigned later) but
+    # in practice pad_nets has no entries for these refs so nothing changes.
+
+    # 2) Walk pads. We use a depth-counter scan over fp_text to find each
+    #    top-level (pad ...) child (at depth 1 inside the footprint).
+    out: list[str] = []
+    i = 0
+    depth = 0
+    in_string = False
+    string_escape = False
+    pad_start = None
+    while i < len(fp_text):
+        ch = fp_text[i]
+        if in_string:
+            if string_escape:
+                string_escape = False
+            elif ch == "\\":
+                string_escape = True
+            elif ch == '"':
+                in_string = False
+            i += 1
+            continue
+        if ch == '"':
+            in_string = True
+            i += 1
+            continue
+        if ch == "(":
+            depth += 1
+            if depth == 2 and fp_text[i:i + len("(pad ")] == "(pad ":
+                pad_start = i
+            i += 1
+            continue
+        if ch == ")":
+            depth -= 1
+            if depth == 1 and pad_start is not None:
+                pad_end = i + 1
+                pad_text = fp_text[pad_start:pad_end]
+                # Stream-write everything before pad_start
+                out.append(fp_text[len("".join(out)):pad_start] if not out else "")
+                # That assertion is too messy — use index-based rewrite below.
+                break
+            i += 1
+            continue
+        i += 1
+
+    # Reset and do an index-based rewrite (more robust than progressive `out` build).
+    # Find every (pad "<pin>" ...) at depth 1 inside this footprint and
+    # inject a (net ...) clause if matching.
+    pad_blocks: list[tuple[int, int, str]] = []  # (start, end, pin_label)
+    i = 0
+    depth = 0
+    in_string = False
+    string_escape = False
+    pad_start = None
+    pad_pin = None
+    while i < len(fp_text):
+        ch = fp_text[i]
+        if in_string:
+            if string_escape:
+                string_escape = False
+            elif ch == "\\":
+                string_escape = True
+            elif ch == '"':
+                in_string = False
+            i += 1
+            continue
+        if ch == '"':
+            in_string = True
+            i += 1
+            continue
+        if ch == "(":
+            depth += 1
+            if depth == 2 and fp_text[i:i + len("(pad ")] == "(pad ":
+                pad_start = i
+                # Extract pad pin number: pattern is `(pad "<pin>"`.
+                q1 = fp_text.find('"', i + len("(pad"))
+                q2 = fp_text.find('"', q1 + 1) if q1 >= 0 else -1
+                pad_pin = fp_text[q1 + 1:q2] if q1 >= 0 and q2 > q1 else ""
+            i += 1
+            continue
+        if ch == ")":
+            depth -= 1
+            if depth == 1 and pad_start is not None:
+                pad_end = i + 1
+                pad_blocks.append((pad_start, pad_end, pad_pin or ""))
+                pad_start = None
+                pad_pin = None
+            i += 1
+            continue
+        i += 1
+
+    if not pad_blocks:
+        return fp_text
+
+    pieces: list[str] = []
+    cursor = 0
+    for (p_start, p_end, pin) in pad_blocks:
+        pieces.append(fp_text[cursor:p_start])
+        pad_text = fp_text[p_start:p_end]
+        key = (ref, pin)
+        if pin and pin != "" and key in pad_nets:
+            code, name = pad_nets[key]
+            pad_text = _insert_net_into_pad(pad_text, code, name)
+        pieces.append(pad_text)
+        cursor = p_end
+    pieces.append(fp_text[cursor:])
+    return "".join(pieces)
+
+
+def _insert_net_into_pad(pad_text: str, code: int, name: str) -> str:
+    """Insert a (net code "name") clause just before the closing paren of
+    the pad block. Indentation matches the pad's existing inner indent
+    (one level deeper than the (pad ...) opening)."""
+    # Find the closing paren position (last char before any trailing whitespace).
+    # The pad block looks like:
+    #   \t(pad "1" smd rect
+    #   \t\t(at ...)
+    #   \t\t...
+    #   \t)
+    # We insert before the last ')'. Detect the indentation of the inner
+    # children by looking at the indent of the line containing the first
+    # inner sub-clause (the `(at ` line is always present).
+    lines = pad_text.split("\n")
+    # Find leading whitespace of the last line that contains content other
+    # than the closing paren.
+    inner_indent = "\t\t"  # safe fallback
+    for ln in lines:
+        stripped = ln.lstrip("\t")
+        if stripped and stripped.startswith("("):
+            tabs = len(ln) - len(ln.lstrip("\t"))
+            if tabs >= 1 and not stripped.startswith("(pad"):
+                inner_indent = "\t" * tabs
+                break
+
+    # Locate position of the LAST ')' character in pad_text.
+    close_idx = pad_text.rfind(")")
+    if close_idx < 0:
+        return pad_text
+    net_str = f'{inner_indent}(net {code} {json.dumps(name)})\n'
+    # Find the position right before the closing paren (skip back over the
+    # whitespace/tabs that prefix the ')' on its own line).
+    insert_at = close_idx
+    while insert_at > 0 and pad_text[insert_at - 1] in (" ", "\t"):
+        insert_at -= 1
+    return pad_text[:insert_at] + net_str + pad_text[insert_at:]
+
+
+def sync_pcb_nets_from_schematic(kicad_cli: str | None = None) -> int:
+    """Sync electrical nets from the just-emitted schematic onto the PCB.
+
+    1. Exports a netlist from oas.kicad_sch via kicad-cli sch export netlist.
+    2. Parses the netlist into (ref, pin) -> (net_code, net_name) lookup.
+    3. Rewrites oas.kicad_pcb so that:
+       (a) the PCB header carries a (net N "<name>") declaration for every
+           electrical net in the schematic, and
+       (b) every pad whose (footprint_reference, pad_pin) appears in the
+           netlist gains a matching (net code "name") clause.
+
+    Returns the count of pads that received a net assignment.
+
+    Skips silently if kicad-cli is not available (so generate.py still runs
+    under bare CI without a KiCad install). regenerate.py finds kicad-cli
+    on its own; when calling generate.py standalone, set the
+    OAS_KICAD_CLI env var or pass `kicad_cli`.
+    """
+    import os
+    import shutil
+    import subprocess
+    import tempfile
+
+    pcb_path = HERE / "oas.kicad_pcb"
+    sch_path = HERE / "oas.kicad_sch"
+    if not pcb_path.exists() or not sch_path.exists():
+        return 0
+
+    if kicad_cli is None:
+        kicad_cli = os.environ.get("OAS_KICAD_CLI")
+    if kicad_cli is None:
+        for c in (
+            r"C:/Program Files/KiCad/10.0/bin/kicad-cli.exe",
+            r"C:/Program Files/KiCad/9.0/bin/kicad-cli.exe",
+        ):
+            if Path(c).exists():
+                kicad_cli = c
+                break
+    if kicad_cli is None:
+        kicad_cli = shutil.which("kicad-cli")
+    if kicad_cli is None:
+        print("  [sync_pcb_nets] kicad-cli not found; skipping net sync")
+        return 0
+
+    with tempfile.TemporaryDirectory() as td:
+        net_path = Path(td) / "oas.net"
+        r = subprocess.run(
+            [kicad_cli, "sch", "export", "netlist",
+             "--output", str(net_path),
+             "--format", "kicadsexpr",
+             str(sch_path)],
+            capture_output=True, text=True,
+            encoding="utf-8", errors="replace",
+        )
+        # kicad-cli prints "Ostrzeżenie: schemat posiada błędy numeracji"
+        # (annotation warnings) on stderr even when the netlist file is
+        # written successfully; treat exit code 0 as OK and warn on
+        # anything else.
+        if r.returncode != 0:
+            print("  [sync_pcb_nets] kicad-cli netlist export failed:")
+            print(r.stdout)
+            print(r.stderr)
+            return 0
+        if not net_path.exists():
+            print("  [sync_pcb_nets] netlist file not produced")
+            return 0
+        pad_nets, nets = parse_netlist_for_pad_nets(net_path)
+
+    pcb_text = pcb_path.read_text(encoding="utf-8")
+    new_text = apply_nets_to_pcb(pcb_text, pad_nets, nets)
+
+    # Count assignments actually applied (= pad_nets entries whose ref has
+    # a matching footprint on the PCB). A reference appears at least once
+    # in the file iff `(property "Reference" "<R>"` is present.
+    assigned = 0
+    for (ref, _pin), _ in pad_nets.items():
+        if f'(property "Reference" "{ref}"' in pcb_text:
+            assigned += 1
+    pcb_path.write_text(new_text, encoding="utf-8")
+    return assigned
+
+
+# -----------------------------------------------------------------------------
 # Write everything
 # -----------------------------------------------------------------------------
 def main():
@@ -14856,6 +15338,20 @@ def main():
     (HERE / "libraries" / "OAS.kicad_sym").write_text(
         gen_oas_symbol_library(), encoding="utf-8",
     )
+
+    # ---- v0.20 C1 fix: sync electrical nets from schematic to PCB ----
+    # After all files are written, parse the schematic netlist and inject
+    # (net code "name") clauses into every PCB pad whose footprint
+    # reference + pad number matches a schematic node. Bridges the gap
+    # between PCB geometry placement (this script) and electrical
+    # connectivity (pcbnew's F8 Update PCB from Schematic). See
+    # sync_pcb_nets_from_schematic above and the pre-routing-review v0.19
+    # finding C1.
+    print()
+    print("Syncing PCB nets from schematic netlist…")
+    assigned = sync_pcb_nets_from_schematic()
+    if assigned:
+        print(f"  {assigned} pad net assignments applied.")
 
     # Geometry summary for the human
     print(f"Half-chord: {HALF_CHORD:.4f} mm")
