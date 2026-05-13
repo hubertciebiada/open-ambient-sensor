@@ -521,7 +521,28 @@
 		(layer "F.Fab")
 		(uuid "6165d00d-7f02-5715-a970-f8fc3a28eb70")
 	)
+(fp_line
+	(start 0.2 0.2)
+	(end 0.2 7.42)
+	(stroke (width 0.12) (type solid))
+	(layer "F.SilkS")
+	(uuid "22c5fb8b-7257-5ef8-bb8d-fb9edb05b9e1")
 )
+(fp_line
+	(start 0.2 0.2)
+	(end 33.76 0.2)
+	(stroke (width 0.12) (type solid))
+	(layer "F.SilkS")
+	(uuid "d8b73e69-e7e8-54dc-ba28-f011de59dce3")
+)
+(fp_line
+	(start 0.2 7.42)
+	(end 33.76 7.42)
+	(stroke (width 0.12) (type solid))
+	(layer "F.SilkS")
+	(uuid "c93307a0-989e-5a15-b409-8384fc12b4c8")
+)
+	)
         	(footprint "ZipTieHole_3mm_NPTH"
         		(layer "F.Cu")
         		(uuid "d3216e4e-5d73-5b59-ac1a-e95fc07f8541")
@@ -2971,7 +2992,7 @@
 	)
 )
 (gr_text "HLK-LD2410B"
-	(at 101.22 106.27 0)
+	(at 101.22 106.27 90)
 	(layer "F.SilkS")
 	(uuid "6f2e2d07-50a1-53e3-a2b9-197222491680")
 	(effects
@@ -2979,7 +3000,7 @@
 	)
 )
 (gr_text "antenna ^"
-	(at 101.22 95.34 0)
+	(at 101.22 95.34 90)
 	(layer "F.SilkS")
 	(uuid "c2498a92-def5-5d29-8ac2-4e8c3b225778")
 	(effects

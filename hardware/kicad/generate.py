@@ -262,22 +262,33 @@ LD2410_BODY_Z = 7.0              # mm, approx height above PCB (pin-header
                                   # Well within the 17 mm front-side limit.
 LD2410_SILK_INSET = 0.2          # F.SilkS inset from F.Fab outline (top/
                                   # bottom/left).
-LD2410_SILK_INSET_CONN = 0.2     # v0.15.8: with body_h shrunk to 7.62 mm,
-                                  # symmetric inset matches the other 3 edges.
-LD2410_EMIT_SILK_OUTLINE = False  # v0.15.8: F.SilkS body rectangle DROPPED.
-                                  # With body_h=7.62 mm, J4 silk frame is
-                                  # WIDER than the body itself; any LD2410
-                                  # silk rect would either overlap J4 silk
-                                  # (silk_overlap) or sit so far inside the
-                                  # body that it provides no useful
-                                  # identification. Rely instead on the
-                                  # F.Fab body outline (mechanical docs) +
-                                  # J4 silk frame (which is the visible silk
-                                  # at the connector edge) + a board-level
-                                  # "HLK-LD2410B" gr_text label emitted by
-                                  # gen_silk_labels(). The board-level text
-                                  # also reads horizontally regardless of
-                                  # the LD2410 footprint's 270° rotation.
+LD2410_SILK_INSET_CONN = 1.8     # v0.15.9: inset on the connector-side short
+                                  # edge needs to be large enough that the
+                                  # two LD2410 long-edge silk lines stop
+                                  # BEFORE entering the J4 silk frame zone.
+                                  # J4's stock silk frame spans PCB Y =
+                                  # +17.50..+20.21 (rotated 270° from lib
+                                  # Y = -1.14..+6.22). LD2410 long edges end
+                                  # at LD2410-local X = 35.56 - 1.8 = 33.76,
+                                  # which maps to PCB Y = -16.51 + 33.76 =
+                                  # +17.25 — leaving a ~0.25 mm gap before
+                                  # the J4 silk frame starts at PCB Y=+17.50.
+LD2410_EMIT_SILK_OUTLINE = True   # v0.15.9: F.SilkS U-shaped silk RESTORED.
+                                  # Earlier (v0.15.8) the body silk was
+                                  # dropped because a body-extent rect
+                                  # collided with J4's stock silk frame.
+                                  # Now we emit 3 fp_line elements instead of
+                                  # a closed fp_rect: antenna short edge +
+                                  # 2 long edges. The connector-side short
+                                  # edge is omitted so the U opens toward
+                                  # the J4 pin row (which has its own silk
+                                  # frame from the stock footprint). Net
+                                  # result: the LD2410 body silhouette is
+                                  # visible on the assembled PCB silkscreen,
+                                  # plus the board-level "HLK-LD2410B"
+                                  # gr_text label that already reads
+                                  # horizontally regardless of footprint
+                                  # rotation.
 LD2410_ANTENNA_X_END = 12.7      # mm — LD2410-local X end of antenna zone
                                   # (patches sit at LD2410-local X ≈ 0..12 mm,
                                   # at the short edge OPPOSITE the connector).
@@ -1004,18 +1015,39 @@ def gen_ld2410_mechanical_footprint() -> str:
         \t\t(layer "F.Fab")
         \t\t(uuid "{U('ld2410:fp:fab-outline')}")
         \t)""")
-    # v0.15.8: F.SilkS body rectangle DROPPED (see LD2410_EMIT_SILK_OUTLINE
-    # constant comment). The F.Fab outline below is retained for assembly
-    # documentation; the silk identification is now the board-level
-    # "HLK-LD2410B" gr_text emitted by gen_silk_labels().
+    # v0.15.9: F.SilkS body silhouette emitted as a U-shape (3 fp_line,
+    # NO closed rect). The U opens at LD2410-local X = LD2410_BODY_W (the
+    # connector short edge), so the J4 stock-footprint silk frame at the
+    # connector handles the bottom of the silhouette. The 3 lines we emit:
+    #   • antenna short edge at LD2410-local X = inset
+    #   • long edge 1 at LD2410-local Y = inset
+    #   • long edge 2 at LD2410-local Y = y_max - inset
+    # Both long edges stop at LD2410-local X = x_max - LD2410_SILK_INSET_CONN
+    # (~33.76 mm) so they clear J4's silk frame zone with margin.
+    x_silk_end = x_max - LD2410_SILK_INSET_CONN
+    y_silk_top = y_min + inset
+    y_silk_bot = y_max - inset
     silk_outline = "" if not LD2410_EMIT_SILK_OUTLINE else textwrap.dedent(f"""\
-        \t(fp_rect
-        \t\t(start {fmt(x_min + inset)} {fmt(y_min + inset)})
-        \t\t(end {fmt(x_max - LD2410_SILK_INSET_CONN)} {fmt(y_max - inset)})
+        \t(fp_line
+        \t\t(start {fmt(x_min + inset)} {fmt(y_silk_top)})
+        \t\t(end {fmt(x_min + inset)} {fmt(y_silk_bot)})
         \t\t(stroke (width 0.12) (type solid))
-        \t\t(fill no)
         \t\t(layer "F.SilkS")
-        \t\t(uuid "{U('ld2410:fp:silk-outline')}")
+        \t\t(uuid "{U('ld2410:fp:silk-antenna-edge')}")
+        \t)
+        \t(fp_line
+        \t\t(start {fmt(x_min + inset)} {fmt(y_silk_top)})
+        \t\t(end {fmt(x_silk_end)} {fmt(y_silk_top)})
+        \t\t(stroke (width 0.12) (type solid))
+        \t\t(layer "F.SilkS")
+        \t\t(uuid "{U('ld2410:fp:silk-long-edge-1')}")
+        \t)
+        \t(fp_line
+        \t\t(start {fmt(x_min + inset)} {fmt(y_silk_bot)})
+        \t\t(end {fmt(x_silk_end)} {fmt(y_silk_bot)})
+        \t\t(stroke (width 0.12) (type solid))
+        \t\t(layer "F.SilkS")
+        \t\t(uuid "{U('ld2410:fp:silk-long-edge-2')}")
         \t)""")
 
     # Antenna zone on F.Fab — dashed rectangle at the -X end of the body.
@@ -1979,6 +2011,37 @@ def gen_ld2410_reference_pcb_footprint(x: float, y: float, rotation: int) -> str
     conn_y_top = LD2410_CONNECTOR_Y - 2.54
     conn_y_bot = LD2410_CONNECTOR_Y + 2.54
 
+    # v0.15.9: U-shaped silk silhouette (3 fp_line). See library footprint
+    # function gen_ld2410_mechanical_footprint() for the geometry rationale
+    # — connector-side short edge is omitted so the U opens onto J4's stock
+    # silk frame; both long edges stop short of the J4 silk-frame Y zone
+    # via LD2410_SILK_INSET_CONN = 1.8.
+    x_silk_end = x_max - LD2410_SILK_INSET_CONN
+    y_silk_top = y_min + inset
+    y_silk_bot = y_max - inset
+    silk_outline = "" if not LD2410_EMIT_SILK_OUTLINE else textwrap.dedent(f"""\
+        \t\t(fp_line
+        \t\t\t(start {fmt(x_min + inset)} {fmt(y_silk_top)})
+        \t\t\t(end {fmt(x_min + inset)} {fmt(y_silk_bot)})
+        \t\t\t(stroke (width 0.12) (type solid))
+        \t\t\t(layer "F.SilkS")
+        \t\t\t(uuid "{U('fp-silk-antenna-edge:' + uuid_tag)}")
+        \t\t)
+        \t\t(fp_line
+        \t\t\t(start {fmt(x_min + inset)} {fmt(y_silk_top)})
+        \t\t\t(end {fmt(x_silk_end)} {fmt(y_silk_top)})
+        \t\t\t(stroke (width 0.12) (type solid))
+        \t\t\t(layer "F.SilkS")
+        \t\t\t(uuid "{U('fp-silk-long-edge-1:' + uuid_tag)}")
+        \t\t)
+        \t\t(fp_line
+        \t\t\t(start {fmt(x_min + inset)} {fmt(y_silk_bot)})
+        \t\t\t(end {fmt(x_silk_end)} {fmt(y_silk_bot)})
+        \t\t\t(stroke (width 0.12) (type solid))
+        \t\t\t(layer "F.SilkS")
+        \t\t\t(uuid "{U('fp-silk-long-edge-2:' + uuid_tag)}")
+        \t\t)""")
+
     return textwrap.dedent(f"""\
         \t(footprint "oas:LD2410_Mechanical_Reference"
         \t\t(layer "F.Cu")
@@ -2045,7 +2108,7 @@ def gen_ld2410_reference_pcb_footprint(x: float, y: float, rotation: int) -> str
         \t\t\t(layer "F.Fab")
         \t\t\t(uuid "{U('fp-conn-marker:' + uuid_tag)}")
         \t\t)
-        \t)""")
+        """) + silk_outline + "\n\t)"
 
 
 def gen_j4_pinheader_pcb_footprint(x: float, y: float, rotation: int) -> str:
@@ -2816,10 +2879,15 @@ def gen_silk_labels() -> str:
     ld_body_pcb = _ld2410_local_to_pcb(LD2410_BODY_W / 2.0, LD2410_BODY_H / 2.0)
     ld_antenna_pcb = _ld2410_local_to_pcb((1.0 + LD2410_ANTENNA_X_END) / 2.0,
                                             LD2410_BODY_H / 2.0)
+    # v0.15.9: rotated 90° so the labels run along the LD2410's long
+    # axis (PCB Y direction). Without rotation, the horizontal text bbox
+    # would exceed the 7.22 mm internal width between the U-shaped silk
+    # long edges and trigger silk_overlap DRC. Long-axis rotation fits
+    # the 11-char body label comfortably along the 35.56 mm long edge.
     parts.append(_silk("HLK-LD2410B", ld_body_pcb[0], ld_body_pcb[1],
-                       "ld2410-body", size=1.0))
+                       "ld2410-body", size=1.0, angle=90.0))
     parts.append(_silk("antenna ^", ld_antenna_pcb[0], ld_antenna_pcb[1],
-                       "ld2410-antenna", size=1.0))
+                       "ld2410-antenna", size=1.0, angle=90.0))
 
     # ---- v0.15.8: SEN66 module identification label as board-level
     # gr_text (the in-footprint "SEN66 SIN-T" fp_text rotates with the
