@@ -229,10 +229,10 @@ J3_ROTATION = 180  # v0.9: rotated 90 -> 180 so the cable opening (pad-side,
 #     antenna short edge faces NORTH (PCB -Y, toward 12:00). LD2410
 #     ROTATION = 270° (mathematical CCW; visually maps local +X to
 #     PCB +Y so the connector edge ends up at body bottom).
-#   - Position: body anchored as far LEFT as practical to maximize free
-#     space around the central cable-pass-through hole (Ø12 at origin).
-#     Body right edge sits at PCB X = -29.21 → 23 mm clearance from the
-#     cable hole +X edge.
+#   - Position (v0.15): body pushed against the LEFT wall — body
+#     left edge at PCB X=-54.90, ~2 mm from PCB outline at the
+#     bottom-left corner (Y=+19.05 → x_min=-56.90). Body right edge
+#     at PCB X=-39.66 → 33.66 mm clear from cable hole +X edge.
 #
 # Dimensions: LD2410B body ~30-33 × 15-16 mm in datasheet (varies by
 # revision). LD2410_BODY_W/H below are slightly enlarged + grid-aligned
@@ -269,33 +269,32 @@ LD2410_CONNECTOR_Y = 7.62        # mm — LD2410-local Y center of the 5-pin
 # LD2410-local +X maps to PCB +Y and LD2410-local +Y maps to PCB -X.
 # So body extends in +Y and -X from the anchor.
 #
-# Body shadow on OAS PCB:
-#   X range: anchor_x - LD2410_BODY_H .. anchor_x  =  -44.45 .. -29.21
+# Body shadow on OAS PCB (v0.15):
+#   X range: anchor_x - LD2410_BODY_H .. anchor_x  =  -54.90 .. -39.66
 #   Y range: anchor_y .. anchor_y + LD2410_BODY_W  =  -16.51 .. +19.05
 # Connector short edge at PCB Y = anchor_y + LD2410_BODY_W = +19.05
 # (the southernmost body edge, closest to the chord), so the LD2410
 # daughterboard's 1.27 mm pin row lands on a horizontal line at Y=19.05
-# along OAS PCB X = -34.29..-39.37.
+# along OAS PCB X = -44.74..-49.82; pin 3 (middle) at X=-47.28.
 #
 # Clearance checks vs the rest of the PCB:
-#   - PCB outline at body top Y=-16.51:    x_min = -57.68, body left
-#     at -44.45 → 13.23 mm clear.
-#   - PCB outline at body bottom Y=+19.05: x_min = -56.93, body left
-#     at -44.45 → 12.48 mm clear.
+#   - PCB outline at body top-left corner Y=-16.51:    x_min=-57.68,
+#     body left at -54.90 → 2.78 mm clear.
+#   - PCB outline at body bottom-left corner Y=+19.05: x_min=-56.90,
+#     body left at -54.90 → 2.00 mm clear (user spec: 1-2 mm).
 #   - H2 mounting hole at (-47.6, +27.5) — Y separation between body
 #     bottom and H2 zone (Y 24.65..30.35) = 5.6 mm. No overlap.
 #   - Cutout zone C1 at (X -33.8..-21.8, Y 31.5..42.5) — body Y < +19.05
 #     < 31.5; no Y overlap.
 #   - Cable hole at PCB centre (Ø12 / radius 6) — body right edge
-#     at X=-29.21 → 23.21 mm clear from the cable hole +X edge at X=-6.
-LD2410_ANCHOR_X = -34.21         # v0.14: pushed further LEFT (was -29.21)
-                                  # to free up upper-center PCB area for
-                                  # ESP32 horizontal + MIKROE-2462 vertical.
-                                  # Body X range -49.45..-34.21 (5 mm
-                                  # further left than v0.11/0.13). Clears
-                                  # PCB outline at body top Y=-33.2:
-                                  # x_min=-49.98, body left -49.45 has
-                                  # 0.53 mm clearance.
+#     at X=-39.66 → 33.66 mm clear from the cable hole +X edge at X=-6.
+LD2410_ANCHOR_X = -39.66         # v0.15: pushed further LEFT to the wall
+                                  # (was -34.21 in v0.14). Body X range
+                                  # -54.90..-39.66. PCB outline at body
+                                  # bottom-left corner Y=+19.05: x_min=-56.90
+                                  # → 2.0 mm clearance (user spec 1-2 mm).
+                                  # PCB outline at body top-left corner
+                                  # Y=-16.51: x_min=-57.68 → 2.78 mm.
 LD2410_ANCHOR_Y = -16.51         # mm — OAS PCB Y of LD2410-local (0, 0).
                                   # = -1.27 × 13 (on 1.27 mm grid).
 LD2410_ROTATION = 270            # degrees; long axis along PCB Y. With
@@ -331,24 +330,21 @@ def _ld2410_local_to_pcb(lx: float, ly: float) -> tuple[float, float]:
 # footprints (F.Fab body outline + F.SilkS marker + pin-row hints + labels).
 # The actual electrical female pin sockets land in chunk #7 (PCB routing).
 #
-# Layout (v0.13, vertical orientation for both, in upper-center area
-# between LD2410 on the left and SEN66 on the right):
+# Layout (v0.15):
 #
-#   ESP32-C6 DevKitM-1-N4   MIKROE-2462 (NFC Tag 2 Click)
-#   body: 25.4 × 48.26 mm    body: 25.4 × 42.9 mm
-#   anchor (-25.4, -54.36)   anchor (+1, -52)
-#   body X=-25.4..0          body X=+1..+26.4
-#   body Y=-54.36..-6.1      body Y=-52..-9.1
-#   antenna at TOP edge      mikroBUS pins on long edges
-#   USB-C at BOTTOM edge     (1×8 left + 1×8 right)
+#   ESP32-C6 DevKitM-1-N4    MIKROE-2462 (NFC Tag 2 Click)
+#   body: 48.26 × 25.4 mm     body: 25.4 × 28.6 mm (size S)
+#   anchor (-37.16, -14.03)   anchor (-33.21, -13.03)
+#   body X=-37.16..+11.10     body X=-33.21..-7.81
+#   body Y=-39.43..-14.03     body Y=-13.03..+15.57
+#   horizontal at UPPER-LEFT  vertical, center Y aligned with LD2410
+#   antenna LEFT (-X)         pins on long edges (1×8 + 1×8)
+#   USB-C RIGHT (+X)          NFC antenna spiral at bottom strip Y=+9.83..+15.57
 #
-# At the body top edges, the PCB outline at Y=-54.36 has x_max=±25.4
-# exactly, so each daughterboard's outer long edge sits right at the
-# PCB outline. ESP32 right edge (X=0) and MIKROE left edge (X=+1) leave
-# a 1 mm gap between the two boards. Both bodies clear the central cable
-# hole (Ø12 at origin, top edge Y=-6): ESP32 bottom at Y=-6.1 has 0.1 mm
-# clearance (visual only — pin sockets on long edges are at Y much higher);
-# MIKROE bottom at Y=-9.1 has 3.1 mm clearance.
+# LD2410 + NFC share the same horizontal Y band (centers at Y=+1.27).
+# ESP32 sits 1 mm above NFC top edge, 2.5 mm right of LD2410 right edge.
+# SEN66 (right side, anchor +23.5/+22.0) unchanged. See per-constant
+# comments below for clearance breakdowns.
 
 # Dimensions per Espressif official dimensions drawing
 # https://dl.espressif.com/dl/schematics/esp32-c6-devkitm-1-dimensions.pdf
@@ -366,16 +362,26 @@ ESP32_PIN_START_OFFSET = 5.37      # distance from antenna short edge
                                     # (LIB Y=0) to pin 1; per Espressif
                                     # dimensions drawing.
 
-# Placement: ESP32 HORIZONTAL at top of PCB ("godzina 12:00"), body
-# transverse axis (= long-axis centerline at body half-width) on
-# X=0 line. Achieved by helper rotation 90° (so helper's vertical
-# body 25.4 × 48.26 lays down on the PCB as 48.26 × 25.4) with anchor
-# at the body LOWER-LEFT corner. After the helper's 90° rotation,
-# that LIB (0, 0) point lands at PCB (anchor_x, anchor_y) which is
-# the body BOTTOM-LEFT in PCB orientation; body extends in +X to
-# anchor_x + body_l = +24.13 and in -Y to anchor_y - body_w = -54.94.
-ESP32_ANCHOR_X = -24.13            # body left edge X (body extends to +24.13)
-ESP32_ANCHOR_Y = -29.54            # body bottom edge Y (body extends up to -54.94)
+# Placement (v0.15): ESP32 HORIZONTAL, UPPER-LEFT. User instruction:
+# "ESP mocno w dół i w lewo" — after NFC moved down to share LD2410's
+# Y band (Y=-13.03..+15.57), ESP32 cannot move further "down" (toward
+# +Y) without colliding with NFC in the X overlap range -33.21..-7.81.
+# The achievable interpretation: ESP32 stays horizontal, shifts LEFT,
+# and drops as far down as the NFC top edge allows. Body Y bottom edge
+# anchor_y = -14.03 sits 1 mm above NFC top at Y=-13.03. Body X range
+# -37.16..+11.10 leaves a 2.5 mm gap to LD2410's new right edge at
+# X=-39.66 and 12.4 mm to SEN66's left edge at X=+23.5. Helper rotation
+# 90° unchanged (body lies down 48.26 × 25.4).
+ESP32_ANCHOR_X = -37.16            # v0.15: -10 LEFT of v0.14's -24.13.
+                                    # Body X range -37.16..+11.10 (was
+                                    # -24.13..+24.13). Antenna short edge
+                                    # toward -X (~09:00), USB-C toward +X.
+ESP32_ANCHOR_Y = -14.03            # v0.15: +15.51 DOWN from v0.14's -29.54
+                                    # (maximum southward shift). Body Y
+                                    # range -39.43..-14.03 (was -54.94..
+                                    # -29.54). 1 mm clearance above NFC
+                                    # top at Y=-13.03; 15.57 mm gap above
+                                    # ESP32 top to H3 hole at Y=-55.
 ESP32_ROTATION = 90                # KiCad rotation applied to helper output
 
 # Dimensions per mikroBUS Standard Specifications v2.00 (June 2015), size S.
@@ -394,17 +400,21 @@ MIKROE2462_PIN_PITCH = 2.54
 MIKROE2462_PIN_COUNT_PER_ROW = 8
 MIKROE2462_PIN_START_OFFSET = 2.54  # pin 1 at 2.54 mm from pin-1 short edge
 
-# Placement: vertical, immediately to the RIGHT of LD2410 (which itself
-# is pushed further left in v0.14). Body X range -33.21..-7.81 (25.4
-# wide) leaves a 1 mm gap to the LD2410 right edge at X=-34.21 and a
-# wider gap (~7.5 mm) to the cable hole right edge at X=+6. Body Y
-# range -28.54..+0.06 (28.6 long) sits 1 mm below the ESP32 horizontal
-# bar (ESP32 body bottom at Y=-29.54). The 8.28 mm strip at the bottom
-# of the MIKROE body (Y=-8.22..0.06) is where the onboard NFC PCB
-# antenna spiral lives — this is intentionally aimed AT the cable hole
-# left side so the antenna radiates outward through the AK-N-94 cover.
+# Placement (v0.15): vertical, transverse axis (= horizontal centerline
+# through the body) aligned with LD2410's transverse axis at PCB Y=+1.27.
+# User instruction: "Oś poprzeczna NFC w tej samej osi co Oś czujnika
+# obecności" — NFC and LD2410 share the same horizontal Y band.
+# Body Y range -13.03..+15.57 (center Y=+1.27 matches LD2410 center Y).
+# Body X range -33.21..-7.81 (unchanged from v0.14): 6.45 mm gap to
+# LD2410's new right edge at X=-39.66, and 1.81 mm gap to cable hole
+# left edge at X=-6 (Ø12 hole at origin).
+#
+# The 5.74 mm antenna spiral strip at the bottom of the MIKROE body
+# is now at PCB Y=+9.83..+15.57 — well clear of the cable hole zone
+# and aimed outward toward the AK-N-94 perforated cover.
 MIKROE2462_ANCHOR_X = -33.21
-MIKROE2462_ANCHOR_Y = -28.54
+MIKROE2462_ANCHOR_Y = -13.03       # v0.15: +15.51 DOWN from v0.14's -28.54
+                                    # (= LD2410 center Y +1.27 − body_L/2).
 MIKROE2462_ROTATION = 0
 
 
@@ -428,10 +438,10 @@ MIKROE2462_ROTATION = 0
 # Anchor X = -34.29 = pin 1 position = body centerline (-36.83) + 2.54
 # (half the pin row width 5.08). Pin row spans X = -34.29 (pin 1, east)
 # .. -39.37 (pin 5, west); centre X = -36.83 = body centerline. ✓
-J4_PCB_X = -39.29            # mm — v0.14: shifted -5 mm in tandem with
-                              # LD2410_ANCHOR_X to keep pin row centred
-                              # on LD2410's new body centerline at
-                              # PCB X = -41.83.
+J4_PCB_X = -44.74            # mm — v0.15: shifted -5.45 mm in tandem
+                              # with LD2410_ANCHOR_X to keep pin 3 (middle)
+                              # centred on LD2410's new body centerline
+                              # at PCB X = -47.28 = -39.66 − LD2410_BODY_H/2.
 J4_PCB_Y = +19.05            # mm — OAS PCB Y of the pin row (unchanged).
 J4_PCB_ROTATION = 270        # degrees; pad row along OAS -X from anchor.
 

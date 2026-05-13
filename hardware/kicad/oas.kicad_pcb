@@ -497,7 +497,7 @@
 (footprint "oas:LD2410_Mechanical_Reference"
 	(layer "F.Cu")
 	(uuid "045fc015-22de-5ec7-948c-b5134992d360")
-	(at 114.29 88.49 270)
+	(at 108.84 88.49 270)
 	(descr "HiLink HLK-LD2410B mechanical-reference (no pads). 24 GHz mmWave presence radar daughterboard. Body ~33x16x7 mm above OAS PCB on 1.27 mm pin header (J4). Antenna patches on the LD2410 top face point through the enclosure cover.")
 	(attr board_only exclude_from_pos_files exclude_from_bom)
 	(property "Reference" "LDR1"
@@ -1262,7 +1262,7 @@
 (footprint "Connector_PinHeader_1.27mm:PinHeader_1x05_P1.27mm_Vertical"
 	(layer "F.Cu")
 	(uuid "8ebfd4a6-1715-5c15-af6d-8ec606e8b113")
-	(at 109.21 124.05 270)
+	(at 103.76 124.05 270)
 (property "Reference" "J4"
 	(at 0 -1.9 270)
 	(layer "F.SilkS")
@@ -1477,7 +1477,7 @@
 (footprint "oas:ESP32-C6-DevKitM-1_Reference"
 	(layer "F.Cu")
 	(uuid "80585f9b-fdcc-5d78-917d-6cb71f900f86")
-	(at 124.37 75.46 90)
+	(at 111.34 90.97 90)
 	(descr "ESP32-C6-DevKitM-1-N4 daughterboard shadow (EAN 5904422385651). 25.4×48.26×8.6 mm; mounts on 2×1x15 P2.54 mm female pin sockets. Pin block offset 0.98 mm toward antenna end per Espressif dimensions PDF.")
 	(attr board_only exclude_from_pos_files exclude_from_bom)
 	(property "Reference" "MOD1"
@@ -1778,7 +1778,7 @@
 (footprint "oas:MIKROE-2462_Reference"
 	(layer "F.Cu")
 	(uuid "84effda4-407b-542a-89fc-91cd0bc99e5f")
-	(at 115.29 76.46 0)
+	(at 115.29 91.97 0)
 	(descr "MIKROE-2462 NFC Tag 2 Click (NT3H2111 + onboard PCB NFC antenna). 25.4×28.6×7 mm (mikroBUS size S); mounts on 2×1x8 P2.54 mm female pin sockets. Pin block offset 2.87 mm toward pin-1 short edge; NFC antenna spiral fills the 5.74 mm strip past pin 8.")
 	(attr board_only exclude_from_pos_files exclude_from_bom)
 	(property "Reference" "MOD2"
