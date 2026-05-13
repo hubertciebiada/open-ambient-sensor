@@ -235,6 +235,7 @@ These were considered and explicitly rejected. Do not propose them again without
 - [ ] Select specific buck converter ICs (validate efficiency, JLCPCB Basic Library availability)
 - [x] ~~NFC antenna design (PCB spiral geometry, matching capacitor selection)~~ — sidestepped in v0.12 by adopting MIKROE-2462 (onboard pre-tuned PCB antenna)
 - [x] ~~Validate ESP32-C6 pinout against strap pin and boot mode constraints~~ — done in v0.4 (GPIO 2/3 for LD2410_OUT/NFC_FD, GPIO 8 for onboard NeoPixel)
+- [x] ~~IO sub-sheet populated~~ — done in v0.19 (J9 Qwiic JST SH on C5, J10 native-USB recovery DNP on C3, C4 reserved for v2 expansion)
 - [ ] 3D model bracket for SEN66 mounting on cover (STL in `hardware/case/`)
 - [ ] KiCad schematic — full
 - [ ] KiCad PCB layout with thermal breaks
@@ -625,3 +626,32 @@ Past mistake to avoid: in v0.3 of this project, "GPIO 4 → GPIO 10 / GPIO 5 →
   - **Schematic side**: D14 + C23 symbol instances removed (analogous to v0.17's D20 + C29 removal). D20 + C29 restored. The schematic's J1 symbol in `power.kicad_sch` is unchanged — only `LED_RING_SKIP_INDICES` and the J1 PCB placement constants changed.
   - **BOM impact**: identical to v0.17 (still -1 SK6812-SIDE LED and -1 100 nF 0402 cap relative to v0.16), only the designator changes (D20→D14, C29→C23).
   - DRC=0, ERC=0.
+
+- **v0.19** — IO sub-sheet populated (chord-east case-wall connectors). Closes review Mi4 ("IO sub-sheet still empty").
+  - **Trigger**: the chord-east connector strip (cutouts C3/C4/C5) has been a documented placeholder since v0.7 — no schematic content, no PCB connector footprints. Each new sub-sheet build (v0.15.x..v0.18) deferred populating IO. v0.19 lands the two CLAUDE.md-listed expansion ports.
+  - **J9 — Qwiic / Stemma QT expansion (always populated)**:
+    - Footprint: stock KiCad `Connector_JST:JST_SH_SM04B-SRSS-TB_1x04-1MP_P1.00mm_Horizontal` (genuine JST SH 4-pin horizontal SMD socket, the universal Qwiic / Stemma QT host part).
+    - Lives in cutout **C5** (X +27.9..+35.4, Y +36.494..+42.494 — 7.5 × 6 mm, fully inside PCB). PCB anchor (+31.65, +39.69) with rotation 180° so the cable mouth faces the chord (south, +Y) — cable plugs in from outside the case.
+    - Pinout (Qwiic / Stemma QT standard): pin 1 = GND, pin 2 = +3.3V, pin 3 = SDA, pin 4 = SCL. SDA / SCL tap the shared I²C bus already used by SEN66 (0x6B) + NT3H1101 (0x55), via the new IO sub-sheet `I2C_SDA` / `I2C_SCL` hier labels matched to the existing MCU exports.
+    - Sourcing: Sparkfun PRT-14417, Adafruit 4209, or any genuine JST SM04B-SRSS-TB.
+  - **J10 — Native-USB recovery header (DNP)**:
+    - Footprint: stock KiCad `Connector_PinHeader_2.54mm:PinHeader_1x06_P2.54mm_Vertical`. Pads only — DNP (`(dnp yes)` in schematic, `exclude_from_bom`-equivalent at assembly).
+    - Lives in cutout **C3** (X +4.9..+13.9, Y +28.998..+43.5 — 9 × 14.5 mm). PCB anchor (+9.4, +41.0) with rotation 180° so pad 1 (rectangular pin-1 marker) sits at the chord side (easy pogopin-jig orientation). Pad row stacks NORTH at 2.54 mm pitch: pad 1 at Y=+41.0, pad 6 at Y=+25.78.
+    - Pinout (top of pad row = nearest chord = pad 1, going north): 1=GND, 2=+3V3, 3=USB_DM (GPIO 12), 4=USB_DP (GPIO 13), 5=EN (chip reset), 6=BOOT (GPIO 9 strap).
+    - Use case: emergency reflashing if BOTH DevKitM-1 onboard USB-C ports are damaged. ESP32-C6 has no traditional JTAG/SWD; J10 exposes the chip's native USB-Serial-JTAG pair + flashing straps so a pogopin jig can drive native USB even with the dev-kit's USB-C connectors destroyed.
+    - Critical wiring: GPIO 12 / GPIO 13 moved from `ESP32C6_DEVKITM1_NC_PINS` to `ESP32C6_DEVKITM1_SIGNAL_PIN` as `USB_DM` / `USB_DP`. The MCU sub-sheet's U3.28 / U3.29 pin tips now have east-going wire stubs to right-edge hier labels `USB_DP` / `USB_DM` (at Y rows 123.19 / 125.73 — south of J2's pin block, so the wires don't intersect the existing J2 UART-recovery header).
+  - **Third cutout (C4, X +18.9..+22.9, Y +34.998..+43.5)**: kept as a placeholder for v2 expansion. No connector. Silk rect + "C4 v2" label preserved so the user can identify the unused case-wall opening at assembly time and either populate a v2 connector or fill the opening with a plastic insert.
+  - **CUTOUTS data structure extension**: 6th tuple field `allow_pads: bool`. C3 (J10) and C5 (J9) flip the keepout zone's `(pads not_allowed)` → `(pads allowed)` so the connector solder pads can live inside the case-wall opening (where the user accesses them from outside via cable plug / pogopin jig). C4 keeps the v0.7 default (pads not allowed).
+  - **EN / BOOT migration from local → hierarchical labels**: MCU sub-sheet previously had `local label "RST"` (= EN signal in ESP32 datasheet language) and `local label "BOOT"` connecting U3.2 ↔ J2.5 and U3.26 ↔ J2.6. Local labels are sheet-scoped → don't export to other sub-sheets. v0.19 converts both ends of each net to hier labels (RST → `EN`, BOOT → `BOOT`), so the same nets now also reach the IO sub-sheet's J10.5 / J10.6 pins. `J2_PIN_MAP[5]` renamed from `"RST"` to `"EN"` to match.
+  - **SUBSHEET_PINS["io"]**: 6 left-edge pins added (I2C_SDA, I2C_SCL, USB_DM, USB_DP, EN, BOOT). `SUBSHEET_SIZE` bumped from (38.1, 12.7) → (38.1, 17.78) to fit 7 pins per side at 2.54 mm pitch (MCU right edge now has UART_TX/RX + USB_DM/DP/EN/BOOT = 6 pins).
+  - **Root sheet inter-sheet wiring**: extended I²C horizontal wires east to reach IO's left edge (sharing the existing Sensors→MCU vertical legs at X=95.25 / 97.79). Added 4 new MCU→IO routes (USB_DM/USB_DP/EN/BOOT) with east-going stubs from MCU right edge → vertical legs at X=153.67 / 156.21 / 158.75 / 161.29 → west stubs into IO left edge.
+  - **F.SilkS labels** (per OAS silkscreen convention):
+    - Per-cutout text labels: "J10 flash" at PCB (+9.4, +25.7), "C4 v2" at cutout centre, "J9 Qwiic" at PCB (+31.65, +34.5). C3 and C5 silk rects suppressed (J9 / J10 stock footprint silk frames already mark the connector outline; double-rect would trigger silk_overlap DRC).
+    - Per-pin F.Fab labels: J9 pin 1 marker "J9 GND" (pin 1 = GND); J10 column labels "GND", "+3V3", "USB-", "USB+", "EN", "BOOT" stacked at PCB X = J10_PCB_X + 3.0, going north from pad 1. Size 0.8 mm on F.Fab (silk-min-text-height rule applies to F.SilkS only).
+  - **Schematic library extension**: new `_sch_conn_01x04` helper for the JST SH 4-pin Qwiic socket. Pulls `Connector_Generic:Conn_01x04` from KiCad stock library at generation time. Reused stock `Conn_01x06` for J10 (already in `_MCU_LIB_SYMBOLS_TAIL`).
+  - **PCB footprint helpers**: new `_emit_stock_lib_footprint()` factory that wraps the parse-and-patch logic used by the existing `gen_j1` / `gen_j3` / `gen_j4` functions into one place. `gen_j9_qwiic_pcb_footprint` and `gen_j10_recovery_pcb_footprint` are thin wrappers around it. Future stock-library connector placements should use this helper instead of duplicating the parse code.
+  - **BOM impact** (relative to v0.18): +1 SKU = JST SM04B-SRSS-TB (qty 1, ~€0.50). 6-pin 2.54 mm pin header is DNP → 0 BOM lines. Pin labels and silk text are zero-cost (already on the production silk run).
+  - **DRC=0, ERC=0**. Verified against the post-build report `renders/_drc.rpt` and `renders/_erc.rpt`.
+  - **Open follow-ups** (not blocking, recorded for future revisits):
+    - The DevKitM-1's onboard USB-C ports already serve the GPIO 12/13 native-USB pair. J10 is meant for the case where BOTH dev-kit USB-C connectors are damaged (rare). For deployed units the recovery path remains: open the case → connect to either onboard USB-C → reflash. J10 is a belt-and-suspenders fallback.
+    - "C4 v2" cutout currently has no connector. A v2 expansion candidate would be an external temperature probe terminal block (DS18B20 / NTC) — but that's marked Out-of-Scope in this document. The cutout exists if a future fork wants to add one without re-spinning the case CNC.

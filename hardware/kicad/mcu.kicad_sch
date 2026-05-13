@@ -1802,7 +1802,8 @@
 	)
 	(uuid "01a2fc2f-f013-5d88-b87e-1da524e0b19b")
 )
-(label "RST"
+(hierarchical_label "EN"
+	(shape output)
 	(at 137.16 95.25 180)
 	(effects
 		(font
@@ -1810,7 +1811,7 @@
 		)
 		(justify right)
 	)
-	(uuid "29124d3b-4db0-5d09-96a0-0d8f450a4525")
+	(uuid "c14fe188-fb23-5ee4-a269-40ba6126df6b")
 )
 (wire
 	(pts
@@ -1822,7 +1823,8 @@
 	)
 	(uuid "91c5fec8-d320-55d6-a738-c5ae71d4ba7a")
 )
-(label "BOOT"
+(hierarchical_label "BOOT"
+	(shape output)
 	(at 167.64 118.11 0)
 	(effects
 		(font
@@ -1830,7 +1832,7 @@
 		)
 		(justify left)
 	)
-	(uuid "3b12ae63-2940-5e5a-bd62-a8ae8a486500")
+	(uuid "cf7a4053-be8a-5d52-bbda-4ea8da1d2c5c")
 )
 (wire
 	(pts
@@ -1866,6 +1868,48 @@
 )
 (wire
 	(pts
+		(xy 165.1 123.19) (xy 222.25 123.19)
+	)
+	(stroke
+		(width 0)
+		(type default)
+	)
+	(uuid "75a5ac0f-83a7-53b7-91f0-cdbd501eb08a")
+)
+(hierarchical_label "USB_DP"
+	(shape bidirectional)
+	(at 222.25 123.19 0)
+	(effects
+		(font
+			(size 1.27 1.27)
+		)
+		(justify left)
+	)
+	(uuid "806dd973-5737-5720-82be-e3575fefd18a")
+)
+(wire
+	(pts
+		(xy 165.1 125.73) (xy 222.25 125.73)
+	)
+	(stroke
+		(width 0)
+		(type default)
+	)
+	(uuid "6665d85b-3237-5002-8e42-f3460644b806")
+)
+(hierarchical_label "USB_DM"
+	(shape bidirectional)
+	(at 222.25 125.73 0)
+	(effects
+		(font
+			(size 1.27 1.27)
+		)
+		(justify left)
+	)
+	(uuid "cf82b81e-2b02-5fad-a306-90c3f0cfd50d")
+)
+(wire
+	(pts
 		(xy 194.31 100.33) (xy 191.77 100.33)
 	)
 	(stroke
@@ -1874,7 +1918,8 @@
 	)
 	(uuid "8e733b0a-73a2-5697-9a5f-f5e22e38a2e2")
 )
-(label "RST"
+(hierarchical_label "EN"
+	(shape output)
 	(at 191.77 100.33 180)
 	(effects
 		(font
@@ -1882,7 +1927,7 @@
 		)
 		(justify right)
 	)
-	(uuid "1df5cdde-6e24-56de-9d0e-3e6c3000ca9a")
+	(uuid "41ecef0c-82f8-56ee-ad97-1219476780f9")
 )
 (wire
 	(pts
@@ -1894,7 +1939,8 @@
 	)
 	(uuid "53595d08-e892-5606-9527-006787091b63")
 )
-(label "BOOT"
+(hierarchical_label "BOOT"
+	(shape output)
 	(at 191.77 102.87 180)
 	(effects
 		(font
@@ -1902,7 +1948,7 @@
 		)
 		(justify right)
 	)
-	(uuid "1783fcf6-b320-531d-9ff5-2e3c685c93db")
+	(uuid "c96b060a-9001-5ac3-b696-75c2c61f1d9d")
 )
 (wire
 	(pts
@@ -2432,14 +2478,6 @@
 (no_connect
 	(at 165.1 115.57)
 	(uuid "0977ac5f-2781-550d-865a-a148f4cd109f")
-)
-(no_connect
-	(at 165.1 123.19)
-	(uuid "de011154-e656-5406-9c50-a8a2334cb7f9")
-)
-(no_connect
-	(at 165.1 125.73)
-	(uuid "3136c133-c8f0-5d4c-827a-18f73d487425")
 )
         	(symbol
         		(lib_id "OAS:ESP32-C6_DevKitM-1")

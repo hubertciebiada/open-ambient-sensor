@@ -108,11 +108,25 @@ CABLE_HOLE_DIAMETER = 12.0
 # real estate). Remaining cutouts C3/C4/C5 cover the connector strip on
 # the right half (24V terminal, Qwiic, optional SWD/UART recovery).
 # Documented in CLAUDE.md.
+#
+# v0.19: 6th tuple element `allow_pads` (bool). When True, the copper
+# keepout zone drops `(pads not_allowed)` so a connector footprint's
+# solder pads can live INSIDE the case-wall opening area (the case-wall
+# opening hosts the connector body + accessible pads from outside).
+# When False (default), pads are kept out of the cutout area — used for
+# cutouts that are placeholders or that host connectors whose pads stay
+# strictly inside the PCB-side edge.
+#   - C3 — recovery header (J10): allow_pads=True so the 6-pin THT pin
+#     header's pads can sit inside the cutout, accessible via pogopin
+#     jig through the case-wall opening for emergency flashing.
+#   - C4 — v2 expansion placeholder (no connector yet): allow_pads=False.
+#   - C5 — Qwiic / Stemma QT expansion (J9): allow_pads=True so the
+#     JST SH SMD pads can sit inside the cutout area.
 CUTOUTS = [
-    # name, x_min, x_max, y_min, y_max  (PCB-local mm, +Y = toward chord)
-    ("C3",  +4.900, +13.900, +28.998, +Y_CHORD),  # 9 × 15.5 mm,   clipped at chord (would extend +1 mm beyond)
-    ("C4", +18.900, +22.900, +34.998, +Y_CHORD),  # 4 × 9 mm,      clipped at chord (would extend +0.5 mm; has language tab Ø3 mm in case wall)
-    ("C5", +27.900, +35.400, +36.494, +42.494),   # 7.5 × 6 mm,    fully inside PCB
+    # name, x_min, x_max, y_min, y_max, allow_pads  (PCB-local mm, +Y = toward chord)
+    ("C3",  +4.900, +13.900, +28.998, +Y_CHORD, True),   # 9 × 15.5 mm,  J10 recovery header (6-pin 2.54 mm, DNP)
+    ("C4", +18.900, +22.900, +34.998, +Y_CHORD, False),  # 4 × 9 mm,     v2 expansion placeholder
+    ("C5", +27.900, +35.400, +36.494, +42.494, True),    # 7.5 × 6 mm,   J9 Qwiic / Stemma QT expansion (JST SH 4-pin, fully inside PCB)
 ]
 
 # -----------------------------------------------------------------------------
@@ -611,6 +625,110 @@ J1_PCB_ROTATION = 180        # Rotation 180° places the cable-entry face
                               # (west).
 
 # -----------------------------------------------------------------------------
+# J9 — Qwiic / Stemma QT JST SH 4-pin horizontal SMD socket (v0.19)
+# -----------------------------------------------------------------------------
+# J9 lives in the C5 case-wall cutout (X +27.9..+35.4, Y +36.494..+42.494,
+# 7.5 × 6 mm fully inside PCB). The Qwiic / Stemma QT cable plugs in
+# through the case-wall opening to the connector mouth.
+#
+# Stock JST_SH_SM04B-SRSS-TB footprint geometry (verified against the
+# KiCad 10 stock library file):
+#   - Pads at footprint Y = -2 (north of origin), pin pitch 1.0 mm, pin
+#     row total width 3 mm centred on X = 0. Pads are SMD roundrects on
+#     F.Cu only (signal pads); the two MP (mech pin) tabs at footprint
+#     (-2.8, +1.875) and (+2.8, +1.875) anchor the body.
+#   - Body courtyard footprint X = -3.9..+3.9, Y = -2.78..+3.28.
+#   - The connector "mouth" — the slot the cable plug enters — is on
+#     the footprint -Y face (where the pads are). I.e. with default
+#     orientation (rotation 0) the cable enters from the -Y direction.
+#
+# Desired physical layout: cable plugs in from outside the case through
+# the C5 opening on the chord (PCB +Y, south). So the connector mouth
+# must face PCB +Y → use rotation 180°.
+#
+# With rotation 180° (LIB +Y → PCB -Y, LIB -Y → PCB +Y):
+#   - Signal pads at LIB Y=-2 land at PCB Y = anchor_y + 2 (south of anchor)
+#   - Body north edge at LIB Y=+3.28 lands at PCB Y = anchor_y - 3.28 (north)
+#   - Body south edge at LIB Y=-2.78 lands at PCB Y = anchor_y + 2.78
+#   - Mech pin (MP) tabs at LIB Y=+1.875 land at PCB Y = anchor_y - 1.875
+#   - Mouth opens to PCB +Y (toward chord) ✓
+#
+# C5 cutout Y = 36.494..42.494 (6 mm). Center the connector body in the
+# cutout vertically: anchor_y = midpoint - (mouth-side offset). With
+# anchor_y = +39.69 the body spans PCB Y +36.41..+42.47 (effectively
+# filling the cutout). Signal pads at PCB Y = +41.69 — INSIDE the cutout
+# zone, which is fine because C5 has allow_pads=True (v0.19 CUTOUTS).
+# Pad outer edge at +41.69 + 0.85 (pad half-height) = +42.54 — just
+# inside the cutout south edge (+42.494). 0.05 mm overshoot is below
+# the min_copper_edge_clearance rule (0.3 mm) BUT the chord is at
+# Y = +Y_chord ≈ +43.5237, so the actual PCB edge is 0.98 mm south of
+# the pad outer edge. Plenty of clearance.
+#
+# Horizontal: C5 X = 27.9..35.4 (7.5 mm). Pad row total width 3 mm.
+# Center the connector at X = +31.65 (cutout midpoint). Body courtyard
+# X = +27.75..+35.55 — 0.15 mm overshoot at each side relative to the
+# cutout extents, but PCB outline is far further north so courtyard-vs-
+# Edge.Cuts checks aren't applicable (the cutout silk rect is purely
+# visual, not an actual PCB edge).
+J9_PCB_X = +31.65            # PCB X — centred on C5 (midpoint +31.65)
+J9_PCB_Y = +39.69            # PCB Y — pads at +41.69 (just inside cutout)
+J9_PCB_ROTATION = 180        # mouth → +Y (chord side, case-wall opening)
+
+# -----------------------------------------------------------------------------
+# J10 — Native-USB recovery header (v0.19) — DNP 6-pin 2.54 mm THT
+# -----------------------------------------------------------------------------
+# J10 sits in the C3 case-wall cutout (X +4.9..+13.9, Y +28.998..+43.5,
+# 9 × 14.5 mm). Stock `PinHeader_1x06_P2.54mm_Vertical` footprint:
+#   - Pad 1 (rectangle) at LIB (0, 0), pads 2..6 at LIB (0, +n*2.54)
+#     for n in 1..5. Pad row total 12.7 mm long in LIB +Y direction.
+#   - Body silk X = -1.38..+1.38, Y = +1.27..+14.08
+#   - Body courtyard X = -1.77..+1.77, Y = -1.77..+14.47
+#
+# Desired layout: pin 1 (rect-pad marker, easy to identify by eye when
+# using a pogopin jig) sits at the chord side. Cable / pogopin jig
+# enters from outside the case at PCB +Y. So we want LIB +Y (pins 2..6
+# pad row direction) to map to PCB -Y (away from chord, into PCB
+# interior), meaning rotation 180°.
+#
+# With rotation 180° (LIB +Y → PCB -Y):
+#   - Pad 1 at LIB (0, 0)        → PCB (anchor_x, anchor_y)
+#   - Pad 2 at LIB (0, +2.54)    → PCB (anchor_x, anchor_y - 2.54)
+#   - …
+#   - Pad 6 at LIB (0, +12.7)    → PCB (anchor_x, anchor_y - 12.7)
+#   - Body extents: PCB X = anchor_x - 1.38..anchor_x + 1.38;
+#                   PCB Y = anchor_y - 14.08..anchor_y - 1.27
+#   - Courtyard:   PCB X = anchor_x - 1.77..anchor_x + 1.77;
+#                  PCB Y = anchor_y - 14.47..anchor_y + 1.77
+#
+# C3 cutout X = +4.9..+13.9, Y = +28.998..+43.5. Centre header on
+# cutout midpoint X = +9.4. Pad 1 (south, closest to chord) at
+# anchor_y = +41.5 → pad outer edge at PCB Y = +42.35 (pad radius 0.85,
+# circle diameter 1.7 mm), 1.17 mm clear of the chord at +43.5 (passes
+# min_copper_edge_clearance 0.3 mm). Pad 6 at PCB Y = +28.8 — slightly
+# north of the cutout north edge (+28.998). That's intentional — pin 6
+# (BOOT, the least frequently accessed in a recovery scenario) extends
+# beyond the cutout into the PCB-side keepout-free region, where the
+# silk label can describe what it is.
+#
+# Wait — actually we want ALL 6 pads ACCESSIBLE through the cutout.
+# Re-anchor: pad 1 at anchor_y = +42.0, pad 6 at anchor_y - 12.7 = +29.3.
+# Pad 6 inside cutout? +29.3 > +28.998 → YES, all pads inside cutout.
+# Pad 1 outer edge at +42.85 → 0.65 mm clear of chord. OK.
+J10_PCB_X = +9.4             # PCB X — centred on C3 (midpoint +9.4)
+J10_PCB_Y = +41.0            # PCB Y of pad 1 (rect-marker pad, chord side).
+                              # Initially set to +42.0 — but the stock
+                              # PinHeader's F.SilkS pin-1 corner marker
+                              # extends 1.38 mm further south (PCB +Y)
+                              # of pad 1, putting silk at PCB Y=+43.38
+                              # → only 0.12 mm clear of the chord at
+                              # +43.5237 (DRC silk_edge_clearance rule
+                              # requires 0.15 mm). Shifted north 1 mm
+                              # so pin-1 silk lands at PCB Y=+42.38
+                              # (1.14 mm clear of chord).
+J10_PCB_ROTATION = 180       # LIB +Y → PCB -Y. Pad 1 at chord, pad 6
+                              # north (into PCB interior).
+
+# -----------------------------------------------------------------------------
 # AQI status LED ring (v0.16) — 12 × SK6812-SIDE side-emit addressable RGB
 # -----------------------------------------------------------------------------
 # Twelve side-emit RGB LEDs on a Ø22 mm pitch circle around the central
@@ -847,7 +965,11 @@ SUBSHEET_POSITIONS = {
     "sensors": (50.8,  88.9),
     "io":      (101.6, 88.9),
 }
-SUBSHEET_SIZE = (38.1, 12.7)
+SUBSHEET_SIZE = (38.1, 17.78)  # v0.19: bumped 12.7 -> 17.78 mm tall so MCU
+                                 # right edge can fit UART_TX/RX + USB_DM/DP/EN/
+                                 # BOOT (6 pins on 2.54 mm grid → 15.24 mm) and
+                                 # IO left edge can fit I2C_SDA/SCL + USB_DM/DP/
+                                 # EN/BOOT.
 
 # -----------------------------------------------------------------------------
 # 1) Mounting hole footprint (own library)
@@ -1687,7 +1809,7 @@ def gen_cutouts() -> tuple[str, str]:
     """
     keepouts = []
     markers = []
-    for name, x1, x2, y1, y2 in CUTOUTS:
+    for name, x1, x2, y1, y2, allow_pads in CUTOUTS:
         # PCB-local coords -> page-offset coords
         X1, X2 = fx(x1), fx(x2)
         Y1, Y2 = fy(y1), fy(y2)
@@ -1713,6 +1835,15 @@ def gen_cutouts() -> tuple[str, str]:
         # a 2D drawing coincidence, not a physical conflict. (The
         # `(pads not_allowed)` rule above already blocks any *copper*
         # the SEN66 reference footprint might accidentally bring along.)
+        #
+        # v0.19: per-cutout `allow_pads`. Some cutouts host a connector
+        # whose solder pads MUST live in the cutout area (the case-wall
+        # opening is the place the user accesses these pads — Qwiic
+        # cable plug, recovery-header pogopin jig). For those cutouts
+        # we drop the `(pads not_allowed)` rule so DRC doesn't object.
+        # `tracks/vias/copperpour` stay blocked to keep stray copper
+        # away from the case-wall edge.
+        pads_rule = "(pads allowed)" if allow_pads else "(pads not_allowed)"
         keepouts.append(textwrap.dedent(f"""\
             \t(zone
             \t\t(net 0)
@@ -1729,7 +1860,7 @@ def gen_cutouts() -> tuple[str, str]:
             \t\t(keepout
             \t\t\t(tracks not_allowed)
             \t\t\t(vias not_allowed)
-            \t\t\t(pads not_allowed)
+            \t\t\t{pads_rule}
             \t\t\t(copperpour not_allowed)
             \t\t\t(footprints allowed)
             \t\t)
@@ -2095,6 +2226,21 @@ _J4_LIB_FOOTPRINT_PATH = (
 _J1_LIB_FOOTPRINT_PATH = (
     _kicad_install_path() / "footprints" / "Connector_Phoenix_MSTB.pretty"
     / "PhoenixContact_MSTBA_2,5_3-G-5,08_1x03_P5.08mm_Horizontal.kicad_mod"
+)
+
+# v0.19: J9 — Qwiic / Stemma QT JST SH 4-pin horizontal SMD socket.
+# Standard part: JST SM04B-SRSS-TB (or compatible — every Qwiic /
+# Stemma QT host uses this footprint).
+_J9_LIB_FOOTPRINT_PATH = (
+    _kicad_install_path() / "footprints" / "Connector_JST.pretty"
+    / "JST_SH_SM04B-SRSS-TB_1x04-1MP_P1.00mm_Horizontal.kicad_mod"
+)
+
+# v0.19: J10 — native-USB recovery header. 6-pin 2.54 mm vertical
+# through-hole pin header. DNP — pads only on production boards.
+_J10_LIB_FOOTPRINT_PATH = (
+    _kicad_install_path() / "footprints" / "Connector_PinHeader_2.54mm.pretty"
+    / "PinHeader_1x06_P2.54mm_Vertical.kicad_mod"
 )
 
 
@@ -2806,6 +2952,232 @@ def gen_j1_terminal_block_pcb_footprint(x: float, y: float, rotation: int) -> st
         """) + properties + "\n" + body_text + "\n\t)"
 
 
+def _emit_stock_lib_footprint(
+    *,
+    src_path,
+    lib_nickname: str,
+    reference: str,
+    value: str,
+    datasheet: str,
+    description: str,
+    x: float, y: float, rotation: int,
+    uuid_tag: str,
+    ref_offset_x: float = 0.0,
+    ref_offset_y: float = -2.0,
+    val_offset_x: float = 0.0,
+    val_offset_y: float = 3.0,
+    hide_ref: bool = False,
+    hide_value: bool = True,
+) -> str:
+    """Generic helper to embed a KiCad stock-library footprint into the PCB.
+
+    Mirrors the parse-and-patch logic from `gen_j3_jst_gh_pcb_footprint`
+    / `gen_j4_pinheader_pcb_footprint` / `gen_j1_terminal_block_pcb_footprint`,
+    factored into one place so adding new connectors only requires:
+      1. an `_X_LIB_FOOTPRINT_PATH` Path constant pointing at the stock
+         library file
+      2. one call to this helper with the desired Reference / Value /
+         Datasheet / Description and the placement (x, y, rotation)
+
+    Logic:
+      - Read the stock .kicad_mod
+      - Parse the top-level `(footprint "<name>" ...)` S-expression
+      - Drop `(version)`, `(generator)`, `(generator_version)`, library
+        `(property "Reference" ...)`, `(property "Value" ...)`,
+        `(property "KiLib_Generator" ...)`, `(embedded_fonts ...)`, and
+        `(model ...)` children
+      - Re-indent all remaining children one level deeper for nesting
+        in the PCB file
+      - Substitute the inline `${REFERENCE}` token with the literal
+        Reference designator
+      - If `rotation != 0`, annotate every pad's `(at lx ly)` with the
+        rotation (KiCad quirk — without this, DRC misreads pad shapes
+        as PCB-axis-aligned, causing false-positive pad clearance / mask
+        bridge errors)
+      - Prepend our own (uuid), (at), and OAS-side Reference / Value /
+        Footprint / Datasheet / Description properties
+
+    `ref_offset_x / y` and `val_offset_x / y` position the new Reference
+    (on F.SilkS) and Value (on F.Fab) text relative to the footprint
+    anchor, in footprint-local mm.
+    """
+    src = src_path.read_text(encoding="utf-8")
+
+    # Parse the top-level (footprint ...) wrapper.
+    depth = 0
+    cur: list[str] = []
+    items: list[str] = []
+    for ch in src:
+        if ch == "(":
+            if depth == 0:
+                cur = []
+            depth += 1
+            cur.append(ch)
+        elif ch == ")":
+            depth -= 1
+            cur.append(ch)
+            if depth == 0:
+                items.append("".join(cur))
+        else:
+            if depth > 0:
+                cur.append(ch)
+    assert len(items) == 1
+    inner = items[0].strip()
+    assert inner.startswith("(footprint") and inner.endswith(")")
+    inner = inner[len("(footprint"):].rstrip()
+    inner = inner.rstrip(")").rstrip().lstrip()
+    assert inner.startswith('"')
+    name_end = inner.index('"', 1)
+    fp_name = inner[1:name_end]
+    inner_after_name = inner[name_end + 1:]
+
+    children: list[str] = []
+    depth = 0
+    cur = []
+    for ch in inner_after_name:
+        if ch == "(":
+            if depth == 0:
+                cur = []
+            depth += 1
+            cur.append(ch)
+        elif ch == ")":
+            depth -= 1
+            cur.append(ch)
+            if depth == 0:
+                children.append("".join(cur))
+        else:
+            if depth > 0:
+                cur.append(ch)
+
+    SKIP_PREFIXES = (
+        "(version", "(generator", "(generator_version",
+        "(property \"Reference\"",
+        "(property \"Value\"",
+        "(property \"KiLib_Generator\"",
+        "(embedded_fonts",
+        "(model ",
+    )
+    body_children = [c for c in children if not any(c.startswith(p) for p in SKIP_PREFIXES)]
+
+    def reindent_for_pcb(s: str) -> str:
+        out_lines = []
+        for ln in s.split("\n"):
+            if ln == "":
+                out_lines.append(ln)
+            else:
+                out_lines.append("\t" + ln)
+        return "\n".join(out_lines)
+
+    body_text = "\n".join(reindent_for_pcb(c) for c in body_children)
+    body_text = body_text.replace('"${REFERENCE}"', f'"{reference}"')
+
+    if rotation != 0:
+        body_text = _annotate_pad_rotations(body_text, rotation)
+
+    ref_hide_line = "\t\t\t(hide yes)\n" if hide_ref else ""
+    val_hide_line = "\t\t\t(hide yes)\n" if hide_value else ""
+    properties = textwrap.dedent(f"""\
+        \t\t(property "Reference" "{reference}"
+        \t\t\t(at {fmt(ref_offset_x)} {fmt(ref_offset_y)} {rotation})
+        \t\t\t(layer "F.SilkS")
+        """) + ref_hide_line + textwrap.dedent(f"""\
+        \t\t\t(uuid "{U('fp-prop-ref:' + uuid_tag)}")
+        \t\t\t(effects (font (size 1 1) (thickness 0.15)))
+        \t\t)
+        \t\t(property "Value" "{value}"
+        \t\t\t(at {fmt(val_offset_x)} {fmt(val_offset_y)} {rotation})
+        \t\t\t(layer "F.Fab")
+        """) + val_hide_line + textwrap.dedent(f"""\
+        \t\t\t(uuid "{U('fp-prop-val:' + uuid_tag)}")
+        \t\t\t(effects (font (size 1 1) (thickness 0.15)))
+        \t\t)
+        \t\t(property "Footprint" "{lib_nickname}:{fp_name}"
+        \t\t\t(at 0 0 0)
+        \t\t\t(layer "F.Fab")
+        \t\t\t(hide yes)
+        \t\t\t(uuid "{U('fp-prop-fp:' + uuid_tag)}")
+        \t\t\t(effects (font (size 1.27 1.27)))
+        \t\t)
+        \t\t(property "Datasheet" "{datasheet}"
+        \t\t\t(at 0 0 0)
+        \t\t\t(layer "F.Fab")
+        \t\t\t(hide yes)
+        \t\t\t(uuid "{U('fp-prop-ds:' + uuid_tag)}")
+        \t\t\t(effects (font (size 1.27 1.27)))
+        \t\t)
+        \t\t(property "Description" "{description}"
+        \t\t\t(at 0 0 0)
+        \t\t\t(layer "F.Fab")
+        \t\t\t(hide yes)
+        \t\t\t(uuid "{U('fp-prop-desc:' + uuid_tag)}")
+        \t\t\t(effects (font (size 1.27 1.27)))
+        \t\t)""")
+
+    return textwrap.dedent(f"""\
+        \t(footprint "{lib_nickname}:{fp_name}"
+        \t\t(layer "F.Cu")
+        \t\t(uuid "{U('fp-inst:' + uuid_tag)}")
+        \t\t(at {fx(x)} {fy(y)} {rotation})
+        """) + properties + "\n" + body_text + "\n\t)"
+
+
+def gen_j9_qwiic_pcb_footprint(x: float, y: float, rotation: int) -> str:
+    """Emit the placed J9 — JST SH 4-pin horizontal SMD Qwiic / Stemma QT
+    socket at PCB (x, y) with `rotation` degrees. Reads the stock
+    `Connector_JST:JST_SH_SM04B-SRSS-TB_1x04-1MP_P1.00mm_Horizontal`
+    footprint and re-emits it with OAS-side metadata.
+    """
+    return _emit_stock_lib_footprint(
+        src_path=_J9_LIB_FOOTPRINT_PATH,
+        lib_nickname="Connector_JST",
+        reference="J9",
+        value="JST SM04B-SRSS-TB (Qwiic / Stemma QT)",
+        datasheet="https://www.jst-mfg.com/product/pdf/eng/eSH.pdf",
+        description="JST SH 4-pin 1.0 mm pitch horizontal SMD socket. Standard Qwiic / Stemma QT host footprint — pinout (looking at connector mouth from cable side): pin 1 = GND (black), pin 2 = +3.3V (red), pin 3 = SDA (blue), pin 4 = SCL (yellow). Mates with any genuine Sparkfun Qwiic or Adafruit Stemma QT cable.",
+        x=x, y=y, rotation=rotation,
+        uuid_tag="j9-qwiic",
+        ref_offset_x=0.0, ref_offset_y=-3.6,
+        val_offset_x=0.0, val_offset_y=4.6,
+        # Hide in-footprint ref + value text: the board-level
+        # "J9 Qwiic" cutout silk label + per-pin F.Fab labels already
+        # identify the connector. With rotation 180°, an in-footprint
+        # ref would land off the PCB south of the chord.
+        hide_ref=True, hide_value=True,
+    )
+
+
+def gen_j10_recovery_pcb_footprint(x: float, y: float, rotation: int) -> str:
+    """Emit the placed J10 — 6-pin 2.54 mm vertical THT pin header for
+    native-USB recovery flashing of the ESP32-C6. Reads the stock
+    `Connector_PinHeader_2.54mm:PinHeader_1x06_P2.54mm_Vertical`
+    footprint and re-emits it with OAS-side metadata.
+
+    J10 is DNP (Do Not Populate) — the assembled PCB carries only the
+    plated through-hole pads + silkscreen labelling. If a field debugger
+    ever needs native-USB-Serial-JTAG access (e.g. after both DevKitM-1
+    on-module USB-C ports get damaged), the user solders a standard
+    2.54 mm 6-pin pin header onto the pads + wires through it to the
+    serial-JTAG endpoint.
+    """
+    return _emit_stock_lib_footprint(
+        src_path=_J10_LIB_FOOTPRINT_PATH,
+        lib_nickname="Connector_PinHeader_2.54mm",
+        reference="J10",
+        value="Native-USB recovery (DNP)",
+        datasheet="",
+        description="6-pin 2.54 mm vertical through-hole pin header (DNP). Exposes the ESP32-C6 native USB-Serial-JTAG D-/D+ pair (GPIO 12/13) plus EN (chip enable / reset) and BOOT strap (GPIO 9) on solder pads at the C3 case-wall opening. Used only for emergency recovery flashing — the production OAS unit flashes via OTA after first commission. Pinout: 1=GND, 2=+3V3, 3=USB_DM, 4=USB_DP, 5=EN, 6=BOOT.",
+        x=x, y=y, rotation=rotation,
+        uuid_tag="j10-recovery",
+        ref_offset_x=2.5, ref_offset_y=-1.5,
+        val_offset_x=2.5, val_offset_y=15.0,
+        # Hide in-footprint ref + value text: with rotation 180°,
+        # an in-footprint ref would land south of the chord (off PCB).
+        # The board-level "J10 flash" cutout silk label + per-pin
+        # F.Fab labels identify the connector.
+        hide_ref=True, hide_value=True,
+    )
+
+
 def gen_pinsocket_pcb_footprint(
     *,
     pin_count: int,
@@ -3483,6 +3855,21 @@ def gen_sensors_pcb_footprints() -> str:
         x=J1_PCB_X, y=J1_PCB_Y, rotation=J1_PCB_ROTATION,
     ))
 
+    # v0.19: J9 — JST SH 4-pin horizontal SMD Qwiic / Stemma QT
+    # expansion socket. Lives in the C5 chord-east cutout; mouth faces
+    # PCB +Y (chord side, case wall) so the cable plugs in from outside
+    # the case. See `J9_PCB_*` constants near the top of the file.
+    parts.append(gen_j9_qwiic_pcb_footprint(
+        x=J9_PCB_X, y=J9_PCB_Y, rotation=J9_PCB_ROTATION,
+    ))
+    # v0.19: J10 — 6-pin 2.54 mm vertical THT pin header for native-USB
+    # recovery flashing. DNP — pads only on production boards. Lives in
+    # the C3 chord-east cutout; pin 1 (rect-marker pad) sits at the
+    # chord side for easy pogopin-jig orientation.
+    parts.append(gen_j10_recovery_pcb_footprint(
+        x=J10_PCB_X, y=J10_PCB_Y, rotation=J10_PCB_ROTATION,
+    ))
+
     # ESP32-C6 DevKitM-1-N4 daughterboard shadow reservation. Mounted on
     # 2× 1x15 P2.54 mm female pin sockets (chunk #7); module sits face-up
     # ~8 mm above OAS PCB. Antenna at TOP short edge (Y=anchor_y), USB-C
@@ -3799,44 +4186,135 @@ def gen_silk_labels() -> str:
     parts.append(_silk("PE",  -5.08, j1_pin_fab_y, "j1-pin3-pe",
                        size=0.8, layer="F.Fab"))
 
+    # ---- v0.19: J9 (Qwiic) + J10 (recovery) per-pin F.Fab labels ----
+    # The per-cutout F.SilkS labels emitted earlier ("J9 Qwiic" /
+    # "J10 flash" / "C4 v2") identify the connector by designator;
+    # per-pin labels go on F.Fab so the assembler / debugger can read
+    # them on the assembly drawing without consulting the schematic.
+    # F.Fab is silk-overlap-exempt so we can position labels right
+    # next to the pad without DRC complaints.
+    #
+    # J9 — JST SH 4-pin. PCB pad row at PCB Y = J9_PCB_Y + 2 = +41.69,
+    # pads at PCB X = J9_PCB_X ± 1.5, J9_PCB_X ± 0.5 (1 mm pitch).
+    # With rotation 180°, pad 1 (north / "top of footprint Y order")
+    # lands at PCB X = J9_PCB_X + 1.5, pad 4 at PCB X = J9_PCB_X - 1.5.
+    # Mark the pin-1 corner with a "P1" hint on F.Fab so the visual
+    # assembly drawing identifies which pad is GND.
+    j9_pad_y = J9_PCB_Y + 2.0      # +41.69 — pad row Y
+    j9_p1_x = J9_PCB_X + 1.5       # +33.15 — pad 1 (GND, north-east edge of footprint)
+    # F.Fab pin-function hint just north of pad row (toward body interior).
+    parts.append(_silk("J9 GND", j9_p1_x, j9_pad_y - 2.0, "j9-p1-gnd",
+                       size=0.8, layer="F.Fab"))
+    # Cable-direction hint moved into J9's per-pin F.Fab labels (the
+    # "J9 GND" pin-1 marker above), so the surface silk stays clean.
+    # The cutout "J9 Qwiic" label (emitted by the cutout loop above)
+    # marks the connector identity from outside the case.
+
+    # J10 — 6-pin 2.54 mm pin header. With rotation 180°, pad 1 at
+    # (J10_PCB_X, J10_PCB_Y) = (+9.4, +42.0); pads stack NORTH at
+    # 2.54 mm pitch. Per-pin function labels on F.Fab placed
+    # immediately to the EAST of each pad. F.Fab is silk-overlap-
+    # exempt so positioning right next to the pads is fine, and
+    # F.Fab text isn't subject to the silk_min_text_height rule.
+    # Pin 1 (GND) sits at Y=+42.0 (near chord) — its label at the
+    # SAME row would clip the chord; position pin 1's label NORTH
+    # of the pad row instead so it stays inside the PCB.
+    j10_pin_labels = ["GND", "+3V3", "USB-", "USB+", "EN", "BOOT"]
+    for i, lbl in enumerate(j10_pin_labels):
+        py = J10_PCB_Y - i * 2.54
+        parts.append(_silk(
+            lbl, J10_PCB_X + 3.0, py,
+            f"j10-pin{i+1}-{lbl.lower().replace('+', 'p').replace('-', 'm')}",
+            size=0.8, layer="F.Fab",
+        ))
+    # (No F.SilkS "(DNP)" hint on the PCB — "Do Not Populate" status
+    # lives in the schematic (J10 symbol has `(dnp yes)`) and in the
+    # BOM exporter output. Adding a board-level "(DNP)" silk near J10
+    # collided with the J1 body silk rect and was redundant with the
+    # "J10 flash" cutout label.)
+
     # ---- v0.7: cutout-zone reservation labels + outlines on F.SilkS ----
-    # Each cutout C1..C5 along the chord is reserved for a future
-    # connector that extends through the case wall (24V terminal, JST GH
-    # to LD2410, USB-C debug, Qwiic, etc.). Draw both:
+    # Each cutout C3..C5 along the chord is a case-wall opening that may
+    # host a connector (24V terminal, JST GH, USB-C debug, Qwiic, etc.).
+    # Draw both:
     #   - A thin F.SilkS rectangle outlining the cutout footprint, inset
     #     by SILK_EDGE_INSET on each side so it clears Edge.Cuts even
     #     when the cutout is clipped at the chord
-    #   - A "C# AUX" text label centred in the rectangle. For narrow
-    #     rects the text is rotated 90° so it still fits inside the
-    #     outline without overlapping (DRC silk_overlap).
+    #   - A short text label centred in the rectangle identifying what
+    #     the cutout hosts. For narrow rects the text is rotated 90° so
+    #     it still fits inside the outline without overlapping
+    #     (DRC silk_overlap).
+    #
+    # v0.19 — per-cutout label override:
+    #   - C3 → "J10 flash" (6-pin recovery header for native USB
+    #     flashing of the ESP32-C6; DNP by default). NO silk rect —
+    #     the J10 stock footprint's own body silk already marks the
+    #     connector outline; a second rect over the same area would
+    #     trigger DRC `silk_overlap`. Label only.
+    #   - C4 → "C4 v2"     (placeholder for v2 expansion; no connector
+    #     installed). Silk rect + label, same as v0.7 convention, so
+    #     the user can identify the unused cutout at assembly time.
+    #   - C5 → "J9 Qwiic"  (Qwiic / Stemma QT JST SH 4-pin expansion).
+    #     NO silk rect for the same reason as C3.
     SILK_EDGE_INSET = 0.3       # mm — keeps rect off the board edge.
                                 # With 0.12 mm silk stroke, line outer edge
                                 # sits 0.06 mm beyond the centerline; 0.3 mm
                                 # inset leaves 0.24 mm clear to Edge.Cuts,
                                 # comfortably above the 0.15 mm DRC limit.
-    SILK_TEXT_MIN_HORIZONTAL_FIT = 5.0   # mm — width needed to keep "C# AUX"
+    SILK_TEXT_MIN_HORIZONTAL_FIT = 5.0   # mm — width needed to keep label
                                           # at 1.0 mm horizontal inside the rect
-    for name, x1, x2, y1, y2 in CUTOUTS:
+    CUTOUT_LABELS = {
+        "C3": "J10 flash",
+        "C4": "C4 v2",
+        "C5": "J9 Qwiic",
+    }
+    # Cutouts that host a connector (with its own body silk) — skip the
+    # cutout silk rect to avoid silk_overlap DRC violations. The text
+    # label still emits, positioned just NORTH of the connector body.
+    CUTOUTS_WITHOUT_RECT = {"C3", "C5"}
+    for name, x1, x2, y1, y2, allow_pads in CUTOUTS:
         rx1, rx2 = x1 + SILK_EDGE_INSET, x2 - SILK_EDGE_INSET
         ry1, ry2 = y1 + SILK_EDGE_INSET, y2 - SILK_EDGE_INSET
         cx = (rx1 + rx2) / 2
         cy = (ry1 + ry2) / 2
         rect_w = rx2 - rx1
-        parts.append(textwrap.dedent(f"""\
-            \t(gr_rect
-            \t\t(start {fx(rx1)} {fy(ry1)})
-            \t\t(end {fx(rx2)} {fy(ry2)})
-            \t\t(stroke (width 0.12) (type solid))
-            \t\t(fill no)
-            \t\t(layer "F.SilkS")
-            \t\t(uuid "{U('cutout-silk-rect:'+name)}")
-            \t)"""))
+        if name not in CUTOUTS_WITHOUT_RECT:
+            parts.append(textwrap.dedent(f"""\
+                \t(gr_rect
+                \t\t(start {fx(rx1)} {fy(ry1)})
+                \t\t(end {fx(rx2)} {fy(ry2)})
+                \t\t(stroke (width 0.12) (type solid))
+                \t\t(fill no)
+                \t\t(layer "F.SilkS")
+                \t\t(uuid "{U('cutout-silk-rect:'+name)}")
+                \t)"""))
         # Centred text label at the DRC minimum text height (1.0 mm);
         # rotate 90° in narrow rects so the text fits inside without
         # overlapping the outline.
         text_angle = 90.0 if rect_w < SILK_TEXT_MIN_HORIZONTAL_FIT else 0.0
+        label = CUTOUT_LABELS.get(name, f"{name} AUX")
+        # For C3/C5 — position the cutout label NORTH of the connector
+        # body shadow (i.e., into the PCB interior, away from the
+        # case-wall edge) where it doesn't clash with connector silk.
+        # For other cutouts, use the cutout centre.
+        if name == "C3":
+            # C3 hosts J10. With J10_PCB_Y=+41.0 (after the v0.19 pin-1
+            # silk-marker shift), the J10 silk frame north edge sits at
+            # PCB Y = +41.0 − 14.08 = +26.92. J1 body silk south edge
+            # at Y=+24.51. Available gap = 2.41 mm. Centre the 1.0 mm
+            # label at the mid-gap (Y=+25.7) so it clears both edges
+            # with ≥0.6 mm margin (well above the 0.15 mm
+            # silk_overlap DRC rule).
+            tx, ty = +9.4, +25.7
+        elif name == "C5":
+            # C5 hosts J9 (body at PCB X=+27.75..+35.55, Y=+36.41..+42.47).
+            # Place label NORTH of the J9 body at PCB Y=+34.5 (clear of
+            # body's north silk at Y=+36.41).
+            tx, ty = +31.65, +34.5
+        else:
+            tx, ty = cx, cy
         parts.append(_silk(
-            f"{name} AUX", cx, cy, f"cutout-silk-{name}",
+            label, tx, ty, f"cutout-silk-{name}",
             size=1.0, angle=text_angle,
         ))
     return "\n".join(parts)
@@ -4062,6 +4540,17 @@ SUBSHEET_PINS: dict[str, list[tuple[str, str, float, float, int]]] = {
         ("WS2812_DIN",  "output",        0.0, 11.43, 180),
         ("UART_TX",     "output",        38.1, 1.27, 0),
         ("UART_RX",     "input",         38.1, 3.81, 0),
+        # v0.19: IO-bound nets — exposed on J10 recovery header in the
+        # IO sub-sheet so a field debugger can re-flash the ESP32-C6 via
+        # native USB-Serial-JTAG (GPIO 12 = USB D-, GPIO 13 = USB D+) +
+        # EN (chip reset) + BOOT (GPIO 9, drop low to enter ROM bootloader)
+        # when both DevKitM-1 onboard USB-C ports are unavailable. Routed
+        # out of MCU on the RIGHT edge alongside UART_TX/RX so the wires
+        # take a short east-going run from U3 to the right page boundary.
+        ("USB_DM",      "bidirectional", 38.1,  6.35, 0),
+        ("USB_DP",      "bidirectional", 38.1,  8.89, 0),
+        ("EN",          "output",        38.1, 11.43, 0),
+        ("BOOT",        "output",        38.1, 13.97, 0),
     ],
     "sensors": [
         # name,        shape,           dx,   dy,    angle (180=left-edge, 0=right-edge)
@@ -4082,7 +4571,17 @@ SUBSHEET_PINS: dict[str, list[tuple[str, str, float, float, int]]] = {
         # v0.16: AQI status-LED ring input.
         ("WS2812_DIN",  "input",          0.0,  8.89, 180),
     ],
-    "io": [],
+    # v0.19: IO sub-sheet — chord-east connectors (J9 Qwiic + J10 recovery).
+    # I2C_SDA / I2C_SCL match the MCU exports (shared bus); USB_DM / USB_DP /
+    # EN / BOOT come from MCU for the native-USB recovery header.
+    "io": [
+        ("I2C_SDA",     "bidirectional", 0.0,  1.27, 180),
+        ("I2C_SCL",     "input",         0.0,  3.81, 180),
+        ("USB_DM",      "bidirectional", 0.0,  6.35, 180),
+        ("USB_DP",      "bidirectional", 0.0,  8.89, 180),
+        ("EN",          "input",         0.0, 11.43, 180),
+        ("BOOT",        "input",         0.0, 13.97, 180),
+    ],
 }
 
 
@@ -4298,6 +4797,52 @@ def gen_root_sch() -> str:
     inter_wires.append(_root_wire(50.8, 97.79, 41.91, 97.79, "ws2812-din-west-from-sensors"))
     inter_wires.append(_root_wire(41.91, 97.79, 41.91, 62.23, "ws2812-din-vertical"))
     inter_wires.append(_root_wire(41.91, 62.23, 101.60, 62.23, "ws2812-din-east-into-mcu"))
+
+    # v0.19 inter-sheet wires for the IO sub-sheet.
+    # The IO block sits at (101.6, 88.9) size 38.1×17.78 — directly
+    # BELOW the MCU block (101.6, 50.8). Sheet pins:
+    #   IO left edge:  I2C_SDA (101.6, 90.17), I2C_SCL (101.6, 92.71),
+    #                  USB_DM (101.6, 95.25), USB_DP (101.6, 97.79),
+    #                  EN (101.6, 100.33), BOOT (101.6, 102.87)
+    #   MCU right edge for new exports: USB_DM (139.7, 57.15),
+    #                  USB_DP (139.7, 59.69), EN (139.7, 62.23),
+    #                  BOOT (139.7, 64.77)
+    #
+    # ---- I2C bus extension to IO sub-sheet ----
+    # Sensors→MCU I²C routing already exists at Y=90.17 / 92.71 with
+    # the vertical legs at X=95.25 / 97.79. Extend each horizontal wire
+    # east from those vertical legs into the IO block left edge at
+    # X=101.60, sharing the same Y row. KiCad merges by wire-endpoint
+    # contact, so a junction forms at (95.25, 90.17) / (97.79, 92.71).
+    inter_wires.append(_root_wire(95.25, 90.17, 101.60, 90.17, "sda-east-into-io"))
+    inter_wires.append(_root_wire(97.79, 92.71, 101.60, 92.71, "scl-east-into-io"))
+    # ---- USB_DM / USB_DP / EN / BOOT — MCU right ↔ IO left ----
+    # MCU pins on right edge (X=139.7), IO pins on left edge (X=101.6).
+    # Route topology: east stub from MCU pin → vertical down EAST of
+    # MCU/IO blocks → west stub into IO pin. Vertical legs at X=143.51,
+    # 146.05, 148.59, 151.13 (one column per net, 2.54 mm apart).
+    # Routing wraps around the east side of both blocks; the io block
+    # right edge is at X=139.7 so the verticals at X=143.51+ stay clear.
+    USB_DM_VERT_X = 153.67
+    USB_DP_VERT_X = 156.21
+    EN_VERT_X     = 158.75
+    BOOT_VERT_X   = 161.29
+    # USB_DM: MCU (139.7, 57.15) ↔ IO (101.6, 95.25)
+    inter_wires.append(_root_wire(139.7, 57.15, USB_DM_VERT_X, 57.15, "usb-dm-east-from-mcu"))
+    inter_wires.append(_root_wire(USB_DM_VERT_X, 57.15, USB_DM_VERT_X, 95.25, "usb-dm-vertical"))
+    inter_wires.append(_root_wire(USB_DM_VERT_X, 95.25, 101.6, 95.25, "usb-dm-west-into-io"))
+    # USB_DP: MCU (139.7, 59.69) ↔ IO (101.6, 97.79)
+    inter_wires.append(_root_wire(139.7, 59.69, USB_DP_VERT_X, 59.69, "usb-dp-east-from-mcu"))
+    inter_wires.append(_root_wire(USB_DP_VERT_X, 59.69, USB_DP_VERT_X, 97.79, "usb-dp-vertical"))
+    inter_wires.append(_root_wire(USB_DP_VERT_X, 97.79, 101.6, 97.79, "usb-dp-west-into-io"))
+    # EN: MCU (139.7, 62.23) ↔ IO (101.6, 100.33)
+    inter_wires.append(_root_wire(139.7, 62.23, EN_VERT_X, 62.23, "en-east-from-mcu"))
+    inter_wires.append(_root_wire(EN_VERT_X, 62.23, EN_VERT_X, 100.33, "en-vertical"))
+    inter_wires.append(_root_wire(EN_VERT_X, 100.33, 101.6, 100.33, "en-west-into-io"))
+    # BOOT: MCU (139.7, 64.77) ↔ IO (101.6, 102.87)
+    inter_wires.append(_root_wire(139.7, 64.77, BOOT_VERT_X, 64.77, "boot-east-from-mcu"))
+    inter_wires.append(_root_wire(BOOT_VERT_X, 64.77, BOOT_VERT_X, 102.87, "boot-vertical"))
+    inter_wires.append(_root_wire(BOOT_VERT_X, 102.87, 101.6, 102.87, "boot-west-into-io"))
     wires_text = "\n".join(inter_wires)
 
     return textwrap.dedent(f"""\
@@ -10264,6 +10809,15 @@ ESP32C6_DEVKITM1_SIGNAL_PIN: dict[str, int] = {
     "UART_TX"    : 17,  # J3.2  = GPIO16 → LD2410 RX, 256000 baud
     "UART_RX"    : 18,  # J3.3  = GPIO17 ← LD2410 TX, 256000 baud
     "BOOT"       : 26,  # J3.11 = GPIO9 (boot-mode strap)
+    # v0.19: GPIO 12 / 13 routed to IO sub-sheet's J10 recovery header
+    # (native USB-Serial-JTAG D-/D+). On a populated DevKitM-1 these
+    # GPIOs are also wired internally to one of the on-module USB-C
+    # ports; J10 exposes solder pads on the OAS PCB so a debugger can
+    # drive native USB through a pogopin jig if both DevKitM-1 USB-C
+    # ports get damaged. Sourced from MCU on the RIGHT edge alongside
+    # UART_TX/RX. Signal names follow USB convention (DM = D-, DP = D+).
+    "USB_DP"     : 28,  # J3.13 = GPIO13 (native USB D+)
+    "USB_DM"     : 29,  # J3.14 = GPIO12 (native USB D-)
 }
 
 # Pin numbers that must receive (no_connect) markers (everything not
@@ -10294,8 +10848,10 @@ ESP32C6_DEVKITM1_NC_PINS: list[int] = [
     23,   # J3.8  = GPIO19   (unused)
     24,   # J3.9  = GPIO18   (unused)
     25,   # J3.10 = GPIO15   (unused)
-    28,   # J3.13 = GPIO13   (USB D+, native USB-Serial-JTAG; onboard USB only)
-    29,   # J3.14 = GPIO12   (USB D-, native USB-Serial-JTAG; onboard USB only)
+    # v0.19: J3.13 (GPIO13 / USB D+) and J3.14 (GPIO12 / USB D-) moved
+    # from NC to ESP32C6_DEVKITM1_SIGNAL_PIN as USB_DP / USB_DM; they
+    # now reach the IO sub-sheet's J10 recovery header for native-USB
+    # emergency flashing.
 ]
 # Pin numbers that connect to the global GND net via a GND power symbol.
 ESP32C6_DEVKITM1_GND_PINS: list[int] = [13, 15, 16, 27, 30]
@@ -11901,6 +12457,105 @@ def _sch_conn_02x08_top_bottom(
         \t)""")
 
 
+def _sch_conn_01x04(
+    x: float, y: float, angle: int, reference: str, value: str, uuid_tag: str,
+    dnp: bool = False, sheet_key: str = "io",
+) -> str:
+    """Emit a Connector_Generic:Conn_01x04 symbol instance.
+
+    Mirrors `_sch_conn_01x05` for the 4-pin Qwiic / Stemma QT JST SH
+    cable. Verified against the KiCad stock `Connector_Generic.kicad_sym`
+    library: Conn_01x04 has lib pin Y positions at +2.54, 0, -2.54, -5.08
+    (top to bottom in lib +Y up). With angle=0 in the schematic, lib +Y
+    maps to schem -Y, so pin schem positions are:
+      Pin 1 (top):    (X-5.08, Y-2.54)
+      Pin 2:          (X-5.08, Y)
+      Pin 3:          (X-5.08, Y+2.54)
+      Pin 4 (bottom): (X-5.08, Y+5.08)
+    All pin tips on the LEFT side. Body rect lib (-1.27, +3.81) to
+    (+1.27, -6.35) → schem body Y = -3.81..+6.35; value-label anchored
+    one grid step below the body bottom at schem Y+7.62.
+
+    Used by the IO sub-sheet (chunk #6 / v0.19) for J9 — the JST SH 4-pin
+    horizontal SMD Qwiic / Stemma QT expansion socket (standard pinout
+    GND, +3.3V, SDA, SCL).
+    """
+    sym_uuid = U("sym:" + uuid_tag)
+    pin_uuids = [U(f"sym-pin:{uuid_tag}-{n}") for n in range(1, 5)]
+    sheet_path = f"/{ROOT_SHEET_UUID}/{SHEET_BLOCK_UUIDS[sheet_key]}"
+    dnp_flag = "yes" if dnp else "no"
+    pin_blocks = "\n".join(
+        f"\t\t(pin \"{n}\"\n\t\t\t(uuid \"{pin_uuids[n-1]}\")\n\t\t)"
+        for n in range(1, 5)
+    )
+    return textwrap.dedent(f"""\
+        \t(symbol
+        \t\t(lib_id "Connector_Generic:Conn_01x04")
+        \t\t(at {fmt(x)} {fmt(y)} {angle})
+        \t\t(unit 1)
+        \t\t(exclude_from_sim no)
+        \t\t(in_bom yes)
+        \t\t(on_board yes)
+        \t\t(dnp {dnp_flag})
+        \t\t(fields_autoplaced yes)
+        \t\t(uuid "{sym_uuid}")
+        \t\t(property "Reference" "{reference}"
+        \t\t\t(at {fmt(x + 2.54)} {fmt(y - 6.35)} 0)
+        \t\t\t(effects
+        \t\t\t\t(font
+        \t\t\t\t\t(size 1.27 1.27)
+        \t\t\t\t)
+        \t\t\t\t(justify left)
+        \t\t\t)
+        \t\t)
+        \t\t(property "Value" "{value}"
+        \t\t\t(at {fmt(x + 2.54)} {fmt(y + 7.62)} 0)
+        \t\t\t(effects
+        \t\t\t\t(font
+        \t\t\t\t\t(size 1.27 1.27)
+        \t\t\t\t)
+        \t\t\t\t(justify left)
+        \t\t\t)
+        \t\t)
+        \t\t(property "Footprint" ""
+        \t\t\t(at {fmt(x)} {fmt(y)} 0)
+        \t\t\t(effects
+        \t\t\t\t(font
+        \t\t\t\t\t(size 1.27 1.27)
+        \t\t\t\t)
+        \t\t\t\t(hide yes)
+        \t\t\t)
+        \t\t)
+        \t\t(property "Datasheet" ""
+        \t\t\t(at {fmt(x)} {fmt(y)} 0)
+        \t\t\t(effects
+        \t\t\t\t(font
+        \t\t\t\t\t(size 1.27 1.27)
+        \t\t\t\t)
+        \t\t\t\t(hide yes)
+        \t\t\t)
+        \t\t)
+        \t\t(property "Description" ""
+        \t\t\t(at {fmt(x)} {fmt(y)} 0)
+        \t\t\t(effects
+        \t\t\t\t(font
+        \t\t\t\t\t(size 1.27 1.27)
+        \t\t\t\t)
+        \t\t\t\t(hide yes)
+        \t\t\t)
+        \t\t)
+        {pin_blocks}
+        \t\t(instances
+        \t\t\t(project "oas"
+        \t\t\t\t(path "{sheet_path}"
+        \t\t\t\t\t(reference "{reference}")
+        \t\t\t\t\t(unit 1)
+        \t\t\t\t)
+        \t\t\t)
+        \t\t)
+        \t)""")
+
+
 def _sch_conn_01x05(
     x: float, y: float, angle: int, reference: str, value: str, uuid_tag: str,
     dnp: bool = False, sheet_key: str = "sensors",
@@ -12048,15 +12703,20 @@ def gen_mcu_sch() -> str:
       U3.19..25     GPIO23/22/21/20/19/18/15  no-connect
       U3.26 (J3.11) GPIO9    → local label "BOOT" (joins to J2.6 BOOT)
       U3.27 (J3.12) GND      → GND
-      U3.28..29     GPIO13/12 no-connect (USB D+/D-, onboard USB only)
+      U3.28 (J3.13) GPIO13   → USB_DP (v0.19: native USB-Serial-JTAG D+
+                              → IO sub-sheet's J10 native-USB recovery)
+      U3.29 (J3.14) GPIO12   → USB_DM (v0.19: native USB-Serial-JTAG D−)
       U3.30 (J3.15) GND      → GND
 
     Inter-sheet nets exported via hierarchical_label (matching sheet ports
     are added to oas.kicad_sch's MCU sheet block):
-      I2C_SDA, I2C_SCL    → sensors sub-sheet
+      I2C_SDA, I2C_SCL    → sensors sub-sheet + io sub-sheet (Qwiic)
       UART_TX, UART_RX    → sensors sub-sheet (LD2410)
       LD2410_OUT          → sensors sub-sheet
       NFC_FD              → sensors sub-sheet
+      USB_DM, USB_DP      → io sub-sheet (J10 native-USB recovery header)  [v0.19]
+      EN                  → io sub-sheet (J10 chip-enable / reset pin)     [v0.19]
+      BOOT                → io sub-sheet (J10 GPIO9 boot-mode strap)       [v0.19]
 
     +3V3 and GND are NOT exported as hierarchical labels: the power
     section already declared them via global power symbols, which is
@@ -12064,13 +12724,16 @@ def gen_mcu_sch() -> str:
     Adding hier labels for them would produce "multiple net names on the
     same net" ERC noise without any electrical benefit.
 
-    J2 (SWD/UART Recovery, DNP) pinout — same as v0.3:
+    J2 (SWD/UART Recovery, DNP) pinout — same as v0.3 (only the J2.5
+    name was renamed from "RST" → "EN" in v0.19 to share the same
+    hier-label net as the IO sub-sheet's J10 recovery EN pin):
       J2.1 (top)    +3V3
       J2.2          GND
       J2.3          UART_TX
       J2.4          UART_RX
-      J2.5          RST           (matches RST local label near U3.2)
-      J2.6 (bottom) BOOT          (matches BOOT local label near U3.26)
+      J2.5          EN            (was RST in v0.18; renamed to merge with
+                                   the IO sub-sheet's J10 EN hier label)
+      J2.6 (bottom) BOOT          (hier label "BOOT", v0.19)
     """
     file_uuid = SHEET_FILE_UUIDS["mcu"]
 
@@ -12099,6 +12762,10 @@ def gen_mcu_sch() -> str:
     U3_TX_X,     U3_TX_Y     = pin_xy("UART_TX")      # J3.2  GPIO16
     U3_RX_X,     U3_RX_Y     = pin_xy("UART_RX")      # J3.3  GPIO17
     U3_BOOT_X,   U3_BOOT_Y   = pin_xy("BOOT")         # J3.11 GPIO9
+    # v0.19: native USB-Serial-JTAG pins routed to IO sub-sheet's J10
+    # recovery header.
+    U3_USB_DP_X, U3_USB_DP_Y = pin_xy("USB_DP")       # J3.13 GPIO13
+    U3_USB_DM_X, U3_USB_DM_Y = pin_xy("USB_DM")       # J3.14 GPIO12
 
     # ===== C9: bulk decoupling, 10uF polarized =====
     # Reviewer raised C9's voltage rating from 10 V to 16 V (v0.5):
@@ -12171,17 +12838,18 @@ def gen_mcu_sch() -> str:
         6: J2_Y + 7.62,          # 102.87 — BOTTOM  (BOOT)
     }
 
-    # J2_PIN_MAP — recovery header pinout signal assignment. RST (=EN)
-    # and BOOT come in via local labels rather than direct wires.
+    # J2_PIN_MAP — recovery header pinout signal assignment. EN (= RST,
+    # chip reset) and BOOT come in via hierarchical labels (v0.19; were
+    # local labels in v0.18 and earlier).
     J2_PIN_MAP: dict[int, str] = {
         1: "+3V3",
         2: "GND",
         3: "TX",        # ← U3.17 GPIO16 ; continues east to UART_TX hier label
         4: "RX",        # ← U3.18 GPIO17 ; continues east to UART_RX hier label
-        5: "RST",       # ← U3.2  RST    (local label)
-        6: "BOOT",      # ← U3.26 GPIO9  (local label)
+        5: "EN",        # ← U3.2  RST    (hier label, v0.19 was "RST" local)
+        6: "BOOT",      # ← U3.26 GPIO9  (hier label, v0.19 was local)
     }
-    assert set(J2_PIN_MAP.values()) == {"+3V3", "GND", "RST", "BOOT", "TX", "RX"}, \
+    assert set(J2_PIN_MAP.values()) == {"+3V3", "GND", "EN", "BOOT", "TX", "RX"}, \
         f"J2_PIN_MAP must cover all 6 required signals exactly once: {J2_PIN_MAP}"
     J2_PIN_OF: dict[str, int] = {sig: pin for pin, sig in J2_PIN_MAP.items()}
 
@@ -12237,31 +12905,46 @@ def gen_mcu_sch() -> str:
     # label going to the sensors sub-sheet's SK6812-SIDE AQI ring chain.
     parts.append(_sch_wire(U3_X_LEFT, U3_WS_Y, HLABEL_LEFT_X, U3_WS_Y, "ws2812-wire"))
 
-    # ---- RST: U3.2 (J1.2) → local label "RST" ----
+    # ---- EN: U3.2 (J1.2 RST pin) → hierarchical label "EN" ----
     # U3.2 pin tip is on the LEFT side at (139.70, 95.25). We tag the
-    # local label one grid step west of the pin so the label text doesn't
+    # hier label one grid step west of the pin so the label text doesn't
     # overlap U3's pin name.
+    #
+    # v0.19: WAS a local label "RST" — converted to hier label "EN"
+    # (matching the ESP32 datasheet signal name for chip-enable). The
+    # signal now exports to the root sheet and joins the J10 native-USB
+    # recovery header in the IO sub-sheet (via the matching IO-sheet
+    # hier label) so a field debugger can drive EN with a pogopin. The
+    # MCU sub-sheet's own J2 UART-recovery header (J2.5 still labelled
+    # "RST" on the silk) taps the SAME hier-labelled EN net via a
+    # local-label-on-the-J2-side wire stub — see the J2 section below.
     RST_LABEL_X = U3_X_LEFT - 2.54   # 137.16
     parts.append(_sch_wire(U3_X_LEFT, U3_RST_Y, RST_LABEL_X, U3_RST_Y, "rst-u3-stub"))
-    parts.append(_sch_local_label(
-        name="RST", x=RST_LABEL_X, y=U3_RST_Y, angle=180, justify="right",
-        uuid_tag="rst-u3",
+    parts.append(_sch_hierarchical_label(
+        name="EN", shape="output",
+        x=RST_LABEL_X, y=U3_RST_Y, angle=180, justify="right",
+        uuid_tag="en-u3",
     ))
 
-    # ---- BOOT: U3.26 (J3.11) → local label "BOOT" ----
+    # ---- BOOT: U3.26 (J3.11 GPIO9) → hierarchical label "BOOT" ----
     # U3.26 pin tip is on the RIGHT side at (165.10, 118.11). Tag one
     # grid step east of the pin.
+    #
+    # v0.19: WAS a local label "BOOT" — converted to hier label so the
+    # net also reaches the IO sub-sheet's J10 recovery header (BOOT
+    # strap input for ROM bootloader entry).
     BOOT_LABEL_X = U3_X_RIGHT + 2.54  # 167.64
     parts.append(_sch_wire(U3_X_RIGHT, U3_BOOT_Y, BOOT_LABEL_X, U3_BOOT_Y, "boot-u3-stub"))
-    parts.append(_sch_local_label(
-        name="BOOT", x=BOOT_LABEL_X, y=U3_BOOT_Y, angle=0, justify="left",
+    parts.append(_sch_hierarchical_label(
+        name="BOOT", shape="output",
+        x=BOOT_LABEL_X, y=U3_BOOT_Y, angle=0, justify="left",
         uuid_tag="boot-u3",
     ))
 
     # ---- UART: U3 right pins → J2 (TX/RX are straight wires) ----
     j2_tx_y   = J2_PIN_Y[J2_PIN_OF["TX"]]    # 95.25 = U3_TX_Y
     j2_rx_y   = J2_PIN_Y[J2_PIN_OF["RX"]]    # 97.79 = U3_RX_Y
-    j2_rst_y  = J2_PIN_Y[J2_PIN_OF["RST"]]   # 100.33
+    j2_rst_y  = J2_PIN_Y[J2_PIN_OF["EN"]]    # 100.33 — v0.19: "RST" → "EN"
     j2_boot_y = J2_PIN_Y[J2_PIN_OF["BOOT"]]  # 102.87
 
     # TX: straight east from U3.17 to UART_TX hier label, passing through J2.3.
@@ -12271,19 +12954,48 @@ def gen_mcu_sch() -> str:
     parts.append(_sch_wire(U3_X_RIGHT, U3_RX_Y, HLABEL_RIGHT_X, U3_RX_Y, "rx-bus"))
     parts.append(_sch_junction(J2_PIN_X, j2_rx_y, "rx-j2-tap"))
 
-    # ---- J2.5 (RST) and J2.6 (BOOT) local labels ----
-    # Stubs hop west from each J2 pin tip and end at a local label of
-    # the matching name. KiCad joins them to the matching U3-side labels.
+    # ---- USB_DP / USB_DM: U3.28 / U3.29 → IO sub-sheet hier labels ----
+    # v0.19: GPIO 13 / 12 (ESP32-C6 native USB-Serial-JTAG D+ / D-) are
+    # exported to the IO sub-sheet's J10 recovery header. The wires run
+    # east from each pin tip on the U3 RIGHT edge to the matching hier
+    # label on the page right edge. U3.28/29 pin Y rows (123.19 / 125.73)
+    # sit BELOW J2's Y range (90.17..102.87) so the wires pass clear of
+    # J2 without touching its body.
+    parts.append(_sch_wire(U3_X_RIGHT, U3_USB_DP_Y, HLABEL_RIGHT_X, U3_USB_DP_Y, "usb-dp-bus"))
+    parts.append(_sch_hierarchical_label(
+        name="USB_DP", shape="bidirectional",
+        x=HLABEL_RIGHT_X, y=U3_USB_DP_Y, angle=0, justify="left",
+        uuid_tag="usb-dp",
+    ))
+    parts.append(_sch_wire(U3_X_RIGHT, U3_USB_DM_Y, HLABEL_RIGHT_X, U3_USB_DM_Y, "usb-dm-bus"))
+    parts.append(_sch_hierarchical_label(
+        name="USB_DM", shape="bidirectional",
+        x=HLABEL_RIGHT_X, y=U3_USB_DM_Y, angle=0, justify="left",
+        uuid_tag="usb-dm",
+    ))
+
+    # ---- J2.5 (EN) and J2.6 (BOOT) hierarchical labels ----
+    # Stubs hop west from each J2 pin tip and end at a hier label of
+    # the matching name. KiCad joins them to the U3-side hier labels
+    # (which share the same name) via name-matching, so the net spans
+    # U3 ↔ J2 ↔ IO-sub-sheet recovery header transparently.
+    #
+    # v0.19: were local labels "RST" / "BOOT" — converted to hier
+    # labels "EN" / "BOOT" so the net exports to the IO sub-sheet's
+    # J10 recovery header (and KiCad doesn't warn `same_local_global`
+    # ERC about mixed local + hier labels on one net).
     J2_RST_LABEL_X = J2_PIN_X - 2.54
     parts.append(_sch_wire(J2_PIN_X, j2_rst_y, J2_RST_LABEL_X, j2_rst_y, "j2-rst-stub"))
-    parts.append(_sch_local_label(
-        name="RST", x=J2_RST_LABEL_X, y=j2_rst_y, angle=180, justify="right",
-        uuid_tag="rst-j2",
+    parts.append(_sch_hierarchical_label(
+        name="EN", shape="output",
+        x=J2_RST_LABEL_X, y=j2_rst_y, angle=180, justify="right",
+        uuid_tag="en-j2",
     ))
     J2_BOOT_LABEL_X = J2_PIN_X - 2.54
     parts.append(_sch_wire(J2_PIN_X, j2_boot_y, J2_BOOT_LABEL_X, j2_boot_y, "j2-boot-stub"))
-    parts.append(_sch_local_label(
-        name="BOOT", x=J2_BOOT_LABEL_X, y=j2_boot_y, angle=180, justify="right",
+    parts.append(_sch_hierarchical_label(
+        name="BOOT", shape="output",
+        x=J2_BOOT_LABEL_X, y=j2_boot_y, angle=180, justify="right",
         uuid_tag="boot-j2",
     ))
 
@@ -13586,6 +14298,252 @@ def gen_sensors_sch() -> str:
 
 
 # -----------------------------------------------------------------------------
+# 3e) IO sub-sheet — chord-east case-wall connectors (v0.19)
+# -----------------------------------------------------------------------------
+def IO_LIB_SYMBOLS() -> str:
+    """Concatenated lib_symbols block for the IO sub-sheet.
+
+    Reuses `_MCU_LIB_SYMBOLS_TAIL` (Conn_01x06, Device:C / C_Polarized,
+    power:+3V3, power:GND) and pulls in two stock symbols:
+      - Connector_Generic:Conn_01x04  (4-pin Qwiic / Stemma QT JST SH)
+      - Connector_Generic:Conn_01x06  (already in the tail)
+    """
+    extras = "\n".join([
+        _read_kicad_lib_symbol("Connector_Generic.kicad_sym", "Conn_01x04",
+                               lib_nickname="Connector_Generic"),
+    ])
+    return _MCU_LIB_SYMBOLS_TAIL + "\n" + extras
+
+
+def gen_io_sch() -> str:
+    """IO sub-sheet — chord-east case-wall connectors (v0.19).
+
+    The IO sub-sheet hosts the two connectors that live on the OAS PCB's
+    chord-east cutouts (C3 / C5; C4 stays as a v2 expansion placeholder):
+
+      J9 — Qwiic / Stemma QT expansion port (always populated)
+        4-pin JST SH 1.0 mm pitch horizontal SMD socket. Standard Qwiic
+        pinout (GND, +3.3V, SDA, SCL). Mates with any Sparkfun Qwiic
+        or Adafruit Stemma QT cable. Connector mouth faces the chord
+        edge so the cable plugs in from outside the case after pulling
+        a service finger through the C5 cutout.
+
+      J10 — Native-USB recovery header (DNP by default)
+        6-pin 2.54 mm vertical pin header. Solder pads exposed on the
+        OAS PCB at the C3 case-wall opening; accessible via pogopin
+        jig for emergency reflashing if both DevKitM-1 on-module USB-C
+        ports are damaged. ESP32-C6 has no traditional JTAG/SWD; this
+        header exposes the native USB-Serial-JTAG D-/D+ pair on
+        GPIO 12 / 13, plus EN (chip reset) and GPIO 9 (BOOT strap).
+        Pinout (pin 1 = north / cutout-interior, pin 6 = south / chord):
+          J10.1 (top)    GND
+          J10.2          +3V3   (sense / level reference)
+          J10.3          USB_DM (GPIO 12, native USB D-)
+          J10.4          USB_DP (GPIO 13, native USB D+)
+          J10.5          EN     (chip enable / reset)
+          J10.6 (bottom) BOOT   (GPIO 9, pull low to enter ROM bootloader)
+
+    Inter-sheet nets imported via hierarchical_label (matching sheet pins
+    are declared on the root sheet's IO block, exported by the MCU sub-
+    sheet which sources the underlying ESP32-C6 GPIOs):
+      I2C_SDA      (bidirectional, J9 pin 3) — shared bus, MCU GPIO 6
+      I2C_SCL      (input,         J9 pin 4) — shared bus, MCU GPIO 7
+      USB_DM       (bidirectional, J10 pin 3) — MCU GPIO 12 (USB D-)
+      USB_DP       (bidirectional, J10 pin 4) — MCU GPIO 13 (USB D+)
+      EN           (input,         J10 pin 5) — MCU RST pin
+      BOOT         (input,         J10 pin 6) — MCU GPIO 9 BOOT strap
+
+    +3V3 and GND join via global power symbols (same KiCad convention
+    used in the power / mcu / sensors sub-sheets).
+
+    Sourcing:
+      - J9 PCB-side socket: JST SH SM04B-SRSS-TB (1.0 mm pitch, 4-pin,
+        horizontal SMD with PCB-mount mech pads). Sparkfun PRT-14417,
+        Adafruit 4209 — both ship the same JST genuine part. Compatible
+        with any Sparkfun Qwiic or Adafruit Stemma QT cable assembly.
+      - J10 PCB-side pads: stock 2.54 mm 6-pin THT pin header
+        (Sullins PRPC006SAAN-RC or any compatible). DNP — only the pads
+        are present on production boards; user solders a header before
+        the first emergency flash if ever needed.
+    """
+    file_uuid = SHEET_FILE_UUIDS["io"]
+
+    # =====================================================================
+    # J9 — Qwiic JST SH 4-pin (always populated)
+    # =====================================================================
+    # Standard Qwiic pinout (Sparkfun convention, identical to Adafruit
+    # Stemma QT): pin 1 = GND (BLACK wire), pin 2 = +3.3V (RED), pin 3
+    # = SDA (BLUE), pin 4 = SCL (YELLOW).
+    #
+    # With angle=0 and Conn_01x04, lib pin Y maps to schem as:
+    #   Pin 1 (top):    (J9_X - 5.08, J9_Y - 2.54) → GND
+    #   Pin 2:          (J9_X - 5.08, J9_Y)        → +3V3
+    #   Pin 3:          (J9_X - 5.08, J9_Y + 2.54) → SDA
+    #   Pin 4 (bottom): (J9_X - 5.08, J9_Y + 5.08) → SCL
+    J9_X = 95.25
+    J9_Y = 82.55
+    J9_PIN_X = J9_X - 5.08          # 90.17 — pin tip column
+    J9_PIN_Y = {
+        1: J9_Y - 2.54,             # 80.01 — GND
+        2: J9_Y,                    # 82.55 — +3V3
+        3: J9_Y + 2.54,             # 85.09 — SDA
+        4: J9_Y + 5.08,             # 87.63 — SCL
+    }
+
+    # Hier label column for I²C signals exiting J9 to MCU sub-sheet.
+    HLABEL_LEFT_X = 67.31           # west of J9 pin tips, with breathing room
+
+    parts: list[str] = []
+
+    # ----- J9 pin 1 (GND, top): hop WEST to GND power flag -----
+    PWR_J9_GND_X = J9_PIN_X - 5.08  # 85.09
+    parts.append(_sch_wire(J9_PIN_X, J9_PIN_Y[1], PWR_J9_GND_X, J9_PIN_Y[1], "j9-p1-gnd-hop"))
+    parts.append(_sch_power_flag(
+        lib_id="power:GND", value="GND",
+        x=PWR_J9_GND_X, y=J9_PIN_Y[1], angle=270,
+        reference="#PWR60",
+        value_offset_x=-3.81, value_offset_y=0.0,
+        uuid_tag="pwr60-gnd-j9-p1",
+        sheet_key="io",
+    ))
+
+    # ----- J9 pin 2 (+3V3): wire UP to +3V3 power flag -----
+    PWR_J9_3V3_Y = J9_PIN_Y[2] - 3.81  # 78.74 — flag anchor above pin
+    parts.append(_sch_wire(J9_PIN_X, PWR_J9_3V3_Y, J9_PIN_X, J9_PIN_Y[2], "j9-p2-3v3-up"))
+    parts.append(_sch_power_flag(
+        lib_id="power:+3V3", value="+3V3",
+        x=J9_PIN_X, y=PWR_J9_3V3_Y, angle=0,
+        reference="#PWR61",
+        value_offset_x=0.0, value_offset_y=-3.556,
+        uuid_tag="pwr61-3v3-j9-p2",
+        sheet_key="io",
+    ))
+
+    # ----- J9 pin 3 (SDA): wire WEST to I2C_SDA hier label -----
+    parts.append(_sch_wire(J9_PIN_X, J9_PIN_Y[3], HLABEL_LEFT_X, J9_PIN_Y[3], "j9-p3-sda"))
+    parts.append(_sch_hierarchical_label(
+        name="I2C_SDA", shape="bidirectional",
+        x=HLABEL_LEFT_X, y=J9_PIN_Y[3], angle=180, justify="right",
+        uuid_tag="sda-j9",
+    ))
+
+    # ----- J9 pin 4 (SCL): wire WEST to I2C_SCL hier label -----
+    parts.append(_sch_wire(J9_PIN_X, J9_PIN_Y[4], HLABEL_LEFT_X, J9_PIN_Y[4], "j9-p4-scl"))
+    parts.append(_sch_hierarchical_label(
+        name="I2C_SCL", shape="input",
+        x=HLABEL_LEFT_X, y=J9_PIN_Y[4], angle=180, justify="right",
+        uuid_tag="scl-j9",
+    ))
+
+    # =====================================================================
+    # J10 — Native-USB recovery header (DNP)
+    # =====================================================================
+    # 6-pin 2.54 mm vertical pin header. Placed in the lower half of the
+    # IO sheet. Uses _sch_conn_01x06 which lays out pin 1 at top (Y-5.08)
+    # and pin 6 at bottom (Y+7.62). dnp=True so JLCPCB assembly skips the
+    # part, but the pads + silk are still produced on the PCB.
+    #
+    # Pin assignment:
+    #   J10.1 (top)    GND
+    #   J10.2          +3V3
+    #   J10.3          USB_DM
+    #   J10.4          USB_DP
+    #   J10.5          EN
+    #   J10.6 (bottom) BOOT
+    J10_X = 95.25
+    J10_Y = 132.08             # south of J9 (J9_Y=82.55), gap ≈ 49 mm — room
+                                # for J9's value-text label below + J10's
+                                # ref label above
+    J10_PIN_X = J10_X - 5.08    # 90.17 — pin tip column
+    J10_PIN_Y = {
+        1: J10_Y - 5.08,        # 127.00 — GND  (top)
+        2: J10_Y - 2.54,        # 129.54 — +3V3
+        3: J10_Y,               # 132.08 — USB_DM
+        4: J10_Y + 2.54,        # 134.62 — USB_DP
+        5: J10_Y + 5.08,        # 137.16 — EN
+        6: J10_Y + 7.62,        # 139.70 — BOOT (bottom)
+    }
+
+    # ----- J10 pin 1 (GND, top): drop UP to GND flag -----
+    # Flag at angle=180 (triangle points down). Anchor sits ABOVE pin 1.
+    PWR_J10_GND_Y = J10_PIN_Y[1] - 3.81   # 123.19 — flag anchor above pin 1
+    parts.append(_sch_wire(J10_PIN_X, PWR_J10_GND_Y, J10_PIN_X, J10_PIN_Y[1], "j10-p1-gnd-up"))
+    parts.append(_sch_power_flag(
+        lib_id="power:GND", value="GND",
+        x=J10_PIN_X, y=PWR_J10_GND_Y, angle=180,
+        reference="#PWR62",
+        value_offset_x=0.0, value_offset_y=-3.81,
+        uuid_tag="pwr62-gnd-j10-p1",
+        sheet_key="io",
+    ))
+
+    # ----- J10 pin 2 (+3V3): wire WEST to +3V3 flag -----
+    # GND on pin 1 takes the UP-direction flag; +3V3 on pin 2 hops west
+    # to its own flag — the two flag labels stay 5+ mm apart so their
+    # value-text doesn't collide on the rendered schematic.
+    PWR_J10_3V3_X = J10_PIN_X - 5.08  # 85.09
+    parts.append(_sch_wire(J10_PIN_X, J10_PIN_Y[2], PWR_J10_3V3_X, J10_PIN_Y[2], "j10-p2-3v3-hop"))
+    parts.append(_sch_power_flag(
+        lib_id="power:+3V3", value="+3V3",
+        x=PWR_J10_3V3_X, y=J10_PIN_Y[2], angle=270,
+        reference="#PWR63",
+        value_offset_x=-3.81, value_offset_y=0.0,
+        uuid_tag="pwr63-3v3-j10-p2",
+        sheet_key="io",
+    ))
+
+    # ----- J10 pins 3..6 (signal lines): wire WEST to hier labels -----
+    for pin_num, label_name, shape in [
+        (3, "USB_DM", "bidirectional"),
+        (4, "USB_DP", "bidirectional"),
+        (5, "EN",     "input"),
+        (6, "BOOT",   "input"),
+    ]:
+        py = J10_PIN_Y[pin_num]
+        parts.append(_sch_wire(J10_PIN_X, py, HLABEL_LEFT_X, py, f"j10-p{pin_num}-{label_name.lower()}"))
+        parts.append(_sch_hierarchical_label(
+            name=label_name, shape=shape,
+            x=HLABEL_LEFT_X, y=py, angle=180, justify="right",
+            uuid_tag=f"{label_name.lower()}-j10",
+        ))
+
+    # =====================================================================
+    # Symbol instances
+    # =====================================================================
+    parts.append(_sch_conn_01x04(
+        x=J9_X, y=J9_Y, angle=0,
+        reference="J9",
+        value="JST SH SM04B-SRSS-TB (Qwiic / Stemma QT)",
+        uuid_tag="j9-qwiic",
+        sheet_key="io",
+    ))
+    parts.append(_sch_conn_01x06(
+        x=J10_X, y=J10_Y, angle=0,
+        reference="J10",
+        value="1x6 P2.54mm pin header — native USB recovery (DNP)",
+        uuid_tag="j10-recovery",
+        dnp=True,
+        sheet_key="io",
+    ))
+
+    body = "\n".join(parts)
+    return textwrap.dedent(f"""\
+        (kicad_sch
+        \t(version {SCH_VERSION})
+        \t(generator "eeschema")
+        \t(generator_version "{GEN_VERSION}")
+        \t(uuid "{file_uuid}")
+        \t(paper "A4")
+        \t(lib_symbols
+        {IO_LIB_SYMBOLS()}
+        \t)
+        {body}
+        \t(embedded_fonts no)
+        )
+        """)
+
+
+# -----------------------------------------------------------------------------
 # 4) Project file
 # -----------------------------------------------------------------------------
 def gen_pro() -> str:
@@ -13886,6 +14844,8 @@ def main():
                 content = gen_mcu_sch()
             elif name == "sensors":
                 content = gen_sensors_sch()
+            elif name == "io":
+                content = gen_io_sch()
             else:
                 content = gen_subsheet_sch(name)
         (HERE / f"{name}.kicad_sch").write_text(content, encoding="utf-8")
