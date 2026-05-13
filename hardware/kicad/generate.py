@@ -9818,7 +9818,7 @@ def gen_power_sch() -> str:
     # would create a "Power output to Power output" connection error.
 
     # =========================================================================
-    # 24V -> 5V buck converter block (U1 LM2596S-5.0 + L1 + D2 + C3/C3b/C4/C4b)
+    # 24V -> 5V buck converter block (U1 LM2596S-5.0 + L1 + D2 + C3/C13/C4/C14)
     # =========================================================================
     # First active block in the power section. Takes the protected +24V rail
     # (downstream of F1 / C1) and produces a regulated 5V output that powers
@@ -9850,10 +9850,10 @@ def gen_power_sch() -> str:
     #                    ASYNCHRONOUS switcher — there is no internal
     #                    high-side flyback diode, so an external Schottky is
     #                    MANDATORY. SOD-123 or DO-214AC package, JLCPCB Basic.
-    #   * C3 100uF/50V + C3b 100 nF : input bulk + HF bypass at U1.VIN.
+    #   * C3 100uF/50V + C13 100 nF : input bulk + HF bypass at U1.VIN.
     #                    50 V rating gives margin over the 24 V nominal AND
     #                    the 38.9 V SMBJ24A clamp voltage.
-    #   * C4 220uF/10V + C4b 100 nF : output bulk + HF bypass at the +5V rail.
+    #   * C4 220uF/10V + C14 100 nF : output bulk + HF bypass at the +5V rail.
     #                    10 V rating gives 2x margin over 5 V; 220 uF is the
     #                    LM2596 datasheet recommendation for low output ripple.
     #
@@ -9867,10 +9867,10 @@ def gen_power_sch() -> str:
     #                                              |
     #                                              ◊ PWR_FLAG_5V
     #                                              |
-    #            FB ↑   +5V bus ─────── L1 ─── C4 ─── C4b ─┴── (to flag)
+    #            FB ↑   +5V bus ─────── L1 ─── C4 ─── C14 ─┴── (to flag)
     #            |                |             |     |
     #     +24V bus extension      |             GND   GND
-    #     ────────── C3 ── C3b ── U1.VIN     U1.OUT ── switch node
+    #     ────────── C3 ── C13 ── U1.VIN     U1.OUT ── switch node
     #                  |     |    (LM2596S-5)   |
     #                  GND  GND                 |
     #                       U1.ON/OFF=GND       D2 (catch)
@@ -9887,7 +9887,7 @@ def gen_power_sch() -> str:
     # Anchor Y chosen so that U1.VIN (lib (-12.7, +2.54)) lands exactly on the
     # +24V bus Y row (72.39). With Y_U1=74.93: VIN at 74.93-2.54 = 72.39 ✓.
     # Body rectangle spans schematic Y=[69.85, 80.01], X=[190.50, 210.82].
-    # X chosen far enough right of C1, C3, C3b for cap value labels
+    # X chosen far enough right of C1, C3, C13 for cap value labels
     # ("100uF 50V" ~ 11.4 mm wide on screen) to never overlap U1 body.
     U1_X = 200.66 + PWR_X_SHIFT
     U1_Y = 74.93 + PWR_Y_SHIFT
@@ -9905,7 +9905,7 @@ def gen_power_sch() -> str:
     # ----- C3: input bulk electrolytic, 100uF 50V, angle=0 -----
     # Pin 1 (top, anode +) on +24V bus, pin 2 (bottom) to GND. Placed between
     # C1 (X=142.24) and U1.VIN (X=187.96). Spacing of 17.78 mm to C1 and
-    # 15.24 mm to C3b leaves clear gaps between adjacent caps' value-text
+    # 15.24 mm to C13 leaves clear gaps between adjacent caps' value-text
     # labels ("100uF 50V" renders ~11.4 mm wide at size 1.27).
     C3_X = 160.02 + PWR_X_SHIFT
     C3_Y = 76.20 + PWR_Y_SHIFT
@@ -9913,12 +9913,12 @@ def gen_power_sch() -> str:
     C3_BOT_Y = C3_Y + 3.81        # 80.01
     C3_GND_Y = 82.55 + PWR_Y_SHIFT  # GND symbol anchor, 2.54 below cap.bot
 
-    # ----- C3b: input HF ceramic bypass, 100nF, angle=0 -----
-    C3b_X = 175.26 + PWR_X_SHIFT
-    C3b_Y = 76.20 + PWR_Y_SHIFT
-    C3b_TOP_Y = C3b_Y - 3.81      # 72.39 — on +24V bus
-    C3b_BOT_Y = C3b_Y + 3.81      # 80.01
-    C3b_GND_Y = 82.55 + PWR_Y_SHIFT
+    # ----- C13: input HF ceramic bypass, 100nF, angle=0 -----
+    C13_X = 175.26 + PWR_X_SHIFT
+    C13_Y = 76.20 + PWR_Y_SHIFT
+    C13_TOP_Y = C13_Y - 3.81      # 72.39 — on +24V bus
+    C13_BOT_Y = C13_Y + 3.81      # 80.01
+    C13_GND_Y = 82.55 + PWR_Y_SHIFT
 
     # ----- Switch node and L1 (33 uH shielded, vertical, angle=0) -----
     # Switch node row = U1.OUT row = Y=77.47. L1 vertical with bot pin on the
@@ -9946,9 +9946,9 @@ def gen_power_sch() -> str:
     D2_GND_Y = 88.90 + PWR_Y_SHIFT  # GND symbol anchor, 3.81 below D2.A
 
     # ----- +5V output caps -----
-    # C4 (polarized, 220uF/10V) and C4b (ceramic, 100nF) tap the +5V bus to
+    # C4 (polarized, 220uF/10V) and C14 (ceramic, 100nF) tap the +5V bus to
     # GND on the OUTPUT side of L1. Pin 1 (top, anode +) on +5V bus, pin 2
-    # (bottom) to GND. Column spacing of 15.24 mm (C4↔L1, C4b↔C4) keeps the
+    # (bottom) to GND. Column spacing of 15.24 mm (C4↔L1, C14↔C4) keeps the
     # "220uF 10V" / "100nF" value-text labels clear of neighbouring caps'
     # references.
     C4_X = 238.76 + PWR_X_SHIFT
@@ -9957,18 +9957,18 @@ def gen_power_sch() -> str:
     C4_BOT_Y = C4_Y + 3.81        # 74.93
     C4_GND_Y = 77.47 + PWR_Y_SHIFT
 
-    C4b_X = 254.00 + PWR_X_SHIFT
-    C4b_Y = 71.12 + PWR_Y_SHIFT
-    C4b_TOP_Y = C4b_Y - 3.81      # 67.31 — on +5V bus
-    C4b_BOT_Y = C4b_Y + 3.81      # 74.93
-    C4b_GND_Y = 77.47 + PWR_Y_SHIFT
+    C14_X = 254.00 + PWR_X_SHIFT
+    C14_Y = 71.12 + PWR_Y_SHIFT
+    C14_TOP_Y = C14_Y - 3.81      # 67.31 — on +5V bus
+    C14_BOT_Y = C14_Y + 3.81      # 74.93
+    C14_GND_Y = 77.47 + PWR_Y_SHIFT
 
     # ----- +5V flag and PWR_FLAG sentinel -----
-    # Column = C4b column (254.00). The flag stack lifts above the +5V bus
+    # Column = C14 column (254.00). The flag stack lifts above the +5V bus
     # at Y=67.31: PWR_FLAG sentinel midway, +5V triangle at top-right Y=62.23
     # for visual alignment with the existing +24V flag (also at Y=62.23, far
     # to the left).
-    COL_5V       = C4b_X          # 254.00
+    COL_5V       = C14_X          # 254.00
     Y_5V_BUS     = 67.31 + PWR_Y_SHIFT  # +5V bus row (above U1 body top edge Y=69.85)
     JUNC_5V_Y    = 64.77 + PWR_Y_SHIFT  # PWR_FLAG sentinel on the vertical to flag
     FLAG_5V_Y    = 62.23 + PWR_Y_SHIFT  # +5V triangle, same Y as +24V flag
@@ -9976,13 +9976,13 @@ def gen_power_sch() -> str:
     # ----- Buck-block wires -----
     # +24V bus extension from C1.top (142.24, 72.39) RIGHT to U1.VIN
     # (165.10, 72.39). Single wire segment; junctions added at C3.top and
-    # C3b.top tap points, and at the (now 3-way) C1.top corner.
+    # C13.top tap points, and at the (now 3-way) C1.top corner.
     parts.append(_sch_wire(C1_X, F1_TOP_Y, U1_VIN_X, U1_VIN_Y, "vin-c1-to-u1"))
 
     # C3.bot → C3-GND
-    parts.append(_sch_wire(C3_X, C3_BOT_Y, C3_X, C3_GND_Y, "c3bot-to-gnd"))
-    # C3b.bot → C3b-GND
-    parts.append(_sch_wire(C3b_X, C3b_BOT_Y, C3b_X, C3b_GND_Y, "c3bbot-to-gnd"))
+    parts.append(_sch_wire(C3_X, C3_BOT_Y, C3_X, C3_GND_Y, "c13ot-to-gnd"))
+    # C13.bot → C13-GND
+    parts.append(_sch_wire(C13_X, C13_BOT_Y, C13_X, C13_GND_Y, "c13bot-to-gnd"))
 
     # U1.ON/OFF pin (pin 5, active-LOW) → local GND symbol. Always-on operation.
     U1_ONOFF_GND_Y = 82.55 + PWR_Y_SHIFT  # GND symbol below ON/OFF pin
@@ -10005,13 +10005,13 @@ def gen_power_sch() -> str:
     parts.append(_sch_wire(U1_FB_X, U1_FB_Y, U1_FB_X, Y_5V_BUS, "fb-to-5v-bus"))
 
     # +5V bus horizontal from FB column (190.50) RIGHT through L1.top, C4.top,
-    # C4b.top — a single wire segment with junctions at the tap points.
+    # C14.top — a single wire segment with junctions at the tap points.
     parts.append(_sch_wire(U1_FB_X, Y_5V_BUS, COL_5V, Y_5V_BUS, "5v-bus"))
 
     # C4.bot → C4-GND
-    parts.append(_sch_wire(C4_X, C4_BOT_Y, C4_X, C4_GND_Y, "c4bot-to-gnd"))
-    # C4b.bot → C4b-GND
-    parts.append(_sch_wire(C4b_X, C4b_BOT_Y, C4b_X, C4b_GND_Y, "c4bbot-to-gnd"))
+    parts.append(_sch_wire(C4_X, C4_BOT_Y, C4_X, C4_GND_Y, "c14ot-to-gnd"))
+    # C14.bot → C14-GND
+    parts.append(_sch_wire(C14_X, C14_BOT_Y, C14_X, C14_GND_Y, "c14bot-to-gnd"))
 
     # +5V bus terminus → PWR_FLAG sentinel column upward, then to +5V flag.
     parts.append(_sch_wire(COL_5V, Y_5V_BUS, COL_5V, JUNC_5V_Y, "5v-bus-to-junc"))
@@ -10023,16 +10023,16 @@ def gen_power_sch() -> str:
     parts.append(_sch_junction(C1_X, F1_TOP_Y, "vin-c1-extended"))
     # C3.top tap on +24V bus.
     parts.append(_sch_junction(C3_X, C3_TOP_Y, "24v-c3"))
-    # C3b.top tap on +24V bus.
-    parts.append(_sch_junction(C3b_X, C3b_TOP_Y, "24v-c3b"))
+    # C13.top tap on +24V bus.
+    parts.append(_sch_junction(C13_X, C13_TOP_Y, "24v-c13"))
     # D2.K tap on switch node.
     parts.append(_sch_junction(D2_X, U1_OUT_Y, "switch-d2"))
     # L1.top tap on +5V bus.
     parts.append(_sch_junction(L1_X, Y_5V_BUS, "5v-l1"))
     # C4.top tap on +5V bus.
     parts.append(_sch_junction(C4_X, Y_5V_BUS, "5v-c4"))
-    # C4b.top + bus terminus + vertical to PWR_FLAG: 3-way.
-    parts.append(_sch_junction(COL_5V, Y_5V_BUS, "5v-c4b"))
+    # C14.top + bus terminus + vertical to PWR_FLAG: 3-way.
+    parts.append(_sch_junction(COL_5V, Y_5V_BUS, "5v-c14"))
     # PWR_FLAG sentinel position on the vertical to the +5V flag.
     parts.append(_sch_junction(COL_5V, JUNC_5V_Y, "5v"))
 
@@ -10064,11 +10064,11 @@ def gen_power_sch() -> str:
         reference="C3", value="100uF 50V", uuid_tag="c3",
     ))
 
-    # ----- C3b: input HF ceramic bypass, 100 nF -----
+    # ----- C13: input HF ceramic bypass, 100 nF -----
     parts.append(_sch_capacitor(
         lib_id="Device:C",
-        x=C3b_X, y=C3b_Y, angle=0,
-        reference="C3b", value="100nF", uuid_tag="c3b",
+        x=C13_X, y=C13_Y, angle=0,
+        reference="C13", value="100nF", uuid_tag="c13",
     ))
 
     # ----- C4: output bulk electrolytic, 220 uF / 10 V -----
@@ -10078,11 +10078,11 @@ def gen_power_sch() -> str:
         reference="C4", value="220uF 10V", uuid_tag="c4",
     ))
 
-    # ----- C4b: output HF ceramic bypass, 100 nF -----
+    # ----- C14: output HF ceramic bypass, 100 nF -----
     parts.append(_sch_capacitor(
         lib_id="Device:C",
-        x=C4b_X, y=C4b_Y, angle=0,
-        reference="C4b", value="100nF", uuid_tag="c4b",
+        x=C14_X, y=C14_Y, angle=0,
+        reference="C14", value="100nF", uuid_tag="c14",
     ))
 
     # ----- Local GND symbols around U1 / inductor / caps -----
@@ -10098,10 +10098,10 @@ def gen_power_sch() -> str:
     ))
     parts.append(_sch_power_flag(
         lib_id="power:GND", value="GND",
-        x=C3b_X, y=C3b_GND_Y, angle=0,
+        x=C13_X, y=C13_GND_Y, angle=0,
         reference="#PWR08",
         value_offset_x=0.0, value_offset_y=3.81,
-        uuid_tag="pwr08-gnd-c3b",
+        uuid_tag="pwr08-gnd-c13",
     ))
     parts.append(_sch_power_flag(
         lib_id="power:GND", value="GND",
@@ -10133,10 +10133,10 @@ def gen_power_sch() -> str:
     ))
     parts.append(_sch_power_flag(
         lib_id="power:GND", value="GND",
-        x=C4b_X, y=C4b_GND_Y, angle=0,
+        x=C14_X, y=C14_GND_Y, angle=0,
         reference="#PWR13",
         value_offset_x=0.0, value_offset_y=3.81,
-        uuid_tag="pwr13-gnd-c4b",
+        uuid_tag="pwr13-gnd-c14",
     ))
 
     # ----- +5V flag at top-right of the buck block -----
@@ -10161,7 +10161,7 @@ def gen_power_sch() -> str:
     ))
 
     # =========================================================================
-    # 5V -> 3.3V buck converter block (U2 TPS62933 + L2 + R2/R3 FB div + C5/C5b/C6/C6b/C7)
+    # 5V -> 3.3V buck converter block (U2 TPS62933 + L2 + R2/R3 FB div + C5/C15/C6/C16/C7)
     # =========================================================================
     # Cascaded second buck stage. Takes the +5V rail produced by U1 (above)
     # and steps it down to a regulated 3.3V rail that powers the ESP32-C6
@@ -10196,10 +10196,10 @@ def gen_power_sch() -> str:
     #                  (~60 µA), and R2 = 44.2 kΩ is the nearest E96 value.
     #                  1% tolerance keeps the output voltage variation due
     #                  to divider tolerance below ±20 mV.
-    #   * C5 10uF + C5b 100nF : input bulk + HF ceramic bypass at U2.VIN.
+    #   * C5 10uF + C15 100nF : input bulk + HF ceramic bypass at U2.VIN.
     #                  Per datasheet: ceramic X5R/X7R; 16 V rating gives
     #                  3× margin over the 5 V input.
-    #   * C6 22uF + C6b 100nF : output bulk + HF ceramic bypass at the
+    #   * C6 22uF + C16 100nF : output bulk + HF ceramic bypass at the
     #                  +3.3V rail. Per datasheet; 10 V rating gives 3× margin
     #                  over 3.3 V.
     #   * C7 100nF (BST): bootstrap capacitor from BST pin to SW pin.
@@ -10230,7 +10230,7 @@ def gen_power_sch() -> str:
     # in the same X column as U1 (X=200.66) — vertically aligned, ~70 mm
     # below — emphasising the cascade visually. The +5V net enters U2.VIN
     # from above via a "+5V" global symbol placed at the top of the block;
-    # the +3.3V net exits to the right through C6/C6b decoupling and a
+    # the +3.3V net exits to the right through C6/C16 decoupling and a
     # PWR_FLAG sentinel into the +3.3V power flag at the far-right.
 
     # ----- U2: TPS62933 buck regulator -----
@@ -10268,21 +10268,21 @@ def gen_power_sch() -> str:
 
     # ----- C5: input bulk ceramic, 10uF 16V, angle=0 -----
     # Non-polarized ceramic X5R/X7R. Pin 1 (top) on +5V bus, pin 2 (bottom)
-    # to GND. C5 sits 15.24 mm left of C5b — wide enough that the
+    # to GND. C5 sits 15.24 mm left of C15 — wide enough that the
     # value-text label "10uF 16V" (rendered ~10 mm at size 1.27) clears
-    # C5b's value-text "100nF" without visual overlap.
+    # C15's value-text "100nF" without visual overlap.
     C5_X = 170.18 + PWR_X_SHIFT   # 134 × 1.27
     C5_Y = 140.97 + PWR_Y_SHIFT   # 111 × 1.27
     C5_TOP_Y = C5_Y - 3.81        # 137.16 — on +5V bus row
     C5_BOT_Y = C5_Y + 3.81        # 144.78
     C5_GND_Y = 147.32 + PWR_Y_SHIFT  # GND symbol, 2.54 below cap.bot
 
-    # ----- C5b: input HF ceramic bypass, 100nF, angle=0 -----
-    C5b_X = 185.42 + PWR_X_SHIFT  # 146 × 1.27 — 15.24 mm right of C5, 7.62 left of VIN
-    C5b_Y = 140.97 + PWR_Y_SHIFT
-    C5b_TOP_Y = C5b_Y - 3.81      # 137.16
-    C5b_BOT_Y = C5b_Y + 3.81      # 144.78
-    C5b_GND_Y = 147.32 + PWR_Y_SHIFT
+    # ----- C15: input HF ceramic bypass, 100nF, angle=0 -----
+    C15_X = 185.42 + PWR_X_SHIFT  # 146 × 1.27 — 15.24 mm right of C5, 7.62 left of VIN
+    C15_Y = 140.97 + PWR_Y_SHIFT
+    C15_TOP_Y = C15_Y - 3.81      # 137.16
+    C15_BOT_Y = C15_Y + 3.81      # 144.78
+    C15_GND_Y = 147.32 + PWR_Y_SHIFT
 
     # ----- +5V drop symbol -----
     # Global "+5V" power label placed ABOVE U2's VIN row, with angle=180
@@ -10382,7 +10382,7 @@ def gen_power_sch() -> str:
     R3_GND_Y = 163.83 + PWR_Y_SHIFT  # GND symbol below R3.bot
 
     # ----- +3.3V output decoupling -----
-    # C6 (22uF) and C6b (100nF) tap the +3.3V bus to GND. Placed to the
+    # C6 (22uF) and C16 (100nF) tap the +3.3V bus to GND. Placed to the
     # right of the FB divider with 15-16 mm column spacing so the
     # value-text labels ("44.2k 1%" / "22uF 10V" / "100nF") never overlap.
     C6_X = 256.54 + PWR_X_SHIFT   # 202 × 1.27 (16.51 right of R2)
@@ -10391,14 +10391,14 @@ def gen_power_sch() -> str:
     C6_BOT_Y = C6_Y + 3.81        # 144.78
     C6_GND_Y = 147.32 + PWR_Y_SHIFT
 
-    C6b_X = 271.78 + PWR_X_SHIFT  # 214 × 1.27 (15.24 right of C6)
-    C6b_Y = 140.97 + PWR_Y_SHIFT
-    C6b_TOP_Y = C6b_Y - 3.81      # 137.16
-    C6b_BOT_Y = C6b_Y + 3.81      # 144.78
-    C6b_GND_Y = 147.32 + PWR_Y_SHIFT
+    C16_X = 271.78 + PWR_X_SHIFT  # 214 × 1.27 (15.24 right of C6)
+    C16_Y = 140.97 + PWR_Y_SHIFT
+    C16_TOP_Y = C16_Y - 3.81      # 137.16
+    C16_BOT_Y = C16_Y + 3.81      # 144.78
+    C16_GND_Y = 147.32 + PWR_Y_SHIFT
 
     # ----- +3.3V flag, PWR_FLAG sentinel -----
-    # Column = C6b + 7.62 = 279.40. This sits ~25 mm right of the +5V flag
+    # Column = C16 + 7.62 = 279.40. This sits ~25 mm right of the +5V flag
     # column (X=254 upstream), keeping the buck-3.3V section's PWR_FLAG
     # and flag visually distinct from the upstream +5V flag (which lives
     # in the same column but at a much lower Y, in the U1 block).
@@ -10415,11 +10415,11 @@ def gen_power_sch() -> str:
     Y_5V_DROP_TOP_X = U2_VIN_X    # 193.04 — VIN/EN/+5V drop column
     parts.append(_sch_wire(Y_5V_DROP_TOP_X, Y_5V_DROP_TOP, U2_VIN_X, U2_VIN_Y, "5v-to-vin"))
     parts.append(_sch_wire(U2_VIN_X, U2_VIN_Y, U2_EN_X, U2_EN_Y, "vin-to-en"))
-    # VIN bus horizontal: C5.top → C5b.top → U2.VIN pin
-    parts.append(_sch_wire(C5_X, U2_VIN_Y, U2_VIN_X, U2_VIN_Y, "vin-bus-c5-c5b-u2"))
-    # C5 and C5b drops to local GND symbols
-    parts.append(_sch_wire(C5_X, C5_BOT_Y, C5_X, C5_GND_Y, "c5bot-to-gnd"))
-    parts.append(_sch_wire(C5b_X, C5b_BOT_Y, C5b_X, C5b_GND_Y, "c5bbot-to-gnd"))
+    # VIN bus horizontal: C5.top → C15.top → U2.VIN pin
+    parts.append(_sch_wire(C5_X, U2_VIN_Y, U2_VIN_X, U2_VIN_Y, "vin-bus-c5-c15-u2"))
+    # C5 and C15 drops to local GND symbols
+    parts.append(_sch_wire(C5_X, C5_BOT_Y, C5_X, C5_GND_Y, "c15ot-to-gnd"))
+    parts.append(_sch_wire(C15_X, C15_BOT_Y, C15_X, C15_GND_Y, "c15bot-to-gnd"))
 
     # RT → GND: RT pin (programmable f_sw) tied to GND for default ~500 kHz.
     # The previous SS+RT shared-drop wiring was changed when SS was given
@@ -10459,14 +10459,14 @@ def gen_power_sch() -> str:
     parts.append(_sch_wire(COL_FB_DIV, R3_BOT_Y, COL_FB_DIV, R3_GND_Y, "r3bot-to-gnd"))
 
     # +3.3V bus horizontal: from L2.top RIGHT through R2-tap column,
-    # C6 column, C6b column, to the flag column COL_3V3. Single wire
+    # C6 column, C16 column, to the flag column COL_3V3. Single wire
     # with junctions at the four tap points (R2 vertical end, C6 pin,
-    # C6b pin, mid-bus T's).
+    # C16 pin, mid-bus T's).
     parts.append(_sch_wire(L2_X, Y_3V3_BUS, COL_3V3, Y_3V3_BUS, "3v3-bus"))
 
-    # C6 and C6b drops to local GND symbols
-    parts.append(_sch_wire(C6_X, C6_BOT_Y, C6_X, C6_GND_Y, "c6bot-to-gnd"))
-    parts.append(_sch_wire(C6b_X, C6b_BOT_Y, C6b_X, C6b_GND_Y, "c6bbot-to-gnd"))
+    # C6 and C16 drops to local GND symbols
+    parts.append(_sch_wire(C6_X, C6_BOT_Y, C6_X, C6_GND_Y, "c16ot-to-gnd"))
+    parts.append(_sch_wire(C16_X, C16_BOT_Y, C16_X, C16_GND_Y, "c16bot-to-gnd"))
 
     # +3.3V bus terminus → PWR_FLAG sentinel column upward, then to +3V3 flag.
     parts.append(_sch_wire(COL_3V3, Y_3V3_BUS, COL_3V3, JUNC_3V3_Y, "3v3-bus-to-junc"))
@@ -10476,16 +10476,16 @@ def gen_power_sch() -> str:
     # VIN 4-way tap: VIN bus horizontal ends, +5V drop wire passes through,
     # VIN-to-EN wire starts. Plus U2.VIN pin endpoint.
     parts.append(_sch_junction(U2_VIN_X, U2_VIN_Y, "vin-u2"))
-    # C5b.top tap on VIN bus (mid-bus T with pin endpoint)
-    parts.append(_sch_junction(C5b_X, U2_VIN_Y, "vin-c5b"))
+    # C15.top tap on VIN bus (mid-bus T with pin endpoint)
+    parts.append(_sch_junction(C15_X, U2_VIN_Y, "vin-c15"))
     # SW wire passes through C7.bot tap column
     parts.append(_sch_junction(C7_X, U2_SW_Y, "sw-c7"))
     # FB tap: R2.bot pin + R3.top pin + FB wire end = 3 endpoints
     parts.append(_sch_junction(COL_FB_DIV, R2_BOT_Y, "fb-tap"))
-    # +3.3V bus mid-bus T's: R2-vertical end, C6 pin, C6b pin
+    # +3.3V bus mid-bus T's: R2-vertical end, C6 pin, C16 pin
     parts.append(_sch_junction(COL_FB_DIV, Y_3V3_BUS, "3v3-r2"))
     parts.append(_sch_junction(C6_X, Y_3V3_BUS, "3v3-c6"))
-    parts.append(_sch_junction(C6b_X, Y_3V3_BUS, "3v3-c6b"))
+    parts.append(_sch_junction(C16_X, Y_3V3_BUS, "3v3-c16"))
     # PWR_FLAG sentinel position on the vertical to the +3V3 flag
     parts.append(_sch_junction(COL_3V3, JUNC_3V3_Y, "3v3"))
 
@@ -10508,11 +10508,11 @@ def gen_power_sch() -> str:
         reference="C5", value="10uF 16V", uuid_tag="c5",
     ))
 
-    # ----- C5b: input HF ceramic bypass, 100 nF -----
+    # ----- C15: input HF ceramic bypass, 100 nF -----
     parts.append(_sch_capacitor(
         lib_id="Device:C",
-        x=C5b_X, y=C5b_Y, angle=0,
-        reference="C5b", value="100nF", uuid_tag="c5b",
+        x=C15_X, y=C15_Y, angle=0,
+        reference="C15", value="100nF", uuid_tag="c15",
     ))
 
     # ----- C6: output bulk ceramic, 22 uF / 10 V -----
@@ -10522,11 +10522,11 @@ def gen_power_sch() -> str:
         reference="C6", value="22uF 10V", uuid_tag="c6",
     ))
 
-    # ----- C6b: output HF ceramic bypass, 100 nF -----
+    # ----- C16: output HF ceramic bypass, 100 nF -----
     parts.append(_sch_capacitor(
         lib_id="Device:C",
-        x=C6b_X, y=C6b_Y, angle=0,
-        reference="C6b", value="100nF", uuid_tag="c6b",
+        x=C16_X, y=C16_Y, angle=0,
+        reference="C16", value="100nF", uuid_tag="c16",
     ))
 
     # ----- C7: BST bootstrap ceramic, 100 nF -----
@@ -10592,10 +10592,10 @@ def gen_power_sch() -> str:
     ))
     parts.append(_sch_power_flag(
         lib_id="power:GND", value="GND",
-        x=C5b_X, y=C5b_GND_Y, angle=0,
+        x=C15_X, y=C15_GND_Y, angle=0,
         reference="#PWR18",
         value_offset_x=0.0, value_offset_y=3.81,
-        uuid_tag="pwr18-gnd-c5b",
+        uuid_tag="pwr18-gnd-c15",
     ))
     # RT pin GND drop (SS now has its own C8 soft-start cap to GND, so it
     # no longer shares this GND symbol with RT — see #PWR24 below for C8).
@@ -10633,10 +10633,10 @@ def gen_power_sch() -> str:
     ))
     parts.append(_sch_power_flag(
         lib_id="power:GND", value="GND",
-        x=C6b_X, y=C6b_GND_Y, angle=0,
+        x=C16_X, y=C16_GND_Y, angle=0,
         reference="#PWR23",
         value_offset_x=0.0, value_offset_y=3.81,
-        uuid_tag="pwr23-gnd-c6b",
+        uuid_tag="pwr23-gnd-c16",
     ))
     # C8.bot (soft-start cap to GND)
     parts.append(_sch_power_flag(
@@ -12653,14 +12653,14 @@ def _sch_conn_01x05(
 
 
 def gen_mcu_sch() -> str:
-    """MCU sub-sheet — ESP32-C6-DevKitM-1-N4 (U3) + C9/C9b decoupling
+    """MCU sub-sheet — ESP32-C6-DevKitM-1-N4 (U3) + C9/C17 decoupling
     + R5/R6 I²C pull-ups + J2 recovery header.
 
     Layout (schematic page-absolute mm, KiCad +Y is down on screen):
 
       +3V3 rail (Y=76.20) ===================================
         |       |        |       |        |       |
-        C9      R5       R6      C9b      +3V3    |
+        C9      R5       R6      C17      +3V3    |
        (10uF)  (10k)    (10k)   (100nF)   PWR     | (drop right and down)
         |       v         v       |               |
         GND   SDA tap   SCL tap   GND             |
@@ -12778,12 +12778,12 @@ def gen_mcu_sch() -> str:
     C9_BOT_Y = C9_Y + 3.81   # 83.82 — pin 2 (cathode -) drops to GND
     C9_GND_Y = 87.63
 
-    # ===== C9b: HF decoupling, 100nF ceramic =====
-    C9b_X = 138.43
-    C9b_Y = 80.01
-    C9b_TOP_Y = C9b_Y - 3.81
-    C9b_BOT_Y = C9b_Y + 3.81
-    C9b_GND_Y = 87.63
+    # ===== C17: HF decoupling, 100nF ceramic =====
+    C17_X = 138.43
+    C17_Y = 80.01
+    C17_TOP_Y = C17_Y - 3.81
+    C17_BOT_Y = C17_Y + 3.81
+    C17_GND_Y = 87.63
 
     # ===== R5 / R6: I²C bus pull-ups, 10 kΩ 1% 0402 =====
     # Sensirion SEN66 datasheet §3.1 specifies 10 kΩ pull-ups for the
@@ -12810,13 +12810,13 @@ def gen_mcu_sch() -> str:
 
     # ===== +3V3 bus =====
     # Horizontal at Y=76.20 from R5 (X=128.27) east through R6 (130.81),
-    # C9 (129.54 — sits BETWEEN R5 and R6), C9b (138.43), then on to an
+    # C9 (129.54 — sits BETWEEN R5 and R6), C17 (138.43), then on to an
     # L-corner at X=140.97 from where the bus drops south to U3.1 (3V3
     # pin) row at Y=92.71 and runs east to the U3.1 pin tip.
     BUS_3V3_Y       = 76.20
     BUS_3V3_X_LEFT  = R5_X         # 128.27 (one grid step west of C9)
     BUS_3V3_X_RIGHT = 140.97       # L-corner west of U3 body left edge
-    PWR_3V3_X       = 134.62       # power flag between R6 and C9b
+    PWR_3V3_X       = 134.62       # power flag between R6 and C17
     PWR_3V3_Y       = BUS_3V3_Y
 
     # ===== J2: SWD/UART recovery header, 6-pin, DNP =====
@@ -12871,14 +12871,14 @@ def gen_mcu_sch() -> str:
     parts.append(_sch_wire(BUS_3V3_X_RIGHT, BUS_3V3_Y, BUS_3V3_X_RIGHT, U3_3V3_Y,  "3v3-bus-down"))
     parts.append(_sch_wire(BUS_3V3_X_RIGHT, U3_3V3_Y,  U3_X_LEFT,       U3_3V3_Y,  "3v3-to-u3"))
     # Junction dots for the four mid-bus taps where C9.pin1, R5.pin1,
-    # R6.pin1, C9b.pin1, +3V3 power-flag, and the L-corner connection
+    # R6.pin1, C17.pin1, +3V3 power-flag, and the L-corner connection
     # share the horizontal bus. R5.pin1 sits at BUS_3V3_X_LEFT — it is
     # an endpoint of the bus, so no junction needed there. R6.pin1, C9.pin1,
-    # C9b.pin1, and PWR_3V3_X are mid-wire taps that DO need junctions.
+    # C17.pin1, and PWR_3V3_X are mid-wire taps that DO need junctions.
     parts.append(_sch_junction(R6_X,      BUS_3V3_Y, "3v3-bus-tap-r6"))
     parts.append(_sch_junction(C9_X,      BUS_3V3_Y, "3v3-bus-tap-c9"))
     parts.append(_sch_junction(PWR_3V3_X, BUS_3V3_Y, "3v3-bus-tap-pwr"))
-    parts.append(_sch_junction(C9b_X,     BUS_3V3_Y, "3v3-bus-tap-c9b"))
+    parts.append(_sch_junction(C17_X,     BUS_3V3_Y, "3v3-bus-tap-c17"))
 
     # ---- R5 SDA-pull-up wire: R5.pin2 (128.27, 83.82) south to SDA at (128.27, U3_SDA_Y)
     # The wire endpoint sits mid-wire on the horizontal SDA — junction needed.
@@ -12892,9 +12892,9 @@ def gen_mcu_sch() -> str:
     parts.append(_sch_wire(R6_X, R6_Y + 3.81, R6_X, U3_SCL_Y, "r6-pullup-to-scl"))
     parts.append(_sch_junction(R6_X, U3_SCL_Y, "r6-scl-tap"))
 
-    # ---- C9.pin2 / C9b.pin2 → local GND symbols ----
+    # ---- C9.pin2 / C17.pin2 → local GND symbols ----
     parts.append(_sch_wire(C9_X,  C9_BOT_Y,  C9_X,  C9_GND_Y,  "c9-to-gnd"))
-    parts.append(_sch_wire(C9b_X, C9b_BOT_Y, C9b_X, C9b_GND_Y, "c9b-to-gnd"))
+    parts.append(_sch_wire(C17_X, C17_BOT_Y, C17_X, C17_GND_Y, "c17-to-gnd"))
 
     # ---- I2C / interrupt signal wires (U3 left pins → left hier labels) ----
     parts.append(_sch_wire(U3_X_LEFT, U3_SDA_Y, HLABEL_LEFT_X, U3_SDA_Y, "sda-wire"))
@@ -13097,7 +13097,7 @@ def gen_mcu_sch() -> str:
         uuid_tag="j2", dnp=True,
     ))
 
-    # ===== Capacitors (C9 bulk, C9b HF) =====
+    # ===== Capacitors (C9 bulk, C17 HF) =====
     # C9 voltage rating raised to 16 V (v0.5) — 10 V was too tight a
     # margin for a reliable 0402 / 3.3 V design.
     parts.append(_sch_capacitor(
@@ -13108,9 +13108,9 @@ def gen_mcu_sch() -> str:
     ))
     parts.append(_sch_capacitor(
         lib_id="Device:C",
-        x=C9b_X, y=C9b_Y, angle=0,
-        reference="C9b", value="100nF",
-        uuid_tag="c9b", sheet_key="mcu",
+        x=C17_X, y=C17_Y, angle=0,
+        reference="C17", value="100nF",
+        uuid_tag="c17", sheet_key="mcu",
     ))
 
     # ===== Resistors (R5 SDA pull-up, R6 SCL pull-up) =====
@@ -13126,7 +13126,7 @@ def gen_mcu_sch() -> str:
     ))
 
     # ===== Power flags =====
-    # +3V3 on the bus between R6 and C9b (angle=0, triangle points UP).
+    # +3V3 on the bus between R6 and C17 (angle=0, triangle points UP).
     parts.append(_sch_power_flag(
         lib_id="power:+3V3", value="+3V3",
         x=PWR_3V3_X, y=PWR_3V3_Y, angle=0,
@@ -13153,13 +13153,13 @@ def gen_mcu_sch() -> str:
         uuid_tag="pwr27-gnd-c9",
         sheet_key="mcu",
     ))
-    # GND below C9b.
+    # GND below C17.
     parts.append(_sch_power_flag(
         lib_id="power:GND", value="GND",
-        x=C9b_X, y=C9b_GND_Y, angle=0,
+        x=C17_X, y=C17_GND_Y, angle=0,
         reference="#PWR28",
         value_offset_x=0.0, value_offset_y=3.81,
-        uuid_tag="pwr28-gnd-c9b",
+        uuid_tag="pwr28-gnd-c17",
         sheet_key="mcu",
     ))
     # GND on J2's GND pin.

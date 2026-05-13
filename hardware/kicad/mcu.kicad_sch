@@ -1688,7 +1688,7 @@
 	(at 138.43 76.2)
 	(diameter 0)
 	(color 0 0 0 0)
-	(uuid "5bc65d74-40b2-5b78-bc7b-9d218735633c")
+	(uuid "fa32a11d-9ade-5fb1-b55c-b8ff50ba8a95")
 )
 (wire
 	(pts
@@ -1740,7 +1740,7 @@
 		(width 0)
 		(type default)
 	)
-	(uuid "550cf01d-106d-5fce-9a3a-e3dd2644a10a")
+	(uuid "bf1bad3a-a4f4-5bd6-be4a-8ac5edeaacd4")
 )
 (wire
 	(pts
@@ -2794,8 +2794,8 @@
 	(on_board yes)
 	(dnp no)
 	(fields_autoplaced yes)
-	(uuid "9a56819d-c556-5756-a24d-ce0e2fafae73")
-	(property "Reference" "C9b"
+	(uuid "e3a8fd09-2246-59c1-aca5-dacc13fd530b")
+	(property "Reference" "C17"
 		(at 140.97 78.74 0)
 		(effects
 			(font
@@ -2841,15 +2841,15 @@
 		)
 	)
 	(pin "1"
-		(uuid "e7ad18ff-62d8-5002-94aa-20d179ef3480")
+		(uuid "dc2ccfeb-a754-502f-a46d-577341f5838b")
 	)
 	(pin "2"
-		(uuid "d993438f-7a6c-51e3-94d0-68a459a306be")
+		(uuid "e71ba6ac-5a46-534b-b360-243942575907")
 	)
 	(instances
 		(project "oas"
 			(path "/515343fe-5590-5fd9-97ec-5bed0f979de2/5a2a7aae-0596-52cb-bb07-90c47115320c"
-				(reference "C9b")
+				(reference "C17")
 				(unit 1)
 			)
 		)
@@ -3202,7 +3202,7 @@
 	(on_board yes)
 	(dnp no)
 	(fields_autoplaced yes)
-	(uuid "554901a8-2d5d-539e-a11e-38e6f1934616")
+	(uuid "c4367171-9f27-5027-a41c-4befab3a8381")
 	(property "Reference" "#PWR28"
 		(at 138.43 83.82 0)
 		(effects
@@ -3248,7 +3248,7 @@
 		)
 	)
 	(pin "1"
-		(uuid "5112b234-47ae-593c-9a97-765c97077fdf")
+		(uuid "14c81b2a-4ddf-56ab-b4e4-c62c624fe397")
 	)
 	(instances
 		(project "oas"
