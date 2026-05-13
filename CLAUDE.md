@@ -221,7 +221,7 @@ These were considered and explicitly rejected. Do not propose them again without
 - ❌ Capacitive touch input
 - ❌ External temperature probe terminal (DS18B20 / NTC) — SEN66 is sufficient
 - ❌ Input current monitoring (INA219)
-- ❌ Display (OLED / LCD)
+- ❌ Display (OLED / LCD) — revisited mid-2026 (research in `hardware/components/_research-round-display.md`). Best candidate identified (Waveshare 1.28" round IPS LCD, GC9A01, Ø32.4 mm) clears Pillar #1 (measurement quality — SEN66 thermal delta <0.3 K from backlight, inlet area loss <3 %, EMI from SPI below threshold) but fails Pillar #2 (aesthetic): the screen-off state is a permanent dark grey circle on the white perforated ABS cover, breaking the smoke-detector silhouette the project defends. The existing UX stack — NFC tap on phone for live values + SK6812-SIDE LED ring for glanceable AQI status + Home Assistant dashboard for trends — covers the "see the data" need without committing the cover real estate. Also: a 240×240 round LCD requires SPI (5–6 GPIO of the 9 spare on ESP32-C6-DevKitM-1-N4) and adds ~€11/unit BOM plus a 3D-printed bezel and acrylic window insert. Reversal cost: a future v2 cover with a clear central window + bezel could host the display without breaking aesthetic; revisit if user reports a real glanceable-readout pain point that NFC/LED/HA cannot fill.
 - ❌ External USB-C connector on the case wall (use DevKitM-1's own USB-C for programming; OTA after first flash)
 - ❌ IR transmitter / receiver
 - ❌ Microphone / acoustic sensor
