@@ -151,7 +151,7 @@ The schematic is split into four hierarchical sub-sheets by **function**, not by
 - **Sensor zone below electronics** (PCB flat on bottom edge). Reason: natural convection lifts heat from MCU / power section upward, away from the SEN66 air intake.
 - **Connector strip along bottom flat**: 24V terminal, JST GH to SEN66, LD2410 connector, Qwiic, optional unpopulated SWD/UART recovery header. **No external USB-C** (use DevKitM-1's onboard USB before enclosure is sealed). Pre-defined positions exist in the manufacturer DXF; the case has matching cutouts / access.
 - **Thermal isolation slots** (1.5 mm milled gaps in FR4) separate Power, MCU, and peripheral zones.
-- **Shared I²C bus**: SEN66 (0x6B), NT3H1101 (0x55, on MIKROE-2462 NFC Tag 2 Click), plus Qwiic expansion. Pull-ups **10 kΩ on MCU side** (per SEN66 datasheet §3.1 spec; v0.6 changed from 4.7 kΩ → 10 kΩ). Bus length kept <10 cm per Sensirion guidance (face-up PCB-mount eliminates the previous 50 mm cable, achieving <40 mm total).
+- **Shared I²C bus**: SEN66 (0x6B), NT3H1101 (0x55, on MIKROE-2462 NFC Tag 2 Click), plus Qwiic expansion. Pull-ups **10 kΩ on MCU side** (per SEN66 datasheet §3.1 spec; v0.6 changed from 4.7 kΩ → 10 kΩ). Bus length kept well inside the Sensirion <100 mm hard limit. Realized bus length on the v0.15 PCB is **~60 mm** (the v0.6 changelog assumption of "<40 mm total" turned out to be optimistic once the MCU, NFC, and SEN66 socket placements settled). Still comfortably within Sensirion's spec and far shorter than the previous off-PCB 80 mm via JST-GH cable.
 - **Bluetooth proxy** = software-only; no extra hardware.
 
 ### ESP32-C6-DevKitM-1-N4 pinout (v0.4 final)

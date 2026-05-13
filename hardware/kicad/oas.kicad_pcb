@@ -547,7 +547,7 @@
         		(layer "F.Cu")
         		(uuid "d3216e4e-5d73-5b59-ac1a-e95fc07f8541")
         		(at 169 105)
-        		(descr "Zip-tie pass-through hole, Ø3.0 mm NPTH (fits 2.5 mm band zip-tie). Used in groups of 4 to retain the SEN66 module against the enclosure cover.")
+        		(descr "Zip-tie pass-through hole, Ø3.0 mm NPTH (fits 2.5 mm band zip-tie). Used in groups of 4 to retain the SEN66 module flat against the PCB (v0.6+ face-up PCB-mount).")
         		(attr through_hole board_only exclude_from_pos_files exclude_from_bom)
         		(property "Reference" "ZT1"
         			(at 0 0 0)
@@ -577,7 +577,7 @@
         			(uuid "39873ae4-2454-52bf-8376-8167dfe1eb87")
         			(effects (font (size 1.27 1.27)))
         		)
-        		(property "Description" "Zip-tie pass-through hole, Ø3.0 mm NPTH (fits 2.5 mm band zip-tie). Used in groups of 4 to retain the SEN66 module against the enclosure cover."
+        		(property "Description" "Zip-tie pass-through hole, Ø3.0 mm NPTH (fits 2.5 mm band zip-tie). Used in groups of 4 to retain the SEN66 module flat against the PCB (v0.6+ face-up PCB-mount)."
         			(at 0 0 0)
         			(layer "F.Fab")
         			(hide yes)
@@ -627,7 +627,7 @@
         		(layer "F.Cu")
         		(uuid "1915f2c2-ccee-5181-8aca-a88995dc8b55")
         		(at 200.6 105)
-        		(descr "Zip-tie pass-through hole, Ø3.0 mm NPTH (fits 2.5 mm band zip-tie). Used in groups of 4 to retain the SEN66 module against the enclosure cover.")
+        		(descr "Zip-tie pass-through hole, Ø3.0 mm NPTH (fits 2.5 mm band zip-tie). Used in groups of 4 to retain the SEN66 module flat against the PCB (v0.6+ face-up PCB-mount).")
         		(attr through_hole board_only exclude_from_pos_files exclude_from_bom)
         		(property "Reference" "ZT2"
         			(at 0 0 0)
@@ -657,7 +657,7 @@
         			(uuid "8da0d246-00ef-527d-813f-7d25b58603d3")
         			(effects (font (size 1.27 1.27)))
         		)
-        		(property "Description" "Zip-tie pass-through hole, Ø3.0 mm NPTH (fits 2.5 mm band zip-tie). Used in groups of 4 to retain the SEN66 module against the enclosure cover."
+        		(property "Description" "Zip-tie pass-through hole, Ø3.0 mm NPTH (fits 2.5 mm band zip-tie). Used in groups of 4 to retain the SEN66 module flat against the PCB (v0.6+ face-up PCB-mount)."
         			(at 0 0 0)
         			(layer "F.Fab")
         			(hide yes)
@@ -707,7 +707,7 @@
         		(layer "F.Cu")
         		(uuid "0e0045df-d9d5-5721-9b56-aadc3e956904")
         		(at 169 97)
-        		(descr "Zip-tie pass-through hole, Ø3.0 mm NPTH (fits 2.5 mm band zip-tie). Used in groups of 4 to retain the SEN66 module against the enclosure cover.")
+        		(descr "Zip-tie pass-through hole, Ø3.0 mm NPTH (fits 2.5 mm band zip-tie). Used in groups of 4 to retain the SEN66 module flat against the PCB (v0.6+ face-up PCB-mount).")
         		(attr through_hole board_only exclude_from_pos_files exclude_from_bom)
         		(property "Reference" "ZT3"
         			(at 0 0 0)
@@ -737,7 +737,7 @@
         			(uuid "5a536eca-e0a9-5527-a3aa-d0f2773e6f77")
         			(effects (font (size 1.27 1.27)))
         		)
-        		(property "Description" "Zip-tie pass-through hole, Ø3.0 mm NPTH (fits 2.5 mm band zip-tie). Used in groups of 4 to retain the SEN66 module against the enclosure cover."
+        		(property "Description" "Zip-tie pass-through hole, Ø3.0 mm NPTH (fits 2.5 mm band zip-tie). Used in groups of 4 to retain the SEN66 module flat against the PCB (v0.6+ face-up PCB-mount)."
         			(at 0 0 0)
         			(layer "F.Fab")
         			(hide yes)
@@ -787,7 +787,7 @@
         		(layer "F.Cu")
         		(uuid "2bab4adc-961a-5bf3-9d30-0f990a184f43")
         		(at 200.6 97)
-        		(descr "Zip-tie pass-through hole, Ø3.0 mm NPTH (fits 2.5 mm band zip-tie). Used in groups of 4 to retain the SEN66 module against the enclosure cover.")
+        		(descr "Zip-tie pass-through hole, Ø3.0 mm NPTH (fits 2.5 mm band zip-tie). Used in groups of 4 to retain the SEN66 module flat against the PCB (v0.6+ face-up PCB-mount).")
         		(attr through_hole board_only exclude_from_pos_files exclude_from_bom)
         		(property "Reference" "ZT4"
         			(at 0 0 0)
@@ -817,7 +817,7 @@
         			(uuid "d9130acf-df8a-5d62-94f1-2b2c7ab36ac6")
         			(effects (font (size 1.27 1.27)))
         		)
-        		(property "Description" "Zip-tie pass-through hole, Ø3.0 mm NPTH (fits 2.5 mm band zip-tie). Used in groups of 4 to retain the SEN66 module against the enclosure cover."
+        		(property "Description" "Zip-tie pass-through hole, Ø3.0 mm NPTH (fits 2.5 mm band zip-tie). Used in groups of 4 to retain the SEN66 module flat against the PCB (v0.6+ face-up PCB-mount)."
         			(at 0 0 0)
         			(layer "F.Fab")
         			(hide yes)

@@ -343,9 +343,12 @@ LD2410_ROTATION = 270            # degrees; long axis along PCB Y. With
 def _ld2410_local_to_pcb(lx: float, ly: float) -> tuple[float, float]:
     """Transform a footprint-local LD2410 coordinate to PCB-local mm.
 
-    Mirrors _sen66_local_to_pcb. Currently LD2410_ROTATION = 0 so this is
-    just a translation, but the rotation matrix is kept for future-
-    flexibility (if orientation needs to change to fit other components).
+    Mirrors _sen66_local_to_pcb. With LD2410_ROTATION = 270 (v0.11+,
+    vertical daughterboard mount), LD2410-local +X maps to PCB +Y and
+    LD2410-local +Y maps to PCB -X; the resulting coordinate is then
+    translated by the LD2410_ANCHOR_X / Y placement. The rotation matrix
+    below stays generic in case orientation needs to change to fit other
+    components.
     """
     a = math.radians(LD2410_ROTATION)
     cos_a, sin_a = math.cos(a), math.sin(a)
@@ -424,14 +427,15 @@ ESP32_ANCHOR_Y = -24.70            # v0.15.3: +2 mm DOWN from v0.15.2's
                                     # clearance to PCB outline.
 ESP32_ROTATION = 90                # KiCad rotation applied to helper output
 
-# Dimensions per mikroBUS Standard Specifications v2.00 (June 2015), size S.
+# Dimensions per mikroBUS Standard Specifications v2.00 (June 2015), size L.
 # https://download.mikroe.com/documents/standards/mikrobus/mikrobus-standard-specification-v200.pdf
-# (NFC Tag 2 Click is mikroBUS size S — 25.4 × 28.6 mm, NOT the 42.9 mm
-# size M I mistakenly used earlier.) Pin headers 2×1×8 P2.54 mm, row
-# spacing 22.86 mm. Pin block OFFSET 2.87 mm toward pin-1 short edge:
-# pin 1 is 2.54 mm from the top short edge, pin 8 is 2.54 mm from the
-# bottom of the pin block, leaving 5.74 mm of additional board (where
-# the NFC PCB antenna spiral sits) past pin 8.
+# NFC Tag 2 Click is mikroBUS size L — 25.4 × 57.15 mm (v0.15.5 fix; the
+# earlier "size S, 28.6 mm" assumption was wrong per the MikroE product
+# datasheet). Pin headers 2×1×8 P2.54 mm, row spacing 22.86 mm. Pin block
+# OFFSET 2.54 mm toward pin-1 short edge: pin 1 is 2.54 mm from the top
+# short edge; the NFC PCB antenna spiral fills the long strip past pin 8
+# (~36.83 mm of extra board length, the difference between size L and
+# the 8-pin block).
 MIKROE2462_BODY_W = 25.4
 MIKROE2462_BODY_L = 57.15           # v0.15.5: CORRECTED to mikroBUS size L
                                      # per MikroE datasheet (was 28.6 size S,
@@ -752,10 +756,11 @@ SEN66_DIVIDER_X = 26.0                              # sealing-rib X position
 def gen_sen66_mechanical_footprint() -> str:
     """Custom SEN66_Mechanical_Reference footprint (mechanical-only).
 
-    No pads — the SEN66 doesn't bolt to the PCB; it lives on the enclosure
-    cover. This footprint exists so the PCB designer has a visible "SEN66
-    shadow" in 2D / 3D views, reserving enough clearance for the SEN66
-    cable strain relief and ensuring that future components (LD2410,
+    No pads — the SEN66 doesn't bolt to the PCB (v0.6+ retains it via
+    4× zip-ties through NPTH holes flanking the body). This footprint
+    exists so the PCB designer has a visible "SEN66 shadow" in 2D / 3D
+    views, reserving enough clearance for the SEN66 body, the four
+    zip-tie holes, and ensuring that future components (LD2410,
     NT3H1101) avoid the SEN66 zone.
 
     Rendered on `F.Fab` (full body outline + air openings + connector
@@ -1312,12 +1317,12 @@ def gen_cutouts() -> tuple[str, str]:
         #
         # The mechanical-reference SEN66 footprint (F.Fab/F.SilkS only,
         # zero copper) needs to be place-able anywhere on the PCB
-        # even where its body shadow crosses a cutout zone — the SEN66
-        # itself lives on the cover, not on the PCB, so a cutout-zone
-        # overlap is purely a 2D drawing coincidence, not a physical
-        # conflict. (The `(pads not_allowed)` rule above already blocks
-        # any *copper* the SEN66 reference footprint might accidentally
-        # bring along.)
+        # even where its body shadow crosses a cutout zone. The SEN66
+        # body sits flat on the PCB (v0.6+) but the shadow drawing is
+        # graphics-only (no copper) so a cutout-zone overlap is purely
+        # a 2D drawing coincidence, not a physical conflict. (The
+        # `(pads not_allowed)` rule above already blocks any *copper*
+        # the SEN66 reference footprint might accidentally bring along.)
         keepouts.append(textwrap.dedent(f"""\
             \t(zone
             \t\t(net 0)
@@ -2676,7 +2681,7 @@ def gen_sensors_pcb_footprints() -> str:
     silk_r = ZIPTIE_HOLE_SILK_RING_DIAMETER / 2.0
     courtyard_r = ZIPTIE_HOLE_DIAMETER * 0.75
     fab_r = ZIPTIE_HOLE_DIAMETER / 2.0
-    descr = "Zip-tie pass-through hole, Ø3.0 mm NPTH (fits 2.5 mm band zip-tie). Used in groups of 4 to retain the SEN66 module against the enclosure cover."
+    descr = "Zip-tie pass-through hole, Ø3.0 mm NPTH (fits 2.5 mm band zip-tie). Used in groups of 4 to retain the SEN66 module flat against the PCB (v0.6+ face-up PCB-mount)."
     for ref, lx, ly in SEN66_ZIPTIE_LOCAL:
         gx, gy = _sen66_local_to_pcb(lx, ly)
         parts.append(_emit_pcb_footprint_simple_npth(
@@ -11862,27 +11867,29 @@ def gen_sensors_sch() -> str:
     # there is no detection requirement) and the antenna *front* face
     # clear to radiate through the ABS cover.
     #
-    # Pin order per HiLink LD2410B datasheet (pin 1 nearest the silk
-    # "1" marker on the module):
+    # Pin order per HiLink HLK-LD2410B Datasheet V1.04 (2022-06-29, FCC-filed),
+    # Table 1 page 7. Pin 1 is nearest the silk "1" marker on the module's
+    # short edge opposite the 1T2R antenna patches. (NOTE: the HLK-LD2410C
+    # variant has a DIFFERENT pin order — see hardware/components/hlk-ld2410b.md.)
     #
-    #   Pin 1: VCC   — 5 V supply. The HLK-LD2410B is a 5 V-supply module;
-    #                  TX/RX/OUT logic levels are 3.3 V TTL so the ESP32-C6
-    #                  UART and GPIO see compatible levels without a
-    #                  level shifter. Power comes from the +5V rail
-    #                  produced by U1 (LM2596S-5.0) in the power sheet.
-    #   Pin 2: GND
-    #   Pin 3: TX    — UART output FROM the radar (data flowing → MCU GPIO 17).
+    #   Pin 1: OUT   — digital presence output (HIGH = target detected,
+    #                  3.3 V CMOS). Wires to MCU GPIO 2 via the LD2410_OUT
+    #                  net so ESPHome can attach a binary_sensor without
+    #                  polling the UART. Useful for fast wake-up; the UART
+    #                  data still drives the full ESPHome ld2410 component.
+    #   Pin 2: UART_Tx — UART output FROM the radar (data flowing → MCU GPIO 17).
     #                  Net name UART_RX in this sheet: the signal is the MCU's
     #                  RX, i.e. it ARRIVES at the MCU's RX pin, so we keep
     #                  the MCU-centric net name (matches the hier label
     #                  declared by the mcu sub-sheet).
-    #   Pin 4: RX    — UART input TO the radar (MCU GPIO 16 drives it).
+    #   Pin 3: UART_Rx — UART input TO the radar (MCU GPIO 16 drives it).
     #                  Net name UART_TX (MCU-centric, see above).
-    #   Pin 5: OUT   — digital presence (HIGH = target detected, 3.3 V CMOS).
-    #                  Wires to MCU GPIO 2 via the LD2410_OUT net so ESPHome
-    #                  can attach a binary_sensor to it without polling the
-    #                  UART. Useful for fast wake-up; the UART data still
-    #                  drives the full ESPHome ld2410 component.
+    #   Pin 4: GND
+    #   Pin 5: VCC   — 5 V supply (range 5-12 V). The HLK-LD2410B is a 5 V
+    #                  module; TX/RX/OUT logic levels are 3.3 V TTL so the
+    #                  ESP32-C6 UART and GPIO see compatible levels without
+    #                  a level shifter. Power comes from the +5V rail
+    #                  produced by U1 (LM2596S-5.0) in the power sheet.
     #
     # Local decoupling: C11 (100 nF 0402 X7R) between VCC and GND of the
     # LD2410 supply pins. The radar's switching draw can pull noticeable
@@ -12486,7 +12493,7 @@ def main():
     (HERE / "libraries" / "oas.pretty" / "MIKROE-2462_Reference.kicad_mod").write_text(
         gen_daughterboard_mech_lib_file(
             name="MIKROE-2462_Reference",
-            descr="MikroElektronika NFC Tag 2 Click (NT3H1101 NTAG I²C plus + onboard PCB antenna) daughterboard mechanical reference (no pads). Body 25.4×28.6×7 mm per mikroBUS size S spec. Pin block offset 2.87 mm toward pin-1 short edge; NFC antenna spiral on the 5.74 mm strip past pin 8.",
+            descr="MikroElektronika NFC Tag 2 Click (NT3H1101 NTAG I²C plus + onboard PCB antenna) daughterboard mechanical reference (no pads). Body 25.4×57.15×7 mm per mikroBUS size L spec. Pin block offset 2.54 mm toward pin-1 short edge; NFC antenna spiral on the ~36.83 mm strip past pin 8.",
             body_w=MIKROE2462_BODY_W, body_l=MIKROE2462_BODY_L,
             pin_row_inset=MIKROE2462_PIN_ROW_INSET,
             pin_pitch=MIKROE2462_PIN_PITCH,

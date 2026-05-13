@@ -3,7 +3,7 @@
 	(generator "pcbnew")
 	(generator_version "10.0")
 	(layer "F.Cu")
-	(descr "MikroElektronika NFC Tag 2 Click (NT3H1101 NTAG I²C plus + onboard PCB antenna) daughterboard mechanical reference (no pads). Body 25.4×28.6×7 mm per mikroBUS size S spec. Pin block offset 2.87 mm toward pin-1 short edge; NFC antenna spiral on the 5.74 mm strip past pin 8.")
+	(descr "MikroElektronika NFC Tag 2 Click (NT3H1101 NTAG I²C plus + onboard PCB antenna) daughterboard mechanical reference (no pads). Body 25.4×57.15×7 mm per mikroBUS size L spec. Pin block offset 2.54 mm toward pin-1 short edge; NFC antenna spiral on the ~36.83 mm strip past pin 8.")
 	(tags "mikroe-2462_reference oas mechanical reference daughterboard")
 	(attr board_only exclude_from_pos_files exclude_from_bom)
 	(property "Reference" "REF**"
@@ -38,7 +38,7 @@
 		(uuid "b0aed5a0-6b4e-58fd-8779-217b7dca223e")
 		(effects (font (size 1.27 1.27)))
 	)
-	(property "Description" "MikroElektronika NFC Tag 2 Click (NT3H1101 NTAG I²C plus + onboard PCB antenna) daughterboard mechanical reference (no pads). Body 25.4×28.6×7 mm per mikroBUS size S spec. Pin block offset 2.87 mm toward pin-1 short edge; NFC antenna spiral on the 5.74 mm strip past pin 8."
+	(property "Description" "MikroElektronika NFC Tag 2 Click (NT3H1101 NTAG I²C plus + onboard PCB antenna) daughterboard mechanical reference (no pads). Body 25.4×57.15×7 mm per mikroBUS size L spec. Pin block offset 2.54 mm toward pin-1 short edge; NFC antenna spiral on the ~36.83 mm strip past pin 8."
 		(at 0 0 0)
 		(unlocked yes)
 		(layer "F.Fab")
