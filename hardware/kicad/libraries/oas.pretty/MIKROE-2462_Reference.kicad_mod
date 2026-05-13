@@ -54,6 +54,14 @@
 	(layer "F.Fab")
 	(uuid "4314a993-62fa-54f5-9cce-0933487c85a8")
 )
+(fp_rect
+	(start 0.2 0.2)
+	(end 25.2 28.4)
+	(stroke (width 0.12) (type solid))
+	(fill no)
+	(layer "F.SilkS")
+	(uuid "a9d49b2b-a97a-5b87-a3ec-55e2c134b166")
+)
 (fp_circle
 	(center 1.27 2.54)
 	(end 1.77 2.54)
@@ -184,7 +192,7 @@
 )
 (fp_text user "NFC"
 	(at 12.7 26.1 90)
-	(layer "F.Fab")
+	(layer "F.SilkS")
 	(uuid "6e481535-41be-5292-b44d-541386473cf1")
 	(effects (font (size 1.0 1.0) (thickness 0.15)))
 )

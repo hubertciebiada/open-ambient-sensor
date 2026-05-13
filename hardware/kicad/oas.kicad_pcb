@@ -475,13 +475,13 @@
 	)
 	(fp_text user "JST GH cable ->"
 		(at 50.2 17.3 0)
-		(layer "F.Fab")
+		(layer "F.SilkS")
 		(uuid "e3d64ee8-0d36-5753-aa31-cef6eee6e2ca")
 		(effects (font (size 1.0 1.0) (thickness 0.15)))
 	)
-	(fp_text user "SEN66-SIN-T  |  MPN 3.001.030"
-		(at 27.6 8.8 0)
-		(layer "F.Fab")
+	(fp_text user "SEN66 SIN-T"
+		(at 27.6 12.8 0)
+		(layer "F.SilkS")
 		(uuid "6c4a1ea8-ddc4-5d7b-abcc-fd9b04ea7daf")
 		(effects (font (size 1.0 1.0) (thickness 0.15)))
 	)
@@ -561,7 +561,7 @@
 	)
 	(fp_text user "antenna ^"
 		(at 6.85 7.62 0)
-		(layer "F.Fab")
+		(layer "F.SilkS")
 		(uuid "286bdd92-4abf-564b-9268-ab42cdcbd855")
 		(effects (font (size 1.0 1.0) (thickness 0.15)))
 	)
@@ -574,14 +574,14 @@
 		(uuid "6165d00d-7f02-5715-a970-f8fc3a28eb70")
 	)
 	(fp_text user "J4 pins"
-		(at 30.56 7.62 0)
-		(layer "F.Fab")
+		(at 27.56 7.62 0)
+		(layer "F.SilkS")
 		(uuid "685e8dd3-db6e-58ec-8856-38b5d6945f9c")
 		(effects (font (size 1.0 1.0) (thickness 0.15)))
 	)
 	(fp_text user "HLK-LD2410B"
-		(at 20.78 11.12 0)
-		(layer "F.Fab")
+		(at 17.78 7.62 0)
+		(layer "F.SilkS")
 		(uuid "d0be36fd-83bd-5035-9c27-aded79a94764")
 		(effects (font (size 1.0 1.0) (thickness 0.15)))
 	)
@@ -1477,7 +1477,7 @@
 (footprint "oas:ESP32-C6-DevKitM-1_Reference"
 	(layer "F.Cu")
 	(uuid "80585f9b-fdcc-5d78-917d-6cb71f900f86")
-	(at 122.74 78.3 90)
+	(at 120.74 80.3 90)
 	(descr "ESP32-C6-DevKitM-1-N4 daughterboard shadow (EAN 5904422385651). 25.4×48.26×8.6 mm; mounts on 2×1x15 P2.54 mm female pin sockets. Pin block offset 0.98 mm toward antenna end per Espressif dimensions PDF.")
 	(attr board_only exclude_from_pos_files exclude_from_bom)
 	(property "Reference" "MOD1"
@@ -1515,6 +1515,14 @@
 	(fill no)
 	(layer "F.Fab")
 	(uuid "3528e17d-cbc4-548d-a354-cd760d0bf102")
+)
+(fp_rect
+	(start 0.2 0.2)
+	(end 25.2 48.06)
+	(stroke (width 0.12) (type solid))
+	(fill no)
+	(layer "F.SilkS")
+	(uuid "4acb73c3-567f-5991-8e08-9dfa02a41544")
 )
 (fp_circle
 	(center 1.27 5.37)
@@ -1758,19 +1766,19 @@
 )
 (fp_text user "ESP32-C6 DevKitM-1"
 	(at 12.7 45.76 90)
-	(layer "F.Fab")
+	(layer "F.SilkS")
 	(uuid "9a92361f-056e-5d8b-b1bb-5f589666cbde")
 	(effects (font (size 1.0 1.0) (thickness 0.15)))
 )
 (fp_text user "ant"
 	(at 12.7 2.5 90)
-	(layer "F.Fab")
+	(layer "F.SilkS")
 	(uuid "5a647c6b-57a1-5b06-be2a-3a3b2c20257d")
 	(effects (font (size 1.0 1.0) (thickness 0.15)))
 )
 (fp_text user "USB"
 	(at 12.7 42.26 90)
-	(layer "F.Fab")
+	(layer "F.SilkS")
 	(uuid "7a2faba2-e9f9-5c02-8bd3-95d3fec12375")
 	(effects (font (size 1.0 1.0) (thickness 0.15)))
 )
@@ -1816,6 +1824,14 @@
 	(fill no)
 	(layer "F.Fab")
 	(uuid "3272e7f1-8466-5618-ba2f-262680ef10f7")
+)
+(fp_rect
+	(start 0.2 0.2)
+	(end 25.2 28.4)
+	(stroke (width 0.12) (type solid))
+	(fill no)
+	(layer "F.SilkS")
+	(uuid "2bb66602-464b-536b-98d9-a06f6005a6d5")
 )
 (fp_circle
 	(center 1.27 2.54)
@@ -1947,7 +1963,7 @@
 )
 (fp_text user "NFC"
 	(at 12.7 26.1 90)
-	(layer "F.Fab")
+	(layer "F.SilkS")
 	(uuid "5e568412-ec73-59ce-a8f2-9609ccf9d240")
 	(effects (font (size 1.0 1.0) (thickness 0.15)))
 )

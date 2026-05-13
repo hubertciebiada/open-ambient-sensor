@@ -330,25 +330,23 @@ def _ld2410_local_to_pcb(lx: float, ly: float) -> tuple[float, float]:
 # footprints (F.Fab body outline + F.SilkS marker + pin-row hints + labels).
 # The actual electrical female pin sockets land in chunk #7 (PCB routing).
 #
-# Layout (v0.15.2):
+# Layout (v0.15.3):
 #
 #   ESP32-C6 DevKitM-1-N4    MIKROE-2462 (NFC Tag 2 Click)
 #   body: 48.26 × 25.4 mm     body: 25.4 × 28.6 mm (size S)
-#   anchor (-25.76, -26.70)   anchor (-36.16, -13.03)
-#   body X=-25.76..+22.50     body X=-36.16..-10.76
-#   body Y=-52.10..-26.70     body Y=-13.03..+15.57
-#   center X = -1.63          NFC center X = -23.46
+#   anchor (-27.76, -24.70)   anchor (-36.16, -13.03)
+#   body X=-27.76..+20.50     body X=-36.16..-10.76
+#   body Y=-50.10..-24.70     body Y=-13.03..+15.57
+#   center X = -3.63          NFC center X = -23.46
 #   horizontal at TOP-CENTER  vertical, center Y aligned with LD2410
 #   antenna LEFT (-X)         pins on long edges (1×8 + 1×8)
 #   USB-C RIGHT (+X)          NFC antenna spiral at bottom strip Y=+9.83..+15.57
 #
 # LD2410 + NFC share the same horizontal Y band (centers at Y=+1.27).
-# v0.15.2 tweaks: ESP32 re-centered close to PCB vertical axis (compromise
-# at center X=-1.63 — true X=0 would collide 0.63 mm with SEN66 left
-# edge at X=+23.5; this keeps a 1.0 mm gap). ESP32 pushed further UP,
-# top edge 1.0 mm from H3 mounting hole edge. NFC moved +2.5 mm right
-# of v0.15.1 — 3.5 mm gap to LD2410 right edge (was 1.0 mm).
-# ESP32 sits 13.67 mm above NFC top edge. SEN66 (right side, anchor
+# v0.15.3 tweaks: ESP32 moved -2 mm in X and +2 mm in Y from v0.15.2.
+# Clearances grew: ESP32-to-SEN66 now 3.00 mm; ESP32-to-H3 now 3.00 mm;
+# ESP32-to-PCB-outline (top-left corner) 2.73 mm.
+# ESP32 sits 11.67 mm above NFC top edge. SEN66 (right side, anchor
 # +23.5/+22.0) unchanged. See per-constant comments below for
 # clearance breakdowns.
 
@@ -378,28 +376,18 @@ ESP32_PIN_START_OFFSET = 5.37      # distance from antenna short edge
 # -37.16..+11.10 leaves a 2.5 mm gap to LD2410's new right edge at
 # X=-39.66 and 12.4 mm to SEN66's left edge at X=+23.5. Helper rotation
 # 90° unchanged (body lies down 48.26 × 25.4).
-ESP32_ANCHOR_X = -25.76            # v0.15.2: re-centered close to PCB
-                                    # vertical axis (user request: "ESP oś
-                                    # poprzeczna w osi pionowej OAS").
-                                    # body center X = -1.63 (1.63 mm w
-                                    # lewo od dokładnego X=0; kompromis
-                                    # narzucony przez SEN66 left edge at
-                                    # X=+23.5 — true X=0 center would put
-                                    # ESP32 right edge at +24.13, kolizja
-                                    # 0.63 mm z SEN66 body). Body X range
-                                    # -25.76..+22.50. Antenna short edge
-                                    # toward -X (~09:00), USB-C toward +X.
-ESP32_ANCHOR_Y = -26.70            # v0.15.2: pushed UP further. Body Y
-                                    # range -52.10..-26.70. Top edge at
-                                    # Y=-52.10 sits 1.00 mm from H3
-                                    # mounting hole top edge at Y=-53.1
-                                    # (H3 at (0, -55) Ø3.8 NPTH).
-                                    # Top corners at (-25.76, -52.10) and
-                                    # (+22.50, -52.10): distances to origin
-                                    # √(663.6 + 2714.4)=58.12 and
-                                    # √(506.3 + 2714.4)=56.75 → ≥1.88 mm
-                                    # clearance from PCB outline (60 mm
-                                    # radius). 13.67 mm gap above NFC top.
+ESP32_ANCHOR_X = -27.76            # v0.15.3: -2 mm LEFT of v0.15.2.
+                                    # Body X range -27.76..+20.50, center
+                                    # X = -3.63. Right edge clearance to
+                                    # SEN66 (+23.5) grows to 3.00 mm
+                                    # (was 1.00 in v0.15.2).
+ESP32_ANCHOR_Y = -24.70            # v0.15.3: +2 mm DOWN from v0.15.2's
+                                    # -26.70. Body Y range -50.10..-24.70.
+                                    # Top edge 3.00 mm above H3 hole top
+                                    # at Y=-53.1 (was 1.0 mm). Top-left
+                                    # corner (-27.76, -50.10): distance
+                                    # √(770.6+2510.0)=57.27 → 2.73 mm
+                                    # clearance to PCB outline.
 ESP32_ROTATION = 90                # KiCad rotation applied to helper output
 
 # Dimensions per mikroBUS Standard Specifications v2.00 (June 2015), size S.
@@ -850,7 +838,7 @@ def gen_sen66_mechanical_footprint() -> str:
     conn_label = textwrap.dedent(f"""\
         \t(fp_text user "JST GH cable ->"
         \t\t(at {fmt(SEN66_CONNECTOR_X - 5.0)} {fmt(SEN66_CONNECTOR_Y + 4.5)} 0)
-        \t\t(layer "F.Fab")
+        \t\t(layer "F.SilkS")
         \t\t(uuid "{U('sen66:fp:conn-label')}")
         \t\t(effects (font (size 1.0 1.0) (thickness 0.15)))
         \t)""")
@@ -859,9 +847,9 @@ def gen_sen66_mechanical_footprint() -> str:
     # Sensirion material number 3.001.030 (per CLAUDE.md Module
     # Identification rule).
     body_label = textwrap.dedent(f"""\
-        \t(fp_text user "SEN66-SIN-T  |  MPN 3.001.030"
-        \t\t(at {fmt(SEN66_BODY_X / 2.0)} {fmt(SEN66_BODY_Y / 2.0 - 4.0)} 0)
-        \t\t(layer "F.Fab")
+        \t(fp_text user "SEN66 SIN-T"
+        \t\t(at {fmt(SEN66_BODY_X / 2.0)} {fmt(SEN66_BODY_Y / 2.0)} 0)
+        \t\t(layer "F.SilkS")
         \t\t(uuid "{U('sen66:fp:body-label')}")
         \t\t(effects (font (size 1.0 1.0) (thickness 0.15)))
         \t)""")
@@ -1016,7 +1004,7 @@ def gen_ld2410_mechanical_footprint() -> str:
     antenna_label = textwrap.dedent(f"""\
         \t(fp_text user "antenna ^"
         \t\t(at {fmt((x_min + 1.0 + LD2410_ANTENNA_X_END) / 2.0)} {fmt(y_max / 2.0)} 0)
-        \t\t(layer "F.Fab")
+        \t\t(layer "F.SilkS")
         \t\t(uuid "{U('ld2410:fp:antenna-label')}")
         \t\t(effects (font (size 1.0 1.0) (thickness 0.15)))
         \t)""")
@@ -1039,18 +1027,20 @@ def gen_ld2410_mechanical_footprint() -> str:
         \t)""")
     conn_label = textwrap.dedent(f"""\
         \t(fp_text user "J4 pins"
-        \t\t(at {fmt(conn_x - 5.0)} {fmt(LD2410_CONNECTOR_Y)} 0)
-        \t\t(layer "F.Fab")
+        \t\t(at {fmt(conn_x - 8.0)} {fmt(LD2410_CONNECTOR_Y)} 0)
+        \t\t(layer "F.SilkS")
         \t\t(uuid "{U('ld2410:fp:conn-label')}")
         \t\t(effects (font (size 1.0 1.0) (thickness 0.15)))
         \t)""")
 
     # Body label in the centre — HLK-LD2410B (variant) for the assembler
-    # so the right module is soldered into J4.
+    # so the right module is soldered into J4. Position at body center
+    # so silk-overlap clearance with the (asymmetric-inset) silk rect
+    # has comfortable margin all around.
     body_label = textwrap.dedent(f"""\
         \t(fp_text user "HLK-LD2410B"
-        \t\t(at {fmt(LD2410_BODY_W / 2.0 + 3.0)} {fmt(LD2410_BODY_H / 2.0 + 3.5)} 0)
-        \t\t(layer "F.Fab")
+        \t\t(at {fmt(LD2410_BODY_W / 2.0)} {fmt(LD2410_BODY_H / 2.0)} 0)
+        \t\t(layer "F.SilkS")
         \t\t(uuid "{U('ld2410:fp:body-label')}")
         \t\t(effects (font (size 1.0 1.0) (thickness 0.15)))
         \t)""")
@@ -1610,13 +1600,13 @@ def gen_sen66_reference_pcb_footprint(x: float, y: float, rotation: int) -> str:
         \t\t)
         \t\t(fp_text user "JST GH cable ->"
         \t\t\t(at {fmt(SEN66_CONNECTOR_X - 5.0)} {fmt(SEN66_CONNECTOR_Y + 4.5)} 0)
-        \t\t\t(layer "F.Fab")
+        \t\t\t(layer "F.SilkS")
         \t\t\t(uuid "{U('fp-conn-label:' + uuid_tag)}")
         \t\t\t(effects (font (size 1.0 1.0) (thickness 0.15)))
         \t\t)
-        \t\t(fp_text user "SEN66-SIN-T  |  MPN 3.001.030"
-        \t\t\t(at {fmt(SEN66_BODY_X / 2.0)} {fmt(SEN66_BODY_Y / 2.0 - 4.0)} 0)
-        \t\t\t(layer "F.Fab")
+        \t\t(fp_text user "SEN66 SIN-T"
+        \t\t\t(at {fmt(SEN66_BODY_X / 2.0)} {fmt(SEN66_BODY_Y / 2.0)} 0)
+        \t\t\t(layer "F.SilkS")
         \t\t\t(uuid "{U('fp-body-label:' + uuid_tag)}")
         \t\t\t(effects (font (size 1.0 1.0) (thickness 0.15)))
         \t\t)
@@ -2042,7 +2032,7 @@ def gen_ld2410_reference_pcb_footprint(x: float, y: float, rotation: int) -> str
         \t\t)
         \t\t(fp_text user "antenna ^"
         \t\t\t(at {fmt((x_min + 1.0 + LD2410_ANTENNA_X_END) / 2.0)} {fmt(y_max / 2.0)} 0)
-        \t\t\t(layer "F.Fab")
+        \t\t\t(layer "F.SilkS")
         \t\t\t(uuid "{U('fp-antenna-label:' + uuid_tag)}")
         \t\t\t(effects (font (size 1.0 1.0) (thickness 0.15)))
         \t\t)
@@ -2055,14 +2045,14 @@ def gen_ld2410_reference_pcb_footprint(x: float, y: float, rotation: int) -> str
         \t\t\t(uuid "{U('fp-conn-marker:' + uuid_tag)}")
         \t\t)
         \t\t(fp_text user "J4 pins"
-        \t\t\t(at {fmt(conn_x - 5.0)} {fmt(LD2410_CONNECTOR_Y)} 0)
-        \t\t\t(layer "F.Fab")
+        \t\t\t(at {fmt(conn_x - 8.0)} {fmt(LD2410_CONNECTOR_Y)} 0)
+        \t\t\t(layer "F.SilkS")
         \t\t\t(uuid "{U('fp-conn-label:' + uuid_tag)}")
         \t\t\t(effects (font (size 1.0 1.0) (thickness 0.15)))
         \t\t)
         \t\t(fp_text user "HLK-LD2410B"
-        \t\t\t(at {fmt(LD2410_BODY_W / 2.0 + 3.0)} {fmt(LD2410_BODY_H / 2.0 + 3.5)} 0)
-        \t\t\t(layer "F.Fab")
+        \t\t\t(at {fmt(LD2410_BODY_W / 2.0)} {fmt(LD2410_BODY_H / 2.0)} 0)
+        \t\t\t(layer "F.SilkS")
         \t\t\t(uuid "{U('fp-body-label:' + uuid_tag)}")
         \t\t\t(effects (font (size 1.0 1.0) (thickness 0.15)))
         \t\t)
@@ -2232,8 +2222,9 @@ def _daughterboard_body_content(
     offset toward pin-1 short edge) pass an explicit value.
     """
     parts: list[str] = []
+    silk_inset = 0.2  # F.SilkS inset from F.Fab outline (silk_edge_clearance margin)
 
-    # Body F.Fab outline.
+    # Body F.Fab outline (fabrication documentation layer).
     parts.append(textwrap.dedent(f"""\
         \t(fp_rect
         \t\t(start 0 0)
@@ -2242,6 +2233,19 @@ def _daughterboard_body_content(
         \t\t(fill no)
         \t\t(layer "F.Fab")
         \t\t(uuid "{U('fp-fab-outline:' + uuid_tag)}")
+        \t)"""))
+
+    # Body F.SilkS outline — visible on physical board and 3D render so the
+    # hand-assembler can see where the daughterboard sits. Inset 0.2 mm
+    # from F.Fab so it stays inside the body envelope.
+    parts.append(textwrap.dedent(f"""\
+        \t(fp_rect
+        \t\t(start {fmt(silk_inset)} {fmt(silk_inset)})
+        \t\t(end {fmt(body_w - silk_inset)} {fmt(body_l - silk_inset)})
+        \t\t(stroke (width 0.12) (type solid))
+        \t\t(fill no)
+        \t\t(layer "F.SilkS")
+        \t\t(uuid "{U('fp-silk-outline:' + uuid_tag)}")
         \t)"""))
 
     # Pin row dots on F.Fab (one column on each long edge, at pin_row_inset
@@ -2265,11 +2269,11 @@ def _daughterboard_body_content(
                 \t\t(uuid "{U(f'fp-pin:{uuid_tag}:{col_idx}-{row_idx}')}")
                 \t)"""))
 
-    # Centre body label.
+    # Centre body label — F.SilkS so it shows on the physical board and 3D.
     parts.append(textwrap.dedent(f"""\
         \t(fp_text user "{body_label}"
         \t\t(at {fmt(body_w / 2.0)} {fmt(body_l - 2.5)} 90)
-        \t\t(layer "F.Fab")
+        \t\t(layer "F.SilkS")
         \t\t(uuid "{U('fp-body-label:' + uuid_tag)}")
         \t\t(effects (font (size 1.0 1.0) (thickness 0.15)))
         \t)"""))
@@ -2278,7 +2282,7 @@ def _daughterboard_body_content(
         parts.append(textwrap.dedent(f"""\
             \t(fp_text user "{antenna_label}"
             \t\t(at {fmt(body_w / 2.0)} {fmt(2.5)} 90)
-            \t\t(layer "F.Fab")
+            \t\t(layer "F.SilkS")
             \t\t(uuid "{U('fp-antenna-label:' + uuid_tag)}")
             \t\t(effects (font (size 1.0 1.0) (thickness 0.15)))
             \t)"""))
@@ -2286,7 +2290,7 @@ def _daughterboard_body_content(
         parts.append(textwrap.dedent(f"""\
             \t(fp_text user "{usb_label}"
             \t\t(at {fmt(body_w / 2.0)} {fmt(body_l - 6.0)} 90)
-            \t\t(layer "F.Fab")
+            \t\t(layer "F.SilkS")
             \t\t(uuid "{U('fp-usb-label:' + uuid_tag)}")
             \t\t(effects (font (size 1.0 1.0) (thickness 0.15)))
             \t)"""))

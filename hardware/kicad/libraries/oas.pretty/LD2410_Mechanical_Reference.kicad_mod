@@ -72,7 +72,7 @@
 )
 (fp_text user "antenna ^"
 	(at 6.85 7.62 0)
-	(layer "F.Fab")
+	(layer "F.SilkS")
 	(uuid "d4107ed5-b404-5816-9804-6215276cb871")
 	(effects (font (size 1.0 1.0) (thickness 0.15)))
 )
@@ -85,14 +85,14 @@
 	(uuid "6184d4bb-d302-50dd-a24a-f37f6f7a8bc8")
 )
 (fp_text user "J4 pins"
-	(at 30.56 7.62 0)
-	(layer "F.Fab")
+	(at 27.56 7.62 0)
+	(layer "F.SilkS")
 	(uuid "4b0737ae-5df2-5d40-99b6-5afcdf7645eb")
 	(effects (font (size 1.0 1.0) (thickness 0.15)))
 )
 (fp_text user "HLK-LD2410B"
-	(at 20.78 11.12 0)
-	(layer "F.Fab")
+	(at 17.78 7.62 0)
+	(layer "F.SilkS")
 	(uuid "ed81d6e7-56e0-52b8-ba24-2fd106405479")
 	(effects (font (size 1.0 1.0) (thickness 0.15)))
 )

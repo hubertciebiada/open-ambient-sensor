@@ -54,6 +54,14 @@
 	(layer "F.Fab")
 	(uuid "f12c2871-b207-58b1-a32a-020c71bd96f2")
 )
+(fp_rect
+	(start 0.2 0.2)
+	(end 25.2 48.06)
+	(stroke (width 0.12) (type solid))
+	(fill no)
+	(layer "F.SilkS")
+	(uuid "1691a0b3-9dcb-5d2f-9b73-63fabaf1bc88")
+)
 (fp_circle
 	(center 1.27 5.37)
 	(end 1.77 5.37)
@@ -296,19 +304,19 @@
 )
 (fp_text user "ESP32-C6 DevKitM-1"
 	(at 12.7 45.76 90)
-	(layer "F.Fab")
+	(layer "F.SilkS")
 	(uuid "647d209c-dfbe-590a-8ad5-e7412e7b09f6")
 	(effects (font (size 1.0 1.0) (thickness 0.15)))
 )
 (fp_text user "ant"
 	(at 12.7 2.5 90)
-	(layer "F.Fab")
+	(layer "F.SilkS")
 	(uuid "de2958b8-bbd7-55b6-90c6-7f3232f93350")
 	(effects (font (size 1.0 1.0) (thickness 0.15)))
 )
 (fp_text user "USB"
 	(at 12.7 42.26 90)
-	(layer "F.Fab")
+	(layer "F.SilkS")
 	(uuid "f14a175f-81a3-5d48-ba69-bfdcbb6a92c9")
 	(effects (font (size 1.0 1.0) (thickness 0.15)))
 )
