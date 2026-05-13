@@ -56,7 +56,7 @@
 )
 (fp_rect
 	(start 0.2 0.2)
-	(end 31.56 15.04)
+	(end 37.06 15.04)
 	(stroke (width 0.12) (type solid))
 	(fill no)
 	(layer "F.SilkS")

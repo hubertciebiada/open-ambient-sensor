@@ -545,7 +545,7 @@
 	)
 	(fp_rect
 		(start 0.2 0.2)
-		(end 31.56 15.04)
+		(end 37.06 15.04)
 		(stroke (width 0.12) (type solid))
 		(fill no)
 		(layer "F.SilkS")
@@ -1765,7 +1765,7 @@
 	(uuid "5dae6272-8ff1-5847-b04f-95645e033098")
 )
 (fp_text user "ESP32-C6 DevKitM-1"
-	(at 12.7 45.76 90)
+	(at 12.7 24.13 90)
 	(layer "F.SilkS")
 	(uuid "9a92361f-056e-5d8b-b1bb-5f589666cbde")
 	(effects (font (size 1.0 1.0) (thickness 0.15)))
@@ -1961,8 +1961,8 @@
 	(layer "F.Fab")
 	(uuid "71dc008c-4430-50ec-a26e-8a3cabbf7174")
 )
-(fp_text user "NFC"
-	(at 12.7 26.1 90)
+(fp_text user "MIKROE-2462"
+	(at 12.7 14.3 90)
 	(layer "F.SilkS")
 	(uuid "5e568412-ec73-59ce-a8f2-9609ccf9d240")
 	(effects (font (size 1.0 1.0) (thickness 0.15)))

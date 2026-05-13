@@ -250,7 +250,16 @@ LD2410_SILK_INSET = 0.2          # F.SilkS inset from F.Fab outline (top/
                                   # below) so the silk rectangle does NOT
                                   # extend into the J4 pin-header silk area
                                   # at the connector edge.
-LD2410_SILK_INSET_CONN = 4.0     # Larger inset on the connector-edge (+X)
+LD2410_SILK_INSET_CONN = -1.5    # NEGATIVE inset: F.SilkS body rect EXTENDS
+                                  # 1.5 mm beyond body edge on the connector
+                                  # side so the WHOLE J4 footprint (pads +
+                                  # stock silk frame + ref text) sits inside
+                                  # the LD2410 silk rect — per user request
+                                  # "J4 musi być w obrębie płytki". Clearance
+                                  # to J4 silk frame outer edge (PCB Y=20.21):
+                                  # silk_y_max = -16.51 + (35.56-(-1.5)) =
+                                  # +20.55, gap 0.34 mm edge-to-edge (>0.15
+                                  # silk_overlap minimum).
                                   # side so the LD2410 silk rectangle stops
                                   # ~4 mm short of the body's connector edge,
                                   # leaving room for the J4 pin-header silk
@@ -2270,9 +2279,12 @@ def _daughterboard_body_content(
                 \t)"""))
 
     # Centre body label — F.SilkS so it shows on the physical board and 3D.
+    # Position at body center (along long axis) with rotation 90 so the
+    # text reads along the body. Centering avoids text bbox extending past
+    # the silk rect (silk_overlap) when the body label string is long.
     parts.append(textwrap.dedent(f"""\
         \t(fp_text user "{body_label}"
-        \t\t(at {fmt(body_w / 2.0)} {fmt(body_l - 2.5)} 90)
+        \t\t(at {fmt(body_w / 2.0)} {fmt(body_l / 2.0)} 90)
         \t\t(layer "F.SilkS")
         \t\t(uuid "{U('fp-body-label:' + uuid_tag)}")
         \t\t(effects (font (size 1.0 1.0) (thickness 0.15)))
@@ -2552,7 +2564,7 @@ def gen_sensors_pcb_footprints() -> str:
         pin_row_inset=MIKROE2462_PIN_ROW_INSET,
         pin_pitch=MIKROE2462_PIN_PITCH,
         pin_count_per_row=MIKROE2462_PIN_COUNT_PER_ROW,
-        body_label="NFC",
+        body_label="MIKROE-2462",
         antenna_label=None,
         usb_label=None,
         uuid_tag="mikroe2462-pcb",
@@ -12173,7 +12185,7 @@ def main():
             pin_row_inset=MIKROE2462_PIN_ROW_INSET,
             pin_pitch=MIKROE2462_PIN_PITCH,
             pin_count_per_row=MIKROE2462_PIN_COUNT_PER_ROW,
-            body_label="NFC",
+            body_label="MIKROE-2462",
             antenna_label=None,
             usb_label=None,
             uuid_tag="mikroe2462",

@@ -190,8 +190,8 @@
 	(layer "F.Fab")
 	(uuid "8cd1ab32-a4ff-5295-8b41-68b13d6ae86f")
 )
-(fp_text user "NFC"
-	(at 12.7 26.1 90)
+(fp_text user "MIKROE-2462"
+	(at 12.7 14.3 90)
 	(layer "F.SilkS")
 	(uuid "6e481535-41be-5292-b44d-541386473cf1")
 	(effects (font (size 1.0 1.0) (thickness 0.15)))
