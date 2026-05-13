@@ -1303,27 +1303,29 @@ def gen_sen66_mechanical_footprint() -> str:
         \t\t(effects (font (size 1.27 1.27)))
         \t)""")
 
-    # Courtyard — match the body outline exactly (no inflate). The SEN66
-    # lives directly on the PCB (face-up, v0.6+). The body's "footprint
-    # courtyard" matches the body outline so neighbouring components
-    # know to keep clear of the SEN66 body shadow on the PCB surface.
-    courtyard = textwrap.dedent(f"""\
-        \t(fp_rect
-        \t\t(start {fmt(x_min)} {fmt(y_min)})
-        \t\t(end {fmt(x_max)} {fmt(y_max)})
-        \t\t(stroke (width 0.05) (type solid))
-        \t\t(fill no)
-        \t\t(layer "F.CrtYd")
-        \t\t(uuid "{U('sen66:fp:crtyd')}")
-        \t)""")
+    # No F.CrtYd in v0.21+: the SEN66 body sits 21.5 mm ABOVE the OAS
+    # PCB (zip-tied face-up onto the board). Components mounted on the
+    # PCB beneath the SEN66's body shadow are perfectly fine as long
+    # as their own height (typically 0.5–3 mm for 0402/0603/SOT-23/
+    # SOIC) stays well under the 21 mm air gap. A body-sized PCB-level
+    # courtyard would falsely flag those legitimate placements as
+    # `courtyards_overlap`, which is exactly what the v0.20 → v0.21
+    # 15-DRC-violations baseline revealed (5 of 15 violations were
+    # SENS1-vs-Q1/D3/R1/R4/F1 false positives, all components physically
+    # safe under the 21 mm SEN66 standoff). Same convention used for
+    # MOD1 (ESP32-C6-DevKitM-1) and MOD2 (MIKROE-2462) — see
+    # `_emit_daughterboard_reference_pcb_footprint`.
+    courtyard = ""
 
-    body_blocks = "\n".join([
-        ref_block, value_block, footprint_block, datasheet_block, desc_block,
-        fab_outline, silk_outline,
-        inlet1_top, inlet1_bot, inlet1_left_arc, inlet1_right_arc,
-        inlet2, outlet, divider, conn_marker, conn_label,
-        courtyard,
-    ])
+    body_blocks = "\n".join(
+        block for block in [
+            ref_block, value_block, footprint_block, datasheet_block, desc_block,
+            fab_outline, silk_outline,
+            inlet1_top, inlet1_bot, inlet1_left_arc, inlet1_right_arc,
+            inlet2, outlet, divider, conn_marker, conn_label,
+            courtyard,
+        ] if block
+    )
 
     return textwrap.dedent(f"""\
         (footprint "SEN66_Mechanical_Reference"
@@ -2176,15 +2178,11 @@ def gen_sen66_reference_pcb_footprint(x: float, y: float, rotation: int) -> str:
         \t\t\t(uuid "{U('fp-conn-label:' + uuid_tag)}")
         \t\t\t(effects (font (size 1.0 1.0) (thickness 0.15)))
         \t\t)
-        \t\t(fp_rect
-        \t\t\t(start {fmt(x_min)} {fmt(y_min)})
-        \t\t\t(end {fmt(x_max)} {fmt(y_max)})
-        \t\t\t(stroke (width 0.05) (type solid))
-        \t\t\t(fill no)
-        \t\t\t(layer "F.CrtYd")
-        \t\t\t(uuid "{U('fp-crtyd:' + uuid_tag)}")
-        \t\t)
         \t)""")
+        # v0.21: No F.CrtYd — the SEN66 body sits 21.5 mm above the
+        # OAS PCB, so a body-sized courtyard falsely flags every PCB-
+        # surface SMD beneath as `courtyards_overlap`. See the matching
+        # comment in `gen_sen66_mechanical_footprint()` above.
 
 
 def _kicad_install_path() -> Path:
@@ -5834,15 +5832,36 @@ def gen_root_sch() -> str:
     # internal U3 symbol exposes GPIO16/17 on its right side. To reach
     # them, the wire goes east past the io block's right edge (139.7),
     # vertical up the east side of the page, then west into the MCU pin.
-    # The east-going horizontal segments at Y=97.79 and Y=100.33 traverse
-    # the io block area — which is empty for now, so visually fine.
-    # Vertical legs at X=143.51 (UART_TX) and X=146.05 (UART_RX) keep the
-    # two nets on distinct columns.
-    inter_wires.append(_root_wire(88.9, 97.79, 143.51, 97.79, "uart-tx-east-from-sensors"))
-    inter_wires.append(_root_wire(143.51, 97.79, 143.51, 52.07, "uart-tx-vertical"))
+    #
+    # v0.21 CROSSOVER FIX — the previous routing ran the east-going
+    # horizontal segments at Y=97.79 (UART_TX) and Y=100.33 (UART_RX),
+    # the SAME Y as the IO sub-sheet's USB_DP (Y=97.79) and EN (Y=100.33)
+    # LEFT-edge sheet pins. The east-going UART wires X-range
+    # [88.9..143.51 / 146.05] OVERLAPPED with the IO block's
+    # west-into-io wires at the same Y, in X-range [101.6..156.21 /
+    # 158.75]. The overlap zone X ∈ [101.6, 143.51 / 146.05] was where
+    # KiCad merged UART_TX with USB_DP and UART_RX with EN, producing
+    # bogus nets `/IO/USB_DP` (binding J4 pin 3 LD2410_RX with U3 pin 28
+    # USB_DP) and `/IO/EN` (binding J4 pin 2 LD2410_TX with U3 pin 2
+    # RST). Fix: route the UART east stub OUT of the IO-block-row Y
+    # range first by stepping SOUTH off the sensors block bottom
+    # (Y=106.68) to Y=110.49 (UART_TX) / Y=113.03 (UART_RX), then east
+    # past the page-right column, then north to the MCU UART pins, then
+    # west into the MCU block. The intermediate east stub at X=95.25
+    # (UART_TX) / X=97.79 (UART_RX) sits between the sensors block right
+    # edge (X=88.9) and the IO block left edge (X=101.6), avoiding any
+    # overlap with the IO USB_DP / EN routes.
+    # UART_TX route:
+    inter_wires.append(_root_wire(88.9, 97.79, 95.25, 97.79, "uart-tx-east-stub"))
+    inter_wires.append(_root_wire(95.25, 97.79, 95.25, 110.49, "uart-tx-south"))
+    inter_wires.append(_root_wire(95.25, 110.49, 143.51, 110.49, "uart-tx-east-under-io"))
+    inter_wires.append(_root_wire(143.51, 110.49, 143.51, 52.07, "uart-tx-vertical"))
     inter_wires.append(_root_wire(143.51, 52.07, 139.7, 52.07, "uart-tx-west-into-mcu"))
-    inter_wires.append(_root_wire(88.9, 100.33, 146.05, 100.33, "uart-rx-east-from-sensors"))
-    inter_wires.append(_root_wire(146.05, 100.33, 146.05, 54.61, "uart-rx-vertical"))
+    # UART_RX route (parallel, one grid step south of UART_TX):
+    inter_wires.append(_root_wire(88.9, 100.33, 97.79, 100.33, "uart-rx-east-stub"))
+    inter_wires.append(_root_wire(97.79, 100.33, 97.79, 113.03, "uart-rx-south"))
+    inter_wires.append(_root_wire(97.79, 113.03, 146.05, 113.03, "uart-rx-east-under-io"))
+    inter_wires.append(_root_wire(146.05, 113.03, 146.05, 54.61, "uart-rx-vertical"))
     inter_wires.append(_root_wire(146.05, 54.61, 139.7, 54.61, "uart-rx-west-into-mcu"))
     # chunk #5c inter-sheet wire for NFC_FD.
     # NFC_FD — sensors left-edge (50.8, 95.25) ↔ MCU left-edge (101.60, 59.69).
@@ -13120,13 +13139,25 @@ _MCU_LIB_SYMBOLS_TAIL = """\
 def MCU_LIB_SYMBOLS() -> str:
     """Concatenated lib_symbols block for the MCU sub-sheet.
 
-    Combines the dynamically-built ESP32-C6-DevKitM-1 symbol (see
-    ESP32C6_DEVKITM1_PINS for the single source of truth) with the
-    stock Device:R block and the static tail (Conn_01x06, Device:C,
-    Device:C_Polarized, power:+3V3, power:GND).
+    v0.21 (M3): the old per-project `OAS:ESP32-C6_DevKitM-1` 30-pin
+    placeholder symbol (U3) is gone. The ESP32-C6 DevKitM-1-N4 plugs
+    into the PCB via 2× 1×15 female pin sockets J5 (antenna-side row,
+    DevKitM-1 J1 pins 1..15) and J6 (USB-side row, DevKitM-1 J3 pins
+    1..15). Each socket is represented in the schematic by a
+    `Connector_Generic:Conn_01x15` symbol whose pin numbering matches
+    the PCB pad numbering 1:1 — so `sync_pcb_nets_from_schematic`
+    propagates schematic nets onto J5/J6 pads without an intermediate
+    placeholder.
+
+    Combines:
+      - `Connector_Generic:Conn_01x15` (J5, J6 schematic symbols)
+      - Device:R lib symbol (R5/R6 I²C pull-ups)
+      - Static tail (Conn_01x06, Device:C, Device:C_Polarized,
+        power:+3V3, power:GND)
     """
     return "\n".join((
-        _esp32c6_devkitm1_lib_symbol(),
+        _read_kicad_lib_symbol("Connector_Generic.kicad_sym", "Conn_01x15",
+                               lib_nickname="Connector_Generic"),
         _DEVICE_R_LIB_SYMBOL,
         _MCU_LIB_SYMBOLS_TAIL,
     ))
@@ -13718,9 +13749,163 @@ def _sch_conn_01x05(
         \t)""")
 
 
+# Pin-1 lib_y for each Connector_Generic:Conn_01xN stock symbol, read out
+# of `C:\Program Files\KiCad\10.0\share\kicad\symbols\Connector_Generic.kicad_sym`.
+# Each symbol's pins go top → bottom at 2.54 mm pitch starting from
+# lib_y = Pin-1 lib_y. lib_y +ve is UP; schematic +Y is DOWN, so at
+# angle=0 the pin Y in the schematic frame = anchor_y - lib_y.
+_CONN_01XN_PIN1_LIB_Y: dict[int, float] = {
+    4:  2.54,
+    5:  5.08,
+    6:  5.08,
+    8:  7.62,
+    15: 17.78,
+}
+
+
+def _sch_conn_01xn(
+    *,
+    pin_count: int,
+    x: float, y: float, angle: int,
+    reference: str, value: str, uuid_tag: str,
+    dnp: bool = False, sheet_key: str,
+) -> str:
+    """Emit a Connector_Generic:Conn_01xN symbol instance (generic).
+
+    Used in v0.21 (M3) for the J5 / J6 ESP32-DevKitM-1 socket pair
+    (Conn_01x15) and the J7 / J8 MIKROE-2462 socket pair (Conn_01x08),
+    which replaced U3 (ESP32 placeholder) and U4 (mikroBUS placeholder)
+    respectively. Generalises `_sch_conn_01x05` / `_sch_conn_01x06`.
+
+    With angle=0, lib pin tip positions map to schematic as:
+      Pin n: (X - 5.08,  Y - (PIN1_LIB_Y - 2.54*(n-1)))
+    All pin tips on the LEFT side, body to the right of the anchor.
+
+    `pin_count` must be one of the keys of _CONN_01XN_PIN1_LIB_Y; add
+    new entries there as needed.
+    """
+    if pin_count not in _CONN_01XN_PIN1_LIB_Y:
+        raise ValueError(
+            f"_sch_conn_01xn: unsupported pin_count={pin_count}; "
+            f"extend _CONN_01XN_PIN1_LIB_Y with the pin-1 lib_y for "
+            f"Conn_01x{pin_count:02d}."
+        )
+    pin1_lib_y = _CONN_01XN_PIN1_LIB_Y[pin_count]
+    pin_n_lib_y_bottom = pin1_lib_y - (pin_count - 1) * 2.54
+    sym_uuid = U("sym:" + uuid_tag)
+    pin_uuids = [U(f"sym-pin:{uuid_tag}-{n}") for n in range(1, pin_count + 1)]
+    sheet_path = f"/{ROOT_SHEET_UUID}/{SHEET_BLOCK_UUIDS[sheet_key]}"
+    dnp_flag = "yes" if dnp else "no"
+    pin_blocks = "\n".join(
+        f"\t\t(pin \"{n}\"\n\t\t\t(uuid \"{pin_uuids[n-1]}\")\n\t\t)"
+        for n in range(1, pin_count + 1)
+    )
+    # Reference anchor sits above pin 1 (with a small margin); Value
+    # anchor below the bottom pin. Use lib coords scaled to schem:
+    #   ref_y_schem  = y - (pin1_lib_y + 2.54)
+    #   val_y_schem  = y - (pin_n_lib_y_bottom - 2.54)
+    ref_y = y - (pin1_lib_y + 2.54)
+    val_y = y - (pin_n_lib_y_bottom - 2.54)
+    return textwrap.dedent(f"""\
+        \t(symbol
+        \t\t(lib_id "Connector_Generic:Conn_01x{pin_count:02d}")
+        \t\t(at {fmt(x)} {fmt(y)} {angle})
+        \t\t(unit 1)
+        \t\t(exclude_from_sim no)
+        \t\t(in_bom yes)
+        \t\t(on_board yes)
+        \t\t(dnp {dnp_flag})
+        \t\t(fields_autoplaced yes)
+        \t\t(uuid "{sym_uuid}")
+        \t\t(property "Reference" "{reference}"
+        \t\t\t(at {fmt(x + 2.54)} {fmt(ref_y)} 0)
+        \t\t\t(effects
+        \t\t\t\t(font
+        \t\t\t\t\t(size 1.27 1.27)
+        \t\t\t\t)
+        \t\t\t\t(justify left)
+        \t\t\t)
+        \t\t)
+        \t\t(property "Value" "{value}"
+        \t\t\t(at {fmt(x + 2.54)} {fmt(val_y)} 0)
+        \t\t\t(effects
+        \t\t\t\t(font
+        \t\t\t\t\t(size 1.27 1.27)
+        \t\t\t\t)
+        \t\t\t\t(justify left)
+        \t\t\t)
+        \t\t)
+        \t\t(property "Footprint" ""
+        \t\t\t(at {fmt(x)} {fmt(y)} 0)
+        \t\t\t(effects
+        \t\t\t\t(font
+        \t\t\t\t\t(size 1.27 1.27)
+        \t\t\t\t)
+        \t\t\t\t(hide yes)
+        \t\t\t)
+        \t\t)
+        \t\t(property "Datasheet" ""
+        \t\t\t(at {fmt(x)} {fmt(y)} 0)
+        \t\t\t(effects
+        \t\t\t\t(font
+        \t\t\t\t\t(size 1.27 1.27)
+        \t\t\t\t)
+        \t\t\t\t(hide yes)
+        \t\t\t)
+        \t\t)
+        \t\t(property "Description" ""
+        \t\t\t(at {fmt(x)} {fmt(y)} 0)
+        \t\t\t(effects
+        \t\t\t\t(font
+        \t\t\t\t\t(size 1.27 1.27)
+        \t\t\t\t)
+        \t\t\t\t(hide yes)
+        \t\t\t)
+        \t\t)
+        {pin_blocks}
+        \t\t(instances
+        \t\t\t(project "oas"
+        \t\t\t\t(path "{sheet_path}"
+        \t\t\t\t\t(reference "{reference}")
+        \t\t\t\t\t(unit 1)
+        \t\t\t\t)
+        \t\t\t)
+        \t\t)
+        \t)""")
+
+
+def _conn_01xn_pin_xy(
+    pin_num: int, anchor_x: float, anchor_y: float, pin_count: int,
+) -> tuple[float, float]:
+    """Schematic-frame (x, y) of pin tip `pin_num` for a Conn_01x{pin_count}
+    instance at (anchor_x, anchor_y) and rotation 0.
+
+    Mirrors `_sch_conn_01xn`: pins are on the LEFT edge at lib_x=-5.08;
+    pin 1 sits at the top (lib_y = +PIN1_LIB_Y) and subsequent pins step
+    down at 2.54 mm pitch.
+    """
+    pin1_lib_y = _CONN_01XN_PIN1_LIB_Y[pin_count]
+    lib_y = pin1_lib_y - (pin_num - 1) * 2.54
+    return (anchor_x - 5.08, anchor_y - lib_y)
+
+
 def gen_mcu_sch() -> str:
-    """MCU sub-sheet — ESP32-C6-DevKitM-1-N4 (U3) + C9/C17 decoupling
-    + R5/R6 I²C pull-ups + J2 recovery header.
+    """MCU sub-sheet — ESP32-C6-DevKitM-1-N4 sockets J5/J6 + C9/C17
+    decoupling + R5/R6 I²C pull-ups + J2 recovery header.
+
+    v0.21 (M3): the previous 30-pin `OAS:ESP32-C6_DevKitM-1` placeholder
+    symbol (U3) was a schematic-only abstraction with no PCB twin —
+    `sync_pcb_nets_from_schematic` could not propagate any net to the
+    PCB-side J5 / J6 female pin sockets, because the U3 symbol's pin
+    references did not match the J5/J6 PCB pad references. v0.21
+    replaces U3 with TWO `Connector_Generic:Conn_01x15` instances —
+    J5 (ESP32 J1 row, pin tips on the LEFT, antenna-side socket on
+    PCB) and J6 (ESP32 J3 row, pin tips on the RIGHT, USB-side socket
+    on PCB) — whose schematic pin numbers 1..15 match the PCB pad
+    numbers of the corresponding female pin socket 1:1. Now every
+    used signal on the DevKitM-1 has a direct (J5 ref, pin) or
+    (J6 ref, pin) → net mapping that `sync_pcb_nets_from_schematic`
+    can apply to the PCB pads.
 
     Layout (schematic page-absolute mm, KiCad +Y is down on screen):
 
@@ -13732,57 +13917,77 @@ def gen_mcu_sch() -> str:
         GND   SDA tap   SCL tap   GND             |
                                                   |
                                                   v
-                                          U3.1 (3V3 pin) at top of J1
+                                          J5.1 (3V3 pin) at top of J5
 
-      U3 anchored at (152.40, 110.49) with 30 pins (J1 left, J3 right;
-      15 pins per header) modelled on the official Espressif user guide
-      pin layout. R5 (SDA pull-up) drops south from the +3V3 bus and
-      taps the SDA wire at U3.10 (GPIO 6). R6 (SCL pull-up) drops south
-      and taps the SCL wire at U3.11 (GPIO 7); its vertical wire crosses
-      the SDA horizontal wire mid-segment without a junction, so the two
-      stay electrically distinct per KiCad's wire-crossing rule.
+      J5 (Conn_01x15, angle=0)  at (144.78, 110.49). Pin tips on LEFT
+      at X=139.70, pin 1 at TOP Y=92.71, pin 15 at BOTTOM Y=128.27.
+      Represents the antenna-side header row (ESP32 module's J1).
 
-      J2 (SWD/UART recovery, DNP) sits to the right of U3, with TX/RX
-      pins aligned to U3's J3.2 / J3.3 rows so the UART wires are short
-      straight runs. BOOT and EN (RST) reach J2 via local labels (so we
-      don't have to route a wire across the body of U3 from J1.2 (RST)
-      to the right side).
+      J6 (Conn_01x15, angle=180) at (160.02, 110.49). Pin tips on
+      RIGHT at X=165.10, pin 1 at BOTTOM Y=128.27, pin 15 at TOP
+      Y=92.71 (numbering visually reversed by the 180° rotation —
+      KiCad still maps net assignments by pin number 1..15).
+      Represents the USB-side header row (ESP32 module's J3).
 
-    Pinout (v0.4 of CLAUDE.md / docs/ARCHITECTURE.md, post chip-pinout
-    validation against the Espressif user guide). Pin numbers below are
-    the symbol's own (1..30) numbers, mapping to the DevKitM-1 J1/J3
-    header positions as recorded in ESP32C6_DEVKITM1_PINS:
-      U3.1  (J1.1)  3V3      → +3V3 bus
-      U3.2  (J1.2)  RST      → local label "RST" (joins to J2.5 EN)
-      U3.3  (J1.3)  GPIO2    → LD2410_OUT (presence interrupt)
-      U3.4  (J1.4)  GPIO3    → NFC_FD (NT3H1101 field detect)
-      U3.5..9       GPIO4/5/0/1/8  no-connect (strap pins / unused / RGB LED)
-      U3.10 (J1.10) GPIO6    → I2C_SDA
-      U3.11 (J1.11) GPIO7    → I2C_SCL
-      U3.12 (J1.12) GPIO14   no-connect
-      U3.13 (J1.13) GND      → GND
-      U3.14 (J1.14) 5V       no-connect
-      U3.15 (J1.15) GND      → GND
-      U3.16 (J3.1)  GND      → GND
-      U3.17 (J3.2)  GPIO16   → UART_TX (256000 baud → LD2410 RX)
-      U3.18 (J3.3)  GPIO17   → UART_RX (256000 baud ← LD2410 TX)
-      U3.19..25     GPIO23/22/21/20/19/18/15  no-connect
-      U3.26 (J3.11) GPIO9    → local label "BOOT" (joins to J2.6 BOOT)
-      U3.27 (J3.12) GND      → GND
-      U3.28 (J3.13) GPIO13   → USB_DP (v0.19: native USB-Serial-JTAG D+
-                              → IO sub-sheet's J10 native-USB recovery)
-      U3.29 (J3.14) GPIO12   → USB_DM (v0.19: native USB-Serial-JTAG D−)
-      U3.30 (J3.15) GND      → GND
+      The J5 / J6 pin tips line up with the SAME X coordinates as
+      the old U3 pin tips (139.70 left, 165.10 right), so the
+      existing left- and right-edge hierarchical labels and all
+      the +3V3 bus / R5 / R6 / C9 / C17 wiring drop in unchanged.
 
-    Inter-sheet nets exported via hierarchical_label (matching sheet ports
-    are added to oas.kicad_sch's MCU sheet block):
+      J2 (SWD/UART recovery, DNP) — rotated to angle=180 in v0.21
+      so its UART TX/RX pin row aligns with J6's UART_TX (pin 2 at
+      Y=125.73) / UART_RX (pin 3 at Y=123.19). At angle=180 the J2
+      pin order in screen Y is REVERSED vs angle=0: pin 1 (+3V3) at
+      the BOTTOM, pin 6 (BOOT) at the TOP.
+
+    DevKitM-1 pinout (CLAUDE.md v0.4 + v0.15.8 fixes). Pin numbers
+    below are the J5 / J6 socket-side pin numbers 1..15, equal to
+    the DevKitM-1's J1 / J3 header pin positions per the Espressif
+    user guide.
+
+      J5 (DevKitM-1 J1, antenna-side header)
+        J5.1   3V3                              → +3V3 bus
+        J5.2   RST                              → hier label "EN"
+        J5.3   GPIO2                            → hier label "LD2410_OUT"
+        J5.4   GPIO3                            → hier label "NFC_FD"
+        J5.5   GPIO4   (strap MTMS)             → no_connect
+        J5.6   GPIO5   (strap MTDI)             → no_connect
+        J5.7   GPIO0                            → no_connect (spare)
+        J5.8   GPIO1                            → no_connect (spare)
+        J5.9   GPIO8   (strap boot, onboard LED)→ hier label "WS2812_DIN"
+        J5.10  GPIO6                            → hier label "I2C_SDA"
+        J5.11  GPIO7                            → hier label "I2C_SCL"
+        J5.12  GPIO14                           → no_connect (spare)
+        J5.13  GND                              → GND
+        J5.14  5V                               → no_connect (powering 3V3 only)
+        J5.15  GND                              → GND
+
+      J6 (DevKitM-1 J3, USB-side header)
+        J6.1   GND                              → GND
+        J6.2   GPIO16  (UART0 TX)               → hier label "UART_TX"
+        J6.3   GPIO17  (UART0 RX)               → hier label "UART_RX"
+        J6.4   GPIO23                           → no_connect (spare)
+        J6.5   GPIO22                           → no_connect (spare)
+        J6.6   GPIO21                           → no_connect (spare)
+        J6.7   GPIO20                           → no_connect (spare)
+        J6.8   GPIO19                           → no_connect (spare)
+        J6.9   GPIO18                           → no_connect (spare)
+        J6.10  GPIO15  (strap)                  → no_connect
+        J6.11  GPIO9   (strap, BOOT button)     → hier label "BOOT"
+        J6.12  GND                              → GND
+        J6.13  GPIO13  (USB D+)                 → hier label "USB_DP"
+        J6.14  GPIO12  (USB D-)                 → hier label "USB_DM"
+        J6.15  GND                              → GND
+
+    Inter-sheet nets exported via hierarchical_label (matching sheet
+    ports are declared on the root sheet's MCU sheet block):
       I2C_SDA, I2C_SCL    → sensors sub-sheet + io sub-sheet (Qwiic)
       UART_TX, UART_RX    → sensors sub-sheet (LD2410)
       LD2410_OUT          → sensors sub-sheet
       NFC_FD              → sensors sub-sheet
-      USB_DM, USB_DP      → io sub-sheet (J10 native-USB recovery header)  [v0.19]
-      EN                  → io sub-sheet (J10 chip-enable / reset pin)     [v0.19]
-      BOOT                → io sub-sheet (J10 GPIO9 boot-mode strap)       [v0.19]
+      USB_DM, USB_DP      → io sub-sheet (J10 native-USB recovery header)
+      EN                  → io sub-sheet (J10 chip-enable / reset pin)
+      BOOT                → io sub-sheet (J10 GPIO9 boot-mode strap)
 
     +3V3 and GND are NOT exported as hierarchical labels: the power
     section already declared them via global power symbols, which is
@@ -13790,48 +13995,99 @@ def gen_mcu_sch() -> str:
     Adding hier labels for them would produce "multiple net names on the
     same net" ERC noise without any electrical benefit.
 
-    J2 (SWD/UART Recovery, DNP) pinout — same as v0.3 (only the J2.5
-    name was renamed from "RST" → "EN" in v0.19 to share the same
-    hier-label net as the IO sub-sheet's J10 recovery EN pin):
-      J2.1 (top)    +3V3
-      J2.2          GND
-      J2.3          UART_TX
-      J2.4          UART_RX
-      J2.5          EN            (was RST in v0.18; renamed to merge with
-                                   the IO sub-sheet's J10 EN hier label)
-      J2.6 (bottom) BOOT          (hier label "BOOT", v0.19)
+    J2 (SWD/UART Recovery, DNP) pinout — same as v0.19 (only J2.5
+    was renamed from "RST" → "EN" in v0.19 to share the hier-labelled
+    EN net with the IO sub-sheet's J10 recovery EN pin):
+      J2.1  +3V3
+      J2.2  GND
+      J2.3  UART_TX        — taps J6 pin 2 UART_TX
+      J2.4  UART_RX        — taps J6 pin 3 UART_RX
+      J2.5  EN             — hier label, joins J5 pin 2 RST
+      J2.6  BOOT           — hier label, joins J6 pin 11 BOOT
     """
     file_uuid = SHEET_FILE_UUIDS["mcu"]
 
-    # ===== U3: ESP32-C6-DevKitM-1-N4 module =====
+    # ===== J5 + J6: ESP32-C6-DevKitM-1-N4 socket pair =====
     # All coordinates on the 1.27 mm (50 mil) KiCad connection grid.
-    # U3 anchor (152.40, 110.49); the new 30-pin symbol has its top
-    # row at anchor_y - 17.78 and bottom row at anchor_y + 17.78.
-    U3_X = 152.40
-    U3_Y = 110.49
-    # Pin tip shorthands (X) — derived from the lib-symbol geometry.
-    U3_X_LEFT  = U3_X + ESP32C6_DEVKITM1_LIB_X_LEFT   # 139.70
-    U3_X_RIGHT = U3_X + ESP32C6_DEVKITM1_LIB_X_RIGHT  # 165.10
+    # J5 (DevKitM-1 J1 row) at angle=0, anchor (144.78, 110.49). Pin
+    # tips on LEFT at X=139.70 (= U3_X_LEFT pre-v0.21). Pin 1 at top
+    # (Y=92.71), pin 15 at bottom (Y=128.27).
+    # J6 (DevKitM-1 J3 row) at angle=180, anchor (160.02, 110.49). Pin
+    # tips on RIGHT at X=165.10 (= U3_X_RIGHT pre-v0.21). Pin 1 at
+    # BOTTOM (Y=128.27), pin 15 at TOP (Y=92.71) — order reversed by
+    # the 180° rotation.
+    J5_ANCHOR_X = 144.78          # pin tips at 144.78 - 5.08 = 139.70 LEFT
+    J5_ANCHOR_Y = 110.49
+    J5_PIN_X    = 139.70           # convenience: pin tip column
+    J6_ANCHOR_X = 160.02          # pin tips at 160.02 + 5.08 = 165.10 RIGHT
+    J6_ANCHOR_Y = 110.49
+    J6_PIN_X    = 165.10           # convenience: pin tip column
 
-    # Resolve symbol-pin tip (x, y) by signal name (one source of truth).
-    def pin_xy(signal: str) -> tuple[float, float]:
-        pin_num = ESP32C6_DEVKITM1_SIGNAL_PIN[signal]
-        return _mcu_pin_xy(pin_num, U3_X, U3_Y)
-    # Pre-resolve the OAS-routed pin coordinates.
-    U3_3V3_X,    U3_3V3_Y    = pin_xy("3V3")          # J1.1
-    U3_RST_X,    U3_RST_Y    = pin_xy("RST")          # J1.2
-    U3_LDR_X,    U3_LDR_Y    = pin_xy("LD2410_OUT")   # J1.3 GPIO2
-    U3_NFC_X,    U3_NFC_Y    = pin_xy("NFC_FD")       # J1.4 GPIO3
-    U3_WS_X,     U3_WS_Y     = pin_xy("WS2812_DIN")   # J1.9 GPIO8 (v0.16)
-    U3_SDA_X,    U3_SDA_Y    = pin_xy("I2C_SDA")      # J1.10 GPIO6
-    U3_SCL_X,    U3_SCL_Y    = pin_xy("I2C_SCL")      # J1.11 GPIO7
-    U3_TX_X,     U3_TX_Y     = pin_xy("UART_TX")      # J3.2  GPIO16
-    U3_RX_X,     U3_RX_Y     = pin_xy("UART_RX")      # J3.3  GPIO17
-    U3_BOOT_X,   U3_BOOT_Y   = pin_xy("BOOT")         # J3.11 GPIO9
-    # v0.19: native USB-Serial-JTAG pins routed to IO sub-sheet's J10
-    # recovery header.
-    U3_USB_DP_X, U3_USB_DP_Y = pin_xy("USB_DP")       # J3.13 GPIO13
-    U3_USB_DM_X, U3_USB_DM_Y = pin_xy("USB_DM")       # J3.14 GPIO12
+    def j5_pin_y(pin_num: int) -> float:
+        """Schematic Y of J5 pin tip n (n in 1..15). J5 is angle=0,
+        so pin 1 at top, pin 15 at bottom."""
+        x, y = _conn_01xn_pin_xy(pin_num, J5_ANCHOR_X, J5_ANCHOR_Y, 15)
+        return y
+
+    def j6_pin_y(pin_num: int) -> float:
+        """Schematic Y of J6 pin tip n (n in 1..15). J6 is angle=180,
+        so pin 1 at BOTTOM, pin 15 at TOP. With the angle-180 transform
+        applied: pin n schem Y = anchor_y + lib_y, where lib_y = +17.78
+        - 2.54*(n-1)."""
+        pin1_lib_y = _CONN_01XN_PIN1_LIB_Y[15]
+        lib_y = pin1_lib_y - (pin_num - 1) * 2.54
+        return J6_ANCHOR_Y + lib_y
+
+    # J5 / J6 pin-to-signal mapping (per CLAUDE.md v0.4 + v0.15.8 fixes).
+    # The pin numbers below match the PCB pad numbers on the female pin
+    # socket footprints J5 / J6 placed by `gen_pcb()`, and they also
+    # match the DevKitM-1's J1 / J3 header pin positions 1..15 per the
+    # Espressif user guide.
+    J5_SIGNAL_PIN: dict[str, int] = {
+        "3V3"        : 1,
+        "RST"        : 2,
+        "LD2410_OUT" : 3,
+        "NFC_FD"     : 4,
+        "WS2812_DIN" : 9,
+        "I2C_SDA"    : 10,
+        "I2C_SCL"    : 11,
+    }
+    J5_GND_PINS: list[int] = [13, 15]                     # J1.13, J1.15
+    J5_NC_PINS:  list[int] = [5, 6, 7, 8, 12, 14]
+    #                          GPIO4/5/0/1/14   5V (J1.14)
+    J6_SIGNAL_PIN: dict[str, int] = {
+        "UART_TX"    : 2,
+        "UART_RX"    : 3,
+        "BOOT"       : 11,
+        "USB_DP"     : 13,
+        "USB_DM"     : 14,
+    }
+    J6_GND_PINS: list[int] = [1, 12, 15]                  # J3.1, J3.12, J3.15
+    J6_NC_PINS:  list[int] = [4, 5, 6, 7, 8, 9, 10]
+    #                          GPIO23/22/21/20/19/18/15
+    # Sanity: every pin must be classified exactly once on each row.
+    assert set(J5_SIGNAL_PIN.values()) | set(J5_GND_PINS) | set(J5_NC_PINS) == set(range(1, 16))
+    assert set(J6_SIGNAL_PIN.values()) | set(J6_GND_PINS) | set(J6_NC_PINS) == set(range(1, 16))
+    assert not (set(J5_SIGNAL_PIN.values()) & set(J5_GND_PINS))
+    assert not (set(J5_SIGNAL_PIN.values()) & set(J5_NC_PINS))
+    assert not (set(J5_GND_PINS) & set(J5_NC_PINS))
+    assert not (set(J6_SIGNAL_PIN.values()) & set(J6_GND_PINS))
+    assert not (set(J6_SIGNAL_PIN.values()) & set(J6_NC_PINS))
+    assert not (set(J6_GND_PINS) & set(J6_NC_PINS))
+
+    # Per-signal pin-tip resolution (single source of truth).
+    J5_3V3_Y    = j5_pin_y(J5_SIGNAL_PIN["3V3"])         # 92.71
+    J5_RST_Y    = j5_pin_y(J5_SIGNAL_PIN["RST"])         # 95.25
+    J5_LDR_Y    = j5_pin_y(J5_SIGNAL_PIN["LD2410_OUT"])  # 97.79
+    J5_NFC_Y    = j5_pin_y(J5_SIGNAL_PIN["NFC_FD"])      # 100.33
+    J5_WS_Y     = j5_pin_y(J5_SIGNAL_PIN["WS2812_DIN"])  # 113.03
+    J5_SDA_Y    = j5_pin_y(J5_SIGNAL_PIN["I2C_SDA"])     # 115.57
+    J5_SCL_Y    = j5_pin_y(J5_SIGNAL_PIN["I2C_SCL"])     # 118.11
+    J6_TX_Y     = j6_pin_y(J6_SIGNAL_PIN["UART_TX"])     # 125.73
+    J6_RX_Y     = j6_pin_y(J6_SIGNAL_PIN["UART_RX"])     # 123.19
+    J6_BOOT_Y   = j6_pin_y(J6_SIGNAL_PIN["BOOT"])        # 102.87
+    J6_USB_DP_Y = j6_pin_y(J6_SIGNAL_PIN["USB_DP"])      # 97.79
+    J6_USB_DM_Y = j6_pin_y(J6_SIGNAL_PIN["USB_DM"])      # 95.25
 
     # ===== C9: bulk decoupling, 10uF polarized =====
     # Reviewer raised C9's voltage rating from 10 V to 16 V (v0.5):
@@ -13856,52 +14112,41 @@ def gen_mcu_sch() -> str:
     # shared I²C bus (SEN66 + NT3H1101 + Qwiic expansion). Standard
     # mode (100 kHz) compatible; trace length <50 mm fits well within
     # rise-time budget with 10 kΩ pull-ups.
-    # R5 = SDA pull-up, R6 = SCL pull-up.
-    #
-    # Geometry: both resistor bodies are vertical (angle=0), with pin 1
-    # (top, at body_y - 3.81) landing on the +3V3 bus at Y=76.20 and pin
-    # 2 (bottom, at body_y + 3.81) feeding a vertical wire south to the
-    # SDA / SCL horizontal rails. R5 sits at X=121.92 (just east of the
-    # left-hier-label area which ends near X=119.38) and R6 at X=124.46.
-    # The 2.54 mm spacing keeps the bodies tight together; their textual
-    # labels do overlap slightly with C9 in the rendered SVG — a known
-    # visual nit; the schematic is still electrically correct.
-    #
-    # The +3V3 bus is extended westward from C9 (X=129.54) to R5
-    # (X=121.92) to cover both pull-up taps.
     R5_X = 121.92
     R6_X = 124.46
     R5_Y = 80.01                    # body center; pin1 = 76.20, pin2 = 83.82
     R6_Y = 80.01
 
     # ===== +3V3 bus =====
-    # Horizontal at Y=76.20 from R5 (X=128.27) east through R6 (130.81),
-    # C9 (129.54 — sits BETWEEN R5 and R6), C17 (138.43), then on to an
-    # L-corner at X=140.97 from where the bus drops south to U3.1 (3V3
-    # pin) row at Y=92.71 and runs east to the U3.1 pin tip.
+    # Horizontal at Y=76.20 from R5 east through C9, C17, then on to an
+    # L-corner at X=140.97 from where the bus drops south to J5.1 (3V3
+    # pin) row at Y=92.71 and runs east to the J5.1 pin tip at X=139.70.
     BUS_3V3_Y       = 76.20
     BUS_3V3_X_LEFT  = R5_X         # 128.27 (one grid step west of C9)
-    BUS_3V3_X_RIGHT = 140.97       # L-corner west of U3 body left edge
+    BUS_3V3_X_RIGHT = 140.97       # L-corner west of J5 body left edge
     PWR_3V3_X       = 134.62       # power flag between R6 and C17
     PWR_3V3_Y       = BUS_3V3_Y
 
     # ===== J2: SWD/UART recovery header, 6-pin, DNP =====
-    # Place J2 such that its TX/RX pin rows line up with U3.J3.2/J3.3 so
-    # UART takes a straight east-going wire from U3 to J2 (no detour).
-    # J2 with angle=0 lib pin Y offsets {+5.08, +2.54, 0, -2.54, -5.08,
-    # -7.62}. With pin 3 at anchor (J2_Y), the row of U3.J3.2 (= U3_TX_Y
-    # = 95.25) must coincide with J2_PIN_Y[3] = J2_Y. So we set
-    # J2_Y = U3_TX_Y.
-    J2_X = 199.39
-    J2_Y = U3_TX_Y               # 95.25 — TX wire is straight horizontal
-    J2_PIN_X = J2_X - 5.08       # 194.31 — pin tip column (all 6 pins)
+    # v0.21: rotated to angle=180 so its pin 3 (TX) / pin 4 (RX) order
+    # matches J6's reversed pin Y order (J6.2 UART_TX at BOTTOM
+    # Y=125.73, J6.3 UART_RX above at Y=123.19). With angle=180, J2
+    # pin 1 (+3V3) lands at the BOTTOM (anchor_y + 5.08), pin 6 (BOOT)
+    # at the TOP (anchor_y - 7.62). Pin tips on the RIGHT at
+    # anchor_x + 5.08.
+    J2_X = 189.23                # pin tips at 189.23 + 5.08 = 194.31 RIGHT
+    J2_Y = J6_TX_Y               # 125.73 — pin 3 (TX) at this Y exactly
+    J2_PIN_X = J2_X + 5.08       # 194.31 — pin tip column (angle=180)
+    # Conn_01x06 lib pin Y per angle=180: schem_y = anchor_y + lib_y,
+    # lib_y for pin n = (5.08 - 2.54*(n-1)) → pin 1 lib_y=+5.08, pin 6
+    # lib_y=-7.62.
     J2_PIN_Y = {
-        1: J2_Y - 5.08,          # 90.17  — TOP    (+3V3)
-        2: J2_Y - 2.54,          # 92.71            (GND)
-        3: J2_Y,                 # 95.25            (TX)  ← U3_TX_Y
-        4: J2_Y + 2.54,          # 97.79            (RX)  ← U3_RX_Y
-        5: J2_Y + 5.08,          # 100.33           (RST/EN)
-        6: J2_Y + 7.62,          # 102.87 — BOTTOM  (BOOT)
+        1: J2_Y + 5.08,          # 130.81 — BOTTOM (+3V3)
+        2: J2_Y + 2.54,          # 128.27           (GND)
+        3: J2_Y,                 # 125.73           (TX)  ← J6.2 UART_TX
+        4: J2_Y - 2.54,          # 123.19           (RX)  ← J6.3 UART_RX
+        5: J2_Y - 5.08,          # 120.65           (EN)
+        6: J2_Y - 7.62,          # 118.11 — TOP    (BOOT)
     }
 
     # J2_PIN_MAP — recovery header pinout signal assignment. EN (= RST,
@@ -13910,255 +14155,223 @@ def gen_mcu_sch() -> str:
     J2_PIN_MAP: dict[int, str] = {
         1: "+3V3",
         2: "GND",
-        3: "TX",        # ← U3.17 GPIO16 ; continues east to UART_TX hier label
-        4: "RX",        # ← U3.18 GPIO17 ; continues east to UART_RX hier label
-        5: "EN",        # ← U3.2  RST    (hier label, v0.19 was "RST" local)
-        6: "BOOT",      # ← U3.26 GPIO9  (hier label, v0.19 was local)
+        3: "TX",        # ← J6.2 GPIO16 ; continues east to UART_TX hier label
+        4: "RX",        # ← J6.3 GPIO17 ; continues east to UART_RX hier label
+        5: "EN",        # ← J5.2 RST    (hier label, v0.19 was "RST" local)
+        6: "BOOT",      # ← J6.11 GPIO9 (hier label, v0.19 was local)
     }
-    assert set(J2_PIN_MAP.values()) == {"+3V3", "GND", "EN", "BOOT", "TX", "RX"}, \
-        f"J2_PIN_MAP must cover all 6 required signals exactly once: {J2_PIN_MAP}"
+    assert set(J2_PIN_MAP.values()) == {"+3V3", "GND", "EN", "BOOT", "TX", "RX"}
     J2_PIN_OF: dict[str, int] = {sig: pin for pin, sig in J2_PIN_MAP.items()}
 
     # ===== Hierarchical-label columns =====
     # LEFT-edge labels (sensor-bound nets): X=119.38.
     HLABEL_LEFT_X = 119.38
-    # RIGHT-edge labels: X=222.25 (UART_TX, UART_RX).
+    # RIGHT-edge labels: X=222.25 (UART_TX, UART_RX, BOOT, USB_DP, USB_DM).
     HLABEL_RIGHT_X = 222.25
-    HLABEL_TX_Y = J2_PIN_Y[J2_PIN_OF["TX"]]   # 95.25 (= U3_TX_Y)
-    HLABEL_RX_Y = J2_PIN_Y[J2_PIN_OF["RX"]]   # 97.79 (= U3_RX_Y)
 
     # ===== Wires =====
     parts: list[str] = []
 
     # ---- +3V3 wiring ----
     # Horizontal bus from R5 (128.27) east to L-corner (140.97), drop
-    # south to U3.1 row, run east to U3.1 (3V3) pin tip.
+    # south to J5.1 row, run east to J5.1 (3V3) pin tip.
     parts.append(_sch_wire(BUS_3V3_X_LEFT,  BUS_3V3_Y, BUS_3V3_X_RIGHT, BUS_3V3_Y, "3v3-bus"))
-    parts.append(_sch_wire(BUS_3V3_X_RIGHT, BUS_3V3_Y, BUS_3V3_X_RIGHT, U3_3V3_Y,  "3v3-bus-down"))
-    parts.append(_sch_wire(BUS_3V3_X_RIGHT, U3_3V3_Y,  U3_X_LEFT,       U3_3V3_Y,  "3v3-to-u3"))
-    # Junction dots for the four mid-bus taps where C9.pin1, R5.pin1,
-    # R6.pin1, C17.pin1, +3V3 power-flag, and the L-corner connection
-    # share the horizontal bus. R5.pin1 sits at BUS_3V3_X_LEFT — it is
-    # an endpoint of the bus, so no junction needed there. R6.pin1, C9.pin1,
-    # C17.pin1, and PWR_3V3_X are mid-wire taps that DO need junctions.
+    parts.append(_sch_wire(BUS_3V3_X_RIGHT, BUS_3V3_Y, BUS_3V3_X_RIGHT, J5_3V3_Y,  "3v3-bus-down"))
+    parts.append(_sch_wire(BUS_3V3_X_RIGHT, J5_3V3_Y,  J5_PIN_X,        J5_3V3_Y,  "3v3-to-j5"))
     parts.append(_sch_junction(R6_X,      BUS_3V3_Y, "3v3-bus-tap-r6"))
     parts.append(_sch_junction(C9_X,      BUS_3V3_Y, "3v3-bus-tap-c9"))
     parts.append(_sch_junction(PWR_3V3_X, BUS_3V3_Y, "3v3-bus-tap-pwr"))
     parts.append(_sch_junction(C17_X,     BUS_3V3_Y, "3v3-bus-tap-c17"))
 
-    # ---- R5 SDA-pull-up wire: R5.pin2 (128.27, 83.82) south to SDA at (128.27, U3_SDA_Y)
-    # The wire endpoint sits mid-wire on the horizontal SDA — junction needed.
-    parts.append(_sch_wire(R5_X, R5_Y + 3.81, R5_X, U3_SDA_Y, "r5-pullup-to-sda"))
-    parts.append(_sch_junction(R5_X, U3_SDA_Y, "r5-sda-tap"))
-    # ---- R6 SCL-pull-up wire: R6.pin2 (130.81, 83.82) south to SCL at (130.81, U3_SCL_Y)
-    # This vertical wire passes MID-SEGMENT through the horizontal SDA
-    # wire at (130.81, U3_SDA_Y) WITHOUT a junction — per KiCad rules the
-    # crossing wires stay electrically separate. The endpoint at SCL DOES
-    # get a junction (T-tap on the SCL horizontal wire).
-    parts.append(_sch_wire(R6_X, R6_Y + 3.81, R6_X, U3_SCL_Y, "r6-pullup-to-scl"))
-    parts.append(_sch_junction(R6_X, U3_SCL_Y, "r6-scl-tap"))
+    # ---- R5 SDA-pull-up wire ----
+    parts.append(_sch_wire(R5_X, R5_Y + 3.81, R5_X, J5_SDA_Y, "r5-pullup-to-sda"))
+    parts.append(_sch_junction(R5_X, J5_SDA_Y, "r5-sda-tap"))
+    # ---- R6 SCL-pull-up wire ----
+    parts.append(_sch_wire(R6_X, R6_Y + 3.81, R6_X, J5_SCL_Y, "r6-pullup-to-scl"))
+    parts.append(_sch_junction(R6_X, J5_SCL_Y, "r6-scl-tap"))
 
     # ---- C9.pin2 / C17.pin2 → local GND symbols ----
     parts.append(_sch_wire(C9_X,  C9_BOT_Y,  C9_X,  C9_GND_Y,  "c9-to-gnd"))
     parts.append(_sch_wire(C17_X, C17_BOT_Y, C17_X, C17_GND_Y, "c17-to-gnd"))
 
-    # ---- I2C / interrupt signal wires (U3 left pins → left hier labels) ----
-    parts.append(_sch_wire(U3_X_LEFT, U3_SDA_Y, HLABEL_LEFT_X, U3_SDA_Y, "sda-wire"))
-    parts.append(_sch_wire(U3_X_LEFT, U3_SCL_Y, HLABEL_LEFT_X, U3_SCL_Y, "scl-wire"))
-    parts.append(_sch_wire(U3_X_LEFT, U3_LDR_Y, HLABEL_LEFT_X, U3_LDR_Y, "ldr-wire"))
-    parts.append(_sch_wire(U3_X_LEFT, U3_NFC_Y, HLABEL_LEFT_X, U3_NFC_Y, "nfc-wire"))
-    # v0.16: WS2812_DIN signal wire — U3 GPIO 8 (J1.9) → WS2812_DIN hier
-    # label going to the sensors sub-sheet's SK6812-SIDE AQI ring chain.
-    parts.append(_sch_wire(U3_X_LEFT, U3_WS_Y, HLABEL_LEFT_X, U3_WS_Y, "ws2812-wire"))
+    # ---- I²C / interrupt signal wires (J5 LEFT-edge pins → LEFT hier labels) ----
+    parts.append(_sch_wire(J5_PIN_X, J5_SDA_Y, HLABEL_LEFT_X, J5_SDA_Y, "sda-wire"))
+    parts.append(_sch_wire(J5_PIN_X, J5_SCL_Y, HLABEL_LEFT_X, J5_SCL_Y, "scl-wire"))
+    parts.append(_sch_wire(J5_PIN_X, J5_LDR_Y, HLABEL_LEFT_X, J5_LDR_Y, "ldr-wire"))
+    parts.append(_sch_wire(J5_PIN_X, J5_NFC_Y, HLABEL_LEFT_X, J5_NFC_Y, "nfc-wire"))
+    parts.append(_sch_wire(J5_PIN_X, J5_WS_Y,  HLABEL_LEFT_X, J5_WS_Y,  "ws2812-wire"))
 
-    # ---- EN: U3.2 (J1.2 RST pin) → hierarchical label "EN" ----
-    # U3.2 pin tip is on the LEFT side at (139.70, 95.25). We tag the
-    # hier label one grid step west of the pin so the label text doesn't
-    # overlap U3's pin name.
-    #
-    # v0.19: WAS a local label "RST" — converted to hier label "EN"
-    # (matching the ESP32 datasheet signal name for chip-enable). The
-    # signal now exports to the root sheet and joins the J10 native-USB
-    # recovery header in the IO sub-sheet (via the matching IO-sheet
-    # hier label) so a field debugger can drive EN with a pogopin. The
-    # MCU sub-sheet's own J2 UART-recovery header (J2.5 still labelled
-    # "RST" on the silk) taps the SAME hier-labelled EN net via a
-    # local-label-on-the-J2-side wire stub — see the J2 section below.
-    RST_LABEL_X = U3_X_LEFT - 2.54   # 137.16
-    parts.append(_sch_wire(U3_X_LEFT, U3_RST_Y, RST_LABEL_X, U3_RST_Y, "rst-u3-stub"))
+    # ---- EN: J5.2 (RST) → hier label "EN" (LEFT side) ----
+    RST_LABEL_X = J5_PIN_X - 2.54   # 137.16
+    parts.append(_sch_wire(J5_PIN_X, J5_RST_Y, RST_LABEL_X, J5_RST_Y, "rst-j5-stub"))
     parts.append(_sch_hierarchical_label(
         name="EN", shape="output",
-        x=RST_LABEL_X, y=U3_RST_Y, angle=180, justify="right",
-        uuid_tag="en-u3",
+        x=RST_LABEL_X, y=J5_RST_Y, angle=180, justify="right",
+        uuid_tag="en-j5",
     ))
 
-    # ---- BOOT: U3.26 (J3.11 GPIO9) → hierarchical label "BOOT" ----
-    # U3.26 pin tip is on the RIGHT side at (165.10, 118.11). Tag one
-    # grid step east of the pin.
-    #
-    # v0.19: WAS a local label "BOOT" — converted to hier label so the
-    # net also reaches the IO sub-sheet's J10 recovery header (BOOT
-    # strap input for ROM bootloader entry).
-    BOOT_LABEL_X = U3_X_RIGHT + 2.54  # 167.64
-    parts.append(_sch_wire(U3_X_RIGHT, U3_BOOT_Y, BOOT_LABEL_X, U3_BOOT_Y, "boot-u3-stub"))
+    # ---- BOOT: J6.11 (GPIO9) → hier label "BOOT" (RIGHT side) ----
+    BOOT_LABEL_X = J6_PIN_X + 2.54  # 167.64
+    parts.append(_sch_wire(J6_PIN_X, J6_BOOT_Y, BOOT_LABEL_X, J6_BOOT_Y, "boot-j6-stub"))
     parts.append(_sch_hierarchical_label(
         name="BOOT", shape="output",
-        x=BOOT_LABEL_X, y=U3_BOOT_Y, angle=0, justify="left",
-        uuid_tag="boot-u3",
+        x=BOOT_LABEL_X, y=J6_BOOT_Y, angle=0, justify="left",
+        uuid_tag="boot-j6",
     ))
 
-    # ---- UART: U3 right pins → J2 (TX/RX are straight wires) ----
-    j2_tx_y   = J2_PIN_Y[J2_PIN_OF["TX"]]    # 95.25 = U3_TX_Y
-    j2_rx_y   = J2_PIN_Y[J2_PIN_OF["RX"]]    # 97.79 = U3_RX_Y
-    j2_rst_y  = J2_PIN_Y[J2_PIN_OF["EN"]]    # 100.33 — v0.19: "RST" → "EN"
-    j2_boot_y = J2_PIN_Y[J2_PIN_OF["BOOT"]]  # 102.87
+    # ---- UART: J6.2 (UART_TX) / J6.3 (UART_RX) → J2 → right hier labels ----
+    j2_tx_y   = J2_PIN_Y[J2_PIN_OF["TX"]]    # 125.73 = J6_TX_Y
+    j2_rx_y   = J2_PIN_Y[J2_PIN_OF["RX"]]    # 123.19 = J6_RX_Y
+    j2_en_y   = J2_PIN_Y[J2_PIN_OF["EN"]]    # 120.65
+    j2_boot_y = J2_PIN_Y[J2_PIN_OF["BOOT"]]  # 118.11
 
-    # TX: straight east from U3.17 to UART_TX hier label, passing through J2.3.
-    parts.append(_sch_wire(U3_X_RIGHT, U3_TX_Y, HLABEL_RIGHT_X, U3_TX_Y, "tx-bus"))
+    # TX: straight east from J6.2 pin tip through J2.3 pin tip to UART_TX hier label.
+    parts.append(_sch_wire(J6_PIN_X, J6_TX_Y, HLABEL_RIGHT_X, J6_TX_Y, "tx-bus"))
     parts.append(_sch_junction(J2_PIN_X, j2_tx_y, "tx-j2-tap"))
-    # RX: straight east from U3.18 to UART_RX hier label, passing through J2.4.
-    parts.append(_sch_wire(U3_X_RIGHT, U3_RX_Y, HLABEL_RIGHT_X, U3_RX_Y, "rx-bus"))
+    # RX: straight east from J6.3 pin tip through J2.4 pin tip to UART_RX hier label.
+    parts.append(_sch_wire(J6_PIN_X, J6_RX_Y, HLABEL_RIGHT_X, J6_RX_Y, "rx-bus"))
     parts.append(_sch_junction(J2_PIN_X, j2_rx_y, "rx-j2-tap"))
 
-    # ---- USB_DP / USB_DM: U3.28 / U3.29 → IO sub-sheet hier labels ----
-    # v0.19: GPIO 13 / 12 (ESP32-C6 native USB-Serial-JTAG D+ / D-) are
-    # exported to the IO sub-sheet's J10 recovery header. The wires run
-    # east from each pin tip on the U3 RIGHT edge to the matching hier
-    # label on the page right edge. U3.28/29 pin Y rows (123.19 / 125.73)
-    # sit BELOW J2's Y range (90.17..102.87) so the wires pass clear of
-    # J2 without touching its body.
-    parts.append(_sch_wire(U3_X_RIGHT, U3_USB_DP_Y, HLABEL_RIGHT_X, U3_USB_DP_Y, "usb-dp-bus"))
+    # ---- USB_DP / USB_DM: J6.13 / J6.14 → right hier labels ----
+    # J6.13 USB_DP at Y=97.79, J6.14 USB_DM at Y=95.25 — both well NORTH
+    # (above) of J2's Y range (118.11..130.81), so wires pass clear.
+    parts.append(_sch_wire(J6_PIN_X, J6_USB_DP_Y, HLABEL_RIGHT_X, J6_USB_DP_Y, "usb-dp-bus"))
     parts.append(_sch_hierarchical_label(
         name="USB_DP", shape="bidirectional",
-        x=HLABEL_RIGHT_X, y=U3_USB_DP_Y, angle=0, justify="left",
+        x=HLABEL_RIGHT_X, y=J6_USB_DP_Y, angle=0, justify="left",
         uuid_tag="usb-dp",
     ))
-    parts.append(_sch_wire(U3_X_RIGHT, U3_USB_DM_Y, HLABEL_RIGHT_X, U3_USB_DM_Y, "usb-dm-bus"))
+    parts.append(_sch_wire(J6_PIN_X, J6_USB_DM_Y, HLABEL_RIGHT_X, J6_USB_DM_Y, "usb-dm-bus"))
     parts.append(_sch_hierarchical_label(
         name="USB_DM", shape="bidirectional",
-        x=HLABEL_RIGHT_X, y=U3_USB_DM_Y, angle=0, justify="left",
+        x=HLABEL_RIGHT_X, y=J6_USB_DM_Y, angle=0, justify="left",
         uuid_tag="usb-dm",
     ))
 
-    # ---- J2.5 (EN) and J2.6 (BOOT) hierarchical labels ----
-    # Stubs hop west from each J2 pin tip and end at a hier label of
-    # the matching name. KiCad joins them to the U3-side hier labels
-    # (which share the same name) via name-matching, so the net spans
-    # U3 ↔ J2 ↔ IO-sub-sheet recovery header transparently.
-    #
-    # v0.19: were local labels "RST" / "BOOT" — converted to hier
-    # labels "EN" / "BOOT" so the net exports to the IO sub-sheet's
-    # J10 recovery header (and KiCad doesn't warn `same_local_global`
-    # ERC about mixed local + hier labels on one net).
-    J2_RST_LABEL_X = J2_PIN_X - 2.54
-    parts.append(_sch_wire(J2_PIN_X, j2_rst_y, J2_RST_LABEL_X, j2_rst_y, "j2-rst-stub"))
+    # ---- J2.5 (EN) and J2.6 (BOOT) hier labels via a west-going stub ----
+    # The J2 body sits between J6.right tips (X=165.10) and the right
+    # hier labels (X=222.25); J2 pin tips on the RIGHT (X=194.31).
+    # Stubs hop EAST from each J2 pin tip and end at a hier label of
+    # the matching name. KiCad joins them to the J5/J6-side hier labels
+    # via name-matching, so the net spans J5/J6 ↔ J2 ↔ IO-sub-sheet
+    # recovery header transparently.
+    J2_EN_LABEL_X = J2_PIN_X + 2.54
+    parts.append(_sch_wire(J2_PIN_X, j2_en_y, J2_EN_LABEL_X, j2_en_y, "j2-en-stub"))
     parts.append(_sch_hierarchical_label(
         name="EN", shape="output",
-        x=J2_RST_LABEL_X, y=j2_rst_y, angle=180, justify="right",
+        x=J2_EN_LABEL_X, y=j2_en_y, angle=0, justify="left",
         uuid_tag="en-j2",
     ))
-    J2_BOOT_LABEL_X = J2_PIN_X - 2.54
+    J2_BOOT_LABEL_X = J2_PIN_X + 2.54
     parts.append(_sch_wire(J2_PIN_X, j2_boot_y, J2_BOOT_LABEL_X, j2_boot_y, "j2-boot-stub"))
     parts.append(_sch_hierarchical_label(
         name="BOOT", shape="output",
-        x=J2_BOOT_LABEL_X, y=j2_boot_y, angle=180, justify="right",
+        x=J2_BOOT_LABEL_X, y=j2_boot_y, angle=0, justify="left",
         uuid_tag="boot-j2",
     ))
 
     # ---- J2.1 (+3V3) and J2.2 (GND) local power flags ----
-    j2_3v3_y = J2_PIN_Y[J2_PIN_OF["+3V3"]]
-    j2_gnd_y = J2_PIN_Y[J2_PIN_OF["GND"]]
-    PWR_J2_3V3_Y = j2_3v3_y - 3.81
-    parts.append(_sch_wire(J2_PIN_X, PWR_J2_3V3_Y, J2_PIN_X, j2_3v3_y, "j2-3v3-drop"))
-    PWR_J2_GND_X = J2_PIN_X - 5.08
+    j2_3v3_y = J2_PIN_Y[J2_PIN_OF["+3V3"]]   # 130.81 (BOTTOM at angle=180)
+    j2_gnd_y = J2_PIN_Y[J2_PIN_OF["GND"]]    # 128.27
+    PWR_J2_3V3_Y = j2_3v3_y + 3.81           # flag SOUTH of pin
+    parts.append(_sch_wire(J2_PIN_X, j2_3v3_y, J2_PIN_X, PWR_J2_3V3_Y, "j2-3v3-drop"))
+    PWR_J2_GND_X = J2_PIN_X + 5.08
     parts.append(_sch_wire(J2_PIN_X, j2_gnd_y, PWR_J2_GND_X, j2_gnd_y, "j2-gnd-hop"))
 
-    # ---- U3 GND pins → local GND symbols ----
-    # Five GND pins on U3 (J1.13/15 and J3.1/12/15). Each gets a local
-    # GND symbol hugging the pin so the GND text doesn't collide with
-    # adjacent pin labels.
-    for gnd_pin in ESP32C6_DEVKITM1_GND_PINS:
-        gx, gy = _mcu_pin_xy(gnd_pin, U3_X, U3_Y)
-        # Direction the GND symbol sits relative to the pin tip:
-        # LEFT-side pins get the symbol to the west (angle=270 → triangle
-        # points east, into the symbol); RIGHT-side pins to the east
-        # (angle=90 → triangle points west, into the symbol).
-        on_left = (gx < U3_X)
-        if on_left:
-            sym_x = gx - 3.81
-            sym_angle = 270
-            voff_x = -3.81
-        else:
-            sym_x = gx + 3.81
-            sym_angle = 90
-            voff_x = 3.81
-        # Short horizontal hop from pin tip to symbol anchor.
-        parts.append(_sch_wire(gx, gy, sym_x, gy, f"u3-gnd-hop-{gnd_pin}"))
+    # ---- J5 GND pins → local GND symbols ----
+    for gnd_pin in J5_GND_PINS:
+        gy = j5_pin_y(gnd_pin)
+        # J5 pin tips on LEFT — place GND symbol to the WEST.
+        sym_x = J5_PIN_X - 3.81
+        parts.append(_sch_wire(J5_PIN_X, gy, sym_x, gy, f"j5-gnd-hop-{gnd_pin}"))
         parts.append(_sch_power_flag(
             lib_id="power:GND", value="GND",
-            x=sym_x, y=gy, angle=sym_angle,
-            reference=f"#PWR_GND_U3_{gnd_pin}",
-            value_offset_x=voff_x, value_offset_y=0.0,
-            uuid_tag=f"pwr-gnd-u3-{gnd_pin}",
+            x=sym_x, y=gy, angle=270,
+            reference=f"#PWR_GND_J5_{gnd_pin}",
+            value_offset_x=-3.81, value_offset_y=0.0,
+            uuid_tag=f"pwr-gnd-j5-{gnd_pin}",
+            sheet_key="mcu",
+        ))
+    # ---- J6 GND pins → local GND symbols ----
+    for gnd_pin in J6_GND_PINS:
+        gy = j6_pin_y(gnd_pin)
+        # J6 pin tips on RIGHT — place GND symbol to the EAST.
+        sym_x = J6_PIN_X + 3.81
+        parts.append(_sch_wire(J6_PIN_X, gy, sym_x, gy, f"j6-gnd-hop-{gnd_pin}"))
+        parts.append(_sch_power_flag(
+            lib_id="power:GND", value="GND",
+            x=sym_x, y=gy, angle=90,
+            reference=f"#PWR_GND_J6_{gnd_pin}",
+            value_offset_x=3.81, value_offset_y=0.0,
+            uuid_tag=f"pwr-gnd-j6-{gnd_pin}",
             sheet_key="mcu",
         ))
 
-    # ===== Hierarchical labels =====
+    # ===== Hierarchical labels (LEFT side) =====
     parts.append(_sch_hierarchical_label(
         name="I2C_SDA", shape="bidirectional",
-        x=HLABEL_LEFT_X, y=U3_SDA_Y, angle=180, justify="right",
+        x=HLABEL_LEFT_X, y=J5_SDA_Y, angle=180, justify="right",
         uuid_tag="i2c-sda",
     ))
     parts.append(_sch_hierarchical_label(
         name="I2C_SCL", shape="output",
-        x=HLABEL_LEFT_X, y=U3_SCL_Y, angle=180, justify="right",
+        x=HLABEL_LEFT_X, y=J5_SCL_Y, angle=180, justify="right",
         uuid_tag="i2c-scl",
     ))
     parts.append(_sch_hierarchical_label(
         name="LD2410_OUT", shape="input",
-        x=HLABEL_LEFT_X, y=U3_LDR_Y, angle=180, justify="right",
+        x=HLABEL_LEFT_X, y=J5_LDR_Y, angle=180, justify="right",
         uuid_tag="ld2410-out",
     ))
     parts.append(_sch_hierarchical_label(
         name="NFC_FD", shape="input",
-        x=HLABEL_LEFT_X, y=U3_NFC_Y, angle=180, justify="right",
+        x=HLABEL_LEFT_X, y=J5_NFC_Y, angle=180, justify="right",
         uuid_tag="nfc-fd",
     ))
-    # v0.16: WS2812_DIN — output to the sensors sub-sheet's SK6812-SIDE
-    # AQI status-LED ring (D11 first LED, then daisy-chain through D22).
     parts.append(_sch_hierarchical_label(
         name="WS2812_DIN", shape="output",
-        x=HLABEL_LEFT_X, y=U3_WS_Y, angle=180, justify="right",
+        x=HLABEL_LEFT_X, y=J5_WS_Y, angle=180, justify="right",
         uuid_tag="ws2812-din",
     ))
+    # ===== Hierarchical labels (RIGHT side) =====
     parts.append(_sch_hierarchical_label(
         name="UART_TX", shape="output",
-        x=HLABEL_RIGHT_X, y=HLABEL_TX_Y, angle=0, justify="left",
+        x=HLABEL_RIGHT_X, y=J6_TX_Y, angle=0, justify="left",
         uuid_tag="uart-tx",
     ))
     parts.append(_sch_hierarchical_label(
         name="UART_RX", shape="input",
-        x=HLABEL_RIGHT_X, y=HLABEL_RX_Y, angle=0, justify="left",
+        x=HLABEL_RIGHT_X, y=J6_RX_Y, angle=0, justify="left",
         uuid_tag="uart-rx",
     ))
 
-    # ===== No-connect markers =====
-    # Drive from ESP32C6_DEVKITM1_NC_PINS so the markers stay in lock-step
-    # with the partition table at the top of the module.
-    for nc_pin in ESP32C6_DEVKITM1_NC_PINS:
-        nx, ny = _mcu_pin_xy(nc_pin, U3_X, U3_Y)
-        parts.append(_sch_no_connect(nx, ny, f"u3-pin-{nc_pin}"))
+    # ===== No-connect markers on J5 / J6 unused pins =====
+    for nc_pin in J5_NC_PINS:
+        ny = j5_pin_y(nc_pin)
+        parts.append(_sch_no_connect(J5_PIN_X, ny, f"j5-pin-{nc_pin}"))
+    for nc_pin in J6_NC_PINS:
+        ny = j6_pin_y(nc_pin)
+        parts.append(_sch_no_connect(J6_PIN_X, ny, f"j6-pin-{nc_pin}"))
 
-    # ===== U3 symbol (ESP32-C6-DevKitM-1-N4) =====
-    parts.append(_sch_esp32c6_devkitm1(
-        x=U3_X, y=U3_Y,
-        reference="U3", value="ESP32-C6-DevKitM-1-N4",
-        uuid_tag="u3",
+    # ===== J5 + J6 symbols (Conn_01x15 each) =====
+    parts.append(_sch_conn_01xn(
+        pin_count=15,
+        x=J5_ANCHOR_X, y=J5_ANCHOR_Y, angle=0,
+        reference="J5",
+        value="1x15 P2.54 mm female socket (ESP32 J1 antenna-side row)",
+        uuid_tag="j5", sheet_key="mcu",
+    ))
+    parts.append(_sch_conn_01xn(
+        pin_count=15,
+        x=J6_ANCHOR_X, y=J6_ANCHOR_Y, angle=180,
+        reference="J6",
+        value="1x15 P2.54 mm female socket (ESP32 J3 USB-side row)",
+        uuid_tag="j6", sheet_key="mcu",
     ))
 
     # ===== J2 symbol (SWD/UART recovery header, DNP) =====
     parts.append(_sch_conn_01x06(
-        x=J2_X, y=J2_Y, angle=0,
+        x=J2_X, y=J2_Y, angle=180,
         reference="J2", value="SWD/UART Recovery (DNP)",
         uuid_tag="j2", dnp=True,
     ))
@@ -14563,6 +14776,18 @@ def SENSORS_LIB_SYMBOLS() -> str:
     """
     extras = "\n".join([
         _read_kicad_lib_symbol("Connector_Generic.kicad_sym", "Conn_01x05",
+                               lib_nickname="Connector_Generic"),
+        # v0.21 (M3): Conn_01x08 replaces the Conn_02x08_Top_Bottom U4
+        # placeholder. The MIKROE-2462 NFC daughterboard mates with TWO
+        # 1×8 PCB female pin sockets J7 (mikroBUS pins 1..8, left row)
+        # and J8 (mikroBUS pins 9..16, right row), and each socket
+        # carries its own Conn_01x08 schematic symbol whose pin numbers
+        # (1..8) match the PCB pad numbers 1..8 of the corresponding
+        # socket. This gives `sync_pcb_nets_from_schematic` a direct
+        # (reference, pin) → net mapping for every J7/J8 pad. The old
+        # Conn_02x08_Top_Bottom symbol is no longer instantiated but
+        # is retained in the library for backward read compatibility.
+        _read_kicad_lib_symbol("Connector_Generic.kicad_sym", "Conn_01x08",
                                lib_nickname="Connector_Generic"),
         _read_kicad_lib_symbol("Connector_Generic.kicad_sym", "Conn_02x08_Top_Bottom",
                                lib_nickname="Connector_Generic"),
@@ -14986,150 +15211,150 @@ def gen_sensors_sch() -> str:
     ))
 
     # =========================================================================
-    # chunk #5c — MIKROE-2462 NFC Tag 2 Click daughterboard (U4 + C12)
+    # chunk #5c — MIKROE-2462 NFC Tag 2 Click daughterboard (J7 + J8 + C12)
     # =========================================================================
+    # v0.21 (M3): the 16-pin mikroBUS 2×8 placeholder U4 was replaced by
+    # TWO `Connector_Generic:Conn_01x08` instances — J7 (mikroBUS pins
+    # 1..8, LEFT column on the daughterboard's bottom-side header) and
+    # J8 (mikroBUS pins 9..16, RIGHT column) — whose schematic pin
+    # numbers 1..8 match the PCB pad numbers 1..8 of the corresponding
+    # female pin socket footprints J7 / J8. This unblocks
+    # `sync_pcb_nets_from_schematic` from propagating nets to the
+    # otherwise-orphan PCB sockets.
+    #
     # NFC tag is hosted on a MikroElektronika "NFC Tag 2 Click"
     # (MIKROE-2462) daughterboard: NXP NT3H1101 (NTAG I²C plus) +
     # onboard PCB antenna + 16-pin mikroBUS male header (2×8, 2.54 mm
-    # pitch). The board plugs into a 2×8 female pin socket on the OAS
-    # PCB ("goldpiny żeńskie"). Pin-only mating means the daughterboard
-    # is easy to swap or remove for service.
+    # pitch).
     #
-    # WHY a daughterboard rather than a discrete NT3H2x11 SMD on the OAS
-    # PCB: the alternative requires designing + tuning a PCB trace
-    # antenna for 13.56 MHz (NXP AN11203) which is a non-trivial
-    # sub-project. The MIKROE-2462 ships pre-tuned with its own antenna.
-    # Cost ~€12; saves antenna design effort and reduces NFC firmware
-    # risk by sticking to a well-documented community-supported chip.
-    #
-    # mikroBUS standard pinout (looking at the host socket with the
-    # notch / chamfer facing UP, daughterboard above):
+    # mikroBUS standard pinout:
     #   LEFT column  (pins 1..8, top -> bottom):
     #     1=AN  2=RST 3=CS  4=SCK 5=MISO 6=MOSI 7=+3.3V 8=GND
     #   RIGHT column (pins 9..16, top -> bottom):
     #     9=PWM 10=INT 11=RX 12=TX 13=SCL  14=SDA  15=+5V  16=GND
     #
-    # NFC Tag 2 Click uses ONLY these mikroBUS pins:
-    #   pin 7  (+3.3V) — VCC supply for NT3H1101
-    #   pin 8  (GND)   — ground (left side)
-    #   pin 10 (INT)   — FD (field-detect) open-drain output. Asserts
-    #                    LOW when an NFC field is present. Wired to
-    #                    MCU GPIO 3 via the NFC_FD hier label so
-    #                    ESPHome can wake on phone-tap without polling.
-    #   pin 13 (SCL)   — I²C clock (NT3H1101 slave)
-    #   pin 14 (SDA)   — I²C data (NT3H1101 slave, address 0x55)
-    #   pin 16 (GND)   — ground (right side)
+    # PCB ↔ schematic socket pin mapping:
+    #     J7 pin n (n in 1..8)  = mikroBUS pin n
+    #     J8 pin n (n in 1..8)  = mikroBUS pin (n+8)
     #
+    # NFC Tag 2 Click electrically uses ONLY these mikroBUS pins:
+    #   pin 7  (+3.3V) — VCC for NT3H1101                         → J7 pin 7
+    #   pin 8  (GND)   — ground                                   → J7 pin 8
+    #   pin 10 (INT)   — FD field-detect (open-drain), → NFC_FD   → J8 pin 2
+    #   pin 13 (SCL)   — I²C clock                                → J8 pin 5
+    #   pin 14 (SDA)   — I²C data, slave 0x55                     → J8 pin 6
+    #   pin 16 (GND)   — ground                                   → J8 pin 8
     # All other mikroBUS pins (1, 2, 3, 4, 5, 6, 9, 11, 12, 15) are
     # unused by NFC Tag 2 Click; each gets a `(no_connect ...)` marker
     # so ERC stays quiet.
 
-    # ===== U4: mikroBUS 2x8 socket (placeholder symbol) =====
-    # Anchor far enough LEFT of J3/J4 to keep the wiring clean.
-    # Conn_02x08_Top_Bottom body spans lib X = -5.08..+7.62, lib Y =
-    # +7.62..-10.16. With anchor (120, 125) (no rotation), pin schem
-    # positions are:
-    #   left  col: X = 114.92,  Y = anchor_Y - lib_Y
-    #   right col: X = 127.62,  Y = anchor_Y - lib_Y
-    U4_X = 120.65
-    U4_Y = 125.73
-    U4_LEFT_X = U4_X - 5.08      # 115.57 — pin tip X for LEFT column
-    U4_RIGHT_X = U4_X + 7.62     # 128.27 — pin tip X for RIGHT column
-    # Pin Y positions (pin n is at lib Y from +7.62 to -10.16 in 2.54 steps;
-    # mapped to schem Y = anchor_Y - lib_Y so the top pin sits ABOVE anchor).
-    U4_PIN_Y = {
-        1:  U4_Y - 7.62,    # 118.11 — LEFT  top    — AN  (NC)
-        2:  U4_Y - 5.08,    # 120.65 — LEFT  row 2  — RST (NC)
-        3:  U4_Y - 2.54,    # 123.19 — LEFT  row 3  — CS  (NC)
-        4:  U4_Y,           # 125.73 — LEFT  row 4  — SCK (NC)
-        5:  U4_Y + 2.54,    # 128.27 — LEFT  row 5  — MISO (NC)
-        6:  U4_Y + 5.08,    # 130.81 — LEFT  row 6  — MOSI (NC)
-        7:  U4_Y + 7.62,    # 133.35 — LEFT  row 7  — +3.3V
-        8:  U4_Y + 10.16,   # 135.89 — LEFT  bottom — GND
-        9:  U4_Y - 7.62,    # 118.11 — RIGHT top    — PWM (NC)
-        10: U4_Y - 5.08,    # 120.65 — RIGHT row 2  — INT (= FD)
-        11: U4_Y - 2.54,    # 123.19 — RIGHT row 3  — RX  (NC)
-        12: U4_Y,           # 125.73 — RIGHT row 4  — TX  (NC)
-        13: U4_Y + 2.54,    # 128.27 — RIGHT row 5  — SCL
-        14: U4_Y + 5.08,    # 130.81 — RIGHT row 6  — SDA
-        15: U4_Y + 7.62,    # 133.35 — RIGHT row 7  — +5V (NC)
-        16: U4_Y + 10.16,   # 135.89 — RIGHT bottom — GND
-    }
+    # ===== J7: mikroBUS LEFT column (pins 1..8) =====
+    # J7 at angle=0, anchor (115.57 + 5.08, 125.73) = (120.65, 125.73).
+    # Pin tips on LEFT at X=115.57. Pin 1 (top, AN) at Y=118.11, pin 8
+    # (bottom, GND) at Y=135.89.
+    J7_ANCHOR_X = 120.65
+    J7_ANCHOR_Y = 125.73
+    J7_PIN_X    = 115.57            # pin tip column
+    # ===== J8: mikroBUS RIGHT column (pins 9..16) =====
+    # J8 at angle=180, anchor (133.35 - 5.08, 125.73) = (128.27, 125.73).
+    # Pin tips on RIGHT at X=133.35. With angle=180, pin order reverses:
+    # J8 pin 1 (= mikroBUS PWM pin 9) ends up at the BOTTOM Y=135.89,
+    # J8 pin 8 (= mikroBUS GND pin 16) at the TOP Y=118.11.
+    J8_ANCHOR_X = 128.27
+    J8_ANCHOR_Y = 125.73
+    J8_PIN_X    = 133.35            # pin tip column
 
-    # ----- mikroBUS pin 7 (+3.3V, LEFT col): wire WEST to +3V3 flag -----
-    PWR_U4P7_3V3_X = U4_LEFT_X - 5.08     # 110.49 — flag anchor west of pin
-    parts.append(_sch_wire(U4_LEFT_X, U4_PIN_Y[7], PWR_U4P7_3V3_X, U4_PIN_Y[7], "u4-p7-3v3-hop"))
+    def j7_pin_y(pin_num: int) -> float:
+        """Schematic Y of J7 pin tip n (n in 1..8). Angle=0."""
+        x, y = _conn_01xn_pin_xy(pin_num, J7_ANCHOR_X, J7_ANCHOR_Y, 8)
+        return y
+
+    def j8_pin_y(pin_num: int) -> float:
+        """Schematic Y of J8 pin tip n (n in 1..8). Angle=180 → reversed."""
+        pin1_lib_y = _CONN_01XN_PIN1_LIB_Y[8]
+        lib_y = pin1_lib_y - (pin_num - 1) * 2.54
+        return J8_ANCHOR_Y + lib_y
+
+    J7_3V3_Y = j7_pin_y(7)    # 133.35 — +3.3V
+    J7_GND_Y = j7_pin_y(8)    # 135.89 — GND
+    J8_FD_Y  = j8_pin_y(2)    # NFC_FD (mikroBUS pin 10)
+    J8_SCL_Y = j8_pin_y(5)    # SCL    (mikroBUS pin 13)
+    J8_SDA_Y = j8_pin_y(6)    # SDA    (mikroBUS pin 14)
+    J8_GND_Y = j8_pin_y(8)    # GND    (mikroBUS pin 16)
+
+    # ----- J7 pin 7 (+3.3V): wire WEST to +3V3 flag -----
+    PWR_J7P7_3V3_X = J7_PIN_X - 5.08     # 110.49 — flag anchor west of pin
+    parts.append(_sch_wire(J7_PIN_X, J7_3V3_Y, PWR_J7P7_3V3_X, J7_3V3_Y, "j7-p7-3v3-hop"))
     parts.append(_sch_power_flag(
         lib_id="power:+3V3", value="+3V3",
-        x=PWR_U4P7_3V3_X, y=U4_PIN_Y[7], angle=90,
+        x=PWR_J7P7_3V3_X, y=J7_3V3_Y, angle=270,
         reference="#PWR50",
         value_offset_x=-3.81, value_offset_y=0.0,
-        uuid_tag="pwr50-3v3-u4-p7",
+        uuid_tag="pwr50-3v3-j7-p7",
         sheet_key="sensors",
     ))
 
-    # ----- mikroBUS pin 8 (GND, LEFT col): wire WEST to GND flag -----
-    PWR_U4P8_GND_X = U4_LEFT_X - 5.08      # 110.49
-    parts.append(_sch_wire(U4_LEFT_X, U4_PIN_Y[8], PWR_U4P8_GND_X, U4_PIN_Y[8], "u4-p8-gnd-hop"))
+    # ----- J7 pin 8 (GND): wire WEST to GND flag -----
+    PWR_J7P8_GND_X = J7_PIN_X - 5.08      # 110.49
+    parts.append(_sch_wire(J7_PIN_X, J7_GND_Y, PWR_J7P8_GND_X, J7_GND_Y, "j7-p8-gnd-hop"))
     parts.append(_sch_power_flag(
         lib_id="power:GND", value="GND",
-        x=PWR_U4P8_GND_X, y=U4_PIN_Y[8], angle=270,
+        x=PWR_J7P8_GND_X, y=J7_GND_Y, angle=270,
         reference="#PWR51",
         value_offset_x=-3.81, value_offset_y=0.0,
-        uuid_tag="pwr51-gnd-u4-p8",
+        uuid_tag="pwr51-gnd-j7-p8",
         sheet_key="sensors",
     ))
 
-    # ----- mikroBUS pin 10 (INT/FD, RIGHT col): wire EAST to NFC_FD hier label -----
-    U4_HLABEL_X = HLABEL_LEFT_X                # 160.02 — shared column with J3/J4
-    parts.append(_sch_wire(U4_RIGHT_X, U4_PIN_Y[10], U4_HLABEL_X, U4_PIN_Y[10], "u4-p10-fd"))
+    # ----- J8 pin 2 (INT/FD, mikroBUS pin 10): wire EAST to NFC_FD hier label -----
+    NFC_HLABEL_X = HLABEL_LEFT_X       # 160.02 — shared column with J3/J4
+    parts.append(_sch_wire(J8_PIN_X, J8_FD_Y, NFC_HLABEL_X, J8_FD_Y, "j8-p2-fd"))
     parts.append(_sch_hierarchical_label(
         name="NFC_FD", shape="output",
-        x=U4_HLABEL_X, y=U4_PIN_Y[10], angle=0, justify="left",
-        uuid_tag="nfc-fd-u4",
+        x=NFC_HLABEL_X, y=J8_FD_Y, angle=0, justify="left",
+        uuid_tag="nfc-fd-j8",
     ))
 
-    # ----- mikroBUS pin 13 (SCL, RIGHT col): wire EAST to I2C_SCL hier label -----
-    parts.append(_sch_wire(U4_RIGHT_X, U4_PIN_Y[13], U4_HLABEL_X, U4_PIN_Y[13], "u4-p13-scl"))
+    # ----- J8 pin 5 (SCL, mikroBUS pin 13): wire EAST to I2C_SCL hier label -----
+    parts.append(_sch_wire(J8_PIN_X, J8_SCL_Y, NFC_HLABEL_X, J8_SCL_Y, "j8-p5-scl"))
     parts.append(_sch_hierarchical_label(
         name="I2C_SCL", shape="input",
-        x=U4_HLABEL_X, y=U4_PIN_Y[13], angle=0, justify="left",
-        uuid_tag="scl-u4",
+        x=NFC_HLABEL_X, y=J8_SCL_Y, angle=0, justify="left",
+        uuid_tag="scl-j8",
     ))
 
-    # ----- mikroBUS pin 14 (SDA, RIGHT col): wire EAST to I2C_SDA hier label -----
-    parts.append(_sch_wire(U4_RIGHT_X, U4_PIN_Y[14], U4_HLABEL_X, U4_PIN_Y[14], "u4-p14-sda"))
+    # ----- J8 pin 6 (SDA, mikroBUS pin 14): wire EAST to I2C_SDA hier label -----
+    parts.append(_sch_wire(J8_PIN_X, J8_SDA_Y, NFC_HLABEL_X, J8_SDA_Y, "j8-p6-sda"))
     parts.append(_sch_hierarchical_label(
         name="I2C_SDA", shape="bidirectional",
-        x=U4_HLABEL_X, y=U4_PIN_Y[14], angle=0, justify="left",
-        uuid_tag="sda-u4",
+        x=NFC_HLABEL_X, y=J8_SDA_Y, angle=0, justify="left",
+        uuid_tag="sda-j8",
     ))
 
-    # ----- mikroBUS pin 16 (GND, RIGHT col): wire EAST to GND flag -----
-    PWR_U4P16_GND_X = U4_RIGHT_X + 5.08    # 133.35
-    parts.append(_sch_wire(U4_RIGHT_X, U4_PIN_Y[16], PWR_U4P16_GND_X, U4_PIN_Y[16], "u4-p16-gnd-hop"))
+    # ----- J8 pin 8 (GND, mikroBUS pin 16): wire EAST to GND flag -----
+    PWR_J8P8_GND_X = J8_PIN_X + 5.08   # 138.43
+    parts.append(_sch_wire(J8_PIN_X, J8_GND_Y, PWR_J8P8_GND_X, J8_GND_Y, "j8-p8-gnd-hop"))
     parts.append(_sch_power_flag(
         lib_id="power:GND", value="GND",
-        x=PWR_U4P16_GND_X, y=U4_PIN_Y[16], angle=90,
+        x=PWR_J8P8_GND_X, y=J8_GND_Y, angle=90,
         reference="#PWR52",
         value_offset_x=3.81, value_offset_y=0.0,
-        uuid_tag="pwr52-gnd-u4-p16",
+        uuid_tag="pwr52-gnd-j8-p8",
         sheet_key="sensors",
     ))
 
-    # ----- No-connect markers on unused mikroBUS pins (1, 2, 3, 4, 5, 6 left;
-    #       9, 11, 12, 15 right). ERC will warn `pin_not_connected` on every
-    #       unwired pin unless we silence it with no_connect.
+    # ----- No-connect markers on unused mikroBUS pins -----
+    # J7 pins 1..6 (mikroBUS AN/RST/CS/SCK/MISO/MOSI — not used by NFC tag).
     for n in (1, 2, 3, 4, 5, 6):
-        parts.append(_sch_no_connect(U4_LEFT_X, U4_PIN_Y[n], f"u4-nc-{n}"))
-    for n in (9, 11, 12, 15):
-        parts.append(_sch_no_connect(U4_RIGHT_X, U4_PIN_Y[n], f"u4-nc-{n}"))
+        parts.append(_sch_no_connect(J7_PIN_X, j7_pin_y(n), f"j7-nc-{n}"))
+    # J8 pins 1 (mikroBUS PWM), 3 (RX), 4 (TX), 7 (+5V) — not used.
+    for n in (1, 3, 4, 7):
+        parts.append(_sch_no_connect(J8_PIN_X, j8_pin_y(n), f"j8-nc-{n}"))
 
-    # ===== C12: 100 nF local decoupling on the U4 +3.3V supply =====
-    # Sits WEST of U4 between +3V3 (top) and GND (bottom). Anchored
-    # vertically so it lines up with the pin 7/8 power flags.
+    # ===== C12: 100 nF local decoupling on the NFC daughterboard +3.3V supply =====
+    # Sits WEST of J7 between J7 pin 7 (+3V3) and J7 pin 8 (GND).
     C12_X = 105.41
-    C12_Y = (U4_PIN_Y[7] + U4_PIN_Y[8]) / 2   # mid between pin 7 (+3V3) and pin 8 (GND)
+    C12_Y = (J7_3V3_Y + J7_GND_Y) / 2   # mid between J7 pin 7 (+3V3) and pin 8 (GND)
     C12_TOP_Y = C12_Y - 3.81
     C12_BOT_Y = C12_Y + 3.81
     C12_3V3_Y = C12_TOP_Y - 3.81
@@ -15153,13 +15378,20 @@ def gen_sensors_sch() -> str:
         sheet_key="sensors",
     ))
 
-    # ===== U4 + C12 symbols =====
-    parts.append(_sch_conn_02x08_top_bottom(
-        x=U4_X, y=U4_Y, angle=0,
-        reference="U4",
-        value="MIKROE-2462 NFC Tag 2 Click (NT3H1101 + onboard antenna, mikroBUS)",
-        uuid_tag="u4-nfc-tag",
-        sheet_key="sensors",
+    # ===== J7, J8, C12 symbols =====
+    parts.append(_sch_conn_01xn(
+        pin_count=8,
+        x=J7_ANCHOR_X, y=J7_ANCHOR_Y, angle=0,
+        reference="J7",
+        value="1x8 P2.54 mm female socket (MIKROE-2462 mikroBUS pins 1..8 — AN/RST/CS/SCK/MISO/MOSI/+3V3/GND)",
+        uuid_tag="j7-mikroe-row-a", sheet_key="sensors",
+    ))
+    parts.append(_sch_conn_01xn(
+        pin_count=8,
+        x=J8_ANCHOR_X, y=J8_ANCHOR_Y, angle=180,
+        reference="J8",
+        value="1x8 P2.54 mm female socket (MIKROE-2462 mikroBUS pins 9..16 — PWM/INT/RX/TX/SCL/SDA/+5V/GND)",
+        uuid_tag="j8-mikroe-row-b", sheet_key="sensors",
     ))
     parts.append(_sch_capacitor(
         lib_id="Device:C",

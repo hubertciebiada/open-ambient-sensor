@@ -65,52 +65,54 @@
 	(net 9 "/IO/USB_DP")
 	(net 10 "/MCU/LD2410_OUT")
 	(net 11 "/MCU/NFC_FD")
-	(net 12 "/MCU/WS2812_DIN")
-	(net 13 "Earth_Protective")
-	(net 14 "GND")
-	(net 15 "Net-(D1-A2)")
-	(net 16 "Net-(D2-K)")
-	(net 17 "Net-(D3-A)")
-	(net 18 "Net-(D11-DOUT)")
-	(net 19 "Net-(D12-DOUT)")
-	(net 20 "Net-(D13-DOUT)")
-	(net 21 "Net-(D15-DOUT)")
-	(net 22 "Net-(D16-DOUT)")
-	(net 23 "Net-(D17-DOUT)")
-	(net 24 "Net-(D18-DOUT)")
-	(net 25 "Net-(D19-DOUT)")
-	(net 26 "Net-(D20-DOUT)")
-	(net 27 "Net-(D21-DOUT)")
-	(net 28 "Net-(F1-Pad2)")
-	(net 29 "Net-(Q1-PadG)")
-	(net 30 "Net-(U2-BST)")
-	(net 31 "Net-(U2-FB)")
-	(net 32 "Net-(U2-SS)")
-	(net 33 "Net-(U2-SW)")
-	(net 34 "unconnected-(D22-DOUT-Pad3)")
-	(net 35 "unconnected-(U3-5V-Pad14)")
-	(net 36 "unconnected-(U3-GPIO0-Pad7)")
-	(net 37 "unconnected-(U3-GPIO1-Pad8)")
-	(net 38 "unconnected-(U3-GPIO4-Pad5)")
-	(net 39 "unconnected-(U3-GPIO5-Pad6)")
-	(net 40 "unconnected-(U3-GPIO14-Pad12)")
-	(net 41 "unconnected-(U3-GPIO15-Pad25)")
-	(net 42 "unconnected-(U3-GPIO18-Pad24)")
-	(net 43 "unconnected-(U3-GPIO19-Pad23)")
-	(net 44 "unconnected-(U3-GPIO20-Pad22)")
-	(net 45 "unconnected-(U3-GPIO21-Pad21)")
-	(net 46 "unconnected-(U3-GPIO22-Pad20)")
-	(net 47 "unconnected-(U3-GPIO23-Pad19)")
-	(net 48 "unconnected-(U4-Pin_1-Pad1)")
-	(net 49 "unconnected-(U4-Pin_2-Pad2)")
-	(net 50 "unconnected-(U4-Pin_3-Pad3)")
-	(net 51 "unconnected-(U4-Pin_4-Pad4)")
-	(net 52 "unconnected-(U4-Pin_5-Pad5)")
-	(net 53 "unconnected-(U4-Pin_6-Pad6)")
-	(net 54 "unconnected-(U4-Pin_9-Pad9)")
-	(net 55 "unconnected-(U4-Pin_11-Pad11)")
-	(net 56 "unconnected-(U4-Pin_12-Pad12)")
-	(net 57 "unconnected-(U4-Pin_15-Pad15)")
+	(net 12 "/MCU/UART_RX")
+	(net 13 "/MCU/UART_TX")
+	(net 14 "/MCU/WS2812_DIN")
+	(net 15 "Earth_Protective")
+	(net 16 "GND")
+	(net 17 "Net-(D1-A2)")
+	(net 18 "Net-(D2-K)")
+	(net 19 "Net-(D3-A)")
+	(net 20 "Net-(D11-DOUT)")
+	(net 21 "Net-(D12-DOUT)")
+	(net 22 "Net-(D13-DOUT)")
+	(net 23 "Net-(D15-DOUT)")
+	(net 24 "Net-(D16-DOUT)")
+	(net 25 "Net-(D17-DOUT)")
+	(net 26 "Net-(D18-DOUT)")
+	(net 27 "Net-(D19-DOUT)")
+	(net 28 "Net-(D20-DOUT)")
+	(net 29 "Net-(D21-DOUT)")
+	(net 30 "Net-(F1-Pad2)")
+	(net 31 "Net-(Q1-PadG)")
+	(net 32 "Net-(U2-BST)")
+	(net 33 "Net-(U2-FB)")
+	(net 34 "Net-(U2-SS)")
+	(net 35 "Net-(U2-SW)")
+	(net 36 "unconnected-(D22-DOUT-Pad3)")
+	(net 37 "unconnected-(J5-Pin_5-Pad5)")
+	(net 38 "unconnected-(J5-Pin_6-Pad6)")
+	(net 39 "unconnected-(J5-Pin_7-Pad7)")
+	(net 40 "unconnected-(J5-Pin_8-Pad8)")
+	(net 41 "unconnected-(J5-Pin_12-Pad12)")
+	(net 42 "unconnected-(J5-Pin_14-Pad14)")
+	(net 43 "unconnected-(J6-Pin_4-Pad4)")
+	(net 44 "unconnected-(J6-Pin_5-Pad5)")
+	(net 45 "unconnected-(J6-Pin_6-Pad6)")
+	(net 46 "unconnected-(J6-Pin_7-Pad7)")
+	(net 47 "unconnected-(J6-Pin_8-Pad8)")
+	(net 48 "unconnected-(J6-Pin_9-Pad9)")
+	(net 49 "unconnected-(J6-Pin_10-Pad10)")
+	(net 50 "unconnected-(J7-Pin_1-Pad1)")
+	(net 51 "unconnected-(J7-Pin_2-Pad2)")
+	(net 52 "unconnected-(J7-Pin_3-Pad3)")
+	(net 53 "unconnected-(J7-Pin_4-Pad4)")
+	(net 54 "unconnected-(J7-Pin_5-Pad5)")
+	(net 55 "unconnected-(J7-Pin_6-Pad6)")
+	(net 56 "unconnected-(J8-Pin_1-Pad1)")
+	(net 57 "unconnected-(J8-Pin_3-Pad3)")
+	(net 58 "unconnected-(J8-Pin_4-Pad4)")
+	(net 59 "unconnected-(J8-Pin_7-Pad7)")
         (gr_arc
 	(start 189.82725 148.497798)
 	(mid 148.5 45)
@@ -503,14 +505,6 @@
 		(layer "F.SilkS")
 		(uuid "e3d64ee8-0d36-5753-aa31-cef6eee6e2ca")
 		(effects (font (size 1.0 1.0) (thickness 0.15)))
-	)
-	(fp_rect
-		(start 0 0)
-		(end 55.2 25.6)
-		(stroke (width 0.05) (type solid))
-		(fill no)
-		(layer "F.CrtYd")
-		(uuid "b8660b8e-0e38-59f7-86f6-2daaaa51e41f")
 	)
 )
 (footprint "oas:LD2410_Mechanical_Reference"
@@ -1236,7 +1230,7 @@
 			(size 0.6 1.7)
 			(layers "F.Cu" "F.Mask" "F.Paste")
 			(roundrect_rratio 0.25)
-			(net 14 "GND")
+			(net 16 "GND")
 		)
 	(pad "3" smd roundrect
 			(at -0.625 -1.85)
@@ -1257,7 +1251,7 @@
 			(size 0.6 1.7)
 			(layers "F.Cu" "F.Mask" "F.Paste")
 			(roundrect_rratio 0.25)
-			(net 14 "GND")
+			(net 16 "GND")
 		)
 	(pad "6" smd roundrect
 			(at 3.125 -1.85)
@@ -1472,7 +1466,7 @@
 			(drill 0.65)
 			(layers "*.Cu" "*.Mask")
 			(remove_unused_layers no)
-			(net 5 "/IO/EN")
+			(net 12 "/MCU/UART_RX")
 		)
 	(pad "3" thru_hole circle
 			(at 0 2.54 270)
@@ -1480,7 +1474,7 @@
 			(drill 0.65)
 			(layers "*.Cu" "*.Mask")
 			(remove_unused_layers no)
-			(net 9 "/IO/USB_DP")
+			(net 13 "/MCU/UART_TX")
 		)
 	(pad "4" thru_hole circle
 			(at 0 3.81 270)
@@ -1488,7 +1482,7 @@
 			(drill 0.65)
 			(layers "*.Cu" "*.Mask")
 			(remove_unused_layers no)
-			(net 14 "GND")
+			(net 16 "GND")
 		)
 	(pad "5" thru_hole circle
 			(at 0 5.08 270)
@@ -1753,7 +1747,7 @@
 			(layers "*.Cu" "*.Mask")
 			(remove_unused_layers no)
 			(roundrect_rratio 0.120192)
-			(net 15 "Net-(D1-A2)")
+			(net 17 "Net-(D1-A2)")
 		)
 	(pad "2" thru_hole oval
 			(at 5.08 0 180)
@@ -1761,7 +1755,7 @@
 			(drill 1.4)
 			(layers "*.Cu" "*.Mask")
 			(remove_unused_layers no)
-			(net 14 "GND")
+			(net 16 "GND")
 		)
 	(pad "3" thru_hole oval
 			(at 10.16 0 180)
@@ -1769,7 +1763,7 @@
 			(drill 1.4)
 			(layers "*.Cu" "*.Mask")
 			(remove_unused_layers no)
-			(net 13 "Earth_Protective")
+			(net 15 "Earth_Protective")
 		)
 	)
 (footprint "Connector_JST:JST_SH_SM04B-SRSS-TB_1x04-1MP_P1.00mm_Horizontal"
@@ -2083,7 +2077,7 @@
 			(size 0.6 1.55)
 			(layers "F.Cu" "F.Mask" "F.Paste")
 			(roundrect_rratio 0.25)
-			(net 14 "GND")
+			(net 16 "GND")
 		)
 	(pad "2" smd roundrect
 			(at -0.5 -2 180)
@@ -2288,7 +2282,7 @@
 			(drill 1)
 			(layers "*.Cu" "*.Mask")
 			(remove_unused_layers no)
-			(net 14 "GND")
+			(net 16 "GND")
 		)
 	(pad "2" thru_hole circle
 			(at 0 2.54 180)
@@ -2996,6 +2990,7 @@
 			(drill 1)
 			(layers "*.Cu" "*.Mask")
 			(remove_unused_layers no)
+			(net 1 "+3V3")
 		)
 	(pad "2" thru_hole circle
 			(at 0 2.54 90)
@@ -3003,6 +2998,7 @@
 			(drill 1)
 			(layers "*.Cu" "*.Mask")
 			(remove_unused_layers no)
+			(net 5 "/IO/EN")
 		)
 	(pad "3" thru_hole circle
 			(at 0 5.08 90)
@@ -3010,6 +3006,7 @@
 			(drill 1)
 			(layers "*.Cu" "*.Mask")
 			(remove_unused_layers no)
+			(net 10 "/MCU/LD2410_OUT")
 		)
 	(pad "4" thru_hole circle
 			(at 0 7.62 90)
@@ -3017,6 +3014,7 @@
 			(drill 1)
 			(layers "*.Cu" "*.Mask")
 			(remove_unused_layers no)
+			(net 11 "/MCU/NFC_FD")
 		)
 	(pad "5" thru_hole circle
 			(at 0 10.16 90)
@@ -3024,6 +3022,7 @@
 			(drill 1)
 			(layers "*.Cu" "*.Mask")
 			(remove_unused_layers no)
+			(net 37 "unconnected-(J5-Pin_5-Pad5)")
 		)
 	(pad "6" thru_hole circle
 			(at 0 12.7 90)
@@ -3031,6 +3030,7 @@
 			(drill 1)
 			(layers "*.Cu" "*.Mask")
 			(remove_unused_layers no)
+			(net 38 "unconnected-(J5-Pin_6-Pad6)")
 		)
 	(pad "7" thru_hole circle
 			(at 0 15.24 90)
@@ -3038,6 +3038,7 @@
 			(drill 1)
 			(layers "*.Cu" "*.Mask")
 			(remove_unused_layers no)
+			(net 39 "unconnected-(J5-Pin_7-Pad7)")
 		)
 	(pad "8" thru_hole circle
 			(at 0 17.78 90)
@@ -3045,6 +3046,7 @@
 			(drill 1)
 			(layers "*.Cu" "*.Mask")
 			(remove_unused_layers no)
+			(net 40 "unconnected-(J5-Pin_8-Pad8)")
 		)
 	(pad "9" thru_hole circle
 			(at 0 20.32 90)
@@ -3052,6 +3054,7 @@
 			(drill 1)
 			(layers "*.Cu" "*.Mask")
 			(remove_unused_layers no)
+			(net 14 "/MCU/WS2812_DIN")
 		)
 	(pad "10" thru_hole circle
 			(at 0 22.86 90)
@@ -3059,6 +3062,7 @@
 			(drill 1)
 			(layers "*.Cu" "*.Mask")
 			(remove_unused_layers no)
+			(net 7 "/IO/I2C_SDA")
 		)
 	(pad "11" thru_hole circle
 			(at 0 25.4 90)
@@ -3066,6 +3070,7 @@
 			(drill 1)
 			(layers "*.Cu" "*.Mask")
 			(remove_unused_layers no)
+			(net 6 "/IO/I2C_SCL")
 		)
 	(pad "12" thru_hole circle
 			(at 0 27.94 90)
@@ -3073,6 +3078,7 @@
 			(drill 1)
 			(layers "*.Cu" "*.Mask")
 			(remove_unused_layers no)
+			(net 41 "unconnected-(J5-Pin_12-Pad12)")
 		)
 	(pad "13" thru_hole circle
 			(at 0 30.48 90)
@@ -3080,6 +3086,7 @@
 			(drill 1)
 			(layers "*.Cu" "*.Mask")
 			(remove_unused_layers no)
+			(net 16 "GND")
 		)
 	(pad "14" thru_hole circle
 			(at 0 33.02 90)
@@ -3087,6 +3094,7 @@
 			(drill 1)
 			(layers "*.Cu" "*.Mask")
 			(remove_unused_layers no)
+			(net 42 "unconnected-(J5-Pin_14-Pad14)")
 		)
 	(pad "15" thru_hole circle
 			(at 0 35.56 90)
@@ -3094,6 +3102,7 @@
 			(drill 1)
 			(layers "*.Cu" "*.Mask")
 			(remove_unused_layers no)
+			(net 16 "GND")
 		)
 	)
 (footprint "Connector_PinSocket_2.54mm:PinSocket_1x15_P2.54mm_Vertical"
@@ -3291,6 +3300,7 @@
 			(drill 1)
 			(layers "*.Cu" "*.Mask")
 			(remove_unused_layers no)
+			(net 16 "GND")
 		)
 	(pad "2" thru_hole circle
 			(at 0 2.54 90)
@@ -3298,6 +3308,7 @@
 			(drill 1)
 			(layers "*.Cu" "*.Mask")
 			(remove_unused_layers no)
+			(net 13 "/MCU/UART_TX")
 		)
 	(pad "3" thru_hole circle
 			(at 0 5.08 90)
@@ -3305,6 +3316,7 @@
 			(drill 1)
 			(layers "*.Cu" "*.Mask")
 			(remove_unused_layers no)
+			(net 12 "/MCU/UART_RX")
 		)
 	(pad "4" thru_hole circle
 			(at 0 7.62 90)
@@ -3312,6 +3324,7 @@
 			(drill 1)
 			(layers "*.Cu" "*.Mask")
 			(remove_unused_layers no)
+			(net 43 "unconnected-(J6-Pin_4-Pad4)")
 		)
 	(pad "5" thru_hole circle
 			(at 0 10.16 90)
@@ -3319,6 +3332,7 @@
 			(drill 1)
 			(layers "*.Cu" "*.Mask")
 			(remove_unused_layers no)
+			(net 44 "unconnected-(J6-Pin_5-Pad5)")
 		)
 	(pad "6" thru_hole circle
 			(at 0 12.7 90)
@@ -3326,6 +3340,7 @@
 			(drill 1)
 			(layers "*.Cu" "*.Mask")
 			(remove_unused_layers no)
+			(net 45 "unconnected-(J6-Pin_6-Pad6)")
 		)
 	(pad "7" thru_hole circle
 			(at 0 15.24 90)
@@ -3333,6 +3348,7 @@
 			(drill 1)
 			(layers "*.Cu" "*.Mask")
 			(remove_unused_layers no)
+			(net 46 "unconnected-(J6-Pin_7-Pad7)")
 		)
 	(pad "8" thru_hole circle
 			(at 0 17.78 90)
@@ -3340,6 +3356,7 @@
 			(drill 1)
 			(layers "*.Cu" "*.Mask")
 			(remove_unused_layers no)
+			(net 47 "unconnected-(J6-Pin_8-Pad8)")
 		)
 	(pad "9" thru_hole circle
 			(at 0 20.32 90)
@@ -3347,6 +3364,7 @@
 			(drill 1)
 			(layers "*.Cu" "*.Mask")
 			(remove_unused_layers no)
+			(net 48 "unconnected-(J6-Pin_9-Pad9)")
 		)
 	(pad "10" thru_hole circle
 			(at 0 22.86 90)
@@ -3354,6 +3372,7 @@
 			(drill 1)
 			(layers "*.Cu" "*.Mask")
 			(remove_unused_layers no)
+			(net 49 "unconnected-(J6-Pin_10-Pad10)")
 		)
 	(pad "11" thru_hole circle
 			(at 0 25.4 90)
@@ -3361,6 +3380,7 @@
 			(drill 1)
 			(layers "*.Cu" "*.Mask")
 			(remove_unused_layers no)
+			(net 4 "/IO/BOOT")
 		)
 	(pad "12" thru_hole circle
 			(at 0 27.94 90)
@@ -3368,6 +3388,7 @@
 			(drill 1)
 			(layers "*.Cu" "*.Mask")
 			(remove_unused_layers no)
+			(net 16 "GND")
 		)
 	(pad "13" thru_hole circle
 			(at 0 30.48 90)
@@ -3375,6 +3396,7 @@
 			(drill 1)
 			(layers "*.Cu" "*.Mask")
 			(remove_unused_layers no)
+			(net 9 "/IO/USB_DP")
 		)
 	(pad "14" thru_hole circle
 			(at 0 33.02 90)
@@ -3382,6 +3404,7 @@
 			(drill 1)
 			(layers "*.Cu" "*.Mask")
 			(remove_unused_layers no)
+			(net 8 "/IO/USB_DM")
 		)
 	(pad "15" thru_hole circle
 			(at 0 35.56 90)
@@ -3389,6 +3412,7 @@
 			(drill 1)
 			(layers "*.Cu" "*.Mask")
 			(remove_unused_layers no)
+			(net 16 "GND")
 		)
 	)
 (footprint "Connector_PinSocket_2.54mm:PinSocket_1x08_P2.54mm_Vertical"
@@ -3586,6 +3610,7 @@
 			(drill 1)
 			(layers "*.Cu" "*.Mask")
 			(remove_unused_layers no)
+			(net 50 "unconnected-(J7-Pin_1-Pad1)")
 		)
 	(pad "2" thru_hole circle
 			(at 0 2.54 180)
@@ -3593,6 +3618,7 @@
 			(drill 1)
 			(layers "*.Cu" "*.Mask")
 			(remove_unused_layers no)
+			(net 51 "unconnected-(J7-Pin_2-Pad2)")
 		)
 	(pad "3" thru_hole circle
 			(at 0 5.08 180)
@@ -3600,6 +3626,7 @@
 			(drill 1)
 			(layers "*.Cu" "*.Mask")
 			(remove_unused_layers no)
+			(net 52 "unconnected-(J7-Pin_3-Pad3)")
 		)
 	(pad "4" thru_hole circle
 			(at 0 7.62 180)
@@ -3607,6 +3634,7 @@
 			(drill 1)
 			(layers "*.Cu" "*.Mask")
 			(remove_unused_layers no)
+			(net 53 "unconnected-(J7-Pin_4-Pad4)")
 		)
 	(pad "5" thru_hole circle
 			(at 0 10.16 180)
@@ -3614,6 +3642,7 @@
 			(drill 1)
 			(layers "*.Cu" "*.Mask")
 			(remove_unused_layers no)
+			(net 54 "unconnected-(J7-Pin_5-Pad5)")
 		)
 	(pad "6" thru_hole circle
 			(at 0 12.7 180)
@@ -3621,6 +3650,7 @@
 			(drill 1)
 			(layers "*.Cu" "*.Mask")
 			(remove_unused_layers no)
+			(net 55 "unconnected-(J7-Pin_6-Pad6)")
 		)
 	(pad "7" thru_hole circle
 			(at 0 15.24 180)
@@ -3628,6 +3658,7 @@
 			(drill 1)
 			(layers "*.Cu" "*.Mask")
 			(remove_unused_layers no)
+			(net 1 "+3V3")
 		)
 	(pad "8" thru_hole circle
 			(at 0 17.78 180)
@@ -3635,6 +3666,7 @@
 			(drill 1)
 			(layers "*.Cu" "*.Mask")
 			(remove_unused_layers no)
+			(net 16 "GND")
 		)
 	)
 (footprint "Connector_PinSocket_2.54mm:PinSocket_1x08_P2.54mm_Vertical"
@@ -3832,6 +3864,7 @@
 			(drill 1)
 			(layers "*.Cu" "*.Mask")
 			(remove_unused_layers no)
+			(net 56 "unconnected-(J8-Pin_1-Pad1)")
 		)
 	(pad "2" thru_hole circle
 			(at 0 2.54 180)
@@ -3839,6 +3872,7 @@
 			(drill 1)
 			(layers "*.Cu" "*.Mask")
 			(remove_unused_layers no)
+			(net 11 "/MCU/NFC_FD")
 		)
 	(pad "3" thru_hole circle
 			(at 0 5.08 180)
@@ -3846,6 +3880,7 @@
 			(drill 1)
 			(layers "*.Cu" "*.Mask")
 			(remove_unused_layers no)
+			(net 57 "unconnected-(J8-Pin_3-Pad3)")
 		)
 	(pad "4" thru_hole circle
 			(at 0 7.62 180)
@@ -3853,6 +3888,7 @@
 			(drill 1)
 			(layers "*.Cu" "*.Mask")
 			(remove_unused_layers no)
+			(net 58 "unconnected-(J8-Pin_4-Pad4)")
 		)
 	(pad "5" thru_hole circle
 			(at 0 10.16 180)
@@ -3860,6 +3896,7 @@
 			(drill 1)
 			(layers "*.Cu" "*.Mask")
 			(remove_unused_layers no)
+			(net 6 "/IO/I2C_SCL")
 		)
 	(pad "6" thru_hole circle
 			(at 0 12.7 180)
@@ -3867,6 +3904,7 @@
 			(drill 1)
 			(layers "*.Cu" "*.Mask")
 			(remove_unused_layers no)
+			(net 7 "/IO/I2C_SDA")
 		)
 	(pad "7" thru_hole circle
 			(at 0 15.24 180)
@@ -3874,6 +3912,7 @@
 			(drill 1)
 			(layers "*.Cu" "*.Mask")
 			(remove_unused_layers no)
+			(net 59 "unconnected-(J8-Pin_7-Pad7)")
 		)
 	(pad "8" thru_hole circle
 			(at 0 17.78 180)
@@ -3881,6 +3920,7 @@
 			(drill 1)
 			(layers "*.Cu" "*.Mask")
 			(remove_unused_layers no)
+			(net 16 "GND")
 		)
 	)
 (footprint "oas:SK6812-SIDE"
@@ -3974,7 +4014,7 @@
 	(size 0.6 1)
 	(layers "F.Cu" "F.Paste" "F.Mask")
 	(uuid "9520d1b6-9955-5700-84bc-d7b2a0be2d68")
-	(net 12 "/MCU/WS2812_DIN")
+	(net 14 "/MCU/WS2812_DIN")
 )
 (pad "2" smd rect
 	(at -0.475 0.85 270)
@@ -3988,14 +4028,14 @@
 	(size 0.6 1)
 	(layers "F.Cu" "F.Paste" "F.Mask")
 	(uuid "1855b926-eb2e-51ae-93ee-de638d8b7833")
-	(net 18 "Net-(D11-DOUT)")
+	(net 20 "Net-(D11-DOUT)")
 )
 (pad "4" smd rect
 	(at 1.425 0.85 270)
 	(size 0.6 1)
 	(layers "F.Cu" "F.Paste" "F.Mask")
 	(uuid "af296daf-7749-5e54-ac24-3e542c95f42d")
-	(net 14 "GND")
+	(net 16 "GND")
 )
 	)
 (footprint "C_0402_1005Metric"
@@ -4067,7 +4107,7 @@
 		(size 0.62 0.7)
 		(layers "F.Cu" "F.Paste" "F.Mask")
 		(uuid "d815d7dc-6809-5cc8-932e-5df9696b7e19")
-		(net 14 "GND")
+		(net 16 "GND")
 	)
 )
 (footprint "oas:SK6812-SIDE"
@@ -4161,7 +4201,7 @@
 	(size 0.6 1)
 	(layers "F.Cu" "F.Paste" "F.Mask")
 	(uuid "2da29f51-9d3f-575c-af4f-c70a5343ebe5")
-	(net 18 "Net-(D11-DOUT)")
+	(net 20 "Net-(D11-DOUT)")
 )
 (pad "2" smd rect
 	(at -0.475 0.85 240)
@@ -4175,14 +4215,14 @@
 	(size 0.6 1)
 	(layers "F.Cu" "F.Paste" "F.Mask")
 	(uuid "450758af-90e3-53af-bff2-831063d47168")
-	(net 19 "Net-(D12-DOUT)")
+	(net 21 "Net-(D12-DOUT)")
 )
 (pad "4" smd rect
 	(at 1.425 0.85 240)
 	(size 0.6 1)
 	(layers "F.Cu" "F.Paste" "F.Mask")
 	(uuid "310903d8-3b03-533f-9ac7-c4736245e140")
-	(net 14 "GND")
+	(net 16 "GND")
 )
 	)
 (footprint "C_0402_1005Metric"
@@ -4254,7 +4294,7 @@
 		(size 0.62 0.7)
 		(layers "F.Cu" "F.Paste" "F.Mask")
 		(uuid "129efd06-f595-5c05-b52f-35e81661b458")
-		(net 14 "GND")
+		(net 16 "GND")
 	)
 )
 (footprint "oas:SK6812-SIDE"
@@ -4348,7 +4388,7 @@
 	(size 0.6 1)
 	(layers "F.Cu" "F.Paste" "F.Mask")
 	(uuid "58a7b08b-0523-57f2-bcf5-971d942fdac6")
-	(net 19 "Net-(D12-DOUT)")
+	(net 21 "Net-(D12-DOUT)")
 )
 (pad "2" smd rect
 	(at -0.475 0.85 210)
@@ -4362,14 +4402,14 @@
 	(size 0.6 1)
 	(layers "F.Cu" "F.Paste" "F.Mask")
 	(uuid "b5326bdd-6172-5b79-b136-cd631095a2a9")
-	(net 20 "Net-(D13-DOUT)")
+	(net 22 "Net-(D13-DOUT)")
 )
 (pad "4" smd rect
 	(at 1.425 0.85 210)
 	(size 0.6 1)
 	(layers "F.Cu" "F.Paste" "F.Mask")
 	(uuid "8639dcb9-72c2-5246-b91e-d7d9ef5d15fd")
-	(net 14 "GND")
+	(net 16 "GND")
 )
 	)
 (footprint "C_0402_1005Metric"
@@ -4441,7 +4481,7 @@
 		(size 0.62 0.7)
 		(layers "F.Cu" "F.Paste" "F.Mask")
 		(uuid "e00924b9-df19-5061-adb3-b7e0f499c6f8")
-		(net 14 "GND")
+		(net 16 "GND")
 	)
 )
 (footprint "oas:SK6812-SIDE"
@@ -4535,7 +4575,7 @@
 	(size 0.6 1)
 	(layers "F.Cu" "F.Paste" "F.Mask")
 	(uuid "ce6c3892-b14b-58bb-aa9c-c36a41f0b20c")
-	(net 20 "Net-(D13-DOUT)")
+	(net 22 "Net-(D13-DOUT)")
 )
 (pad "2" smd rect
 	(at -0.475 0.85 150)
@@ -4549,14 +4589,14 @@
 	(size 0.6 1)
 	(layers "F.Cu" "F.Paste" "F.Mask")
 	(uuid "92125514-dc68-56f3-92d6-f24ec3cef858")
-	(net 21 "Net-(D15-DOUT)")
+	(net 23 "Net-(D15-DOUT)")
 )
 (pad "4" smd rect
 	(at 1.425 0.85 150)
 	(size 0.6 1)
 	(layers "F.Cu" "F.Paste" "F.Mask")
 	(uuid "2b6dcb5f-f4db-58fe-91bf-af1774dacb2d")
-	(net 14 "GND")
+	(net 16 "GND")
 )
 	)
 (footprint "C_0402_1005Metric"
@@ -4628,7 +4668,7 @@
 		(size 0.62 0.7)
 		(layers "F.Cu" "F.Paste" "F.Mask")
 		(uuid "487a767d-ac01-5ac9-a281-eff6a97d7332")
-		(net 14 "GND")
+		(net 16 "GND")
 	)
 )
 (footprint "oas:SK6812-SIDE"
@@ -4722,7 +4762,7 @@
 	(size 0.6 1)
 	(layers "F.Cu" "F.Paste" "F.Mask")
 	(uuid "bddfb94b-8477-5f68-8f23-a138d153b151")
-	(net 21 "Net-(D15-DOUT)")
+	(net 23 "Net-(D15-DOUT)")
 )
 (pad "2" smd rect
 	(at -0.475 0.85 120)
@@ -4736,14 +4776,14 @@
 	(size 0.6 1)
 	(layers "F.Cu" "F.Paste" "F.Mask")
 	(uuid "7366eef7-1417-581f-b611-d105c3d441aa")
-	(net 22 "Net-(D16-DOUT)")
+	(net 24 "Net-(D16-DOUT)")
 )
 (pad "4" smd rect
 	(at 1.425 0.85 120)
 	(size 0.6 1)
 	(layers "F.Cu" "F.Paste" "F.Mask")
 	(uuid "3068eb1a-aab3-5a06-9345-5c927f6fd663")
-	(net 14 "GND")
+	(net 16 "GND")
 )
 	)
 (footprint "C_0402_1005Metric"
@@ -4815,7 +4855,7 @@
 		(size 0.62 0.7)
 		(layers "F.Cu" "F.Paste" "F.Mask")
 		(uuid "6239659c-039f-5333-9fe5-7f4950f45d5e")
-		(net 14 "GND")
+		(net 16 "GND")
 	)
 )
 (footprint "oas:SK6812-SIDE"
@@ -4909,7 +4949,7 @@
 	(size 0.6 1)
 	(layers "F.Cu" "F.Paste" "F.Mask")
 	(uuid "5cc83183-9109-578b-89af-a1d5779314ae")
-	(net 22 "Net-(D16-DOUT)")
+	(net 24 "Net-(D16-DOUT)")
 )
 (pad "2" smd rect
 	(at -0.475 0.85 90)
@@ -4923,14 +4963,14 @@
 	(size 0.6 1)
 	(layers "F.Cu" "F.Paste" "F.Mask")
 	(uuid "813917f6-d106-53c6-a4d2-4ed315f21307")
-	(net 23 "Net-(D17-DOUT)")
+	(net 25 "Net-(D17-DOUT)")
 )
 (pad "4" smd rect
 	(at 1.425 0.85 90)
 	(size 0.6 1)
 	(layers "F.Cu" "F.Paste" "F.Mask")
 	(uuid "348a60ef-1caf-5254-affa-8ba36bf55e64")
-	(net 14 "GND")
+	(net 16 "GND")
 )
 	)
 (footprint "C_0402_1005Metric"
@@ -5002,7 +5042,7 @@
 		(size 0.62 0.7)
 		(layers "F.Cu" "F.Paste" "F.Mask")
 		(uuid "07dab16c-e4c6-5547-9813-0273f500ab42")
-		(net 14 "GND")
+		(net 16 "GND")
 	)
 )
 (footprint "oas:SK6812-SIDE"
@@ -5096,7 +5136,7 @@
 	(size 0.6 1)
 	(layers "F.Cu" "F.Paste" "F.Mask")
 	(uuid "6e29fa09-0080-5ff4-a156-7db6dbeb9f68")
-	(net 23 "Net-(D17-DOUT)")
+	(net 25 "Net-(D17-DOUT)")
 )
 (pad "2" smd rect
 	(at -0.475 0.85 60)
@@ -5110,14 +5150,14 @@
 	(size 0.6 1)
 	(layers "F.Cu" "F.Paste" "F.Mask")
 	(uuid "3bcfc5c8-b642-5a68-b125-3d1500bfc655")
-	(net 24 "Net-(D18-DOUT)")
+	(net 26 "Net-(D18-DOUT)")
 )
 (pad "4" smd rect
 	(at 1.425 0.85 60)
 	(size 0.6 1)
 	(layers "F.Cu" "F.Paste" "F.Mask")
 	(uuid "dd57e537-7474-5120-b224-a29cf06e9f21")
-	(net 14 "GND")
+	(net 16 "GND")
 )
 	)
 (footprint "C_0402_1005Metric"
@@ -5189,7 +5229,7 @@
 		(size 0.62 0.7)
 		(layers "F.Cu" "F.Paste" "F.Mask")
 		(uuid "b5611552-a3c0-5324-a960-7e81ff3ba503")
-		(net 14 "GND")
+		(net 16 "GND")
 	)
 )
 (footprint "oas:SK6812-SIDE"
@@ -5283,7 +5323,7 @@
 	(size 0.6 1)
 	(layers "F.Cu" "F.Paste" "F.Mask")
 	(uuid "7ee2fd8c-68c1-5ec5-a12f-799b17b4bac0")
-	(net 24 "Net-(D18-DOUT)")
+	(net 26 "Net-(D18-DOUT)")
 )
 (pad "2" smd rect
 	(at -0.475 0.85 30)
@@ -5297,14 +5337,14 @@
 	(size 0.6 1)
 	(layers "F.Cu" "F.Paste" "F.Mask")
 	(uuid "2c820a6e-907b-5d2f-8669-11c30a24b710")
-	(net 25 "Net-(D19-DOUT)")
+	(net 27 "Net-(D19-DOUT)")
 )
 (pad "4" smd rect
 	(at 1.425 0.85 30)
 	(size 0.6 1)
 	(layers "F.Cu" "F.Paste" "F.Mask")
 	(uuid "7d11bc04-d3d1-5111-b6f6-aa658349d09e")
-	(net 14 "GND")
+	(net 16 "GND")
 )
 	)
 (footprint "C_0402_1005Metric"
@@ -5376,7 +5416,7 @@
 		(size 0.62 0.7)
 		(layers "F.Cu" "F.Paste" "F.Mask")
 		(uuid "dd07eea5-f682-50aa-977b-83ecdbba6c40")
-		(net 14 "GND")
+		(net 16 "GND")
 	)
 )
 (footprint "oas:SK6812-SIDE"
@@ -5470,7 +5510,7 @@
 	(size 0.6 1)
 	(layers "F.Cu" "F.Paste" "F.Mask")
 	(uuid "3773cf94-0325-54fb-bd75-056ebb8db46e")
-	(net 25 "Net-(D19-DOUT)")
+	(net 27 "Net-(D19-DOUT)")
 )
 (pad "2" smd rect
 	(at -0.475 0.85)
@@ -5484,14 +5524,14 @@
 	(size 0.6 1)
 	(layers "F.Cu" "F.Paste" "F.Mask")
 	(uuid "7dc749b5-0171-51ba-9186-7d500e0b5c1b")
-	(net 26 "Net-(D20-DOUT)")
+	(net 28 "Net-(D20-DOUT)")
 )
 (pad "4" smd rect
 	(at 1.425 0.85)
 	(size 0.6 1)
 	(layers "F.Cu" "F.Paste" "F.Mask")
 	(uuid "337810ba-56ce-5288-8307-3273734ef1f8")
-	(net 14 "GND")
+	(net 16 "GND")
 )
 	)
 (footprint "C_0402_1005Metric"
@@ -5563,7 +5603,7 @@
 		(size 0.62 0.7)
 		(layers "F.Cu" "F.Paste" "F.Mask")
 		(uuid "df65615d-b06f-56cf-9ca3-24f88e7bb133")
-		(net 14 "GND")
+		(net 16 "GND")
 	)
 )
 (footprint "oas:SK6812-SIDE"
@@ -5657,7 +5697,7 @@
 	(size 0.6 1)
 	(layers "F.Cu" "F.Paste" "F.Mask")
 	(uuid "45f93dc3-cf8d-53a1-9b7d-2e952e0054dd")
-	(net 26 "Net-(D20-DOUT)")
+	(net 28 "Net-(D20-DOUT)")
 )
 (pad "2" smd rect
 	(at -0.475 0.85 330)
@@ -5671,14 +5711,14 @@
 	(size 0.6 1)
 	(layers "F.Cu" "F.Paste" "F.Mask")
 	(uuid "f3d4046f-7d40-5f03-a7d1-86451ccfb6c4")
-	(net 27 "Net-(D21-DOUT)")
+	(net 29 "Net-(D21-DOUT)")
 )
 (pad "4" smd rect
 	(at 1.425 0.85 330)
 	(size 0.6 1)
 	(layers "F.Cu" "F.Paste" "F.Mask")
 	(uuid "cbd76adb-7b1b-5ccb-9bf5-c02d07756f36")
-	(net 14 "GND")
+	(net 16 "GND")
 )
 	)
 (footprint "C_0402_1005Metric"
@@ -5750,7 +5790,7 @@
 		(size 0.62 0.7)
 		(layers "F.Cu" "F.Paste" "F.Mask")
 		(uuid "85e62957-4a24-5b9a-b7d1-a2ac6f868741")
-		(net 14 "GND")
+		(net 16 "GND")
 	)
 )
 (footprint "oas:SK6812-SIDE"
@@ -5844,7 +5884,7 @@
 	(size 0.6 1)
 	(layers "F.Cu" "F.Paste" "F.Mask")
 	(uuid "5d75cf33-a9a4-5333-9641-0dc969c6a096")
-	(net 27 "Net-(D21-DOUT)")
+	(net 29 "Net-(D21-DOUT)")
 )
 (pad "2" smd rect
 	(at -0.475 0.85 300)
@@ -5858,14 +5898,14 @@
 	(size 0.6 1)
 	(layers "F.Cu" "F.Paste" "F.Mask")
 	(uuid "d03c5d3d-7a07-5340-b5ed-90d853b435d1")
-	(net 34 "unconnected-(D22-DOUT-Pad3)")
+	(net 36 "unconnected-(D22-DOUT-Pad3)")
 )
 (pad "4" smd rect
 	(at 1.425 0.85 300)
 	(size 0.6 1)
 	(layers "F.Cu" "F.Paste" "F.Mask")
 	(uuid "41c28adc-9bc1-59ca-b414-43424f86dae2")
-	(net 14 "GND")
+	(net 16 "GND")
 )
 	)
 (footprint "C_0402_1005Metric"
@@ -5937,7 +5977,7 @@
 		(size 0.62 0.7)
 		(layers "F.Cu" "F.Paste" "F.Mask")
 		(uuid "637e04c6-84ba-56a6-ac82-934a5d63275c")
-		(net 14 "GND")
+		(net 16 "GND")
 	)
 )
         	(footprint "D_SMB"
@@ -6003,7 +6043,7 @@
         			(layers "F.Cu" "F.Paste" "F.Mask")
 			(roundrect_rratio 0.25)
         			(uuid "d5a09ce5-4ba0-50eb-8624-d97192435bae")
-			(net 14 "GND")
+			(net 16 "GND")
         		)
         		(pad "2" smd roundrect
         			(at 2.55 0)
@@ -6011,7 +6051,7 @@
         			(layers "F.Cu" "F.Paste" "F.Mask")
 			(roundrect_rratio 0.25)
         			(uuid "bf5e2898-4fb0-5928-a171-6139f02edf52")
-			(net 15 "Net-(D1-A2)")
+			(net 17 "Net-(D1-A2)")
         		)
         	)
 (footprint "SOT-23"
@@ -6164,7 +6204,7 @@
         			(layers "F.Cu" "F.Paste" "F.Mask")
 			(roundrect_rratio 0.25)
         			(uuid "c07e2f00-2d1e-522f-a0e1-5e34070e3c38")
-			(net 28 "Net-(F1-Pad2)")
+			(net 30 "Net-(F1-Pad2)")
         		)
         	)
         	(footprint "D_SOD-323"
@@ -6230,7 +6270,7 @@
         			(layers "F.Cu" "F.Paste" "F.Mask")
 			(roundrect_rratio 0.25)
         			(uuid "748b55da-0e09-5044-a97e-54635e68b36a")
-			(net 15 "Net-(D1-A2)")
+			(net 17 "Net-(D1-A2)")
         		)
         		(pad "2" smd roundrect
         			(at 1.2 0)
@@ -6238,7 +6278,7 @@
         			(layers "F.Cu" "F.Paste" "F.Mask")
 			(roundrect_rratio 0.25)
         			(uuid "5c31edc3-ebf2-575e-8d32-50ef9eb33374")
-			(net 17 "Net-(D3-A)")
+			(net 19 "Net-(D3-A)")
         		)
         	)
         	(footprint "R_0603_1608Metric"
@@ -6304,7 +6344,7 @@
         			(layers "F.Cu" "F.Paste" "F.Mask")
 			(roundrect_rratio 0.25)
         			(uuid "2ef5dce5-efd6-5d44-8e85-b3f8acf3b86b")
-			(net 17 "Net-(D3-A)")
+			(net 19 "Net-(D3-A)")
         		)
         		(pad "2" smd roundrect
         			(at 0.85 0)
@@ -6312,7 +6352,7 @@
         			(layers "F.Cu" "F.Paste" "F.Mask")
 			(roundrect_rratio 0.25)
         			(uuid "40792a98-5e40-5021-898a-ad65b62d2b95")
-			(net 14 "GND")
+			(net 16 "GND")
         		)
         	)
         	(footprint "R_0603_1608Metric"
@@ -6378,7 +6418,7 @@
         			(layers "F.Cu" "F.Paste" "F.Mask")
 			(roundrect_rratio 0.25)
         			(uuid "7c399c31-4f15-5822-a5c4-9877fae4d12e")
-			(net 29 "Net-(Q1-PadG)")
+			(net 31 "Net-(Q1-PadG)")
         		)
         		(pad "2" smd roundrect
         			(at 0.85 0)
@@ -6386,7 +6426,7 @@
         			(layers "F.Cu" "F.Paste" "F.Mask")
 			(roundrect_rratio 0.25)
         			(uuid "726995b9-c06a-5458-8c6f-54ca1b036dac")
-			(net 17 "Net-(D3-A)")
+			(net 19 "Net-(D3-A)")
         		)
         	)
 (footprint "TO-263-5_LM2596"
@@ -6460,7 +6500,7 @@
 	(layers "F.Cu" "F.Paste" "F.Mask")
 	(roundrect_rratio 0.25)
 	(uuid "b7fa99c4-a092-530c-9016-75601d022ea7")
-	(net 16 "Net-(D2-K)")
+	(net 18 "Net-(D2-K)")
 )
 (pad "3" smd roundrect
 	(at 0 3.45)
@@ -6468,7 +6508,7 @@
 	(layers "F.Cu" "F.Paste" "F.Mask")
 	(roundrect_rratio 0.25)
 	(uuid "ac4cdc5b-8d96-51d1-b6f4-1c7c9a44bf6d")
-	(net 14 "GND")
+	(net 16 "GND")
 )
 (pad "4" smd roundrect
 	(at 1.7 3.45)
@@ -6484,7 +6524,7 @@
 	(layers "F.Cu" "F.Paste" "F.Mask")
 	(roundrect_rratio 0.25)
 	(uuid "dc422f13-8e55-5c91-b047-819ed63a85fb")
-	(net 14 "GND")
+	(net 16 "GND")
 )
 (pad "3" smd roundrect
 	(at 0 -2.0)
@@ -6492,7 +6532,7 @@
 	(layers "F.Cu" "F.Paste" "F.Mask")
 	(roundrect_rratio 0.05)
 	(uuid "a3661d9d-bd95-5649-b284-03d0a8643d1c")
-	(net 14 "GND")
+	(net 16 "GND")
 )
 	)
         	(footprint "L_NR5040"
@@ -6566,7 +6606,7 @@
         			(layers "F.Cu" "F.Paste" "F.Mask")
 			(roundrect_rratio 0.25)
         			(uuid "5cfde4ac-44d7-52e0-922b-c2e111280135")
-			(net 16 "Net-(D2-K)")
+			(net 18 "Net-(D2-K)")
         		)
         	)
         	(footprint "D_SMA"
@@ -6632,7 +6672,7 @@
         			(layers "F.Cu" "F.Paste" "F.Mask")
 			(roundrect_rratio 0.25)
         			(uuid "7e1c4d79-9b8f-5a77-9d2b-a8204b97afb2")
-			(net 16 "Net-(D2-K)")
+			(net 18 "Net-(D2-K)")
         		)
         		(pad "2" smd roundrect
         			(at 2.25 0)
@@ -6640,7 +6680,7 @@
         			(layers "F.Cu" "F.Paste" "F.Mask")
 			(roundrect_rratio 0.25)
         			(uuid "74e8abc5-e1a1-5387-bfcc-8035eaf00f70")
-			(net 14 "GND")
+			(net 16 "GND")
         		)
         	)
 (footprint "CP_Radial_D8mm_P3.5mm"
@@ -6714,7 +6754,7 @@
 		(drill 0.8)
 		(layers "*.Cu" "*.Mask")
 		(uuid "e6ac201e-adc2-5178-9fc4-8d6eab6ce48d")
-		(net 14 "GND")
+		(net 16 "GND")
 	)
 )
         	(footprint "C_0603_1608Metric"
@@ -6788,7 +6828,7 @@
         			(layers "F.Cu" "F.Paste" "F.Mask")
 			(roundrect_rratio 0.25)
         			(uuid "83bb1633-d387-59b9-8167-4b08c681ee41")
-			(net 14 "GND")
+			(net 16 "GND")
         		)
         	)
 (footprint "CP_Radial_D6.3mm_P2.5mm"
@@ -6862,7 +6902,7 @@
 		(drill 0.8)
 		(layers "*.Cu" "*.Mask")
 		(uuid "8ae36705-b21b-5334-ad7f-a5adc30b524c")
-		(net 14 "GND")
+		(net 16 "GND")
 	)
 )
         	(footprint "C_0603_1608Metric"
@@ -6936,7 +6976,7 @@
         			(layers "F.Cu" "F.Paste" "F.Mask")
 			(roundrect_rratio 0.25)
         			(uuid "95cbe0c9-6b59-5e9c-91e1-c359c8cdbd5e")
-			(net 14 "GND")
+			(net 16 "GND")
         		)
         	)
 (footprint "SOT-583_TPS62933"
@@ -7002,7 +7042,7 @@
 	(layers "F.Cu" "F.Paste" "F.Mask")
 	(roundrect_rratio 0.25)
 	(uuid "d2a87eb0-b993-5889-9a9d-711bfdeb8357")
-	(net 14 "GND")
+	(net 16 "GND")
 )
 (pad "2" smd roundrect
 	(at -0.95 -0.25)
@@ -7026,7 +7066,7 @@
 	(layers "F.Cu" "F.Paste" "F.Mask")
 	(roundrect_rratio 0.25)
 	(uuid "520cbdbd-8a8e-587b-b89c-fe0e38e589a6")
-	(net 14 "GND")
+	(net 16 "GND")
 )
 (pad "5" smd roundrect
 	(at 0.95 0.75)
@@ -7034,7 +7074,7 @@
 	(layers "F.Cu" "F.Paste" "F.Mask")
 	(roundrect_rratio 0.25)
 	(uuid "8ef4d794-97d0-5749-a49c-b988aeddd03f")
-	(net 33 "Net-(U2-SW)")
+	(net 35 "Net-(U2-SW)")
 )
 (pad "6" smd roundrect
 	(at 0.95 0.25)
@@ -7042,7 +7082,7 @@
 	(layers "F.Cu" "F.Paste" "F.Mask")
 	(roundrect_rratio 0.25)
 	(uuid "010b2b56-903e-597d-8170-cb5cf6327c5a")
-	(net 30 "Net-(U2-BST)")
+	(net 32 "Net-(U2-BST)")
 )
 (pad "7" smd roundrect
 	(at 0.95 -0.25)
@@ -7050,7 +7090,7 @@
 	(layers "F.Cu" "F.Paste" "F.Mask")
 	(roundrect_rratio 0.25)
 	(uuid "48a04603-ec66-5d2b-8b3b-1df9fac53b17")
-	(net 32 "Net-(U2-SS)")
+	(net 34 "Net-(U2-SS)")
 )
 (pad "8" smd roundrect
 	(at 0.95 -0.75)
@@ -7058,7 +7098,7 @@
 	(layers "F.Cu" "F.Paste" "F.Mask")
 	(roundrect_rratio 0.25)
 	(uuid "2dda31e2-87ef-525b-8ed1-ceb5de6f8448")
-	(net 31 "Net-(U2-FB)")
+	(net 33 "Net-(U2-FB)")
 )
 	)
         	(footprint "L_NR5040"
@@ -7132,7 +7172,7 @@
         			(layers "F.Cu" "F.Paste" "F.Mask")
 			(roundrect_rratio 0.25)
         			(uuid "5032fd23-028b-59b4-869d-0c0f4dd51b59")
-			(net 33 "Net-(U2-SW)")
+			(net 35 "Net-(U2-SW)")
         		)
         	)
         	(footprint "R_0603_1608Metric"
@@ -7206,7 +7246,7 @@
         			(layers "F.Cu" "F.Paste" "F.Mask")
 			(roundrect_rratio 0.25)
         			(uuid "54d2dc69-8a72-507b-a70d-53aef455d749")
-			(net 31 "Net-(U2-FB)")
+			(net 33 "Net-(U2-FB)")
         		)
         	)
         	(footprint "R_0603_1608Metric"
@@ -7272,7 +7312,7 @@
         			(layers "F.Cu" "F.Paste" "F.Mask")
 			(roundrect_rratio 0.25)
         			(uuid "99227711-c773-52b5-8b93-d11751af245c")
-			(net 31 "Net-(U2-FB)")
+			(net 33 "Net-(U2-FB)")
         		)
         		(pad "2" smd roundrect
         			(at 0.85 0)
@@ -7280,7 +7320,7 @@
         			(layers "F.Cu" "F.Paste" "F.Mask")
 			(roundrect_rratio 0.25)
         			(uuid "de996ee6-0a03-52ae-8efb-07be99df0e8d")
-			(net 14 "GND")
+			(net 16 "GND")
         		)
         	)
         	(footprint "C_0805_2012Metric"
@@ -7354,7 +7394,7 @@
         			(layers "F.Cu" "F.Paste" "F.Mask")
 			(roundrect_rratio 0.25)
         			(uuid "eff10a61-c2c8-5cf9-a11d-34d8f4ed7ae2")
-			(net 14 "GND")
+			(net 16 "GND")
         		)
         	)
         	(footprint "C_0603_1608Metric"
@@ -7428,7 +7468,7 @@
         			(layers "F.Cu" "F.Paste" "F.Mask")
 			(roundrect_rratio 0.25)
         			(uuid "c66986da-cecd-54e0-9e86-320585a503ba")
-			(net 14 "GND")
+			(net 16 "GND")
         		)
         	)
         	(footprint "C_0805_2012Metric"
@@ -7502,7 +7542,7 @@
         			(layers "F.Cu" "F.Paste" "F.Mask")
 			(roundrect_rratio 0.25)
         			(uuid "c7332519-9097-5108-aa43-021df75ca476")
-			(net 14 "GND")
+			(net 16 "GND")
         		)
         	)
         	(footprint "C_0603_1608Metric"
@@ -7576,7 +7616,7 @@
         			(layers "F.Cu" "F.Paste" "F.Mask")
 			(roundrect_rratio 0.25)
         			(uuid "aeb9de8d-1b4b-5d83-89a7-cddd44b85655")
-			(net 14 "GND")
+			(net 16 "GND")
         		)
         	)
         	(footprint "C_0603_1608Metric"
@@ -7642,7 +7682,7 @@
         			(layers "F.Cu" "F.Paste" "F.Mask")
 			(roundrect_rratio 0.25)
         			(uuid "9c85cd09-cd8a-5e25-bc38-684fb330e61c")
-			(net 30 "Net-(U2-BST)")
+			(net 32 "Net-(U2-BST)")
         		)
         		(pad "2" smd roundrect
         			(at 0.85 0)
@@ -7650,7 +7690,7 @@
         			(layers "F.Cu" "F.Paste" "F.Mask")
 			(roundrect_rratio 0.25)
         			(uuid "933c1185-b824-56e1-8184-d21c92ddfe18")
-			(net 33 "Net-(U2-SW)")
+			(net 35 "Net-(U2-SW)")
         		)
         	)
         	(footprint "C_0603_1608Metric"
@@ -7716,7 +7756,7 @@
         			(layers "F.Cu" "F.Paste" "F.Mask")
 			(roundrect_rratio 0.25)
         			(uuid "62ad9bbd-230b-54d1-be41-89cc6cc334e9")
-			(net 32 "Net-(U2-SS)")
+			(net 34 "Net-(U2-SS)")
         		)
         		(pad "2" smd roundrect
         			(at 0.85 0)
@@ -7724,7 +7764,7 @@
         			(layers "F.Cu" "F.Paste" "F.Mask")
 			(roundrect_rratio 0.25)
         			(uuid "a29107ce-84e8-5ccc-a8aa-d21fd5066131")
-			(net 14 "GND")
+			(net 16 "GND")
         		)
         	)
 (footprint "CP_Radial_D8mm_P3.5mm"
@@ -7798,7 +7838,7 @@
 		(drill 0.8)
 		(layers "*.Cu" "*.Mask")
 		(uuid "042efc7f-1bb2-51f7-a708-83c9030faae9")
-		(net 14 "GND")
+		(net 16 "GND")
 	)
 )
         	(footprint "C_0805_2012Metric"
@@ -7864,7 +7904,7 @@
         			(layers "F.Cu" "F.Paste" "F.Mask")
 			(roundrect_rratio 0.25)
         			(uuid "8a4863ba-8745-57b5-9f18-9db03ccd9dd3")
-			(net 13 "Earth_Protective")
+			(net 15 "Earth_Protective")
         		)
         		(pad "2" smd roundrect
         			(at 0.9 0)
@@ -7872,7 +7912,7 @@
         			(layers "F.Cu" "F.Paste" "F.Mask")
 			(roundrect_rratio 0.25)
         			(uuid "ddbdc120-a139-54b8-a60b-258468577cd6")
-			(net 14 "GND")
+			(net 16 "GND")
         		)
         	)
         	(footprint "C_0805_2012Metric"
@@ -7946,7 +7986,7 @@
         			(layers "F.Cu" "F.Paste" "F.Mask")
 			(roundrect_rratio 0.25)
         			(uuid "cf3e7aa7-f03a-5ff6-a229-188e3354120b")
-			(net 14 "GND")
+			(net 16 "GND")
         		)
         	)
         	(footprint "C_0603_1608Metric"
@@ -8020,7 +8060,7 @@
         			(layers "F.Cu" "F.Paste" "F.Mask")
 			(roundrect_rratio 0.25)
         			(uuid "aaa81d99-9b9f-5293-912b-4b8b509631de")
-			(net 14 "GND")
+			(net 16 "GND")
         		)
         	)
         	(footprint "R_0603_1608Metric"
@@ -8242,7 +8282,7 @@
         			(layers "F.Cu" "F.Paste" "F.Mask")
 			(roundrect_rratio 0.25)
         			(uuid "0ff36007-396e-5e28-bcd1-a1f6f02a455b")
-			(net 14 "GND")
+			(net 16 "GND")
         		)
         	)
         	(footprint "C_0603_1608Metric"
@@ -8316,7 +8356,7 @@
         			(layers "F.Cu" "F.Paste" "F.Mask")
 			(roundrect_rratio 0.25)
         			(uuid "842adfeb-a5cf-52b5-be80-96475424d497")
-			(net 14 "GND")
+			(net 16 "GND")
         		)
         	)
         	(footprint "C_0603_1608Metric"
@@ -8390,7 +8430,7 @@
         			(layers "F.Cu" "F.Paste" "F.Mask")
 			(roundrect_rratio 0.25)
         			(uuid "13383ead-279a-5dd2-85c9-6566792f2217")
-			(net 14 "GND")
+			(net 16 "GND")
         		)
         	)
 (footprint "PinHeader_1x06_P2.54mm_Vertical"
@@ -8464,7 +8504,7 @@
 	(drill 1.0)
 	(layers "*.Cu" "*.Mask")
 	(uuid "a3558394-688f-5997-9f92-bc7669f23b46")
-	(net 14 "GND")
+	(net 16 "GND")
 )
 (pad "3" thru_hole circle
 	(at 0 5.08)
@@ -8472,7 +8512,7 @@
 	(drill 1.0)
 	(layers "*.Cu" "*.Mask")
 	(uuid "ec6f966a-8e3d-5ce6-b786-97c81eb0539a")
-	(net 9 "/IO/USB_DP")
+	(net 13 "/MCU/UART_TX")
 )
 (pad "4" thru_hole circle
 	(at 0 7.62)
@@ -8480,7 +8520,7 @@
 	(drill 1.0)
 	(layers "*.Cu" "*.Mask")
 	(uuid "060d3f38-86ee-5f2f-ab71-0c663d14076b")
-	(net 5 "/IO/EN")
+	(net 12 "/MCU/UART_RX")
 )
 (pad "5" thru_hole circle
 	(at 0 10.16)

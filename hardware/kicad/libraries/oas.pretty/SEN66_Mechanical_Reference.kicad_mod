@@ -129,12 +129,4 @@
 	(uuid "49fdecc7-cc63-52bb-8f66-b8d53bcd789c")
 	(effects (font (size 1.0 1.0) (thickness 0.15)))
 )
-(fp_rect
-	(start 0 0)
-	(end 55.2 25.6)
-	(stroke (width 0.05) (type solid))
-	(fill no)
-	(layer "F.CrtYd")
-	(uuid "2eeb65a2-bc07-53ab-a9aa-d5bb6b39c5f9")
-)
 )
