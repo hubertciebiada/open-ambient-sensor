@@ -408,7 +408,14 @@ ESP32_ROTATION = 90                # KiCad rotation applied to helper output
 # bottom of the pin block, leaving 5.74 mm of additional board (where
 # the NFC PCB antenna spiral sits) past pin 8.
 MIKROE2462_BODY_W = 25.4
-MIKROE2462_BODY_L = 28.6
+MIKROE2462_BODY_L = 57.15           # v0.15.5: CORRECTED to mikroBUS size L
+                                     # per MikroE datasheet (was 28.6 size S,
+                                     # WRONG). NFC PCB antenna spiral fills
+                                     # the strip past pin 8 (~36.83 mm long).
+                                     # Layout collision with chord / AUX zone
+                                     # accepted for v0.15.5 — user wants to
+                                     # see visual overlap before deciding
+                                     # next layout move.
 MIKROE2462_BODY_Z = 7.0
 MIKROE2462_PIN_ROW_INSET = 1.27    # = (25.4 - 22.86) / 2
 MIKROE2462_PIN_PITCH = 2.54

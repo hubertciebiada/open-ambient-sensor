@@ -15,7 +15,7 @@
 		(effects (font (size 1 1) (thickness 0.15)))
 	)
 	(property "Value" "MIKROE-2462_Reference"
-		(at 12.7 30.1 0)
+		(at 12.7 58.65 0)
 		(unlocked yes)
 		(layer "F.Fab")
 		(hide yes)
@@ -48,7 +48,7 @@
 	)
 (fp_rect
 	(start 0 0)
-	(end 25.4 28.6)
+	(end 25.4 57.15)
 	(stroke (width 0.1) (type solid))
 	(fill no)
 	(layer "F.Fab")
@@ -56,7 +56,7 @@
 )
 (fp_rect
 	(start 0.2 0.2)
-	(end 25.2 28.4)
+	(end 25.2 56.95)
 	(stroke (width 0.12) (type solid))
 	(fill no)
 	(layer "F.SilkS")
@@ -191,7 +191,7 @@
 	(uuid "8cd1ab32-a4ff-5295-8b41-68b13d6ae86f")
 )
 (fp_text user "MIKROE-2462"
-	(at 12.7 14.3 90)
+	(at 12.7 28.575 90)
 	(layer "F.SilkS")
 	(uuid "6e481535-41be-5292-b44d-541386473cf1")
 	(effects (font (size 1.0 1.0) (thickness 0.15)))
