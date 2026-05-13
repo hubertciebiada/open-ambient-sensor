@@ -11843,85 +11843,94 @@ def gen_sensors_sch() -> str:
     # J4_Y = 146.05 is on the 1.27 mm KiCad connection grid (1.27 × 115);
     # picking a non-grid Y (e.g. 145.00) triggers `endpoint_off_grid` ERC
     # warnings on every pin/wire of J4 + C11.
+    #
+    # Pin order per HiLink HLK-LD2410B datasheet V1.04 (FCC-filed),
+    # Table 1 page 7. The PCB pad numbering of J4 (1..5) corresponds 1:1
+    # with the LD2410 module's onboard pin row:
+    #   Pin 1 = OUT (target-status digital output, 3.3 V level)
+    #   Pin 2 = UART_Tx (output from LD2410 → MCU input UART_RX)
+    #   Pin 3 = UART_Rx (input  to  LD2410 ← MCU output UART_TX)
+    #   Pin 4 = GND
+    #   Pin 5 = VCC (5 V supply, range 5-12 V)
+    #
+    # v0.15.8 fix: J4 pin-to-net mapping was reversed end-for-end vs the
+    # datasheet (pin 1 was wired to VCC, pin 5 to OUT). Corrected here.
     J4_X = 180.34
     J4_Y = 146.05
     J4_PIN_X = J4_X - 5.08    # 175.26 — tip column for all 5 pin tips
     J4_PIN_Y = {
-        1: J4_Y - 5.08,        # 140.97 — VCC (top)
-        2: J4_Y - 2.54,        # 143.51 — GND
-        3: J4_Y,               # 146.05 — TX (LD2410 → MCU)
-        4: J4_Y + 2.54,        # 148.59 — RX (MCU → LD2410)
-        5: J4_Y + 5.08,        # 151.13 — OUT (presence interrupt)
+        1: J4_Y - 5.08,        # 140.97 — OUT (presence interrupt, top)
+        2: J4_Y - 2.54,        # 143.51 — UART_Tx (LD2410 → MCU)
+        3: J4_Y,               # 146.05 — UART_Rx (MCU → LD2410)
+        4: J4_Y + 2.54,        # 148.59 — GND
+        5: J4_Y + 5.08,        # 151.13 — VCC (bottom)
     }
 
     # ===== C11: 100 nF local decoupling cap =====
-    # Sits to the LEFT of J4, between VCC and GND. Same column as C10 so
-    # both decoupling caps line up visually.
+    # Sits to the LEFT of J4, BELOW the J4 pin row. After the v0.15.8
+    # J4 pin-order end-for-end fix, VCC moved from pin 1 (top) to pin 5
+    # (bottom, Y=151.13) and GND moved from pin 2 to pin 4 (Y=148.59).
+    # C11 placed below J4 so its top pin aligns with J4 pin 5 (VCC) and
+    # the cap's bottom pin terminates at a local GND flag.
     C11_X = 170.18
-    C11_Y = 146.05
-    C11_TOP_Y = C11_Y - 3.81   # 142.24 — pin 1 (top) → +5V
-    C11_BOT_Y = C11_Y + 3.81   # 149.86 — pin 2 (bottom) → GND
+    C11_Y = 154.94            # = 1.27 × 122 (on connection grid). Top pin
+                              # at 151.13 = J4 pin 5 (VCC).
+    C11_TOP_Y = C11_Y - 3.81   # 151.13 — pin 1 (top) → +5V (= J4 pin 5)
+    C11_BOT_Y = C11_Y + 3.81   # 158.75 — pin 2 (bottom) → GND
 
-    # ----- Pin 1 (VCC, top): wire UP to a local +5V flag -----
-    PWR_J4P1_5V_Y = J4_PIN_Y[1] - 3.81   # 137.16 — flag anchor above pin
-    parts.append(_sch_wire(J4_PIN_X, PWR_J4P1_5V_Y, J4_PIN_X, J4_PIN_Y[1], "j4-p1-vcc-up"))
-    parts.append(_sch_power_flag(
-        lib_id="power:+5V", value="+5V",
-        x=J4_PIN_X, y=PWR_J4P1_5V_Y, angle=0,
-        reference="#PWR46",
-        value_offset_x=0.0, value_offset_y=-3.556,
-        uuid_tag="pwr46-5v-j4-p1",
-        sheet_key="sensors",
-    ))
-
-    # ----- Pin 2 (GND): hop LEFT and place a local GND flag -----
-    PWR_J4P2_GND_X = J4_PIN_X - 5.08      # 170.18 — flag anchor west of pin
-    parts.append(_sch_wire(J4_PIN_X, J4_PIN_Y[2], PWR_J4P2_GND_X, J4_PIN_Y[2], "j4-p2-gnd-hop"))
-    parts.append(_sch_power_flag(
-        lib_id="power:GND", value="GND",
-        x=PWR_J4P2_GND_X, y=J4_PIN_Y[2], angle=270,
-        reference="#PWR47",
-        value_offset_x=-3.81, value_offset_y=0.0,
-        uuid_tag="pwr47-gnd-j4-p2",
-        sheet_key="sensors",
-    ))
-
-    # ----- Pin 3 (LD2410 TX → MCU RX): wire LEFT to UART_RX hier label -----
-    parts.append(_sch_wire(J4_PIN_X, J4_PIN_Y[3], HLABEL_LEFT_X, J4_PIN_Y[3], "j4-p3-tx"))
-    parts.append(_sch_hierarchical_label(
-        name="UART_RX", shape="output",
-        x=HLABEL_LEFT_X, y=J4_PIN_Y[3], angle=180, justify="right",
-        uuid_tag="uart-rx-j4",
-    ))
-
-    # ----- Pin 4 (LD2410 RX ← MCU TX): wire LEFT to UART_TX hier label -----
-    parts.append(_sch_wire(J4_PIN_X, J4_PIN_Y[4], HLABEL_LEFT_X, J4_PIN_Y[4], "j4-p4-rx"))
-    parts.append(_sch_hierarchical_label(
-        name="UART_TX", shape="input",
-        x=HLABEL_LEFT_X, y=J4_PIN_Y[4], angle=180, justify="right",
-        uuid_tag="uart-tx-j4",
-    ))
-
-    # ----- Pin 5 (OUT): wire LEFT to LD2410_OUT hier label -----
-    parts.append(_sch_wire(J4_PIN_X, J4_PIN_Y[5], HLABEL_LEFT_X, J4_PIN_Y[5], "j4-p5-out"))
+    # ----- Pin 1 (OUT, top): wire LEFT to LD2410_OUT hier label -----
+    parts.append(_sch_wire(J4_PIN_X, J4_PIN_Y[1], HLABEL_LEFT_X, J4_PIN_Y[1], "j4-p1-out"))
     parts.append(_sch_hierarchical_label(
         name="LD2410_OUT", shape="output",
-        x=HLABEL_LEFT_X, y=J4_PIN_Y[5], angle=180, justify="right",
+        x=HLABEL_LEFT_X, y=J4_PIN_Y[1], angle=180, justify="right",
         uuid_tag="ld2410-out-j4",
     ))
 
-    # ----- C11 decoupling: +5V (top) and GND (bottom) local flags -----
-    C11_5V_Y = C11_TOP_Y - 3.81           # 138.43 — flag anchor above C11
-    parts.append(_sch_wire(C11_X, C11_5V_Y, C11_X, C11_TOP_Y, "c11-top-5v"))
+    # ----- Pin 2 (LD2410 Tx → MCU RX): wire LEFT to UART_RX hier label -----
+    parts.append(_sch_wire(J4_PIN_X, J4_PIN_Y[2], HLABEL_LEFT_X, J4_PIN_Y[2], "j4-p2-tx"))
+    parts.append(_sch_hierarchical_label(
+        name="UART_RX", shape="output",
+        x=HLABEL_LEFT_X, y=J4_PIN_Y[2], angle=180, justify="right",
+        uuid_tag="uart-rx-j4",
+    ))
+
+    # ----- Pin 3 (LD2410 Rx ← MCU TX): wire LEFT to UART_TX hier label -----
+    parts.append(_sch_wire(J4_PIN_X, J4_PIN_Y[3], HLABEL_LEFT_X, J4_PIN_Y[3], "j4-p3-rx"))
+    parts.append(_sch_hierarchical_label(
+        name="UART_TX", shape="input",
+        x=HLABEL_LEFT_X, y=J4_PIN_Y[3], angle=180, justify="right",
+        uuid_tag="uart-tx-j4",
+    ))
+
+    # ----- Pin 4 (GND): hop LEFT and place a local GND flag -----
+    PWR_J4P4_GND_X = J4_PIN_X - 5.08      # 170.18 — flag anchor west of pin
+    parts.append(_sch_wire(J4_PIN_X, J4_PIN_Y[4], PWR_J4P4_GND_X, J4_PIN_Y[4], "j4-p4-gnd-hop"))
     parts.append(_sch_power_flag(
-        lib_id="power:+5V", value="+5V",
-        x=C11_X, y=C11_5V_Y, angle=0,
-        reference="#PWR48",
-        value_offset_x=0.0, value_offset_y=-3.556,
-        uuid_tag="pwr48-5v-c11",
+        lib_id="power:GND", value="GND",
+        x=PWR_J4P4_GND_X, y=J4_PIN_Y[4], angle=270,
+        reference="#PWR47",
+        value_offset_x=-3.81, value_offset_y=0.0,
+        uuid_tag="pwr47-gnd-j4-p4",
         sheet_key="sensors",
     ))
-    C11_GND_Y = C11_BOT_Y + 3.81          # 153.67 — flag anchor below C11
+
+    # ----- Pin 5 (VCC, bottom): wire DOWN to a local +5V flag -----
+    PWR_J4P5_5V_Y = J4_PIN_Y[5] + 3.81   # 154.94 — flag anchor below pin
+    parts.append(_sch_wire(J4_PIN_X, J4_PIN_Y[5], J4_PIN_X, PWR_J4P5_5V_Y, "j4-p5-vcc-down"))
+    parts.append(_sch_power_flag(
+        lib_id="power:+5V", value="+5V",
+        x=J4_PIN_X, y=PWR_J4P5_5V_Y, angle=180,
+        reference="#PWR46",
+        value_offset_x=0.0, value_offset_y=3.556,
+        uuid_tag="pwr46-5v-j4-p5",
+        sheet_key="sensors",
+    ))
+
+    # ----- C11 decoupling: top pin (+5V) shares J4 pin 5's flag via a
+    # horizontal wire from C11 over to J4 pin 5; bottom pin gets a local
+    # GND flag.
+    parts.append(_sch_wire(C11_X, C11_TOP_Y, J4_PIN_X, C11_TOP_Y, "c11-top-to-j4-p5-5v"))
+    C11_GND_Y = C11_BOT_Y + 3.81          # 162.56 — flag anchor below C11
     parts.append(_sch_wire(C11_X, C11_BOT_Y, C11_X, C11_GND_Y, "c11-bot-gnd"))
     parts.append(_sch_power_flag(
         lib_id="power:GND", value="GND",
