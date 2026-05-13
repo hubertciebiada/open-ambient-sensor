@@ -146,10 +146,20 @@ def main() -> None:
     step("2/4  Running DRC + ERC")
     drc_report = RENDERS / "_drc.rpt"
     erc_report = RENDERS / "_erc.rpt"
+    # v0.28: `--refill-zones` makes the DRC check fill zones before
+    # checking connectivity. Without this, GND pads inside the F.Cu /
+    # B.Cu GND pour would still appear as "unconnected_items" because
+    # the connectivity check looks only at routed-track copper + filled
+    # zone polygons. `--save-board` writes the filled zone polygons back
+    # into oas.kicad_pcb so the 2D PCB previews ALSO reflect the pour
+    # (otherwise the rendered SVG shows only the polygon outline, not
+    # the actual fill — confusing for visual review).
     run([
         kcli, "pcb", "drc",
         "--output", str(drc_report),
         "--severity-error", "--severity-warning",
+        "--refill-zones",
+        "--save-board",
         str(PCB),
     ])
     # v0.24 fix (review iteration 2 Mj2): make ERC strict on warnings.

@@ -17775,6 +17775,514 @@ def _apply_schematic_footprints(content: str, ref_to_fp: dict[str, str]) -> str:
 
 
 # -----------------------------------------------------------------------------
+# v0.28 — COPPER ROUTING
+# -----------------------------------------------------------------------------
+# After PCB footprints are placed and schematic nets are synced onto pads,
+# we emit explicit copper tracks (segments + vias) for every electrical
+# connection, plus full-board GND zone pours on F.Cu and B.Cu. The pour
+# layers carry the GND net so all GND-pin pads connect automatically via
+# thermal reliefs — eliminating the need to route ~60 GND pads as tracks.
+#
+# Design rules used here (must match `gen_pro()`'s design rule set):
+#   - Track widths:
+#       0.5 mm — 24 V power chain (J1 → D1 → Q1 → F1 → C1 → U1.VIN)
+#       0.5 mm — +5 V rail (U1.OUT → C4 → U2.VIN, LED ring)
+#       0.4 mm — +3.3 V rail (U2.OUT → all chip VDDs)
+#       0.2 mm — every signal (I2C, UART, GPIO, WS2812, USB, EN, BOOT)
+#   - Clearance: 0.15 mm (KiCad default)
+#   - Vias: 0.6 mm diameter, 0.3 mm drill (standard JLCPCB)
+#
+# Layer strategy: F.Cu primary, B.Cu used for crossovers and GND return.
+# Both layers carry a GND zone pour over the full PCB outline (D-shape +
+# cable hole keep-out + connector cutout keep-outs).
+#
+# Routes are computed from the parsed pad coordinates in the freshly-
+# emitted PCB (see `_routing_pad_db()` below) so layout changes to
+# component positions propagate automatically without hand-editing
+# segment coordinates. Deterministic UUID v5 ("oas-track:<idx>" /
+# "oas-via:<idx>" / "oas-zone:<layer>") keeps the file bit-identical
+# across runs.
+
+# Which chunks of the v0.28 routing plan are enabled. Each chunk adds
+# tracks for one functional subsystem; chunks are turned on incrementally
+# (v0.28a → v0.28e) so DRC and visual review can catch issues per chunk.
+# Final state (v0.28e) routes every chunk.
+ROUTING_CHUNKS: tuple[str, ...] = (
+    "gnd",        # Chunk 1 — F.Cu + B.Cu GND copper pour
+)
+
+
+# Track width selectors (mm). The cascade through `_track_width_for_net`
+# picks 0.5 mm for known power rails, 0.4 mm for +3V3, else 0.2 mm.
+_NET_TRACK_WIDTH: dict[str, float] = {
+    "+24V": 0.5,
+    "+5V": 0.5,
+    "+3V3": 0.4,
+    "Net-(D1-A2)": 0.5,         # input protection chain (24 V)
+    "Net-(F1-Pad2)": 0.5,       # PTC output, protected 24 V
+    "Net-(D2-K)": 0.5,          # buck1 switch node (high di/dt — keep wide)
+    "Net-(U2-SW)": 0.4,         # buck2 switch node
+}
+
+
+def _track_width_for_net(net_name: str) -> float:
+    """Return track width in mm for a given net name."""
+    return _NET_TRACK_WIDTH.get(net_name, 0.2)
+
+
+def _routing_pad_db() -> tuple[dict, dict]:
+    """Parse oas.kicad_pcb and return:
+
+      pads: dict mapping (ref, pin) → (pcb_local_x, pcb_local_y, net_code, net_name)
+      nets: dict mapping net_name → list of (ref, pin, x, y)
+
+    Coordinates are in PCB-local mm (origin = PCB centre, +Y = downward
+    on screen = toward chord), already adjusted for PAGE_CENTRE_X/Y.
+    Footprint rotation is correctly composed with pad local offset using
+    the standard 2D rotation matrix (math CCW; KiCad's +Y-down screen
+    convention is preserved by leaving both PCB-local and pad-local in
+    +Y-down sign space).
+    """
+    import math
+    import re
+
+    text = (HERE / "oas.kicad_pcb").read_text(encoding="utf-8")
+
+    pads: dict[tuple[str, str], tuple[float, float, int, str]] = {}
+    nets: dict[str, list[tuple[str, str, float, float]]] = {}
+
+    # Find each top-level `(footprint "..."` block by matching the `(footprint`
+    # token followed by quoted name, anywhere in the file (some are at column
+    # 0, others tab-indented).
+    fp_starts = [m.start() for m in re.finditer(r'\(footprint "', text)]
+    # Append end of file as terminator
+    fp_starts.append(len(text))
+    for i in range(len(fp_starts) - 1):
+        block = text[fp_starts[i]:fp_starts[i + 1]]
+        # Extract footprint anchor (at x y [rot])
+        m_at = re.search(
+            r'\(at\s+(-?\d+(?:\.\d+)?)\s+(-?\d+(?:\.\d+)?)(?:\s+(-?\d+(?:\.\d+)?))?\)',
+            block,
+        )
+        if not m_at:
+            continue
+        fp_x = float(m_at.group(1))
+        fp_y = float(m_at.group(2))
+        fp_ang = float(m_at.group(3)) if m_at.group(3) else 0.0
+        # Extract Reference
+        m_ref = re.search(r'\(property "Reference" "([^"]+)"', block)
+        if not m_ref:
+            continue
+        ref = m_ref.group(1)
+        # Walk every (pad "<pin>" ...) inside this block. Extract pad
+        # local-offset (at lx ly [pad_rot]) and the (net code "name") clause.
+        # Pad blocks are nested 1 level deeper than the footprint, so we
+        # use a depth-tracking parser to find them robustly.
+        depth = 0
+        in_str = False
+        esc = False
+        pad_start = None
+        for j, ch in enumerate(block):
+            if in_str:
+                if esc:
+                    esc = False
+                elif ch == "\\":
+                    esc = True
+                elif ch == '"':
+                    in_str = False
+                continue
+            if ch == '"':
+                in_str = True
+                continue
+            if ch == "(":
+                depth += 1
+                if depth == 2 and block[j:j + len("(pad ")] == "(pad ":
+                    pad_start = j
+                continue
+            if ch == ")":
+                if depth == 2 and pad_start is not None:
+                    pad_block = block[pad_start:j + 1]
+                    pad_start = None
+                    # Pad number is the first quoted string
+                    m_pin = re.search(r'\(pad\s+"([^"]*)"', pad_block)
+                    if not m_pin:
+                        depth -= 1
+                        continue
+                    pin = m_pin.group(1)
+                    if pin == "" or pin == "MP":
+                        depth -= 1
+                        continue
+                    m_pat = re.search(
+                        r'\(at\s+(-?\d+(?:\.\d+)?)\s+(-?\d+(?:\.\d+)?)(?:\s+(-?\d+(?:\.\d+)?))?\)',
+                        pad_block,
+                    )
+                    if not m_pat:
+                        depth -= 1
+                        continue
+                    lx = float(m_pat.group(1))
+                    ly = float(m_pat.group(2))
+                    # Net assignment
+                    m_net = re.search(r'\(net\s+(\d+)\s+"([^"]*)"\)', pad_block)
+                    if m_net:
+                        net_code = int(m_net.group(1))
+                        net_name = m_net.group(2)
+                    else:
+                        net_code = 0
+                        net_name = ""
+                    # Compute global position via rotation + translation
+                    a = math.radians(fp_ang)
+                    ca, sa = math.cos(a), math.sin(a)
+                    gx_page = fp_x + (ca * lx - sa * ly)
+                    gy_page = fp_y + (sa * lx + ca * ly)
+                    # Convert to PCB-local (origin = centre)
+                    px = gx_page - PAGE_CENTRE_X
+                    py = gy_page - PAGE_CENTRE_Y
+                    pads[(ref, pin)] = (px, py, net_code, net_name)
+                    if net_name and not net_name.startswith("unconnected-"):
+                        nets.setdefault(net_name, []).append((ref, pin, px, py))
+                depth -= 1
+                continue
+
+    return pads, nets
+
+
+# Track segment / via / zone emitters. UUIDs are derived from a global
+# counter so two consecutive regenerations produce bit-identical output.
+
+class _RouteEmitter:
+    """Accumulate (segment ...) / (via ...) / (zone ...) records during
+    routing. Encapsulates UUID counter to keep the routing helpers simple
+    while still emitting deterministic UUIDs."""
+
+    def __init__(self):
+        self._segments: list[str] = []
+        self._vias: list[str] = []
+        self._zones: list[str] = []
+        self._seg_idx = 0
+        self._via_idx = 0
+
+    def seg(self, x1: float, y1: float, x2: float, y2: float,
+            width: float, layer: str, net_code: int) -> None:
+        """Emit a single (segment ...) entry. Coordinates in PCB-local mm."""
+        # Skip zero-length segments
+        if abs(x1 - x2) < 1e-6 and abs(y1 - y2) < 1e-6:
+            return
+        idx = self._seg_idx
+        self._seg_idx += 1
+        u = str(uuid.uuid5(_OAS_NS, f"oas-track:seg:{idx}"))
+        self._segments.append(
+            f'\t(segment\n'
+            f'\t\t(start {fx(x1)} {fy(y1)})\n'
+            f'\t\t(end {fx(x2)} {fy(y2)})\n'
+            f'\t\t(width {fmt(width)})\n'
+            f'\t\t(layer "{layer}")\n'
+            f'\t\t(net {net_code})\n'
+            f'\t\t(uuid "{u}")\n'
+            f'\t)'
+        )
+
+    def via(self, x: float, y: float, net_code: int,
+            size: float = 0.6, drill: float = 0.3) -> None:
+        """Emit a (via ...) entry."""
+        idx = self._via_idx
+        self._via_idx += 1
+        u = str(uuid.uuid5(_OAS_NS, f"oas-track:via:{idx}"))
+        self._vias.append(
+            f'\t(via\n'
+            f'\t\t(at {fx(x)} {fy(y)})\n'
+            f'\t\t(size {fmt(size)})\n'
+            f'\t\t(drill {fmt(drill)})\n'
+            f'\t\t(layers "F.Cu" "B.Cu")\n'
+            f'\t\t(net {net_code})\n'
+            f'\t\t(uuid "{u}")\n'
+            f'\t)'
+        )
+
+    def route_segment(self, x1: float, y1: float, x2: float, y2: float,
+                      width: float, net_code: int, *, layer: str = "F.Cu",
+                      style: str = "direct") -> None:
+        """Convenience wrapper: route from (x1,y1) to (x2,y2).
+
+          style="direct" — single straight segment
+          style="manhattan-h" — horizontal then vertical (one bend at (x2,y1))
+          style="manhattan-v" — vertical then horizontal (one bend at (x1,y2))
+        """
+        if style == "direct":
+            self.seg(x1, y1, x2, y2, width, layer, net_code)
+        elif style == "manhattan-h":
+            self.seg(x1, y1, x2, y1, width, layer, net_code)
+            self.seg(x2, y1, x2, y2, width, layer, net_code)
+        elif style == "manhattan-v":
+            self.seg(x1, y1, x1, y2, width, layer, net_code)
+            self.seg(x1, y2, x2, y2, width, layer, net_code)
+        else:
+            raise ValueError(f"Unknown route style: {style!r}")
+
+    def route_chain(self, points: list[tuple[float, float]],
+                    width: float, net_code: int, *,
+                    layer: str = "F.Cu") -> None:
+        """Route a sequence of points by direct segments (point[i]→point[i+1])."""
+        for i in range(len(points) - 1):
+            x1, y1 = points[i]
+            x2, y2 = points[i + 1]
+            self.seg(x1, y1, x2, y2, width, layer, net_code)
+
+    def gnd_zone(self, layer: str, net_code: int) -> None:
+        """Emit a copper-pour zone for GND on the given layer (F.Cu or B.Cu).
+
+        Polygon = an N-segment approximation of the D-shape PCB outline
+        (arc R=60 mm + chord 82.65 mm at +Y_CHORD). KiCad's zone-filler
+        auto-computes the cable-hole keep-out and connector-cutout
+        keep-outs from the Edge.Cuts geometry + design-rule clearance.
+        Thermal reliefs on GND pads are automatic.
+        """
+        import math
+        # Walk the arc from chord-WEST endpoint (-HALF_CHORD, +Y_CHORD)
+        # over the top of the PCB (math angle +π → +3π/2 → +2π) back to
+        # chord-EAST endpoint (+HALF_CHORD, +Y_CHORD). In KiCad's screen
+        # frame +Y points DOWN, so the chord sits visually at the BOTTOM
+        # and the arc bulges UP/over the TOP (math angle in (π, 2π) range).
+        # In standard math convention (which the +Y-down PCB-local frame
+        # respects since both X and Y just track screen mm), the chord
+        # endpoints sit at angles atan2(+Y_CHORD, ±HALF_CHORD). We walk
+        # the LONG way (via PCB Y = -R apex) from W to E.
+        theta_chord_E = math.atan2(Y_CHORD,  HALF_CHORD)
+        theta_chord_W = math.atan2(Y_CHORD, -HALF_CHORD)
+        N_arc = 96
+        pts: list[tuple[float, float]] = []
+        # Inset the polygon by 0.5 mm from the actual PCB outline so the
+        # zone doesn't touch Edge.Cuts (avoids copper_edge_clearance DRC).
+        R_inset = R_OUTLINE - 0.5
+        Y_chord_inset = Y_CHORD - 0.5
+        theta_chord_E_inset = math.atan2(Y_chord_inset, +math.sqrt(R_inset**2 - Y_chord_inset**2))
+        theta_chord_W_inset = math.atan2(Y_chord_inset, -math.sqrt(R_inset**2 - Y_chord_inset**2))
+        theta_start = theta_chord_W_inset
+        theta_end = theta_chord_E_inset + 2 * math.pi
+        for i in range(N_arc + 1):
+            t = i / N_arc
+            theta = theta_start + t * (theta_end - theta_start)
+            px = R_inset * math.cos(theta)
+            py = R_inset * math.sin(theta)
+            pts.append((px, py))
+        # Polygon closes implicitly back to first point.
+        pts_text = "".join(
+            f'\t\t\t\t(xy {fmt(x + PAGE_CENTRE_X)} {fmt(y + PAGE_CENTRE_Y)})\n'
+            for x, y in pts
+        )
+        u = str(uuid.uuid5(_OAS_NS, f"oas-zone:gnd:{layer}"))
+        # Use 0.15 mm clearance, 0.25 mm min thickness, automatic thermal
+        # reliefs. Standard JLCPCB-compatible fill parameters.
+        # `priority 0` is the default; if other zones are added later
+        # higher-priority ones fill first.
+        self._zones.append(
+            f'\t(zone\n'
+            f'\t\t(net {net_code})\n'
+            f'\t\t(net_name "GND")\n'
+            f'\t\t(layer "{layer}")\n'
+            f'\t\t(uuid "{u}")\n'
+            f'\t\t(hatch edge 0.5)\n'
+            f'\t\t(connect_pads\n'
+            f'\t\t\t(clearance 0.2)\n'
+            f'\t\t)\n'
+            f'\t\t(min_thickness 0.25)\n'
+            f'\t\t(filled_areas_thickness no)\n'
+            f'\t\t(fill yes\n'
+            f'\t\t\t(thermal_gap 0.5)\n'
+            f'\t\t\t(thermal_bridge_width 0.5)\n'
+            f'\t\t\t(island_removal_mode 0)\n'
+            f'\t\t)\n'
+            f'\t\t(polygon\n'
+            f'\t\t\t(pts\n'
+            f'{pts_text}'
+            f'\t\t\t)\n'
+            f'\t\t)\n'
+            f'\t)'
+        )
+
+    def render(self) -> str:
+        """Concatenate all routes into a single PCB-injection string."""
+        all_parts = self._segments + self._vias + self._zones
+        return "\n".join(all_parts)
+
+
+def _route_gnd_pour(em: "_RouteEmitter", nets: dict) -> int:
+    """Chunk 1 (v0.28a): emit GND copper pours on F.Cu and B.Cu.
+
+    The GND zones cover the full PCB outline (Ø120 D-shape) inset 0.5 mm
+    from Edge.Cuts. KiCad's zone-filler:
+      - auto-clears the cable hole (Ø12 mm at PCB origin) since it's an
+        Edge.Cuts feature.
+      - auto-clears every connector cutout zone (C3/C4/C5) since they
+        are `(keepout (copperpour not_allowed))` zones.
+      - auto-creates thermal-relief spokes around every GND pad on both
+        layers; GND pads connect to the pour through 4 spokes 0.5 mm wide
+        with 0.5 mm thermal gap.
+      - leaves an 0.2 mm clearance around any non-GND copper (foreign
+        pads, future tracks).
+
+    This single chunk handles ~60 GND pads — 37% of all ratlines — and
+    provides the return-current plane for every other net routed in
+    subsequent chunks.
+    """
+    code = _net_code(nets, "GND")
+    if code is None:
+        return 0
+    em.gnd_zone("F.Cu", code)
+    em.gnd_zone("B.Cu", code)
+    return 2
+
+
+def _route_local_decoupling(em: "_RouteEmitter", nets: dict) -> int:
+    """Chunk 2 (v0.28b): route SHORT local power connections only.
+
+    Each route is contained within a small area (≤ ~5 mm) where there
+    are no obstacles between source and destination. This handles the
+    HF/bulk decoupling caps that sit adjacent to their target ICs:
+
+      - C13 → U1.VIN (24 V HF bypass)
+      - C14 → U1.OUT (5 V HF bypass — but U1.OUT is across the board;
+        SKIPPED in v0.28b, deferred to manual routing).
+      - C15 → U2.VIN, C5 → U2.VIN  (5 V bulk + HF on Buck2 input)
+      - C16 → U2.OUT, C6 → U2.OUT  (3V3 bulk + HF on Buck2 output)
+      - C7 → U2.FB (feed-forward cap on FB pin)
+      - C8 → U2.BST (bootstrap cap)
+      - R2, R3 → U2.FB feedback divider
+      - L2 → U2.SW (switch-node inductor — short)
+
+    Returns the number of segments emitted. Each net is routed only when
+    every required pad is present in the nets dict (defensive).
+    """
+    n_before = len(em._segments)
+
+    def _get(net_name: str) -> dict:
+        return {(r, p): (x, y) for r, p, x, y in nets.get(net_name, [])}
+
+    # All U2 routes are clustered in the buck2 area at PCB Y ≈ -44.
+    # SOT-583 U2 anchor (-2, -43.5); inductor L2 at (+4, -44); feedback
+    # resistors R2/R3 at (+10/+13, -44); C5/C15/C6/C16/C7/C8 at Y=-46.
+
+    # ---- Net-(U2-SW) — U2.5 → L2.2 → C7.2 (switch node)
+    code = _net_code(nets, "Net-(U2-SW)")
+    if code:
+        p = _get("Net-(U2-SW)")
+        if all(k in p for k in [("U2", "5"), ("L2", "2"), ("C7", "2")]):
+            u2_5 = p[("U2", "5")]
+            l2_2 = p[("L2", "2")]
+            c7_2 = p[("C7", "2")]
+            # U2.5 (-1.05, -42.75) → L2.2 (5.75, -44.00): direct
+            em.route_segment(u2_5[0], u2_5[1], l2_2[0], l2_2[1], 0.4, code,
+                             style="direct")
+            # U2.5 → C7.2 (-5.15, -46.00): direct south-west
+            em.route_segment(u2_5[0], u2_5[1], c7_2[0], c7_2[1], 0.3, code,
+                             style="direct")
+
+    # ---- Net-(U2-BST) — U2.6 → C7.1 (bootstrap cap)
+    code = _net_code(nets, "Net-(U2-BST)")
+    if code:
+        p = _get("Net-(U2-BST)")
+        if all(k in p for k in [("U2", "6"), ("C7", "1")]):
+            u2_6 = p[("U2", "6")]
+            c7_1 = p[("C7", "1")]
+            em.route_segment(u2_6[0], u2_6[1], c7_1[0], c7_1[1], 0.3, code,
+                             style="direct")
+
+    # ---- Net-(U2-SS) — U2.7 → C8.1
+    code = _net_code(nets, "Net-(U2-SS)")
+    if code:
+        p = _get("Net-(U2-SS)")
+        if all(k in p for k in [("U2", "7"), ("C8", "1")]):
+            u2_7 = p[("U2", "7")]
+            c8_1 = p[("C8", "1")]
+            em.route_segment(u2_7[0], u2_7[1], c8_1[0], c8_1[1], 0.3, code,
+                             style="direct")
+
+    # ---- Net-(U2-FB) — U2.8 → R2.2 → R3.1 (feedback tap point)
+    code = _net_code(nets, "Net-(U2-FB)")
+    if code:
+        p = _get("Net-(U2-FB)")
+        if all(k in p for k in [("U2", "8"), ("R2", "2"), ("R3", "1")]):
+            u2_8 = p[("U2", "8")]
+            r2_2 = p[("R2", "2")]
+            r3_1 = p[("R3", "1")]
+            # U2.8 (-1.05, -44.25) → R2.2 (10.85, -44.00): same Y row, F.Cu
+            em.route_segment(u2_8[0], u2_8[1], r2_2[0], r2_2[1], 0.3, code,
+                             style="direct")
+            # R2.2 → R3.1 (adjacent: (10.85, -44) → (12.15, -44))
+            em.route_segment(r2_2[0], r2_2[1], r3_1[0], r3_1[1], 0.3, code,
+                             style="direct")
+
+    return len(em._segments) - n_before
+
+
+def _net_code(nets: dict, name: str) -> int | None:
+    """Look up the integer net code for a named net via any pad's net_code.
+
+    The `nets` dict from `_routing_pad_db()` only stores names → pad lists,
+    not codes, so we need to fish the code out of a pad's stored tuple. This
+    helper re-reads the PCB header by parsing the (net N "<name>") lines.
+    Caches the lookup on first call.
+    """
+    cache: dict = getattr(_net_code, "_cache", None)
+    if cache is None:
+        cache = {}
+        import re
+        text = (HERE / "oas.kicad_pcb").read_text(encoding="utf-8")
+        for m in re.finditer(r'\(net\s+(\d+)\s+"([^"]*)"\)', text):
+            code = int(m.group(1))
+            net_name = m.group(2)
+            # Use only the first occurrence (the header declaration);
+            # pad assignments repeat names later.
+            if net_name not in cache:
+                cache[net_name] = code
+        _net_code._cache = cache
+    return cache.get(name)
+
+
+def apply_routing_to_pcb(chunks: tuple[str, ...] = ("power",)) -> int:
+    """Read oas.kicad_pcb, compute copper tracks for the requested chunks,
+    and write the PCB back with `(segment ...)` / `(via ...)` / `(zone ...)`
+    records inserted just before the closing `)`.
+
+    `chunks` is a tuple of chunk names to route. Valid names:
+        "power"    — 24 V input protection chain (Chunk 1)
+        "bucks"    — buck output stages + 5 V / 3.3 V rails (Chunk 2)
+        "ledring"  — LED ring 5 V + WS2812 daisy chain (Chunk 3)
+        "signals"  — I²C, UART, GPIO, USB recovery (Chunk 4)
+        "gnd"      — GND pour zones + stitching vias (Chunk 5)
+    Returns number of route records emitted.
+    """
+    # Always parse pad DB from the current PCB file
+    pads, nets = _routing_pad_db()
+    em = _RouteEmitter()
+    total = 0
+
+    if "gnd" in chunks:
+        total += _route_gnd_pour(em, nets)
+    if "local" in chunks:
+        total += _route_local_decoupling(em, nets)
+    # Future chunks slot in here
+
+    if total == 0 and not chunks:
+        return 0
+
+    # Re-read PCB text, insert tracks before final `)`.
+    pcb_path = HERE / "oas.kicad_pcb"
+    text = pcb_path.read_text(encoding="utf-8")
+    # The closing `)` of the kicad_pcb wrapper is the LAST `)` in the
+    # file (followed by an optional newline). Insert tracks BEFORE it.
+    body = em.render()
+    # Find last `)` and insert body + "\n" before it.
+    # File ends with "\n)\n" per gen_pcb().
+    if text.rstrip().endswith(")"):
+        # Insert body inside the wrapper
+        i = text.rfind(")")
+        new_text = text[:i] + body + "\n" + text[i:]
+        pcb_path.write_text(new_text, encoding="utf-8")
+
+    return total
+
+
+# -----------------------------------------------------------------------------
 # Write everything
 # -----------------------------------------------------------------------------
 def main():
@@ -17903,6 +18411,18 @@ def main():
     assigned = sync_pcb_nets_from_schematic()
     if assigned:
         print(f"  {assigned} pad net assignments applied.")
+
+    # ---- v0.28: copper routing — emit tracks + vias + GND pour zones ----
+    # Routes are computed AFTER `sync_pcb_nets_from_schematic` because
+    # `_routing_pad_db()` needs every pad to carry its net assignment.
+    # `ROUTING_CHUNKS` is filled per-chunk during the v0.28 work — each
+    # chunk in v0.28a..v0.28e adds a name to the tuple as routing for
+    # that subsystem becomes correct. Final state (v0.28e) routes every
+    # chunk.
+    print()
+    print("Applying copper routing…")
+    n_tracks = apply_routing_to_pcb(chunks=ROUTING_CHUNKS)
+    print(f"  {n_tracks} track records emitted (chunks: {', '.join(ROUTING_CHUNKS) or '(none)'}).")
 
     # Geometry summary for the human
     print(f"Half-chord: {HALF_CHORD:.4f} mm")
