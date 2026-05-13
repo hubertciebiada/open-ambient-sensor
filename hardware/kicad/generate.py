@@ -102,10 +102,14 @@ CABLE_HOLE_DIAMETER = 12.0
 # SEN66, SWD, Qwiic) will be decided during schematic + layout.
 #
 # Format: (label, x_min, x_max, y_min_inside_pcb, y_max_at_or_through_chord)
+#
+# v0.15.6: C1 and C2 REMOVED to free up the bottom-left region for the
+# MIKROE-2462 NFC body (size L = 57.15 mm long, requires deep vertical
+# real estate). Remaining cutouts C3/C4/C5 cover the connector strip on
+# the right half (24V terminal, Qwiic, optional SWD/UART recovery).
+# Documented in CLAUDE.md.
 CUTOUTS = [
     # name, x_min, x_max, y_min, y_max  (PCB-local mm, +Y = toward chord)
-    ("C1", -33.800, -21.800, +31.494, +42.498),   # 12 × 11 mm,    fully inside PCB
-    ("C2", -16.800,  -1.100, +27.198, +Y_CHORD),  # 15.7 × 19.3 mm, clipped at chord (would extend +3 mm beyond)
     ("C3",  +4.900, +13.900, +28.998, +Y_CHORD),  # 9 × 15.5 mm,   clipped at chord (would extend +1 mm beyond)
     ("C4", +18.900, +22.900, +34.998, +Y_CHORD),  # 4 × 9 mm,      clipped at chord (would extend +0.5 mm; has language tab Ø3 mm in case wall)
     ("C5", +27.900, +35.400, +36.494, +42.494),   # 7.5 × 6 mm,    fully inside PCB
@@ -339,25 +343,23 @@ def _ld2410_local_to_pcb(lx: float, ly: float) -> tuple[float, float]:
 # footprints (F.Fab body outline + F.SilkS marker + pin-row hints + labels).
 # The actual electrical female pin sockets land in chunk #7 (PCB routing).
 #
-# Layout (v0.15.3):
+# Layout (v0.15.6):
 #
 #   ESP32-C6 DevKitM-1-N4    MIKROE-2462 (NFC Tag 2 Click)
-#   body: 48.26 × 25.4 mm     body: 25.4 × 28.6 mm (size S)
-#   anchor (-27.76, -24.70)   anchor (-36.16, -13.03)
-#   body X=-27.76..+20.50     body X=-36.16..-10.76
-#   body Y=-50.10..-24.70     body Y=-13.03..+15.57
-#   center X = -3.63          NFC center X = -23.46
-#   horizontal at TOP-CENTER  vertical, center Y aligned with LD2410
+#   body: 48.26 × 25.4 mm     body: 25.4 × 57.15 mm (size L)
+#   anchor (-27.76, -24.70)   anchor (-38.16, -16.51)
+#   body X=-27.76..+20.50     body X=-38.16..-12.76
+#   body Y=-50.10..-24.70     body Y=-16.51..+40.64
+#   center X = -3.63          NFC center X = -25.46
+#   horizontal at TOP-CENTER  vertical, top edge aligned with LD2410 top
 #   antenna LEFT (-X)         pins on long edges (1×8 + 1×8)
-#   USB-C RIGHT (+X)          NFC antenna spiral at bottom strip Y=+9.83..+15.57
+#   USB-C RIGHT (+X)          NFC antenna spiral at far end (Y=+24..+40.64)
 #
-# LD2410 + NFC share the same horizontal Y band (centers at Y=+1.27).
-# v0.15.3 tweaks: ESP32 moved -2 mm in X and +2 mm in Y from v0.15.2.
-# Clearances grew: ESP32-to-SEN66 now 3.00 mm; ESP32-to-H3 now 3.00 mm;
-# ESP32-to-PCB-outline (top-left corner) 2.73 mm.
-# ESP32 sits 11.67 mm above NFC top edge. SEN66 (right side, anchor
-# +23.5/+22.0) unchanged. See per-constant comments below for
-# clearance breakdowns.
+# LD2410 + NFC share the same top edge at Y=-16.51 (left side group).
+# C1 and C2 AUX cutouts removed in v0.15.6 to free bottom-left region
+# for the NFC body (which is 57.15 mm long — size L mikroBUS).
+# SEN66 (right side, anchor +23.5/+22.0) unchanged. See per-constant
+# comments below for clearance breakdowns.
 
 # Dimensions per Espressif official dimensions drawing
 # https://dl.espressif.com/dl/schematics/esp32-c6-devkitm-1-dimensions.pdf
@@ -434,13 +436,17 @@ MIKROE2462_PIN_START_OFFSET = 2.54  # pin 1 at 2.54 mm from pin-1 short edge
 # The 5.74 mm antenna spiral strip at the bottom of the MIKROE body
 # is now at PCB Y=+9.83..+15.57 — well clear of the cable hole zone
 # and aimed outward toward the AK-N-94 perforated cover.
-MIKROE2462_ANCHOR_X = -36.16       # v0.15.2: +2.50 mm w prawo od v0.15.1.
-                                    # Body X range -36.16..-10.76. Gap do
-                                    # LD2410 right edge at X=-39.66: 3.50
-                                    # mm. NFC right edge 4.76 mm od cable
-                                    # hole left edge at X=-6.
-MIKROE2462_ANCHOR_Y = -13.03       # v0.15: +15.51 DOWN from v0.14's -28.54
-                                    # (= LD2410 center Y +1.27 − body_L/2).
+MIKROE2462_ANCHOR_X = -38.16       # v0.15.6: -2 mm w lewo od v0.15.5.
+                                    # Body X = -38.16..-12.76. Gap do
+                                    # LD2410 right edge at X=-39.66: 1.50
+                                    # mm. NFC right edge X=-12.76 do cable
+                                    # hole left edge at X=-6: gap 6.76 mm.
+MIKROE2462_ANCHOR_Y = -16.51       # v0.15.6: aligned NFC top edge with
+                                    # LD2410 top edge (LD2410_ANCHOR_Y).
+                                    # Body Y = -16.51..+40.64. Bottom Y
+                                    # 2.86 mm above PCB chord at +43.5.
+                                    # Note: extends into former C1/C2 AUX
+                                    # zones (now removed in CUTOUTS).
 MIKROE2462_ROTATION = 0
 
 
@@ -1670,6 +1676,13 @@ _J4_LIB_FOOTPRINT_PATH = (
 )
 
 
+def _pinsocket_lib_footprint_path(pin_count: int):
+    return (
+        _kicad_install_path() / "footprints" / "Connector_PinSocket_2.54mm.pretty"
+        / f"PinSocket_1x{pin_count:02d}_P2.54mm_Vertical.kicad_mod"
+    )
+
+
 def _read_kicad_lib_symbol(lib_filename: str, sym_name: str, lib_nickname: str) -> str:
     """Extract a single `(symbol "X" ...)` block from a KiCad stock symbol
     library file, prefix the symbol name with `lib_nickname:` (so it matches
@@ -2217,6 +2230,146 @@ def gen_j4_pinheader_pcb_footprint(x: float, y: float, rotation: int) -> str:
         """) + properties + "\n" + body_text + "\n\t)"
 
 
+def gen_pinsocket_pcb_footprint(
+    *,
+    pin_count: int,
+    x: float, y: float, rotation: int,
+    reference: str,
+    value: str,
+    descr: str,
+    uuid_tag: str,
+) -> str:
+    """Emit a stock-library `PinSocket_1xN_P2.54mm_Vertical` footprint placed
+    at PCB (x, y) with `rotation` degrees. Used for the ESP32-C6 DevKitM-1
+    and MIKROE-2462 daughterboard mating sockets (the boards plug into
+    these female 2.54 mm headers, sitting ~3-5 mm above the OAS PCB).
+    Logic mirrors `gen_j4_pinheader_pcb_footprint`: skip stock metadata,
+    rewrite the OAS-side properties, inject deterministic UUIDs, and
+    rotate pads if needed.
+    """
+    src = _pinsocket_lib_footprint_path(pin_count).read_text(encoding="utf-8")
+    fp_name_short = f"PinSocket_1x{pin_count:02d}_P2.54mm_Vertical"
+
+    # Parse the top-level (footprint ...) wrapper exactly like gen_j4.
+    depth = 0
+    cur: list[str] = []
+    items: list[str] = []
+    for ch in src:
+        if ch == "(":
+            if depth == 0:
+                cur = []
+            depth += 1
+            cur.append(ch)
+        elif ch == ")":
+            depth -= 1
+            cur.append(ch)
+            if depth == 0:
+                items.append("".join(cur))
+        else:
+            if depth > 0:
+                cur.append(ch)
+    assert len(items) == 1
+    inner = items[0].strip()
+    assert inner.startswith("(footprint") and inner.endswith(")")
+    inner = inner[len("(footprint"):].rstrip()
+    inner = inner.rstrip(")").rstrip().lstrip()
+    assert inner.startswith('"')
+    name_end = inner.index('"', 1)
+    fp_name = inner[1:name_end]
+    inner_after_name = inner[name_end + 1:]
+
+    children: list[str] = []
+    depth = 0
+    cur = []
+    for ch in inner_after_name:
+        if ch == "(":
+            if depth == 0:
+                cur = []
+            depth += 1
+            cur.append(ch)
+        elif ch == ")":
+            depth -= 1
+            cur.append(ch)
+            if depth == 0:
+                children.append("".join(cur))
+        else:
+            if depth > 0:
+                cur.append(ch)
+
+    SKIP_PREFIXES = (
+        "(version", "(generator", "(generator_version",
+        "(property \"Reference\"",
+        "(property \"Value\"",
+        "(property \"KiLib_Generator\"",
+        "(embedded_fonts",
+        "(model ",
+    )
+    body_children = []
+    for child in children:
+        if any(child.startswith(p) for p in SKIP_PREFIXES):
+            continue
+        body_children.append(child)
+
+    def reindent_for_pcb(s: str) -> str:
+        out_lines = []
+        for ln in s.split("\n"):
+            if ln == "":
+                out_lines.append(ln)
+            else:
+                out_lines.append("\t" + ln)
+        return "\n".join(out_lines)
+
+    body_text = "\n".join(reindent_for_pcb(c) for c in body_children)
+    body_text = body_text.replace('"${REFERENCE}"', f'"{reference}"')
+
+    if rotation != 0:
+        body_text = _annotate_pad_rotations(body_text, rotation)
+
+    properties = textwrap.dedent(f"""\
+        \t\t(property "Reference" "{reference}"
+        \t\t\t(at 0 -1.9 {rotation})
+        \t\t\t(layer "F.SilkS")
+        \t\t\t(hide yes)
+        \t\t\t(uuid "{U('fp-prop-ref:' + uuid_tag)}")
+        \t\t\t(effects (font (size 1 1) (thickness 0.15)))
+        \t\t)
+        \t\t(property "Value" "{value}"
+        \t\t\t(at 0 {fmt((pin_count - 1) * 2.54 + 1.5)} {rotation})
+        \t\t\t(layer "F.Fab")
+        \t\t\t(hide yes)
+        \t\t\t(uuid "{U('fp-prop-val:' + uuid_tag)}")
+        \t\t\t(effects (font (size 1 1) (thickness 0.15)))
+        \t\t)
+        \t\t(property "Footprint" "Connector_PinSocket_2.54mm:{fp_name_short}"
+        \t\t\t(at 0 0 0)
+        \t\t\t(layer "F.Fab")
+        \t\t\t(hide yes)
+        \t\t\t(uuid "{U('fp-prop-fp:' + uuid_tag)}")
+        \t\t\t(effects (font (size 1.27 1.27)))
+        \t\t)
+        \t\t(property "Datasheet" ""
+        \t\t\t(at 0 0 0)
+        \t\t\t(layer "F.Fab")
+        \t\t\t(hide yes)
+        \t\t\t(uuid "{U('fp-prop-ds:' + uuid_tag)}")
+        \t\t\t(effects (font (size 1.27 1.27)))
+        \t\t)
+        \t\t(property "Description" "{descr}"
+        \t\t\t(at 0 0 0)
+        \t\t\t(layer "F.Fab")
+        \t\t\t(hide yes)
+        \t\t\t(uuid "{U('fp-prop-desc:' + uuid_tag)}")
+        \t\t\t(effects (font (size 1.27 1.27)))
+        \t\t)""")
+
+    return textwrap.dedent(f"""\
+        \t(footprint "Connector_PinSocket_2.54mm:{fp_name}"
+        \t\t(layer "F.Cu")
+        \t\t(uuid "{U('fp-inst:' + uuid_tag)}")
+        \t\t(at {fx(x)} {fy(y)} {rotation})
+        """) + properties + "\n" + body_text + "\n\t)"
+
+
 def _daughterboard_body_content(
     body_w: float, body_l: float,
     pin_row_inset: float, pin_pitch: float, pin_count_per_row: int,
@@ -2238,7 +2391,14 @@ def _daughterboard_body_content(
     offset toward pin-1 short edge) pass an explicit value.
     """
     parts: list[str] = []
-    silk_inset = 0.2  # F.SilkS inset from F.Fab outline (silk_edge_clearance margin)
+    # Asymmetric silk inset: the long-edge silk lines EXTEND 0.5 mm beyond
+    # the body so the female pin sockets (stock PinSocket_1x*, silk rect
+    # ±1.33 mm around pad rows, pads at LIB X = pin_row_inset and body_w
+    # - pin_row_inset) sit INSIDE the daughterboard silk rect — consistent
+    # with the LD2410 silk approach. Short-edge silk stays 0.2 mm inside
+    # body (no pin sockets near short edges).
+    silk_inset_long = -0.5  # negative = extends OUTSIDE body in X direction
+    silk_inset_short = 0.2  # positive = stays INSIDE body in Y direction
 
     # Body F.Fab outline (fabrication documentation layer).
     parts.append(textwrap.dedent(f"""\
@@ -2252,12 +2412,12 @@ def _daughterboard_body_content(
         \t)"""))
 
     # Body F.SilkS outline — visible on physical board and 3D render so the
-    # hand-assembler can see where the daughterboard sits. Inset 0.2 mm
-    # from F.Fab so it stays inside the body envelope.
+    # hand-assembler can see where the daughterboard sits. Encompasses
+    # the female pin sockets along the long edges.
     parts.append(textwrap.dedent(f"""\
         \t(fp_rect
-        \t\t(start {fmt(silk_inset)} {fmt(silk_inset)})
-        \t\t(end {fmt(body_w - silk_inset)} {fmt(body_l - silk_inset)})
+        \t\t(start {fmt(silk_inset_long)} {fmt(silk_inset_short)})
+        \t\t(end {fmt(body_w - silk_inset_long)} {fmt(body_l - silk_inset_short)})
         \t\t(stroke (width 0.12) (type solid))
         \t\t(fill no)
         \t\t(layer "F.SilkS")
@@ -2565,7 +2725,7 @@ def gen_sensors_pcb_footprints() -> str:
     parts.append(_emit_daughterboard_reference_pcb_footprint(
         lib_id="oas:MIKROE-2462_Reference",
         reference="MOD2",
-        descr="MIKROE-2462 NFC Tag 2 Click (NT3H2111 + onboard PCB NFC antenna). 25.4×28.6×7 mm (mikroBUS size S); mounts on 2×1x8 P2.54 mm female pin sockets. Pin block offset 2.87 mm toward pin-1 short edge; NFC antenna spiral fills the 5.74 mm strip past pin 8.",
+        descr="MIKROE-2462 NFC Tag 2 Click (NT3H2111 + onboard PCB NFC antenna). 25.4×57.15×7 mm (mikroBUS size L); mounts on 2×1x8 P2.54 mm female pin sockets. Pin block offset 2.54 mm toward pin-1 short edge; NFC antenna spiral fills the ~36.83 mm strip past pin 8.",
         anchor_x=MIKROE2462_ANCHOR_X, anchor_y=MIKROE2462_ANCHOR_Y,
         body_w=MIKROE2462_BODY_W, body_l=MIKROE2462_BODY_L,
         pin_row_inset=MIKROE2462_PIN_ROW_INSET,
@@ -2577,6 +2737,63 @@ def gen_sensors_pcb_footprints() -> str:
         uuid_tag="mikroe2462-pcb",
         rotation=MIKROE2462_ROTATION,
         pin_start_offset=MIKROE2462_PIN_START_OFFSET,
+    ))
+
+    # Female pin sockets for ESP32 and MIKROE-2462 daughterboards.
+    # Each daughterboard mates with 2 parallel pin rows on OAS PCB.
+    # Pad positions match the daughterboard's onboard pin headers (see the
+    # respective body comments above for pin layout per datasheet).
+    #
+    # ESP32-C6 DevKitM-1 — 2×1×15, row spacing 22.86 mm, pitch 2.54 mm,
+    # pin block offset 5.37 mm from antenna short edge (= LIB Y=0).
+    # In PCB after helper rotation 90, LIB +Y → PCB +X, LIB +X → PCB -Y.
+    # Row A (LIB X = 1.27): pin row along PCB X at PCB Y = anchor_y - 1.27.
+    # Row B (LIB X = body_w - 1.27 = 24.13): PCB Y = anchor_y - 24.13.
+    # Pin 1 of each row at PCB X = anchor_x + 5.37 (after LIB +Y → PCB +X
+    # transform with anchor offset).
+    esp32_row_a_y = ESP32_ANCHOR_Y - ESP32_PIN_ROW_INSET                    # -25.97
+    esp32_row_b_y = ESP32_ANCHOR_Y - (ESP32_BODY_W - ESP32_PIN_ROW_INSET)   # -48.83
+    esp32_row_x_start = ESP32_ANCHOR_X + ESP32_PIN_START_OFFSET             # -22.39
+    parts.append(gen_pinsocket_pcb_footprint(
+        pin_count=ESP32_PIN_COUNT_PER_ROW,
+        x=esp32_row_x_start, y=esp32_row_a_y, rotation=90,
+        reference="J5",
+        value="ESP32 row A (pins 1..15, antenna-side row)",
+        descr="Stock 1x15 P2.54 mm female pin socket. ESP32-C6 DevKitM-1-N4 plugs into this row + J6 (other row). Pin block offset 5.37 mm from antenna short edge per Espressif dimensions PDF.",
+        uuid_tag="j5-esp32-row-a",
+    ))
+    parts.append(gen_pinsocket_pcb_footprint(
+        pin_count=ESP32_PIN_COUNT_PER_ROW,
+        x=esp32_row_x_start, y=esp32_row_b_y, rotation=90,
+        reference="J6",
+        value="ESP32 row B (pins 16..30, USB-side row)",
+        descr="Stock 1x15 P2.54 mm female pin socket. ESP32-C6 DevKitM-1-N4 plugs into this row + J5 (other row).",
+        uuid_tag="j6-esp32-row-b",
+    ))
+
+    # MIKROE-2462 NFC Tag 2 Click — 2×1×8 mikroBUS, row spacing 22.86 mm,
+    # pitch 2.54 mm, pin block offset 2.54 mm from pin-1 short edge.
+    # In PCB after rotation 0, LIB axes are identity. Row A (LIB X=1.27)
+    # at PCB X = anchor_x + 1.27. Row B (LIB X=24.13) at PCB X = anchor_x + 24.13.
+    # Pin 1 of each row at PCB Y = anchor_y + 2.54.
+    mikroe_row_a_x = MIKROE2462_ANCHOR_X + MIKROE2462_PIN_ROW_INSET                          # -36.89
+    mikroe_row_b_x = MIKROE2462_ANCHOR_X + (MIKROE2462_BODY_W - MIKROE2462_PIN_ROW_INSET)    # -14.03
+    mikroe_row_y_start = MIKROE2462_ANCHOR_Y + MIKROE2462_PIN_START_OFFSET                   # -13.97
+    parts.append(gen_pinsocket_pcb_footprint(
+        pin_count=MIKROE2462_PIN_COUNT_PER_ROW,
+        x=mikroe_row_a_x, y=mikroe_row_y_start, rotation=0,
+        reference="J7",
+        value="MIKROE row A (mikroBUS pins 1..8, AN/RST/CS/SCK/MISO/MOSI/+3V3/GND)",
+        descr="Stock 1x8 P2.54 mm female pin socket. MIKROE-2462 plugs into this row + J8 (other row). mikroBUS standard pin block, offset 2.54 mm from pin-1 short edge.",
+        uuid_tag="j7-mikroe-row-a",
+    ))
+    parts.append(gen_pinsocket_pcb_footprint(
+        pin_count=MIKROE2462_PIN_COUNT_PER_ROW,
+        x=mikroe_row_b_x, y=mikroe_row_y_start, rotation=0,
+        reference="J8",
+        value="MIKROE row B (mikroBUS pins 9..16, PWM/INT/RX/TX/SCL/SDA/+5V/GND)",
+        descr="Stock 1x8 P2.54 mm female pin socket. MIKROE-2462 plugs into this row + J7 (other row).",
+        uuid_tag="j8-mikroe-row-b",
     ))
     return "\n".join(parts)
 
