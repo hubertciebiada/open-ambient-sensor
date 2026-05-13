@@ -418,25 +418,21 @@ ESP32_ANCHOR_X = -27.76            # v0.15.3: -2 mm LEFT of v0.15.2.
                                     # X = -3.63. Right edge clearance to
                                     # SEN66 (+23.5) grows to 3.00 mm
                                     # (was 1.00 in v0.15.2).
-ESP32_ANCHOR_Y = -26.20            # v0.17: shifted 1.5 mm NORTH (was
-                                    # -24.70) to free up vertical room
-                                    # between the ESP32 body bottom and
-                                    # the AQI LED ring north corners for
-                                    # the J1 24V terminal block. Body Y
-                                    # range -51.60..-26.20. Top-left
-                                    # corner (-27.76, -51.60): distance
-                                    # √(770.6+2662.6)=√3433.2≈58.59 →
-                                    # 1.41 mm clearance to PCB outline
-                                    # (was 2.73 mm at -24.70). H3
-                                    # mounting hole top edge at Y=-53.1
-                                    # still 1.5 mm south of ESP32 top
-                                    # edge. Gap to AQI LED ring north
-                                    # corners (D19/D21 at Y=-11.67) is
-                                    # now 14.53 mm — accommodates the
-                                    # 13.0 mm courtyard depth of the
-                                    # MSTBA terminal block with ~0.7 mm
-                                    # clearance to ESP32 and ~0.8 mm to
-                                    # LED courtyards.
+ESP32_ANCHOR_Y = -24.70            # v0.15.3: +2 mm DOWN from v0.15.2's
+                                    # -26.70. Body Y range -50.10..-24.70.
+                                    # Top edge 3.00 mm above H3 hole top
+                                    # at Y=-53.1 (was 1.0 mm). Top-left
+                                    # corner (-27.76, -50.10): distance
+                                    # √(770.6+2510.0)=57.27 → 2.73 mm
+                                    # clearance to PCB outline.
+                                    # v0.18: REVERTED the v0.17 1.5 mm
+                                    # north-shift (was -26.20) back to
+                                    # the pre-v0.17 -24.70 value. J1
+                                    # moved to the SOUTH side of the
+                                    # cable hole in v0.18, so the
+                                    # central north strip no longer
+                                    # needs to make room for J1's
+                                    # courtyard depth.
 ESP32_ROTATION = 90                # KiCad rotation applied to helper output
 
 # Dimensions per mikroBUS Standard Specifications v2.00 (June 2015), size L.
@@ -519,16 +515,21 @@ J4_PCB_Y = +19.05            # mm — OAS PCB Y of the pin row (unchanged).
 J4_PCB_ROTATION = 270        # degrees; pad row along OAS -X from anchor.
 
 # -----------------------------------------------------------------------------
-# J1 PCB placement (v0.17) — 24 V Phoenix MSTBA terminal block
+# J1 PCB placement (v0.18; supersedes v0.17) — 24 V Phoenix MSTBA terminal block
 # -----------------------------------------------------------------------------
-# v0.17 relocates J1 from the (so-far unplaced) chord-edge connector strip
-# to the central region of the PCB, immediately north of the Ø12 mm cable
-# hole. The 24 V supply cable enters from the rear of the enclosure
-# (electrical wall box behind the unit), passes through the central hole,
-# bends ~90° on the front side, and enters the terminal-block clamp from
-# its south face. The previously-cover-mount LED slot D20 (θ=270°,
-# PCB (0, -11)) is removed in v0.17 to open a corridor through the AQI
-# ring for the cable.
+# v0.17 placed J1 in the NORTH-of-cable-hole zone (replacing AQI LED D20).
+# v0.18 FLIPS J1 to the SOUTH-of-cable-hole zone (replacing AQI LED D14
+# instead): the south side has more open space because ESP32 occupies the
+# north corridor, while the south corridor between the cable hole and the
+# chord-edge cutouts is largely empty (the chord cutouts C3/C4/C5 are
+# narrow X strips that don't block the central Y=0..+25 region). D20 is
+# restored; D14 is now the missing LED. The ESP32 north-shift made in
+# v0.17 is reverted.
+#
+# The 24 V supply cable enters from the rear of the enclosure (electrical
+# wall box behind the unit), passes through the central hole, bends ~90°
+# on the front side, and enters the terminal-block clamp from its NORTH
+# face (clamp opening now faces the cable hole from the south side).
 #
 # Footprint: Connector_Phoenix_MSTB :
 #   PhoenixContact_MSTBA_2,5_3-G-5,08_1x03_P5.08mm_Horizontal
@@ -543,65 +544,71 @@ J4_PCB_ROTATION = 270        # degrees; pad row along OAS -X from anchor.
 #     -2.91) carries the small pin-1 indicator triangle but no cable
 #     features — that's the PCB-edge / pin-solder side.
 #
-# Placement: PCB anchor (pin 1 PCB position) is offset so pin 2 (middle
-# pin) lands at PCB X = 0. Rotation 0° places the cable-entry face on
-# PCB +Y (SOUTH, facing the cable hole), and the body's +Y bulk
-# (terminal screws) on PCB +Y side (toward the chord). The pin solder
-# side (LIB -Y, Y = -2..0) maps to PCB -Y (NORTH), where it occupies
-# 2 mm of the gap between the LED ring and ESP32 daughterboard.
+# Placement (v0.18, south flip): PCB anchor (pin 1 PCB position) is offset
+# so pin 2 (middle pin) lands at PCB X = 0. Rotation 180° places the
+# cable-entry face (LIB +Y, the side carrying the trapezoidal cable-
+# insertion indicators per pin) on PCB -Y (NORTH, facing the cable hole),
+# and the body's +Y bulk (terminal screws) extends NORTH from the pin
+# row toward the cable hole. The pin solder side (LIB -Y, Y = -2..0)
+# maps to PCB +Y (SOUTH), where it occupies 2 mm of the gap between the
+# pin row and the chord cutouts.
 #
-# Wait — this leaves the body BULK on the cable-entry/chord side. That
-# is correct: the cable enters the body bulk through its +Y face. The
-# pin-solder side (LIB -Y) is just the 2 mm extension where the pins
-# protrude DOWN through the PCB.
-#
-# Clearance budget (rotation 0°, pin 2 centred at PCB X=0):
-#   - Courtyard PCB Y range = [pin_y − 2.5, pin_y + 10.5] (13 mm depth)
+# Clearance budget (rotation 180°, pin 2 centred at PCB X=0):
+#   - Courtyard PCB Y range = [pin_y − 10.5, pin_y + 2.5] (13 mm depth)
 #   - Courtyard PCB X range = [−9.13, +9.12]
-#   - At pin_y = −22.7:
-#       Courtyard Y = [−25.20, −12.20]
-#       J5 (ESP32 row A) courtyard south = −25.70 → 0.50 mm clearance
-#         to J1 courtyard north edge
-#       Nearest LED-courtyard north corner (D19/D21 at PCB Y = −11.67):
-#         0.53 mm clearance to J1 courtyard south edge
+#   - At pin_y = +22.4:
+#       Courtyard Y = [+11.90, +24.90]
+#       Nearest LED-courtyard south corner (D13/D15 at PCB Y = +11.67):
+#         0.23 mm clearance to J1 courtyard north edge.
+#       Cutout C3 north edge at PCB Y = +28.998: 4.10 mm clearance to
+#         J1 courtyard south edge.
+#       SEN66 body west edge at PCB X = +23.5: 14.38 mm X clearance to
+#         J1 courtyard east edge at PCB X = +9.12.
+#       J3 (SEN66 socket) courtyard west edge at PCB X = +30.02:
+#         20.90 mm X clearance.
 #
-# Cable bend geometry: the cable enters the connector through the south
-# (cable-hole-facing) face at PCB Y = pin_y + 10.11 = −12.59 (F.SilkS
-# edge) or pin_y + 10.5 = −12.20 (courtyard edge). The cable hole's
-# north edge sits at PCB Y = −6 (Ø12 mm hole, radius 6). Effective
-# horizontal travel for the cable bend: 12.59 − 6.00 = 6.59 mm. Each
+# Cable bend geometry: the cable enters the connector through the NORTH
+# (cable-hole-facing) face at PCB Y = pin_y − 10.11 = +12.29 (F.SilkS
+# edge) or pin_y − 10.5 = +11.90 (courtyard edge). The cable hole's
+# SOUTH edge sits at PCB Y = +6 (Ø12 mm hole, radius 6). Effective
+# horizontal travel for the cable bend: 12.29 − 6.00 = 6.29 mm. Each
 # 1.5 mm² conductor enters its own screw clamp; the three conductors
 # fan out from the hole exit, so each bends independently rather than
 # as a bundle. A single 1.5 mm² insulated wire (OD ~3 mm) has a typical
 # minimum bend radius of ~10 mm — slightly larger than the available
 # travel, so the cable will bend somewhat aggressively at the hole
 # exit. Acceptable for a low-flex installation (the cable is fixed at
-# both ends and is not manipulated after assembly).
-J1_PCB_X = -5.08             # PCB X of pin 1. With rotation 0°, pin 2
-                              # (middle) lands at PCB X = J1_PCB_X +
-                              # 5.08 = 0. Pin row spans PCB X = -5.08
-                              # (pin 1, +24V) .. +5.08 (pin 3, PE),
+# both ends and is not manipulated after assembly). Identical magnitude
+# to the v0.17 north-side placement (mirror geometry).
+J1_PCB_X = +5.08             # PCB X of pin 1. With rotation 180°, pin 2
+                              # (middle) lands at PCB X = J1_PCB_X −
+                              # 5.08 = 0. Pin row spans PCB X = +5.08
+                              # (pin 1, +24V) .. −5.08 (pin 3, PE),
                               # centred on the PCB X axis and aligned
-                              # with the D20 LED slot now vacated.
-J1_PCB_Y = -22.4             # PCB Y of pin row (footprint-local Y = 0).
+                              # with the D14 LED slot now vacated.
+                              # Note: pin 1 (+24V) lands on PCB +X (east
+                              # side); compare to v0.17 where pin 1 sat
+                              # on -X (west). The user sees pins in
+                              # left-to-right order PE, GND, +24V when
+                              # looking at the south face (cable insert
+                              # side).
+J1_PCB_Y = +22.4             # PCB Y of pin row (footprint-local Y = 0).
                               # See clearance budget above for derivation.
-                              # At pin_y = −22.4 with rot 0:
-                              #   J1 courtyard Y = (−24.90, −11.90)
-                              #   J1 F.SilkS north edge (incl. pin-1 indicator
-                              #     triangle at LIB Y = −2.91 → PCB Y = −25.31)
-                              #     vs MOD1 F.SilkS south edge at PCB Y = −25.70:
-                              #     0.39 mm clearance > 0.15 mm DRC rule.
-                              #   J1 F.SilkS south edge at PCB Y = −12.29 vs
-                              #     D19/D21 north F.Fab corner at PCB Y =
-                              #     −11.67: 0.62 mm clearance.
-                              #   J5 (ESP32 row A) courtyard south PCB Y =
-                              #     −25.70 → 0.80 mm clearance to J1
-                              #     courtyard north edge.
-J1_PCB_ROTATION = 0          # Rotation 0° keeps the cable-entry face
-                              # of the body (LIB +Y) on PCB +Y (south,
-                              # facing the cable hole). Pin 1 (+24V)
-                              # at PCB -X (west), pin 3 (PE) at PCB +X
-                              # (east).
+                              # At pin_y = +22.4 with rot 180:
+                              #   J1 courtyard Y = (+11.90, +24.90)
+                              #   J1 F.SilkS south edge (incl. pin-1
+                              #     indicator triangle at LIB Y = -2.91
+                              #     → PCB Y = +25.31) vs C3 cutout
+                              #     north edge at PCB Y = +28.998:
+                              #     3.69 mm clearance.
+                              #   J1 F.SilkS north edge at PCB Y = +12.29
+                              #     vs D13/D15 south F.Fab corner at
+                              #     PCB Y = +11.67: 0.62 mm clearance.
+J1_PCB_ROTATION = 180        # Rotation 180° places the cable-entry face
+                              # of the body (LIB +Y) on PCB -Y (north,
+                              # facing the cable hole). Pin 1 (+24V) at
+                              # PCB +X (east), pin 3 (PE) at PCB -X
+                              # (west).
 
 # -----------------------------------------------------------------------------
 # AQI status LED ring (v0.16) — 12 × SK6812-SIDE side-emit addressable RGB
@@ -645,14 +652,17 @@ LED_RING_COUNT = 12
 LED_RING_THETA_START_DEG = 0.0       # first LED (D11) sits on PCB +X axis
 LED_RING_THETA_STEP_DEG = 360.0 / LED_RING_COUNT   # = 30°
 
-# v0.17: One LED slot is removed from the ring to open a corridor for the
-# 24 V supply cable to pass from the central Ø12 mm cable hole northward
-# to the J1 terminal block placed in the gap between the LED ring and the
-# ESP32 daughterboard. Index 9 = D20 = θ=270° = PCB (0, -11) — the slot
-# directly opposite the chord. Removing D20 also drops its decoupling cap
-# C29; the daisy-chain wire is rerouted D19.DOUT → D21.DIN, skipping the
-# now-empty D20 position. The final ring has 11 LEDs (D11..D19, D21..D22).
-LED_RING_SKIP_INDICES = (9,)         # i=9 → D20 (and C29) at θ=270°
+# v0.17 originally removed D20 (north of cable hole) to make room for J1.
+# v0.18 flipped J1 to the SOUTH side of the cable hole instead (more open
+# space: ESP32 occupies the north corridor; the south corridor between
+# cable hole and chord is largely empty). Consequently the skipped LED
+# moved from D20 (index 9, θ=270°) to D14 (index 3, θ=90°, PCB (0, +11))
+# — the LED slot directly toward the chord. Removing D14 also drops its
+# decoupling cap C23; the daisy-chain wire is rerouted D13.DOUT →
+# D15.DIN, skipping the now-empty D14 position. D20 + C29 are restored
+# (back to the v0.16 placement on the north side). The final ring still
+# has 11 LEDs (D11..D13, D15..D22).
+LED_RING_SKIP_INDICES = (3,)         # i=3 → D14 (and C23) at θ=90°
 
 # Decoupling cap radial offset from LED centre: cap sits ~3.4 mm radially
 # INWARD from the LED centre (so total radius = LED_RING_RADIUS - 3.4 =
@@ -3578,16 +3588,18 @@ def gen_sensors_pcb_footprints() -> str:
         uuid_tag="j8-mikroe-row-b",
     ))
 
-    # AQI status LED ring (v0.16; v0.17 removed D20) — 11 × SK6812-SIDE on
+    # AQI status LED ring (v0.16; v0.18 removed D14) — 11 × SK6812-SIDE on
     # a Ø22 mm pitch circle around the central cable hole, each LED
     # radiating outward into the AK-N-94 perforated cover. Plus one 100 nF
     # 0402 decoupling cap per LED, sited radially inward from each LED so
     # the cap pads are positioned near the corresponding VDD pad.
     #
-    # v0.17 skips the LED slot at index 9 (D20, θ=270°, PCB (0, -11)) and
-    # its decoupling cap (C29). The freed-up corridor lets the 24 V supply
+    # v0.18 skips the LED slot at index 3 (D14, θ=90°, PCB (0, +11)) and
+    # its decoupling cap (C23). The freed-up corridor lets the 24 V supply
     # cable from the central Ø12 mm hole reach the J1 terminal block which
-    # now sits between the LED ring and the ESP32 daughterboard.
+    # now sits SOUTH of the LED ring, between the ring and the chord-edge
+    # cutouts. (v0.17 had this same skip applied to D20 with J1 on the
+    # north side; v0.18 flipped to the south for more open clearance.)
     for i in range(LED_RING_COUNT):
         if i in LED_RING_SKIP_INDICES:
             continue
@@ -3739,51 +3751,52 @@ def gen_silk_labels() -> str:
         "aqi-ring", size=1.0,
     ))
 
-    # ---- v0.17: J1 24 V terminal block board-level labels ----
+    # ---- v0.18: J1 24 V terminal block board-level labels (south flip) ----
     # Board-level gr_text labels (not in-footprint) so they remain
-    # horizontal regardless of the J1 footprint's rotation, and because
-    # the in-footprint Reference / Value text positions of the stock
-    # Phoenix MSTBA footprint would overlap with the LED ring south
-    # corners or the ESP32 J5 socket courtyard depending on rotation.
+    # horizontal regardless of the J1 footprint's 180° rotation, and
+    # because the in-footprint Reference / Value text positions of the
+    # stock Phoenix MSTBA footprint would overlap with the LED ring
+    # south corners or the chord cutout C3 depending on rotation.
     #
-    # J1 footprint at PCB (J1_PCB_X=-5.08, J1_PCB_Y=-22.7), rotation 0°:
-    #   - Pin 1 (+24V) at PCB X = -5.08
-    #   - Pin 2 (GND)  at PCB X = 0.00
-    #   - Pin 3 (PE)   at PCB X = +5.08
-    #   - Body F.SilkS rect: PCB X = -8.73..+8.73, Y = -24.81..-12.59
-    #   - Body courtyard:    PCB X = -9.13..+9.13, Y = -25.20..-12.20
-    #   - Cable entry on south face at PCB Y = -12.59 (toward cable
+    # J1 footprint at PCB (J1_PCB_X=+5.08, J1_PCB_Y=+22.4), rotation 180°:
+    #   - Pin 1 (+24V) at PCB X = +5.08
+    #   - Pin 2 (GND)  at PCB X =  0.00
+    #   - Pin 3 (PE)   at PCB X = −5.08
+    #   - Body F.SilkS rect: PCB X = −8.73..+8.73, Y = +12.29..+24.51
+    #   - Body courtyard:    PCB X = −9.13..+9.13, Y = +11.90..+24.90
+    #   - Cable entry on north face at PCB Y = +12.29 (toward cable
     #     hole at origin).
     #
-    # Free F.SilkS regions near J1 (no silk_overlap with the stock
-    # footprint silk or with neighbouring component silk):
-    #   - South strip: PCB Y in [body south +0.15, LED ring north -0.15]
-    #     = [-12.44, -11.82]. Width 0.62 mm — too narrow for 1.0 mm tall
-    #     text.
-    #   - North strip: PCB Y in [J5 south +0.15, body north -0.15] =
-    #     [-25.55, -24.96]. Width 0.59 mm — too narrow.
+    # Free F.SilkS regions near J1 are narrow (mirror of v0.17 situation):
+    #   - North strip: between LED ring south Y=+11.67 and body north
+    #     Y=+12.29 ≈ 0.62 mm.
+    #   - South strip: between body south Y=+24.51 and C3 cutout north
+    #     Y=+28.998 ≈ 4.49 mm (plenty for text, but text outside the
+    #     body wouldn't be near J1 visually).
     #
     # Therefore: per-pin labels (24V/GND/PE) go on F.Fab (assembly-doc
-    # layer, no silk_overlap rule), positioned directly above each pin
-    # so they read with the assembly drawing. A SINGLE F.SilkS label
-    # "J1 (24V)" sits OUTSIDE the immediate J1 zone — placed in the
-    # open quadrant west of J1 between the LD2410 body (east edge at
-    # PCB X = -43.47) and J1 body west edge at PCB X = -8.73. The
-    # label sits at PCB (-15, -22) — ~6 mm west of J1, well clear of
-    # both LED ring (D17 at PCB X = -11) and the body, on the same Y
-    # row as the J1 body centre for easy visual association.
-    parts.append(_silk("J1 (24V)", -15.0, J1_PCB_Y, "j1-body-id", size=1.0))
-    # Per-pin function labels on F.Fab. Pin-row Y + 0.8 mm south →
-    # inside the body's south face, near each pin clamp. F.Fab is
-    # silk-overlap-exempt so positioning right next to the silk body
-    # rect is fine. F.Fab is rendered in assembly drawings, not on the
-    # physical PCB silkscreen — but pcbnew shows it in-editor.
-    j1_pin_fab_y = J1_PCB_Y + 0.8
-    parts.append(_silk("24V", -5.08, j1_pin_fab_y, "j1-pin1-24v",
+    # layer, no silk_overlap rule), positioned just inside the body's
+    # north face near each pin clamp. A SINGLE F.SilkS label "J1 (24V)"
+    # sits 6.3 mm EAST of the J1 body at PCB (+15, +22.4), on the same
+    # Y row as the J1 body centre for easy visual association. To J1's
+    # east at X=+15 there's an open strip between J1 east edge (+8.73)
+    # and SEN66 body west edge (+23.5) — ~14.77 mm wide. The west-side
+    # placement chosen in v0.17 doesn't work here because MIKROE-2462's
+    # body silk extends to PCB X = -12.26 at this Y range; the east
+    # side is the cleaner option for v0.18's south flip.
+    parts.append(_silk("J1 (24V)", +15.0, J1_PCB_Y, "j1-body-id", size=1.0))
+    # Per-pin function labels on F.Fab. Pin-row Y − 0.8 mm (north of
+    # pin row) → inside the body's north face (toward cable entry),
+    # near each pin clamp. F.Fab is silk-overlap-exempt so positioning
+    # right next to the silk body rect is fine. F.Fab is rendered in
+    # assembly drawings, not on the physical PCB silkscreen — but
+    # pcbnew shows it in-editor.
+    j1_pin_fab_y = J1_PCB_Y - 0.8
+    parts.append(_silk("24V", +5.08, j1_pin_fab_y, "j1-pin1-24v",
                        size=0.8, layer="F.Fab"))
     parts.append(_silk("GND",  0.00, j1_pin_fab_y, "j1-pin2-gnd",
                        size=0.8, layer="F.Fab"))
-    parts.append(_silk("PE",  +5.08, j1_pin_fab_y, "j1-pin3-pe",
+    parts.append(_silk("PE",  -5.08, j1_pin_fab_y, "j1-pin3-pe",
                        size=0.8, layer="F.Fab"))
 
     # ---- v0.7: cutout-zone reservation labels + outlines on F.SilkS ----
