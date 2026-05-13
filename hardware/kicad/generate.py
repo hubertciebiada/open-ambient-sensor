@@ -22,6 +22,7 @@ natural convection upward").
 """
 import json
 import math
+import sys
 import textwrap
 import uuid
 from pathlib import Path
@@ -4769,54 +4770,90 @@ def gen_power_pcb_footprints() -> str:
         descr="1 kΩ gate series resistor between Q1.G and Vgs clamp junction.",
     ))
 
-    # v0.22 POWER SECTION LAYOUT
+    # v0.26 POWER SECTION LAYOUT
     # ===========================
-    # Everything is FULLY INSIDE the ESP32-C6 DevKitM-1 daughterboard shadow
-    # (X ∈ [-27.76, +20.50], Y ∈ [-50.10, -24.70]) EXCEPT C2 which goes
-    # WEST of the ESP32 body. The DevKitM-1 sits ~8.6 mm above the OAS PCB
-    # on its 2x15 P2.54 mm female pin sockets (J5+J6), leaving comfortable
-    # Z room for 5-10 mm tall SMD passives. NFC daughterboard body shadow
-    # Y ∈ [-16.51, +40.64] starts south of all power components — no overlap.
+    # CHANGE FROM v0.22-v0.25: C1, C3, C4 and U1 RELOCATED OUT of the
+    # ESP32-C6 DevKitM-1 daughterboard body shadow. The v0.22-v0.25 plan
+    # placed the radial THT bulk caps C1 (12 mm tall), C3 (12 mm), C4
+    # (11.2 mm) and TO-263-5 buck U1 (4.6 mm) inside the daughterboard
+    # shadow (X ∈ [-27.76, +20.50], Y ∈ [-50.10, -24.70]), assuming
+    # "daughterboards sit ~8.6 mm above the OAS PCB so SMDs can go
+    # beneath." The clearance audit v0.25 found the conservative
+    # under-board clearance is only ~5.5 mm (socket-body height minus
+    # mating pin tails); all three radials and U1 (margin +0.9 mm)
+    # exceeded it — physically preventing the DevKitM-1 from seating.
+    #
+    # v0.26 fix: move all four to free PCB area outside the daughterboard
+    # shadows. NO BOM change — radial THT caps + LM2596S retained, only
+    # coordinates updated. New locations:
+    #   - U1  at (-34, -34): west of ESP32 body, between LD2410 east edge
+    #     (-43.47) and ESP32 west edge (-27.76).
+    #   - C3  at (-34, -24): immediately south of U1 in the same west
+    #     column; close to U1.VIN (pin 1) for low-ESR loop.
+    #   - C1  at (-34, -14): further south in the west column. South of
+    #     LD2410 north edge (-16.51) in Y, but at X=-34 it's well east of
+    #     LD2410's east edge (-43.47), so the LD2410 daughterboard shadow
+    #     is not entered.
+    #   - C4  at (+25, -47): east of ESP32 body and well north of SEN66
+    #     body (north edge -33.2). Routing distance from L1 (still at
+    #     +9, -37) grows ~12 mm — acceptable for +5V bulk that handles
+    #     low-frequency load-step transients, not the switch node.
+    #
+    # The rest of the power section stays inside the ESP32 daughterboard
+    # shadow (small SMDs <=2 mm tall — all clear of the 5.5 mm budget):
+    #   Row Y=-30   : north flank — small HF caps, I²C pullups, R7
+    #   Row Y=-37   : Buck1 satellites — D2 (SMA), L1 (5x5 SMD inductor)
+    #   Row Y=-44   : Buck2 main — U2 (SOT-583), L2 (5x5), R2, R3
+    #   Row Y=-46   : south flank — small HF caps near J6 pad row
     #
     # IMPORTANT: ESP32 pin socket pad rows (J5 at Y=-25.97 pads y∈[-27.74,
     # -24.20]; J6 at Y=-48.83 pads y∈[-50.60, -47.06]) block SMD placement
     # in those Y bands. Usable inside-ESP32 SMD strip: Y ∈ [-47, -28]
     # (with ~0.5 mm margin from pin pads).
     #
-    # Layout strategy (column-based to avoid TO-263/radial collisions):
-    #   Column X=-20 : bulk radial caps — C1 north (Y=-32.5), C3 south (Y=-41)
-    #   Row Y=-30   : north flank — small HF caps, I²C pullups, R7
-    #   Row Y=-37   : Buck1 main — U1, D2, L1, C4 in single E-W row
-    #   Row Y=-44   : Buck2 main — U2, L2, R2, R3
-    #   Row Y=-46   : south flank — small HF caps near J6 pad row
-    #
     # C2 (Y2 GND-Earth_Protective) sits OUTSIDE the daughterboard, at
     # (-32, -25) in the strip west of ESP32 west edge.
 
-    # ---- Column X=-20: bulk +24V caps (C1 + C3) ----
+    # ---- v0.26: C1 placed south-east of SEN66, on the V_24V_PROT net ----
+    # The audit's "west-of-ESP32 column at X=-34" zone (used by U1, C3) is
+    # under the MIKROE-2462 NFC daughterboard shadow at Y > -16.51 — so
+    # C1 cannot share that column without poking into MIKROE clearance.
+    # C1 lives on the protected-rail net (downstream of Q1 reverse-polarity
+    # FET, upstream of U1.VIN through C3). Position (+40, +36) sits south
+    # of J3 (JST GH SEN66 socket at +36, +27 — its crty extends to PCB Y
+    # +30.2 max; gap 1.55), east of C5 case-wall cutout (+27.9..+35.4;
+    # gap 0.35 — tight but clear), west of C10 0603 (now relocated to
+    # +46, +32) and mounting hole H1 at +47.631 / +27.5 (distance ~13.1 mm).
+    # PCB outline corner (+44.25, +40.25): distance 59.82 — 0.18 mm inside.
     parts.append(gen_capacitor_polarized_radial_pcb_footprint(
-        x=-20, y=-32.5, rotation=0,
+        x=+40, y=+36, rotation=0,
         reference="C1", value="100uF/50V",
         uuid_tag="c1-protected-bulk",
         diameter_mm=8.0, pitch_mm=3.5,
-        descr="100 µF / 50 V radial electrolytic bulk on protected +24V rail.",
+        descr="100 µF / 50 V radial electrolytic bulk on protected +24V rail. v0.26: relocated from inside ESP32 daughterboard shadow (-20, -32.5) to south-of-SEN66 zone (+40, +36). Body 12 mm tall — exceeded the ~5.5 mm under-daughterboard clearance budget.",
     ))
-    # C3 anchor Y=-41. C1 at Y=-32.5 above, C5 at Y=-46.5 below.
+    # C3 (U1.VIN input bulk) — sits directly south of U1 in the same
+    # west column to keep U1.VIN trace length minimal.
     parts.append(gen_capacitor_polarized_radial_pcb_footprint(
-        x=-20, y=-41, rotation=0,
+        x=-34, y=-24, rotation=0,
         reference="C3", value="100uF/50V",
         uuid_tag="c3-u1-vin-bulk",
         diameter_mm=8.0, pitch_mm=3.5,
-        descr="100 µF / 50 V radial electrolytic input bulk for U1 buck.",
+        descr="100 µF / 50 V radial electrolytic input bulk for U1 buck. v0.26: relocated from (-20, -41) inside ESP32 shadow to (-34, -24); 1.0 mm gap to ESP32 west edge, sits just south of U1.",
     ))
 
-    # ---- Row Y=-37: Buck1 (24V→5V) main components ----
+    # ---- v0.26: U1 in west-of-ESP32 strip ----
     parts.append(gen_to263_5_pcb_footprint(
-        x=-9, y=-37, rotation=0,
+        x=-34, y=-34, rotation=0,
         reference="U1", value="LM2596S-5.0",
         uuid_tag="u1-lm2596",
-        descr="LM2596S-5.0 5 V 3 A asynchronous step-down buck (TI), TO-263-5.",
+        descr="LM2596S-5.0 5 V 3 A asynchronous step-down buck (TI), TO-263-5. v0.26: relocated from (-9, -37) inside ESP32 shadow to (-34, -34) west of ESP32. 4.6 mm package height was only +0.9 mm margin under daughterboard — too tight. New location: 0.94 mm gap to ESP32 west edge, 3.17 mm gap to LD2410 east edge, 1.45 mm gap to C3 south.",
     ))
+    # D2, L1 stay inside ESP32 shadow (both <4 mm tall, comfortably within
+    # the 5.5 mm budget). Switch-node trace from U1.OUT (pin 2 at PCB
+    # (-32.3, -30.55)) to L1 (+9, -37) is ~42 mm — long but routable for
+    # this 150 kHz / 3A node on inner-layer copper. Document accepted in
+    # the v0.26 changelog.
     parts.append(gen_diode_sma_pcb_footprint(
         x=+2, y=-37, rotation=0,
         reference="D2", value="SS14",
@@ -4829,12 +4866,13 @@ def gen_power_pcb_footprints() -> str:
         uuid_tag="l1-buck1",
         descr="33 µH ≥2 A SMD shielded power inductor (Wurth WE-PD-S or eq).",
     ))
+    # ---- v0.26: C4 in east-of-ESP32 strip, north of SEN66 ----
     parts.append(gen_capacitor_polarized_radial_pcb_footprint(
-        x=+16, y=-37, rotation=0,
+        x=+25, y=-47, rotation=0,
         reference="C4", value="220uF/10V",
         uuid_tag="c4-u1-vout-bulk",
         diameter_mm=6.3, pitch_mm=2.5,
-        descr="220 µF / 10 V radial electrolytic output bulk on +5V rail.",
+        descr="220 µF / 10 V radial electrolytic output bulk on +5V rail. v0.26: relocated from (+16, -37) inside ESP32 shadow to (+25, -47) east of ESP32 / north of SEN66. 1.10 mm gap to ESP32 east edge, 8.40 mm gap to SEN66 north edge. Distance to L1 (+9, -37) grows from 9 mm to ~14 mm — acceptable for +5V bulk.",
     ))
 
     # ---- Row Y=-44: Buck2 (5V→3.3V) main components ----
@@ -4958,24 +4996,34 @@ def gen_power_pcb_footprints() -> str:
         descr="Bootstrap cap C(BST) between U2.SW and U2.VOS.",
     ))
 
-    # ---- C2 (Y2 safety cap) — WEST of ESP32, outside daughterboard shadow ----
+    # ---- C2 (Y2 safety cap) — WEST of LD2410, outside daughterboard shadow ----
+    # v0.26: shifted from (-32, -25) to (-46, -25) to clear C3 (relocated
+    # to (-34, -24) column). New position sits north of LD2410's
+    # north edge (Y=-16.51), west of the U1/C3 column. C2 body Y[-25.9,
+    # -24.1] is entirely north of the LD2410 Y range. X=-46 puts C2
+    # body X[-47.4, -44.6]: this overlaps the LD2410 X range
+    # [-51.09, -43.47] by 1.13 mm but Y is clear so no shadow conflict.
+    # Sits 2 mm west of J2 (DNP recovery header at -54, -8) at distance
+    # ~18.8 mm — plenty of clearance.
     parts.append(gen_capacitor_0805_pcb_footprint(
-        x=-32, y=-25, rotation=0,
+        x=-46, y=-25, rotation=0,
         reference="C2", value="10nF Y2",
         uuid_tag="c2-y2",
-        descr="10 nF Y2 safety class — GND ↔ Earth_Protective EMI bridge.",
+        descr="10 nF Y2 safety class — GND ↔ Earth_Protective EMI bridge. v0.26: shifted from (-32, -25) to (-46, -25) to clear C3 relocated to (-34, -24).",
     ))
 
     # Sensor decoupling caps: C10 (SEN66 +3V3), C11 (LD2410 +5V), C12 (NFC +3V3).
-    # SEN66 J3 socket is at (+36, +27). Place C10 east of J3 in the gap
-    # between J3 east edge (~+38.5) and H1 mounting hole at (+47.6, +27.5)
-    # (NPTH courtyard radius ~1.43 mm so keep-clear X > +45). Plenty of
-    # room at PCB (+42, +33).
+    # v0.26: C10 shifted from (+42, +33) to (+46, +32) to clear C1
+    # (relocated to (+40, +36) — 12 mm-tall D8 radial bulk for the
+    # protected +24V rail). New C10 position sits east of C1 (gap 0.75
+    # mm), south of J3 (gap to J3 east edge +41.98 = 2.02 mm), west of
+    # mounting hole H1 at (+47.631, +27.5) (distance 5.21 mm, gap 1.36
+    # mm after H1 2.85 + C10 1.0 keep-clear).
     parts.append(gen_capacitor_0603_pcb_footprint(
-        x=+42, y=+33, rotation=0,
+        x=+46, y=+32, rotation=0,
         reference="C10", value="100nF",
         uuid_tag="c10-sen66-decoupling",
-        descr="100 nF local decoupling for SEN66 (J3 +3V3 pin 1/6).",
+        descr="100 nF local decoupling for SEN66 (J3 +3V3 pin 1/6). v0.26: shifted east from (+42, +33) to (+46, +32) to clear C1 relocated to (+40, +36).",
     ))
     # LD2410 J4 pads at PCB X=-44.74, Y=+19.05 (1×5 P1.27 row going south
     # from anchor). Place C11 NORTH of the pad row (toward LD2410 body).
@@ -16853,6 +16901,419 @@ BARE_FOOTPRINT_TO_LIB: dict[str, str] = {
 }
 
 
+# -----------------------------------------------------------------------------
+# v0.26 — Z-CLEARANCE GUARDRAIL
+# -----------------------------------------------------------------------------
+# The OAS PCB carries three daughterboards mounted on female pin sockets:
+# ESP32-C6 DevKitM-1-N4 (MOD1, ~8.6 mm above PCB), MIKROE-2462 NFC Tag 2
+# Click (MOD2, ~7 mm above PCB) and HLK-LD2410B (LDR1, ~7 mm above PCB).
+# The daughterboard mech-ref footprints intentionally do NOT carry an
+# F.CrtYd (see _emit_daughterboard_reference_pcb_footprint) so KiCad's
+# DRC `courtyards_overlap` rule does not block legitimate SMD placement
+# under their shadow. The trade-off: DRC has zero awareness of the third
+# dimension, so a tall THT component placed under a daughterboard sails
+# through DRC + ERC + visual review even when it would physically
+# prevent the daughterboard from seating into its sockets.
+#
+# v0.25 audit (`hardware/components/_clearance-audit-v0.25.md`) found 3
+# radial THT electrolytic caps (C1, C3, C4, all 11-12 mm tall) and one
+# TO-263-5 buck (U1, 4.6 mm) under the ESP32 shadow that exceeded the
+# ~5.5 mm under-daughterboard budget. v0.26 relocated them; this
+# function backs the v0.26 fix with a programmatic invariant check that
+# fires loudly on any future regression — the same pattern used by
+# `BARE_FOOTPRINT_TO_LIB` to catch missing footprint-library mappings.
+#
+# How it works:
+#   1. FOOTPRINT_HEIGHT — declares the maximum Z-extent (above PCB top
+#      surface, mm) of every footprint emitted by generate.py. Keys are
+#      the fully-qualified `(property "Footprint" "...")` strings as
+#      written into oas.kicad_pcb. Missing entries -> hard assertion in
+#      check_z_clearance_violations() (catches new generators that
+#      forget to declare a height).
+#   2. DAUGHTERBOARD_Z_CLEARANCE — per-daughterboard available clearance
+#      between OAS PCB top surface and daughterboard PCB bottom surface.
+#      Conservative values: socket plastic body height minus the typical
+#      3 mm mating-pin tail that bottoms out inside the socket throat.
+#   3. _DAUGHTERBOARD_BODY_SHADOWS — the PCB-frame XY rectangle each
+#      daughterboard body covers (its mech-ref footprint's F.Fab body
+#      outline, transformed by anchor + rotation). Computed lazily from
+#      the source-of-truth `*_ANCHOR_*` / `*_BODY_*` constants at the
+#      top of the file.
+#   4. check_z_clearance_violations() — enumerates every placed
+#      footprint (via _build_pcb_ref_to_footprint), looks up its height,
+#      and tests whether its placement center falls inside any
+#      daughterboard shadow. Returns the list of violations; main()
+#      aborts with a formatted error message if non-empty.
+
+# Footprint-property string → maximum component height above OAS PCB
+# (mm, datasheet typical-max, conservative when a range exists).
+#
+# Sources (per `hardware/components/_clearance-audit-v0.25.md` §C and
+# datasheet citations):
+#   - Chip resistors / capacitors 0402 / 0603 / 0805: Murata GRM /
+#     Vishay CRCW datasheets — 0.5 / 0.95 / 1.25 mm respectively.
+#   - SOT-23: Onsemi / Vishay generic — 1.1 mm.
+#   - SMA / SMB diodes: Vishay — 2.3 mm (SMA), 2.6 mm (SMB).
+#   - SOD-323 diodes: Vishay — 1.0 mm.
+#   - SOT-583-8 / VSON-8 (TPS62933): TI SOT-583 — 0.85 mm.
+#   - TO-263-5 / D2PAK-5 (LM2596S): TI — 4.83 mm max, 4.6 mm typ.
+#   - 5×5 SMD shielded inductor (NR5040 / WE-PD-S): Wurth WE-PD-S 5045
+#     = 4.5 mm worst-case body height.
+#   - 2920 SMD polyfuse: Bourns MF-RHT — 3.0 mm.
+#   - JST GH 6-pin horizontal SMD socket (J3): JST — 4.25 mm.
+#   - JST SH 4-pin horizontal SMD socket (J9): JST — 1.5 mm.
+#   - Phoenix MSTBA 5.08 mm 3-pin terminal block (J1): Phoenix
+#     1988861 — 14.0 mm above PCB.
+#   - PinHeader 2.54 mm vertical (J2, J10): plastic body 2.5 mm + pin
+#     11.5 mm = 14.0 mm total above PCB.
+#   - PinHeader 1.27 mm vertical (J4): plastic 2.0 mm + pin 8 mm =
+#     ~10 mm above PCB.
+#   - PinSocket 2.54 mm vertical (J5..J8): plastic body 8.5 mm.
+#   - CP_Radial_D6.3mm_P2.5mm electrolytic: Panasonic ECA-1AM221 etc.
+#     — 11.2 mm max.
+#   - CP_Radial_D8.0mm_P3.50mm electrolytic: Panasonic ECA-1HM101 etc.
+#     — 12.5 mm max.
+#   - SK6812-SIDE side-emitting RGB LED: SK6812SIDE 3535 — 1.6 mm.
+#   - Mounting hole / zip-tie hole / NPTH: 0 mm (no body).
+#   - SEN66 mechanical reference (lays flat on PCB, body 21.5 mm tall):
+#     SEN66 datasheet — 21.5 mm above PCB; the mech-ref carries its own
+#     F.CrtYd so DRC catches XY collisions, but the body itself is the
+#     daughterboard analogue — exempt from the under-daughterboard
+#     check (handled via _IS_DAUGHTERBOARD_REF below).
+#   - Daughterboard mech-refs themselves (ESP32-C6-DevKitM-1 /
+#     MIKROE-2462 / LD2410): they ARE the daughterboards; never appear
+#     "under" themselves. Excluded from the check via the same
+#     _IS_DAUGHTERBOARD_REF predicate.
+#
+# UPDATE WHEN ADDING A NEW GENERATOR: add the new footprint's
+# `(property "Footprint" "...")` string here with its datasheet-max
+# height. If you forget, `check_z_clearance_violations()` asserts at
+# regenerate time with a clear error message.
+FOOTPRINT_HEIGHT: dict[str, float] = {
+    # ---- Chip passives ----
+    "Capacitor_SMD:C_0402_1005Metric": 0.5,
+    "Capacitor_SMD:C_0603_1608Metric": 0.95,
+    "Capacitor_SMD:C_0805_2012Metric": 1.25,
+    "Resistor_SMD:R_0603_1608Metric": 0.5,
+    # ---- Discrete semi packages ----
+    "Diode_SMD:D_SMA": 2.3,
+    "Diode_SMD:D_SMB": 2.6,
+    "Diode_SMD:D_SOD-323": 1.0,
+    "Package_TO_SOT_SMD:SOT-23": 1.1,
+    "Package_TO_SOT_SMD:SOT-583-8": 0.85,
+    "Package_TO_SOT_SMD:TO-263-5_TabPin3": 4.83,
+    # Note: the TPS62933 SOT-583 footprint property is written as
+    # `Package_SO:VSON-8-1EP_2x2mm_P0.5mm_EP0.9x1.6mm` by gen_sot583_pcb_footprint
+    "Package_SO:VSON-8-1EP_2x2mm_P0.5mm_EP0.9x1.6mm": 0.85,
+    # ---- Inductors + polyfuses ----
+    "Inductor_SMD:L_APV_ANR5040": 4.5,
+    "Fuse:Fuse_2920_7451Metric": 3.0,
+    # ---- Radial THT electrolytics (the v0.26 audit-driven entries) ----
+    "Capacitor_THT:CP_Radial_D6.3mm_P2.50mm": 11.2,
+    "Capacitor_THT:CP_Radial_D8.0mm_P3.50mm": 12.5,
+    # ---- Connectors ----
+    "Connector_JST:JST_GH_SM06B-GHS-TB_1x06-1MP_P1.25mm_Horizontal": 4.25,
+    "Connector_JST:JST_SH_SM04B-SRSS-TB_1x04-1MP_P1.00mm_Horizontal": 1.5,
+    "Connector_Phoenix_MSTB:PhoenixContact_MSTBA_2,5_3-G-5,08_1x03_P5.08mm_Horizontal": 14.0,
+    "Connector_PinHeader_1.27mm:PinHeader_1x05_P1.27mm_Vertical": 10.0,
+    "Connector_PinHeader_2.54mm:PinHeader_1x06_P2.54mm_Vertical": 14.0,
+    "Connector_PinSocket_2.54mm:PinSocket_1x08_P2.54mm_Vertical": 8.5,
+    "Connector_PinSocket_2.54mm:PinSocket_1x15_P2.54mm_Vertical": 8.5,
+    # ---- OAS-internal footprints ----
+    "oas:SK6812-SIDE": 1.6,
+    "oas:MountingHole_3.8mm_M3": 0.0,
+    "oas:ZipTieHole_3mm_NPTH": 0.0,
+    # Mechanical references — daughterboards / SEN66. Excluded from the
+    # under-daughterboard check via _IS_DAUGHTERBOARD_REF below, so this
+    # value is informational only (the body Z of the part itself above
+    # the PCB).
+    "oas:SEN66_Mechanical_Reference": 21.5,
+    "oas:LD2410_Mechanical_Reference": 7.0,
+    "oas:ESP32-C6-DevKitM-1_Reference": 8.6,
+    "oas:MIKROE-2462_Reference": 7.0,
+}
+
+
+# Component-clearance budget under each daughterboard, in mm. The budget
+# is the worst-case-realistic vertical distance between the OAS PCB top
+# surface and the daughterboard's PCB bottom surface (after the mating
+# pin tails bottom out inside the socket throat). Per
+# `hardware/components/_clearance-audit-v0.25.md` §B:
+#   - ESP32 daughterboard on 2× PinSocket_1x15_P2.54mm_Vertical (8.5 mm
+#     plastic body): conservative 5.5 mm budget. Top of the socket plastic
+#     less ~3 mm of male pin tail protrusion from the DevKitM-1.
+#   - MIKROE-2462 daughterboard on 2× PinSocket_1x08_P2.54mm_Vertical
+#     (same 8.5 mm body): same 5.5 mm budget. NFC antenna spiral is on
+#     the TOP side of the Click PCB (verified MikroE datasheet) — no
+#     additional bottom-side penalty.
+#   - LD2410 mounted on a 1×5 vertical 1.27 mm pin header (J4); the
+#     LD2410 PCB sits only ~3 mm above the OAS PCB and its bottom side
+#     carries ~1.5 mm of small bypass / SoC SMDs. Net budget ~2 mm. No
+#     OAS-side components currently inside the LD2410 shadow, but the
+#     guardrail flags any that creep in.
+DAUGHTERBOARD_Z_CLEARANCE: dict[str, float] = {
+    "MOD1": 5.5,   # ESP32-C6 DevKitM-1-N4
+    "MOD2": 5.5,   # MIKROE-2462 NFC Tag 2 Click
+    "LDR1": 2.0,   # HLK-LD2410B (direct 1.27 mm pin header, low stand-off)
+}
+
+
+# References that ARE daughterboards (or other tall mechanical refs that
+# are themselves the obstacle). These are skipped when iterating OAS
+# components, so a daughterboard never triggers the guardrail "against
+# itself" or against another tall mech-ref.
+_DAUGHTERBOARD_REFS: frozenset[str] = frozenset({"MOD1", "MOD2", "LDR1", "SENS1"})
+
+# Per-daughterboard intentional mounting sockets — these are the female
+# pin sockets (J5/J6 for ESP32, J7/J8 for MIKROE) and the LD2410's
+# 1.27 mm pin header (J4) that the daughterboards PLUG INTO. They live
+# under the daughterboard shadow by design — their "height" is the
+# daughterboard's standoff, not an obstruction. Excluded per-shadow so
+# the J5 socket (mounting MOD1) doesn't trigger a violation for MOD1,
+# but would still trigger for MOD2 if somehow placed inside its shadow.
+_DAUGHTERBOARD_MOUNTING_SOCKETS: dict[str, frozenset[str]] = {
+    "MOD1": frozenset({"J5", "J6"}),       # ESP32 pin sockets
+    "MOD2": frozenset({"J7", "J8"}),       # MIKROE mikroBUS sockets
+    "LDR1": frozenset({"J4"}),             # LD2410 1.27 mm pin header
+}
+
+
+def _daughterboard_body_shadows() -> dict[str, tuple[float, float, float, float]]:
+    """Compute the PCB-frame XY bounding box of each daughterboard body
+    shadow. Returns a dict ref → (x_min, x_max, y_min, y_max).
+
+    Shadows are computed from the source-of-truth `*_ANCHOR_*` and
+    `*_BODY_*` constants at the top of the file (NOT parsed back out of
+    the .kicad_pcb file) so this function works correctly even before
+    the PCB has been written for the first time. The body extents match
+    what `_emit_daughterboard_reference_pcb_footprint` writes onto
+    F.Fab — see that function's docstring for the local-to-PCB
+    coordinate transform under each rotation.
+    """
+    shadows: dict[str, tuple[float, float, float, float]] = {}
+
+    # ESP32-C6 DevKitM-1-N4 (MOD1): helper rotation 90, LIB +X → PCB -Y,
+    # LIB +Y → PCB +X. Body LIB rect (0,0) → (body_w, body_l). After
+    # rotation the body covers PCB X = [anchor_x, anchor_x + body_l] and
+    # PCB Y = [anchor_y - body_w, anchor_y].
+    esp_xmin = ESP32_ANCHOR_X
+    esp_xmax = ESP32_ANCHOR_X + ESP32_BODY_L
+    esp_ymin = ESP32_ANCHOR_Y - ESP32_BODY_W
+    esp_ymax = ESP32_ANCHOR_Y
+    shadows["MOD1"] = (esp_xmin, esp_xmax, esp_ymin, esp_ymax)
+
+    # MIKROE-2462 (MOD2): rotation 180, LIB +X → PCB -X, LIB +Y → PCB -Y.
+    # LIB rect (0,0) → (body_w, body_l) maps to PCB X in
+    # [anchor_x - body_w, anchor_x] and Y in [anchor_y - body_l, anchor_y].
+    mik_xmin = MIKROE2462_ANCHOR_X - MIKROE2462_BODY_W
+    mik_xmax = MIKROE2462_ANCHOR_X
+    mik_ymin = MIKROE2462_ANCHOR_Y - MIKROE2462_BODY_L
+    mik_ymax = MIKROE2462_ANCHOR_Y
+    shadows["MOD2"] = (mik_xmin, mik_xmax, mik_ymin, mik_ymax)
+
+    # LD2410 (LDR1): rotation 270, LIB +X → PCB +Y, LIB +Y → PCB -X.
+    # LIB rect (0,0) → (LD2410_BODY_W, LD2410_BODY_H) maps to PCB X in
+    # [anchor_x - LD2410_BODY_H, anchor_x] and Y in
+    # [anchor_y, anchor_y + LD2410_BODY_W].
+    ld_xmin = LD2410_ANCHOR_X - LD2410_BODY_H
+    ld_xmax = LD2410_ANCHOR_X
+    ld_ymin = LD2410_ANCHOR_Y
+    ld_ymax = LD2410_ANCHOR_Y + LD2410_BODY_W
+    shadows["LDR1"] = (ld_xmin, ld_xmax, ld_ymin, ld_ymax)
+
+    return shadows
+
+
+def _parse_footprint_placements() -> list[tuple[str, str, float, float]]:
+    """Read oas.kicad_pcb and return (reference, footprint_property,
+    pcb_x, pcb_y) for every placed footprint. The placement (x, y) is
+    the footprint's anchor in PCB-frame mm (note: KiCad stores PCB Y
+    with the +Y-down screen convention, but `fy(y)` in this codebase
+    negates the sign so the value in the file is mirrored — the
+    `_invert_pcb_y` constant below handles that). The footprint
+    property string is canonicalized via `BARE_FOOTPRINT_TO_LIB`.
+    """
+    import re
+
+    text = (HERE / "oas.kicad_pcb").read_text(encoding="utf-8")
+    placements: list[tuple[str, str, float, float]] = []
+    fp_starts = [m.start() for m in re.finditer(r'(?m)^\s*\(footprint "([^"]+)"', text)]
+    fp_starts.append(len(text))
+    for i in range(len(fp_starts) - 1):
+        block = text[fp_starts[i]:fp_starts[i + 1]]
+        m_name = re.search(r'\(footprint "([^"]+)"', block)
+        if not m_name:
+            continue
+        fp_name_header = m_name.group(1)
+        # Match (at <x> <y>) or (at <x> <y> <rot>). x / y are signed
+        # floats. The `at` clause is the second-occurring property in
+        # the block (after the (layer ...) clause) and IS the placement.
+        m_at = re.search(
+            r'\(at\s+(-?\d+(?:\.\d+)?)\s+(-?\d+(?:\.\d+)?)(?:\s+-?\d+(?:\.\d+)?)?\)',
+            block,
+        )
+        if not m_at:
+            continue
+        # NB: `fx(x)` / `fy(y)` add PAGE_CENTRE_X / PAGE_CENTRE_Y
+        # (148.5 / 105.0 mm) to recentre PCB coordinates onto an A4
+        # page. Reverse that here so placements are in the same
+        # PCB frame the daughterboard shadows live in.
+        pcb_x = float(m_at.group(1)) - PAGE_CENTRE_X
+        pcb_y = float(m_at.group(2)) - PAGE_CENTRE_Y
+        m_ref = re.search(r'\(property "Reference" "([^"]+)"', block)
+        if not m_ref:
+            continue
+        ref = m_ref.group(1)
+        m_fp_prop = re.search(r'\(property "Footprint" "([^"]*)"', block)
+        raw = m_fp_prop.group(1) if (m_fp_prop and m_fp_prop.group(1)) else fp_name_header
+        if ":" in raw:
+            canonical = raw
+        else:
+            lib = BARE_FOOTPRINT_TO_LIB.get(raw)
+            assert lib is not None, (
+                f"BARE_FOOTPRINT_TO_LIB missing entry for {raw!r} "
+                f"(used by reference {ref!r})."
+            )
+            canonical = f"{lib}:{raw}"
+        placements.append((ref, canonical, pcb_x, pcb_y))
+    return placements
+
+
+# Approximate planar (XY) body half-extent above the OAS PCB for each
+# footprint property. Used by the Z-clearance guardrail to test whether
+# a footprint's body (not just its anchor) intrudes into a daughterboard
+# shadow. Each entry is a (half_x, half_y) tuple — half-extent of the
+# component's BODY (not pads, not courtyard) along PCB X and Y at the
+# rotation the OAS PCB uses for that footprint.
+#
+# Notes:
+#   - For ROTATION-VARIABLE footprints (used at multiple rotations
+#     across the OAS PCB) we'd need a different model. As of v0.26 every
+#     footprint in `_FOOTPRINT_HALF_EXTENT` is used at exactly the
+#     rotation listed here (e.g. all PinSocket_1x15 are placed with
+#     rotation 90 — long axis along PCB X). If you ever place one at
+#     rotation 0 too, swap the (half_x, half_y) values for that
+#     instance or split the dict by (footprint, rotation).
+#   - SMD/THT body half-extents from datasheets / KiCad footprint
+#     library geometry. For circular radial-cap bodies, both half-X and
+#     half-Y equal the body radius.
+#   - Sockets (long axis) declared with the long axis along PCB X
+#     (rotation 90 places the socket's LIB +Y along PCB +X — see the
+#     mounting-socket placement comments around the `gen_pinsocket_*`
+#     calls). Pad extent ±0.85 mm and crty extent ±1.77 mm in the short
+#     axis; long axis follows pin count × 2.54 mm + 2× 1.77 mm crty.
+_FOOTPRINT_HALF_EXTENT: dict[str, tuple[float, float]] = {
+    "Capacitor_SMD:C_0402_1005Metric": (0.7, 0.7),
+    "Capacitor_SMD:C_0603_1608Metric": (1.0, 0.9),
+    "Capacitor_SMD:C_0805_2012Metric": (1.4, 1.0),
+    "Resistor_SMD:R_0603_1608Metric": (1.0, 0.9),
+    "Diode_SMD:D_SMA": (2.5, 1.4),
+    "Diode_SMD:D_SMB": (3.0, 1.8),
+    "Diode_SMD:D_SOD-323": (1.0, 0.7),
+    "Package_TO_SOT_SMD:SOT-23": (1.5, 1.5),
+    "Package_TO_SOT_SMD:SOT-583-8": (1.0, 1.0),
+    "Package_TO_SOT_SMD:TO-263-5_TabPin3": (5.3, 5.3),
+    "Package_SO:VSON-8-1EP_2x2mm_P0.5mm_EP0.9x1.6mm": (1.0, 1.0),
+    "Inductor_SMD:L_APV_ANR5040": (2.6, 2.6),
+    "Fuse:Fuse_2920_7451Metric": (3.7, 2.6),
+    # Radial caps — cylindrical body, radius = half-extent both axes
+    "Capacitor_THT:CP_Radial_D6.3mm_P2.50mm": (3.2, 3.2),
+    "Capacitor_THT:CP_Radial_D8.0mm_P3.50mm": (4.0, 4.0),
+    # Connectors — placed at varying rotations, see per-call comments
+    # in gen_*_pcb_footprint helpers. The (half_x, half_y) here assumes
+    # the rotation actually used on the OAS PCB.
+    # J3 — JST GH 6-pin horizontal SMD, rotation 0 (mouth +Y / -Y)
+    "Connector_JST:JST_GH_SM06B-GHS-TB_1x06-1MP_P1.25mm_Horizontal": (4.6, 2.5),
+    # J9 — JST SH 4-pin horizontal SMD, rotation 180 (mouth toward chord)
+    "Connector_JST:JST_SH_SM04B-SRSS-TB_1x04-1MP_P1.00mm_Horizontal": (2.7, 1.5),
+    # J1 — Phoenix MSTBA 3-pin terminal block, rotation 180
+    "Connector_Phoenix_MSTB:PhoenixContact_MSTBA_2,5_3-G-5,08_1x03_P5.08mm_Horizontal": (8.5, 6.5),
+    # J4 — LD2410 1.27 mm pin header, rotation 270 (long axis along PCB Y)
+    "Connector_PinHeader_1.27mm:PinHeader_1x05_P1.27mm_Vertical": (1.5, 3.5),
+    # J2, J10 — 6-pin 2.54 mm vertical pin header, rotation 0/180
+    "Connector_PinHeader_2.54mm:PinHeader_1x06_P2.54mm_Vertical": (1.5, 7.6),
+    # J7/J8 — 8-pin MIKROE sockets, rotation 180 (long axis along PCB -Y)
+    "Connector_PinSocket_2.54mm:PinSocket_1x08_P2.54mm_Vertical": (1.8, 10.2),
+    # J5/J6 — 15-pin ESP32 sockets, rotation 90 (long axis along PCB +X)
+    "Connector_PinSocket_2.54mm:PinSocket_1x15_P2.54mm_Vertical": (19.6, 1.8),
+    "oas:SK6812-SIDE": (2.0, 1.0),
+    "oas:MountingHole_3.8mm_M3": (1.9, 1.9),
+    "oas:ZipTieHole_3mm_NPTH": (1.5, 1.5),
+    # Mechanical references (daughterboards / SEN66) — these refs are
+    # in _DAUGHTERBOARD_REFS so the guardrail skips them; values are
+    # informational only.
+    "oas:SEN66_Mechanical_Reference": (12.8, 27.6),
+    "oas:LD2410_Mechanical_Reference": (3.81, 17.78),
+    "oas:ESP32-C6-DevKitM-1_Reference": (24.13, 12.7),
+    "oas:MIKROE-2462_Reference": (12.7, 28.575),
+}
+
+
+def check_z_clearance_violations() -> list[str]:
+    """Programmatic invariant check: every footprint placed inside a
+    daughterboard's body shadow must have a component height ≤ that
+    daughterboard's under-board Z-clearance budget.
+
+    Returns a list of human-readable violation strings (empty when the
+    PCB is clean). Calls `assert` if any placed footprint references a
+    footprint-property string not declared in `FOOTPRINT_HEIGHT` — this
+    catches new generators that forget to declare a height (mirrors the
+    `BARE_FOOTPRINT_TO_LIB` regression-prevention pattern from v0.24).
+
+    The check tests footprint EXTENT (anchor ± per-footprint planar
+    half-extent from `_FOOTPRINT_HALF_EXTENT`) rather than just anchor,
+    so a 12 mm-tall radial cap anchored 2 mm outside a daughterboard
+    shadow still triggers the guardrail when its body pokes ~2 mm into
+    the shadow.
+
+    Daughterboards themselves (MOD1/MOD2/LDR1/SENS1) and their mating
+    sockets (J5/J6/J7/J8/J4) are exempt from the check — those are the
+    daughterboard's own support feet and live under its shadow by
+    design.
+    """
+    placements = _parse_footprint_placements()
+    shadows = _daughterboard_body_shadows()
+    violations: list[str] = []
+    for ref, fp_prop, px, py in placements:
+        if ref in _DAUGHTERBOARD_REFS:
+            # Skip the daughterboard mech-refs themselves and the SEN66
+            # body (handled by its own F.CrtYd).
+            continue
+        height = FOOTPRINT_HEIGHT.get(fp_prop)
+        assert height is not None, (
+            f"FOOTPRINT_HEIGHT missing entry for {fp_prop!r} "
+            f"(used by reference {ref!r}). Add the appropriate "
+            f"datasheet-max height to FOOTPRINT_HEIGHT in generate.py."
+        )
+        half = _FOOTPRINT_HALF_EXTENT.get(fp_prop)
+        assert half is not None, (
+            f"_FOOTPRINT_HALF_EXTENT missing entry for {fp_prop!r} "
+            f"(used by reference {ref!r}). Add a planar half-extent to "
+            f"_FOOTPRINT_HALF_EXTENT in generate.py."
+        )
+        half_x, half_y = half
+        # Footprint body AABB (axis-aligned bounding box) on the PCB.
+        body_xmin, body_xmax = px - half_x, px + half_x
+        body_ymin, body_ymax = py - half_y, py + half_y
+        for db_ref, (x_min, x_max, y_min, y_max) in shadows.items():
+            # Exempt the daughterboard's own mounting sockets.
+            if ref in _DAUGHTERBOARD_MOUNTING_SOCKETS.get(db_ref, frozenset()):
+                continue
+            # AABB-vs-AABB intersection test.
+            if (body_xmax < x_min or body_xmin > x_max
+                    or body_ymax < y_min or body_ymin > y_max):
+                continue
+            budget = DAUGHTERBOARD_Z_CLEARANCE[db_ref]
+            if height > budget:
+                margin = budget - height
+                violations.append(
+                    f"  {ref:>6}  {fp_prop:<60}  at ({px:+7.2f}, {py:+7.2f}) "
+                    f"height={height:5.2f} mm  under {db_ref} (budget {budget:.2f} mm)  "
+                    f"margin={margin:+5.2f} mm"
+                )
+    return violations
+
+
 def _build_pcb_ref_to_footprint() -> dict[str, str]:
     """Parse the freshly-written oas.kicad_pcb and return a mapping of
     `Reference` (e.g. "R5") → fully-qualified footprint string
@@ -17057,6 +17518,31 @@ def main():
     )
     (HERE / "oas.kicad_pcb").write_text(gen_pcb(), encoding="utf-8")
     (HERE / "oas.kicad_sch").write_text(gen_root_sch(), encoding="utf-8")
+
+    # v0.26: Z-clearance guardrail. Audit-driven regression check that
+    # asserts every component placed under a daughterboard's body shadow
+    # has a height <= that daughterboard's under-board clearance budget.
+    # DRC has no third-dimension awareness; the daughterboard mech-refs
+    # intentionally carry no F.CrtYd so SMD parts CAN go under them.
+    # Without this check, tall THT parts (electrolytic caps, TO-263-5
+    # buck) slip through DRC + ERC + visual review even when they would
+    # physically prevent the daughterboard from seating into its sockets.
+    # See FOOTPRINT_HEIGHT / DAUGHTERBOARD_Z_CLEARANCE / commentary above.
+    print()
+    print("Checking daughterboard Z-clearance violations…")
+    violations = check_z_clearance_violations()
+    if violations:
+        print()
+        print("ERROR: Z-clearance violations under daughterboards:")
+        for v in violations:
+            print(v)
+        print()
+        sys.exit(
+            "Aborting: relocate the offending components out of the "
+            "daughterboard body shadow, or update DAUGHTERBOARD_Z_CLEARANCE "
+            "if the socket spec has changed."
+        )
+    print(f"  OK — no Z-clearance violations (checked {len(_parse_footprint_placements())} placed footprints).")
 
     # v0.23: build Reference → Footprint map from the freshly-written PCB,
     # used to back-fill every schematic symbol's Footprint property (review

@@ -6443,8 +6443,8 @@
 (footprint "CP_Radial_D8.0mm_P3.50mm"
 	(layer "F.Cu")
 	(uuid "1a92e331-a768-5cf1-a998-b027df7031ba")
-	(at 128.5 72.5 0)
-	(descr "100 µF / 50 V radial electrolytic bulk on protected +24V rail.")
+	(at 188.5 141 0)
+	(descr "100 µF / 50 V radial electrolytic bulk on protected +24V rail. v0.26: relocated from inside ESP32 daughterboard shadow (-20, -32.5) to south-of-SEN66 zone (+40, +36). Body 12 mm tall — exceeded the ~5.5 mm under-daughterboard clearance budget.")
 	(attr through_hole)
 	(property "Reference" "C1"
 		(at 0 -4.85 0)
@@ -6474,7 +6474,7 @@
 		(uuid "fa2bd747-773c-5f20-80f6-f262c039528e")
 		(effects (font (size 1.27 1.27)))
 	)
-	(property "Description" "100 µF / 50 V radial electrolytic bulk on protected +24V rail."
+	(property "Description" "100 µF / 50 V radial electrolytic bulk on protected +24V rail. v0.26: relocated from inside ESP32 daughterboard shadow (-20, -32.5) to south-of-SEN66 zone (+40, +36). Body 12 mm tall — exceeded the ~5.5 mm under-daughterboard clearance budget."
 		(at 0 0 0)
 		(layer "F.Fab")
 		(hide yes)
@@ -6517,8 +6517,8 @@
 (footprint "CP_Radial_D8.0mm_P3.50mm"
 	(layer "F.Cu")
 	(uuid "a9bcddd0-4ffb-543b-a9c7-194d49a8a894")
-	(at 128.5 64 0)
-	(descr "100 µF / 50 V radial electrolytic input bulk for U1 buck.")
+	(at 114.5 81 0)
+	(descr "100 µF / 50 V radial electrolytic input bulk for U1 buck. v0.26: relocated from (-20, -41) inside ESP32 shadow to (-34, -24); 1.0 mm gap to ESP32 west edge, sits just south of U1.")
 	(attr through_hole)
 	(property "Reference" "C3"
 		(at 0 -4.85 0)
@@ -6548,7 +6548,7 @@
 		(uuid "6102d9a1-1890-56a5-b256-b0dde6ef719d")
 		(effects (font (size 1.27 1.27)))
 	)
-	(property "Description" "100 µF / 50 V radial electrolytic input bulk for U1 buck."
+	(property "Description" "100 µF / 50 V radial electrolytic input bulk for U1 buck. v0.26: relocated from (-20, -41) inside ESP32 shadow to (-34, -24); 1.0 mm gap to ESP32 west edge, sits just south of U1."
 		(at 0 0 0)
 		(layer "F.Fab")
 		(hide yes)
@@ -6591,8 +6591,8 @@
 (footprint "TO-263-5_LM2596"
 	(layer "F.Cu")
 	(uuid "4be6064c-33eb-5059-b8b4-c5951fa6f8c4")
-	(at 139.5 68 0)
-	(descr "LM2596S-5.0 5 V 3 A asynchronous step-down buck (TI), TO-263-5.")
+	(at 114.5 71 0)
+	(descr "LM2596S-5.0 5 V 3 A asynchronous step-down buck (TI), TO-263-5. v0.26: relocated from (-9, -37) inside ESP32 shadow to (-34, -34) west of ESP32. 4.6 mm package height was only +0.9 mm margin under daughterboard — too tight. New location: 0.94 mm gap to ESP32 west edge, 3.17 mm gap to LD2410 east edge, 1.45 mm gap to C3 south.")
 	(attr smd)
 	(property "Reference" "U1"
 		(at 0 -5.8 0)
@@ -6622,7 +6622,7 @@
 		(uuid "f7d3b00f-c6f5-5aec-a7e4-460bb505d022")
 		(effects (font (size 1.27 1.27)))
 	)
-	(property "Description" "LM2596S-5.0 5 V 3 A asynchronous step-down buck (TI), TO-263-5."
+	(property "Description" "LM2596S-5.0 5 V 3 A asynchronous step-down buck (TI), TO-263-5. v0.26: relocated from (-9, -37) inside ESP32 shadow to (-34, -34) west of ESP32. 4.6 mm package height was only +0.9 mm margin under daughterboard — too tight. New location: 0.94 mm gap to ESP32 west edge, 3.17 mm gap to LD2410 east edge, 1.45 mm gap to C3 south."
 		(at 0 0 0)
 		(layer "F.Fab")
 		(hide yes)
@@ -6845,8 +6845,8 @@
 (footprint "CP_Radial_D6.3mm_P2.50mm"
 	(layer "F.Cu")
 	(uuid "7a1d7c78-1da7-5d3a-889c-065ce85cfaa9")
-	(at 164.5 68 0)
-	(descr "220 µF / 10 V radial electrolytic output bulk on +5V rail.")
+	(at 173.5 58 0)
+	(descr "220 µF / 10 V radial electrolytic output bulk on +5V rail. v0.26: relocated from (+16, -37) inside ESP32 shadow to (+25, -47) east of ESP32 / north of SEN66. 1.10 mm gap to ESP32 east edge, 8.40 mm gap to SEN66 north edge. Distance to L1 (+9, -37) grows from 9 mm to ~14 mm — acceptable for +5V bulk.")
 	(attr through_hole)
 	(property "Reference" "C4"
 		(at 0 -4 0)
@@ -6876,7 +6876,7 @@
 		(uuid "d15fb883-b136-5986-af02-a2ac44982ba5")
 		(effects (font (size 1.27 1.27)))
 	)
-	(property "Description" "220 µF / 10 V radial electrolytic output bulk on +5V rail."
+	(property "Description" "220 µF / 10 V radial electrolytic output bulk on +5V rail. v0.26: relocated from (+16, -37) inside ESP32 shadow to (+25, -47) east of ESP32 / north of SEN66. 1.10 mm gap to ESP32 east edge, 8.40 mm gap to SEN66 north edge. Distance to L1 (+9, -37) grows from 9 mm to ~14 mm — acceptable for +5V bulk."
 		(at 0 0 0)
 		(layer "F.Fab")
 		(hide yes)
@@ -8225,8 +8225,8 @@
         	(footprint "C_0805_2012Metric"
         		(layer "F.Cu")
         		(uuid "c648293e-49a3-5319-8e91-b6b77372f997")
-        		(at 116.5 80 0)
-        		(descr "10 nF Y2 safety class — GND ↔ Earth_Protective EMI bridge.")
+        		(at 102.5 80 0)
+        		(descr "10 nF Y2 safety class — GND ↔ Earth_Protective EMI bridge. v0.26: shifted from (-32, -25) to (-46, -25) to clear C3 relocated to (-34, -24).")
         		(attr smd)
         		(property "Reference" "C2"
         			(at 0 -1.6 0)
@@ -8256,7 +8256,7 @@
         			(uuid "23ca0c56-0a13-50aa-bcb0-b4959e328837")
         			(effects (font (size 1.27 1.27)))
         		)
-        		(property "Description" "10 nF Y2 safety class — GND ↔ Earth_Protective EMI bridge."
+        		(property "Description" "10 nF Y2 safety class — GND ↔ Earth_Protective EMI bridge. v0.26: shifted from (-32, -25) to (-46, -25) to clear C3 relocated to (-34, -24)."
         			(at 0 0 0)
         			(layer "F.Fab")
         			(hide yes)
@@ -8299,8 +8299,8 @@
         	(footprint "C_0603_1608Metric"
         		(layer "F.Cu")
         		(uuid "489e1d0e-6404-5875-aeec-2ca2e5ba7b49")
-        		(at 190.5 138 0)
-        		(descr "100 nF local decoupling for SEN66 (J3 +3V3 pin 1/6).")
+        		(at 194.5 137 0)
+        		(descr "100 nF local decoupling for SEN66 (J3 +3V3 pin 1/6). v0.26: shifted east from (+42, +33) to (+46, +32) to clear C1 relocated to (+40, +36).")
         		(attr smd)
         		(property "Reference" "C10"
         			(at 0 -1.375 0)
@@ -8330,7 +8330,7 @@
         			(uuid "c16c6c12-c4f2-5db1-af37-f2ae1a38d57c")
         			(effects (font (size 1.27 1.27)))
         		)
-        		(property "Description" "100 nF local decoupling for SEN66 (J3 +3V3 pin 1/6)."
+        		(property "Description" "100 nF local decoupling for SEN66 (J3 +3V3 pin 1/6). v0.26: shifted east from (+42, +33) to (+46, +32) to clear C1 relocated to (+40, +36)."
         			(at 0 0 0)
         			(layer "F.Fab")
         			(hide yes)
