@@ -3,8 +3,8 @@
 	(generator "pcbnew")
 	(generator_version "10.0")
 	(layer "F.Cu")
-	(descr "Sensirion SEN66 mechanical-reference (no pads). SEN66-SIN-T, MPN 3.001.030. 55.2x25.6x21.5 mm. Mounts on enclosure cover via 4x zip-ties through ZipTieHole_3mm_NPTH; signal cable JST GH 6-pin to PCB connector J3.")
-	(tags "sen66 sensirion mechanical reference cover-mounted no-pads")
+	(descr "Sensirion SEN66 mechanical-reference (no pads). SEN66-SIN-T, MPN 3.001.030. 55.2x25.6x21.3 mm. PCB-mounted face-up (v0.6) via 4x zip-ties through ZipTieHole_3mm_NPTH; openings face UP through AK-N-94 perforated cover. JST GH 6-pin connector wires to J3.")
+	(tags "sen66 sensirion mechanical reference pcb-mounted no-pads")
 	(attr board_only exclude_from_pos_files exclude_from_bom)
 (property "Reference" "REF**"
 	(at 27.6 -1.5 0)
@@ -38,7 +38,7 @@
 	(uuid "98cfd578-15ef-58cd-951a-954d28b91dd0")
 	(effects (font (size 1.27 1.27)))
 )
-(property "Description" "Sensirion SEN66 mechanical-reference footprint (no pads). SEN66-SIN-T, material 3.001.030. Body 55.2x25.6x21.5 mm. Mounts on enclosure cover, JST GH 6-pin cable to PCB."
+(property "Description" "Sensirion SEN66 mechanical-reference footprint (no pads). SEN66-SIN-T, material 3.001.030. Body 55.2x25.6x21.3 mm. PCB-mounted face-up (v0.6); openings face UP through AK-N-94 perforated cover."
 	(at 0 0 0)
 	(unlocked yes)
 	(layer "F.Fab")

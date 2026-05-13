@@ -124,7 +124,7 @@ Additional features:
 | Air quality combo | Sensirion SEN66 | I²C via JST GH cable | tentative |
 | Presence | HiLink LD2410B/C | UART @ 256000 baud | tentative |
 | Visual indicator | onboard RGB NeoPixel on DevKitM-1 (GPIO 8) | 1-wire RMT | confirmed v0.4 (no external WS2812 needed) |
-| NFC dynamic tag | **MIKROE-2462 NFC Tag 2 Click** (NXP NT3H2111 + onboard PCB antenna, mikroBUS) | I²C + NFC | confirmed v0.12 |
+| NFC dynamic tag | **MIKROE-2462 NFC Tag 2 Click** (NXP NT3H1101 + onboard PCB antenna, mikroBUS) | I²C + NFC | confirmed v0.12 (chip ID v0.15.8) |
 | Power input | TVS + PTC + 24V terminal block | — | confirmed v0.2 |
 | Buck 24V → 5V | LM2596S-5.0 (async) | — | confirmed v0.2 |
 | Buck 5V → 3.3V | TPS62933 (sync, ~95%) | — | confirmed v0.2 |
@@ -138,7 +138,7 @@ The schematic is split into four hierarchical sub-sheets by **function**, not by
 
 - `power.kicad_sch` — terminal block J1, reverse-polarity protection, PTC fuse, TVS, bulk cap, Y-cap, bucks 24→5V→3.3V
 - `mcu.kicad_sch` — ESP32-C6-DevKitM-1-N4, optional unpopulated SWD/UART recovery header, decoupling caps
-- `sensors.kicad_sch` — SEN66 JST-GH connector, LD2410 connector, NT3H2211 + NFC antenna, status LED (onboard WS2812 on DevKitM-1)
+- `sensors.kicad_sch` — SEN66 JST-GH connector, LD2410 connector, NT3H1101 + NFC antenna (on MIKROE-2462 daughterboard), status LED (onboard WS2812 on DevKitM-1)
 - `io.kicad_sch` — connector strip along the chord (24 V terminal, Qwiic, etc.)
 
 **Placement guideline (NOT a hard constraint)**: as a starting heuristic, think of the PCB roughly as a clock face with power on the upper-left, MCU on the upper-right, and sensors filling the bottom half. The 24 V cable enters through the centre, so keeping the terminal block and reverse-polarity / fusing chain near it shortens the bare-conductor span. Power flowing roughly clockwise (centre → power → MCU → sensors) tends to keep rails short, but **components may cross any imagined boundary if the layout needs it**. SEN66 in particular is large and may span what would otherwise be the "sensors" region.
@@ -151,19 +151,19 @@ The schematic is split into four hierarchical sub-sheets by **function**, not by
 - **Sensor zone below electronics** (PCB flat on bottom edge). Reason: natural convection lifts heat from MCU / power section upward, away from the SEN66 air intake.
 - **Connector strip along bottom flat**: 24V terminal, JST GH to SEN66, LD2410 connector, Qwiic, optional unpopulated SWD/UART recovery header. **No external USB-C** (use DevKitM-1's onboard USB before enclosure is sealed). Pre-defined positions exist in the manufacturer DXF; the case has matching cutouts / access.
 - **Thermal isolation slots** (1.5 mm milled gaps in FR4) separate Power, MCU, and peripheral zones.
-- **Shared I²C bus**: SEN66 (0x6B), NT3H2111 (0x55, on MIKROE-2462 NFC Tag 2 Click), plus Qwiic expansion. Pull-ups **10 kΩ on MCU side** (per SEN66 datasheet §3.1 spec; v0.6 changed from 4.7 kΩ → 10 kΩ). Bus length kept <10 cm per Sensirion guidance (face-up PCB-mount eliminates the previous 50 mm cable, achieving <40 mm total).
+- **Shared I²C bus**: SEN66 (0x6B), NT3H1101 (0x55, on MIKROE-2462 NFC Tag 2 Click), plus Qwiic expansion. Pull-ups **10 kΩ on MCU side** (per SEN66 datasheet §3.1 spec; v0.6 changed from 4.7 kΩ → 10 kΩ). Bus length kept <10 cm per Sensirion guidance (face-up PCB-mount eliminates the previous 50 mm cable, achieving <40 mm total).
 - **Bluetooth proxy** = software-only; no extra hardware.
 
 ### ESP32-C6-DevKitM-1-N4 pinout (v0.4 final)
 
 | Pin | Function | Notes |
 |---|---|---|
-| GPIO 6 | I²C SDA | shared bus: SEN66 (0x6B), NT3H2111 (0x55, on MIKROE-2462), Qwiic expansion |
-| GPIO 7 | I²C SCL | shared bus, 4.7 kΩ pull-ups on MCU side |
+| GPIO 6 | I²C SDA | shared bus: SEN66 (0x6B), NT3H1101 (0x55, on MIKROE-2462), Qwiic expansion |
+| GPIO 7 | I²C SCL | shared bus, 10 kΩ pull-ups on MCU side (per SEN66 datasheet §3.1, v0.6) |
 | GPIO 16 | UART1 TX → LD2410 RX | 256000 baud |
 | GPIO 17 | UART1 RX ← LD2410 TX | 256000 baud |
 | **GPIO 2** | LD2410 OUT (presence interrupt) | safe non-strap input |
-| **GPIO 3** | NT3H2211 FD (NFC field-detect interrupt) | safe non-strap input |
+| **GPIO 3** | NT3H1101 FD (NFC field-detect interrupt) | safe non-strap input |
 | GPIO 8 | WS2812 DIN (onboard NeoPixel) | strap pin but OK — LED defaults idle-low |
 | GPIO 12 / 13 | Native USB-Serial-JTAG D+ / D− | wired to one of DevKitM-1's two USB-C ports; the other USB-C uses the onboard USB-to-UART bridge |
 

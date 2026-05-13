@@ -327,7 +327,7 @@
 	(layer "F.Cu")
 	(uuid "c1ef6aff-60fb-5663-bd5c-1a156bffa33f")
 	(at 172 127 90)
-	(descr "Sensirion SEN66 mechanical-reference (no pads). SEN66-SIN-T, MPN 3.001.030. 55.2x25.6x21.5 mm. Mounts on enclosure cover; signal cable JST GH 6-pin to PCB connector J3.")
+	(descr "Sensirion SEN66 mechanical-reference (no pads). SEN66-SIN-T, MPN 3.001.030. 55.2x25.6x21.3 mm. PCB-mounted face-up (v0.6); openings face UP through AK-N-94 perforated cover. JST GH 6-pin connector on body +X short edge wires to J3 (~60 mm cable).")
 	(attr board_only exclude_from_pos_files exclude_from_bom)
 	(property "Reference" "SENS1"
 		(at 27.6 -1.5 0)
@@ -357,7 +357,7 @@
 		(uuid "621cc7cf-e937-5ffe-b320-713c1d47c0f6")
 		(effects (font (size 1.27 1.27)))
 	)
-	(property "Description" "Sensirion SEN66 mechanical-reference footprint (no pads). SEN66-SIN-T, material 3.001.030. Body 55.2x25.6x21.5 mm. Mounts on enclosure cover, JST GH 6-pin cable to PCB."
+	(property "Description" "Sensirion SEN66 mechanical-reference footprint (no pads). SEN66-SIN-T, material 3.001.030. Body 55.2x25.6x21.3 mm. PCB-mounted face-up (v0.6); openings face UP through AK-N-94 perforated cover."
 		(at 0 0 0)
 		(layer "F.Fab")
 		(hide yes)
@@ -1705,7 +1705,7 @@
 	(layer "F.Cu")
 	(uuid "84effda4-407b-542a-89fc-91cd0bc99e5f")
 	(at 135.74 145.64 180)
-	(descr "MIKROE-2462 NFC Tag 2 Click (NT3H2111 + onboard PCB NFC antenna). 25.4×57.15×7 mm (mikroBUS size L); mounts on 2×1x8 P2.54 mm female pin sockets. Pin block offset 2.54 mm toward pin-1 short edge; NFC antenna spiral fills the ~36.83 mm strip past pin 8.")
+	(descr "MIKROE-2462 NFC Tag 2 Click (NT3H1101 + onboard PCB NFC antenna). 25.4×57.15×7 mm (mikroBUS size L); mounts on 2×1x8 P2.54 mm female pin sockets. Pin block offset 2.54 mm toward pin-1 short edge; NFC antenna spiral fills the ~36.83 mm strip past pin 8.")
 	(attr board_only exclude_from_pos_files exclude_from_bom)
 	(property "Reference" "MOD2"
 		(at 12.7 -1.5 0)
@@ -1728,7 +1728,7 @@
 		(uuid "08c85448-5af9-5f49-a423-0b26462ae9b3")
 		(effects (font (size 1.27 1.27)))
 	)
-	(property "Description" "MIKROE-2462 NFC Tag 2 Click (NT3H2111 + onboard PCB NFC antenna). 25.4×57.15×7 mm (mikroBUS size L); mounts on 2×1x8 P2.54 mm female pin sockets. Pin block offset 2.54 mm toward pin-1 short edge; NFC antenna spiral fills the ~36.83 mm strip past pin 8."
+	(property "Description" "MIKROE-2462 NFC Tag 2 Click (NT3H1101 + onboard PCB NFC antenna). 25.4×57.15×7 mm (mikroBUS size L); mounts on 2×1x8 P2.54 mm female pin sockets. Pin block offset 2.54 mm toward pin-1 short edge; NFC antenna spiral fills the ~36.83 mm strip past pin 8."
 		(at 0 0 0)
 		(layer "F.Fab")
 		(hide yes)

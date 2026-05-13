@@ -118,15 +118,19 @@ CUTOUTS = [
 # -----------------------------------------------------------------------------
 # SEN66 PCB placement (mechanical reference + zip-tie holes + J3 socket)
 # -----------------------------------------------------------------------------
-# The SEN66 mounts on the enclosure cover, NOT on the PCB (CLAUDE.md: SEN66
-# height 21.5 mm > 17 mm front-side limit). The PCB carries:
+# v0.6: SEN66 mounts DIRECTLY ON THE PCB (face-up, body 21.3 mm above
+# PCB, openings facing UP through the AK-N-94 perforated cover).
+# Hard constraint #1 has a SEN66-zone exception (≥22 mm) for this. The
+# PCB carries:
 #   1. A no-pad mechanical-reference footprint (`SEN66_Mechanical_Reference`)
-#      drawn on F.Fab / F.SilkS — marks where the SEN66 body "shadow" sits
-#      so neighbouring components (LD2410, NT3H2211) stay clear.
-#   2. Four NPTH zip-tie holes (Ø 3.0 mm) that pinch the SEN66 against
-#      the cover, threaded through both PCB and cover plate.
+#      drawn on F.Fab / F.SilkS — marks where the SEN66 body sits and
+#      delineates the openings + sealing-divider hint so neighbouring
+#      components (LD2410, MIKROE-2462) stay clear.
+#   2. Four NPTH zip-tie holes (Ø 3.0 mm) that pinch the SEN66 flat
+#      against the PCB. Cut the zip-ties to remove or replace the module.
 #   3. The PCB-side JST GH 6-pin socket (J3) that mates with the SEN66's
-#      ~50 mm signal cable.
+#      JST GH cable (50 cm reference cable per Sensirion, separate
+#      accessory).
 #
 # Placement (PCB-local mm, origin = PCB centroid; +Y = down on screen =
 # toward the chord):
@@ -239,7 +243,7 @@ J3_ROTATION = 0    # v0.15.8: flipped 180 -> 0 so the cable opening (pad-side,
 # Dimensions: LD2410B body ~30-33 × 15-16 mm in datasheet (varies by
 # revision). LD2410_BODY_W/H below are slightly enlarged + grid-aligned
 # (multiples of 1.27 mm) for keep-out planning. The mechanical-reference
-# footprint claims this rectangle so future PCB components (NT3H2211 NFC,
+# footprint claims this rectangle so future PCB components (NT3H1101 NFC,
 # Qwiic, decoupling caps) keep clear of the LD2410 shadow.
 LD2410_BODY_W = 35.56            # mm, long axis (28 × 1.27). Matches the
                                   # HLK-LD2410B datasheet V1.04 §4.1
@@ -564,7 +568,7 @@ ROOT_SHEET_UUID = str(uuid.uuid5(_OAS_NS, "sheet:root"))
 # Hierarchical sub-sheets — functional grouping (see CLAUDE.md):
 #   power   — input protection + bucks 24V → 5V → 3.3V
 #   mcu     — ESP32-C6-DevKitM-1-N4 + decoupling
-#   sensors — SEN66, LD2410, NT3H2211 NFC (status LED is the onboard
+#   sensors — SEN66, LD2410, NT3H1101 NFC (status LED is the onboard
 #             NeoPixel on DevKitM-1, so it lives logically in the mcu sheet)
 #   io      — connector cluster along the chord (24V terminal, Qwiic, SWD)
 #
@@ -706,16 +710,17 @@ def gen_mounting_hole_footprint() -> str:
 #     mechanical-design-guide §2.1 sealing rib that separates inlet zone
 #     from outlet zone, ensuring ambient air takes the intended path.
 #
-# This footprint is MECHANICAL-REFERENCE ONLY:
-#   - The SEN66 mounts on the inside of the enclosure cover, NOT on the PCB
-#     (CLAUDE.md: SEN66 height 21.5 mm > 17 mm front-side limit).
-#   - The PCB-side footprint is purely a placement marker — it tells the
-#     PCB designer where the SEN66 "lives" relative to the PCB centroid
-#     so the JST GH cable run length stays consistent across builds, and
-#     so the layout can place LD2410 / NT3H2211 clear of the SEN66
-#     shadow.
-#   - No pads, no drilled holes (the 4× zip-tie holes are a separate
-#     footprint: `ZipTieHole_3mm_NPTH`).
+# This footprint is MECHANICAL-REFERENCE ONLY (v0.6+, SEN66 PCB-mounted):
+#   - The SEN66 mounts DIRECTLY ON THE PCB (face-up, body 21.3 mm above
+#     PCB, openings facing UP toward the AK-N-94 perforated cover).
+#     This means hard constraint #1 has a SEN66-zone exception (≥22 mm),
+#     not the default 17 mm front-side height. CLAUDE.md v0.6.
+#   - The mech-ref footprint marks the SEN66 body's projected shadow on
+#     the PCB so the LD2410 and MIKROE-2462 daughterboards stay clear,
+#     and so the J3 socket aligns with the SEN66's on-body JST GH
+#     connector for a short cable run.
+#   - No pads, no drilled holes (the 4× zip-tie retention holes are a
+#     separate footprint: `ZipTieHole_3mm_NPTH`).
 SEN66_BODY_X = 55.2
 SEN66_BODY_Y = 25.6
 SEN66_BODY_Z = 21.5                # body height (CLAUDE.md hard constraint)
@@ -740,7 +745,7 @@ def gen_sen66_mechanical_footprint() -> str:
     cover. This footprint exists so the PCB designer has a visible "SEN66
     shadow" in 2D / 3D views, reserving enough clearance for the SEN66
     cable strain relief and ensuring that future components (LD2410,
-    NT3H2211) avoid the SEN66 zone.
+    NT3H1101) avoid the SEN66 zone.
 
     Rendered on `F.Fab` (full body outline + air openings + connector
     marker + foam-divider hint + module identification) and on
@@ -919,7 +924,7 @@ def gen_sen66_mechanical_footprint() -> str:
         \t\t(effects (font (size 1.27 1.27)))
         \t)""")
     desc_block = textwrap.dedent(f"""\
-        \t(property "Description" "Sensirion SEN66 mechanical-reference footprint (no pads). SEN66-SIN-T, material 3.001.030. Body 55.2x25.6x21.5 mm. Mounts on enclosure cover, JST GH 6-pin cable to PCB."
+        \t(property "Description" "Sensirion SEN66 mechanical-reference footprint (no pads). SEN66-SIN-T, material 3.001.030. Body 55.2x25.6x21.3 mm. PCB-mounted face-up (v0.6); openings face UP through AK-N-94 perforated cover."
         \t\t(at 0 0 0)
         \t\t(unlocked yes)
         \t\t(layer "F.Fab")
@@ -929,10 +934,9 @@ def gen_sen66_mechanical_footprint() -> str:
         \t)""")
 
     # Courtyard — match the body outline exactly (no inflate). The SEN66
-    # lives on the enclosure cover, not on the PCB, so its "footprint
-    # courtyard" on the board is purely a placement reference — there
-    # are no neighbouring PCB components that the SEN66 body can
-    # physically collide with (it's suspended above the PCB).
+    # lives directly on the PCB (face-up, v0.6+). The body's "footprint
+    # courtyard" matches the body outline so neighbouring components
+    # know to keep clear of the SEN66 body shadow on the PCB surface.
     courtyard = textwrap.dedent(f"""\
         \t(fp_rect
         \t\t(start {fmt(x_min)} {fmt(y_min)})
@@ -957,8 +961,8 @@ def gen_sen66_mechanical_footprint() -> str:
         \t(generator "pcbnew")
         \t(generator_version "{GEN_VERSION}")
         \t(layer "F.Cu")
-        \t(descr "Sensirion SEN66 mechanical-reference (no pads). SEN66-SIN-T, MPN 3.001.030. 55.2x25.6x21.5 mm. Mounts on enclosure cover via 4x zip-ties through ZipTieHole_3mm_NPTH; signal cable JST GH 6-pin to PCB connector J3.")
-        \t(tags "sen66 sensirion mechanical reference cover-mounted no-pads")
+        \t(descr "Sensirion SEN66 mechanical-reference (no pads). SEN66-SIN-T, MPN 3.001.030. 55.2x25.6x21.3 mm. PCB-mounted face-up (v0.6) via 4x zip-ties through ZipTieHole_3mm_NPTH; openings face UP through AK-N-94 perforated cover. JST GH 6-pin connector wires to J3.")
+        \t(tags "sen66 sensirion mechanical reference pcb-mounted no-pads")
         \t(attr board_only exclude_from_pos_files exclude_from_bom)
         """) + body_blocks + "\n)\n"
 
@@ -974,7 +978,7 @@ def gen_ld2410_mechanical_footprint() -> str:
     at J4 carries the electrical pads). This mechanical-reference
     footprint exists so the PCB designer sees a "LD2410 shadow" in
     2D/3D views, claiming the body-projected rectangle as a keep-out
-    zone for other components (NT3H2211 NFC IC, NFC trace antenna,
+    zone for other components (NT3H1101 NFC IC, NFC trace antenna,
     Qwiic, decoupling caps, etc.).
 
     Geometry (LD2410-local, anchor at body corner (0, 0)):
@@ -1131,8 +1135,8 @@ def gen_ld2410_mechanical_footprint() -> str:
 # -----------------------------------------------------------------------------
 # 1aa) Zip-tie NPTH footprint (own library)
 # -----------------------------------------------------------------------------
-# 4× zip-tie holes hold the SEN66 against the enclosure cover (no PCB
-# mount). Each hole is Ø3.0 mm NPTH — fits a standard 2.5 mm wide zip-tie
+# 4× zip-tie holes hold the SEN66 flat against the PCB (face-up mount,
+# v0.6). Each hole is Ø3.0 mm NPTH — fits a standard 2.5 mm wide zip-tie
 # band with margin. The pattern matches the placement of the SEN66
 # mechanical reference footprint: holes sit at the 4 corners of an
 # imaginary rectangle slightly larger than the SEN66 body footprint,
@@ -1145,10 +1149,10 @@ def gen_ziptie_hole_footprint() -> str:
     """Custom ZipTieHole_3mm_NPTH footprint.
 
     NPTH (non-plated through hole), Ø3.0 mm — for zip-ties holding the
-    SEN66 against the enclosure cover. The SEN66 doesn't bolt to the PCB
-    (it lives on the cover) but the PCB carries the zip-tie holes so that,
-    during assembly, the SEN66 can be threaded against the cover via
-    zip-ties anchored through the PCB.
+    SEN66 flat against the PCB (face-up mount, v0.6). The SEN66 has no
+    mounting holes (Sensirion datasheet), so retention is via 4 zip-tie
+    loops pulled over the body through these holes; cut the zip-ties to
+    swap the sensor.
 
     Pattern after MountingHole_3.8mm_M3 — no copper pad, no plating, no
     soldermask cut-out; just a drilled hole + silk ring + courtyard for
@@ -1163,8 +1167,8 @@ def gen_ziptie_hole_footprint() -> str:
         \t(generator "pcbnew")
         \t(generator_version "{GEN_VERSION}")
         \t(layer "F.Cu")
-        \t(descr "Zip-tie hole Ø3.0 mm NPTH, for retaining SEN66 against the enclosure cover")
-        \t(tags "zip-tie ziptie npth 3mm sen66 mechanical cover")
+        \t(descr "Zip-tie hole Ø3.0 mm NPTH, for retaining SEN66 flat against the PCB (face-up mount, v0.6)")
+        \t(tags "zip-tie ziptie npth 3mm sen66 mechanical pcb")
         \t(attr through_hole board_only exclude_from_pos_files exclude_from_bom)
         \t(property "Reference" "REF**"
         \t\t(at 0 0 0)
@@ -1198,7 +1202,7 @@ def gen_ziptie_hole_footprint() -> str:
         \t\t(uuid "{U('ziptie:fp:ds')}")
         \t\t(effects (font (size 1.27 1.27)))
         \t)
-        \t(property "Description" "Zip-tie pass-through hole, Ø3.0 mm NPTH (fits 2.5 mm band zip-tie). Used in groups of 4 to retain the SEN66 module against the enclosure cover."
+        \t(property "Description" "Zip-tie pass-through hole, Ø3.0 mm NPTH (fits 2.5 mm band zip-tie). Used in groups of 4 to retain the SEN66 module flat against the OAS PCB (face-up mount per v0.6)."
         \t\t(at 0 0 0)
         \t\t(unlocked yes)
         \t\t(layer "F.Fab")
@@ -1494,7 +1498,7 @@ def gen_sen66_reference_pcb_footprint(x: float, y: float, rotation: int) -> str:
         \t\t(layer "F.Cu")
         \t\t(uuid "{U('fp-inst:' + uuid_tag)}")
         \t\t(at {fx(x)} {fy(y)} {rotation})
-        \t\t(descr "Sensirion SEN66 mechanical-reference (no pads). SEN66-SIN-T, MPN 3.001.030. 55.2x25.6x21.5 mm. Mounts on enclosure cover; signal cable JST GH 6-pin to PCB connector J3.")
+        \t\t(descr "Sensirion SEN66 mechanical-reference (no pads). SEN66-SIN-T, MPN 3.001.030. 55.2x25.6x21.3 mm. PCB-mounted face-up (v0.6); openings face UP through AK-N-94 perforated cover. JST GH 6-pin connector on body +X short edge wires to J3 (~60 mm cable).")
         \t\t(attr board_only exclude_from_pos_files exclude_from_bom)
         \t\t(property "Reference" "SENS1"
         \t\t\t(at {fmt(SEN66_BODY_X / 2.0)} -1.5 0)
@@ -1524,7 +1528,7 @@ def gen_sen66_reference_pcb_footprint(x: float, y: float, rotation: int) -> str:
         \t\t\t(uuid "{U('fp-prop-ds:' + uuid_tag)}")
         \t\t\t(effects (font (size 1.27 1.27)))
         \t\t)
-        \t\t(property "Description" "Sensirion SEN66 mechanical-reference footprint (no pads). SEN66-SIN-T, material 3.001.030. Body 55.2x25.6x21.5 mm. Mounts on enclosure cover, JST GH 6-pin cable to PCB."
+        \t\t(property "Description" "Sensirion SEN66 mechanical-reference footprint (no pads). SEN66-SIN-T, material 3.001.030. Body 55.2x25.6x21.3 mm. PCB-mounted face-up (v0.6); openings face UP through AK-N-94 perforated cover."
         \t\t\t(at 0 0 0)
         \t\t\t(layer "F.Fab")
         \t\t\t(hide yes)
@@ -2663,11 +2667,11 @@ def gen_sensors_pcb_footprints() -> str:
 
     # MIKROE-2462 NFC Tag 2 Click daughterboard shadow reservation.
     # Mounted on 2× 1x8 P2.54 mm female pin sockets (mikroBUS) in chunk #7;
-    # NT3H2111 + onboard PCB antenna sits ~7 mm above the OAS PCB.
+    # NT3H1101 + onboard PCB antenna sits ~7 mm above the OAS PCB.
     parts.append(_emit_daughterboard_reference_pcb_footprint(
         lib_id="oas:MIKROE-2462_Reference",
         reference="MOD2",
-        descr="MIKROE-2462 NFC Tag 2 Click (NT3H2111 + onboard PCB NFC antenna). 25.4×57.15×7 mm (mikroBUS size L); mounts on 2×1x8 P2.54 mm female pin sockets. Pin block offset 2.54 mm toward pin-1 short edge; NFC antenna spiral fills the ~36.83 mm strip past pin 8.",
+        descr="MIKROE-2462 NFC Tag 2 Click (NT3H1101 + onboard PCB NFC antenna). 25.4×57.15×7 mm (mikroBUS size L); mounts on 2×1x8 P2.54 mm female pin sockets. Pin block offset 2.54 mm toward pin-1 short edge; NFC antenna spiral fills the ~36.83 mm strip past pin 8.",
         anchor_x=MIKROE2462_ANCHOR_X, anchor_y=MIKROE2462_ANCHOR_Y,
         body_w=MIKROE2462_BODY_W, body_l=MIKROE2462_BODY_L,
         pin_row_inset=MIKROE2462_PIN_ROW_INSET,
@@ -8660,7 +8664,7 @@ def gen_power_sch() -> str:
     # and steps it down to a regulated 3.3V rail that powers the ESP32-C6
     # DevKitM-1-N4 (via its 3V3 pin, bypassing the module's onboard LDO so
     # we don't dissipate ~250 mW close to the SEN66 air-quality sensor),
-    # plus the SEN66 itself and the NT3H2211 NFC tag.
+    # plus the SEN66 itself and the NT3H1101 NFC tag.
     #
     # Component selection rationale (see commit message and CLAUDE.md):
     #   * TPS62933   : 3.8-30 V Vin range (17 V abs-max for the typical-use
@@ -8684,7 +8688,7 @@ def gen_power_sch() -> str:
     #                  voltage = 0.6 V. Vout = Vfb × (1 + R2/R3) =
     #                  0.6 × (1 + 4.42) = 3.252 V — well within the
     #                  ESP32-C6's 3.0-3.6 V supply window and the typical
-    #                  3.0-3.6 V supply requirements of SEN66 and NT3H2211.
+    #                  3.0-3.6 V supply requirements of SEN66 and NT3H1101.
     #                  R3 = 10 kΩ gives a low-current divider
     #                  (~60 µA), and R2 = 44.2 kΩ is the nearest E96 value.
     #                  1% tolerance keeps the output voltage variation due
@@ -10908,7 +10912,7 @@ def _sch_conn_02x08_top_bottom(
         \t\t\t\t(hide yes)
         \t\t\t)
         \t\t)
-        \t\t(property "Description" "mikroBUS 2x8 socket — MIKROE-2462 NFC Tag 2 Click daughterboard (NT3H2111 NTAG I²C plus + onboard PCB antenna)"
+        \t\t(property "Description" "mikroBUS 2x8 socket — MIKROE-2462 NFC Tag 2 Click daughterboard (NT3H1101 NTAG I²C plus + onboard PCB antenna)"
         \t\t\t(at {fmt(x)} {fmt(y)} 0)
         \t\t\t(effects
         \t\t\t\t(font
@@ -11062,7 +11066,7 @@ def gen_mcu_sch() -> str:
       U3.1  (J1.1)  3V3      → +3V3 bus
       U3.2  (J1.2)  RST      → local label "RST" (joins to J2.5 EN)
       U3.3  (J1.3)  GPIO2    → LD2410_OUT (presence interrupt)
-      U3.4  (J1.4)  GPIO3    → NFC_FD (NT3H2211 field detect)
+      U3.4  (J1.4)  GPIO3    → NFC_FD (NT3H1101 field detect)
       U3.5..9       GPIO4/5/0/1/8  no-connect (strap pins / unused / RGB LED)
       U3.10 (J1.10) GPIO6    → I2C_SDA
       U3.11 (J1.11) GPIO7    → I2C_SCL
@@ -11147,7 +11151,7 @@ def gen_mcu_sch() -> str:
 
     # ===== R5 / R6: I²C bus pull-ups, 10 kΩ 1% 0402 =====
     # Sensirion SEN66 datasheet §3.1 specifies 10 kΩ pull-ups for the
-    # shared I²C bus (SEN66 + NT3H2211 + Qwiic expansion). Standard
+    # shared I²C bus (SEN66 + NT3H1101 + Qwiic expansion). Standard
     # mode (100 kHz) compatible; trace length <50 mm fits well within
     # rise-time budget with 10 kΩ pull-ups.
     # R5 = SDA pull-up, R6 = SCL pull-up.
@@ -11553,7 +11557,7 @@ def gen_sensors_sch() -> str:
                 and the universal community pattern (Apollo MSR-2,
                 jonnybergdahl, p2baron). PCB footprint chosen in
                 chunk #7.
-    Chunk #5c — MIKROE-2462 NFC Tag 2 Click (U4 + C12). NXP NT3H2111
+    Chunk #5c — MIKROE-2462 NFC Tag 2 Click (U4 + C12). NXP NT3H1101
                 NTAG I²C plus + onboard PCB antenna, mounted as a
                 mikroBUS daughterboard on a 2×8 female pin socket
                 (P2.54 mm) on the OAS PCB. Pre-tuned antenna avoids
@@ -11953,7 +11957,7 @@ def gen_sensors_sch() -> str:
     # chunk #5c — MIKROE-2462 NFC Tag 2 Click daughterboard (U4 + C12)
     # =========================================================================
     # NFC tag is hosted on a MikroElektronika "NFC Tag 2 Click"
-    # (MIKROE-2462) daughterboard: NXP NT3H2111 (NTAG I²C plus) +
+    # (MIKROE-2462) daughterboard: NXP NT3H1101 (NTAG I²C plus) +
     # onboard PCB antenna + 16-pin mikroBUS male header (2×8, 2.54 mm
     # pitch). The board plugs into a 2×8 female pin socket on the OAS
     # PCB ("goldpiny żeńskie"). Pin-only mating means the daughterboard
@@ -11974,14 +11978,14 @@ def gen_sensors_sch() -> str:
     #     9=PWM 10=INT 11=RX 12=TX 13=SCL  14=SDA  15=+5V  16=GND
     #
     # NFC Tag 2 Click uses ONLY these mikroBUS pins:
-    #   pin 7  (+3.3V) — VCC supply for NT3H2111
+    #   pin 7  (+3.3V) — VCC supply for NT3H1101
     #   pin 8  (GND)   — ground (left side)
     #   pin 10 (INT)   — FD (field-detect) open-drain output. Asserts
     #                    LOW when an NFC field is present. Wired to
     #                    MCU GPIO 3 via the NFC_FD hier label so
     #                    ESPHome can wake on phone-tap without polling.
-    #   pin 13 (SCL)   — I²C clock (NT3H2111 slave)
-    #   pin 14 (SDA)   — I²C data (NT3H2111 slave, address 0x55)
+    #   pin 13 (SCL)   — I²C clock (NT3H1101 slave)
+    #   pin 14 (SDA)   — I²C data (NT3H1101 slave, address 0x55)
     #   pin 16 (GND)   — ground (right side)
     #
     # All other mikroBUS pins (1, 2, 3, 4, 5, 6, 9, 11, 12, 15) are
@@ -12121,7 +12125,7 @@ def gen_sensors_sch() -> str:
     parts.append(_sch_conn_02x08_top_bottom(
         x=U4_X, y=U4_Y, angle=0,
         reference="U4",
-        value="MIKROE-2462 NFC Tag 2 Click (NT3H2111 + onboard antenna, mikroBUS)",
+        value="MIKROE-2462 NFC Tag 2 Click (NT3H1101 + onboard antenna, mikroBUS)",
         uuid_tag="u4-nfc-tag",
         sheet_key="sensors",
     ))
@@ -12414,7 +12418,7 @@ def main():
     (HERE / "libraries" / "oas.pretty" / "MIKROE-2462_Reference.kicad_mod").write_text(
         gen_daughterboard_mech_lib_file(
             name="MIKROE-2462_Reference",
-            descr="MikroElektronika NFC Tag 2 Click (NT3H2111 NTAG I²C plus + onboard PCB antenna) daughterboard mechanical reference (no pads). Body 25.4×28.6×7 mm per mikroBUS size S spec. Pin block offset 2.87 mm toward pin-1 short edge; NFC antenna spiral on the 5.74 mm strip past pin 8.",
+            descr="MikroElektronika NFC Tag 2 Click (NT3H1101 NTAG I²C plus + onboard PCB antenna) daughterboard mechanical reference (no pads). Body 25.4×28.6×7 mm per mikroBUS size S spec. Pin block offset 2.87 mm toward pin-1 short edge; NFC antenna spiral on the 5.74 mm strip past pin 8.",
             body_w=MIKROE2462_BODY_W, body_l=MIKROE2462_BODY_L,
             pin_row_inset=MIKROE2462_PIN_ROW_INSET,
             pin_pitch=MIKROE2462_PIN_PITCH,

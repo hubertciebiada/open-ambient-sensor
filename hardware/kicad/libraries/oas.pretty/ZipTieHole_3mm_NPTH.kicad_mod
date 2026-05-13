@@ -3,8 +3,8 @@
 	(generator "pcbnew")
 	(generator_version "10.0")
 	(layer "F.Cu")
-	(descr "Zip-tie hole Ø3.0 mm NPTH, for retaining SEN66 against the enclosure cover")
-	(tags "zip-tie ziptie npth 3mm sen66 mechanical cover")
+	(descr "Zip-tie hole Ø3.0 mm NPTH, for retaining SEN66 flat against the PCB (face-up mount, v0.6)")
+	(tags "zip-tie ziptie npth 3mm sen66 mechanical pcb")
 	(attr through_hole board_only exclude_from_pos_files exclude_from_bom)
 	(property "Reference" "REF**"
 		(at 0 0 0)
@@ -38,7 +38,7 @@
 		(uuid "7e676f8a-4226-550f-84f1-e05c70dacc5f")
 		(effects (font (size 1.27 1.27)))
 	)
-	(property "Description" "Zip-tie pass-through hole, Ø3.0 mm NPTH (fits 2.5 mm band zip-tie). Used in groups of 4 to retain the SEN66 module against the enclosure cover."
+	(property "Description" "Zip-tie pass-through hole, Ø3.0 mm NPTH (fits 2.5 mm band zip-tie). Used in groups of 4 to retain the SEN66 module flat against the OAS PCB (face-up mount per v0.6)."
 		(at 0 0 0)
 		(unlocked yes)
 		(layer "F.Fab")

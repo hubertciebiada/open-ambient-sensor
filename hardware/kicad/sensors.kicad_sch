@@ -3416,7 +3416,7 @@
         				(justify left)
         			)
         		)
-        		(property "Value" "MIKROE-2462 NFC Tag 2 Click (NT3H2111 + onboard antenna, mikroBUS)"
+        		(property "Value" "MIKROE-2462 NFC Tag 2 Click (NT3H1101 + onboard antenna, mikroBUS)"
         			(at 123.19 138.43 0)
         			(effects
         				(font
@@ -3443,7 +3443,7 @@
         				(hide yes)
         			)
         		)
-        		(property "Description" "mikroBUS 2x8 socket — MIKROE-2462 NFC Tag 2 Click daughterboard (NT3H2111 NTAG I²C plus + onboard PCB antenna)"
+        		(property "Description" "mikroBUS 2x8 socket — MIKROE-2462 NFC Tag 2 Click daughterboard (NT3H1101 NTAG I²C plus + onboard PCB antenna)"
         			(at 120.65 125.73 0)
         			(effects
         				(font
