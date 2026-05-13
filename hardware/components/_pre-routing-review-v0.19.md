@@ -236,3 +236,24 @@ Routing-readiness reassessment: **READY for first routing chunk** (modulo M3 def
 
 **Final routing-readiness verdict: READY**. All previously-flagged blockers are closed: schematic-PCB net sync (C1), schematic-only component placement (C2), BOM annotation errors (C3), M3 daughterboard sockets, and the pre-existing root-sheet UART/USB crossover bug. The 5 SEN66 mech-ref `courtyards_overlap` DRC false positives were also eliminated by removing the F.CrtYd from the SEN66 mech-ref footprint (consistent with MOD1/MOD2 daughterboard mech-refs). Post-v0.21 DRC = 10 violations (1 courtyards_overlap C4-D2 and 9 silk_over_copper warnings, all localized to v0.20 stub footprint placements that the user will refine during routing — none are electrical errors). 155 unconnected ratlines are the expected pre-routing state. ERC = 0.
 
+## Post-fix status (after v0.22)
+
+The v0.21 reasoning that *"SEN66 sits 21.5 mm above the OAS PCB ... PCB-level components beneath its body shadow are perfectly clear"* was **WRONG**. SEN66 lies FLAT on the PCB on its 25.6 × 55.2 mm back face — ZERO clearance under it. v0.22 restores the SEN66 mech-ref F.CrtYd rectangle as a programmatic DRC guardrail and relocates 5 SMD components (Q1, F1, D3, R1, R4) that the v0.21 placements had under the SEN66 body shadow. Additionally:
+
+| Finding | Status | Fix |
+|---|---|---|
+| **SEN66 body-shadow guardrail** | **RESOLVED**. F.CrtYd rectangle restored on the SEN66 mech-ref footprint (both library and embedded-instance copies in generate.py). Multi-line comment block explains the rationale and head off the v0.21 misconception class-of-error from recurring. |
+| **SEN66 body shadow SMD relocations** | **RESOLVED**. 5 partial-overlap SMD (Q1, F1, D3, R1, R4) moved out of SEN66 body shadow into the north-of-SEN66 cluster + far-east-of-SEN66 zone (for F1). All 5 verified by independent kiutils check (`_check_shadows.py`). |
+| **NFC daughterboard partial overlaps** | **RESOLVED**. 3 NFC-partial SMD (U1, C3, C1) moved fully outside the NFC body shadow (south of NFC y_min=-16.51). C12 (already inside NFC) remains inside — explicitly allowed by the daughterboard-shadow rule. |
+| **ESP32 daughterboard partial overlaps** | **RESOLVED**. 10 ESP32-partial SMD relocated into a clean column-based layout fully inside the ESP32 body shadow. Pin row pad zones (J5 at Y∈[-27.74,-24.20] and J6 at Y∈[-50.60,-47.06]) are properly avoided. |
+| **M1 — I²C pull-up size** | **RESOLVED**. R5/R6 value 10 kΩ → 4.7 kΩ. Sized for the realized ~140 mm PCB MST + ~80 mm cable bus length. |
+| **M2 — GPIO 8 boot-strap pull-up** | **RESOLVED**. R7 = 10 kΩ to +3V3 added in MCU schematic + PCB. |
+| **M5 — SEN66 cable run honest measurement** | **RESOLVED**. CLAUDE.md updated to "~140 mm PCB MST + ~80 mm cable = ~220 mm total electrical length"; the prior "<40 mm" and "~60 mm" claims retracted. |
+| **Task #24 — Q1 SOT-23 pad name mismatch** | **RESOLVED**. `gen_sot23_3pin_pcb_footprint` accepts `pin_names=("G", "S", "D")` to align footprint pad numbers with the Device:Q_PMOS schematic symbol's letter pin numbers. Q1 pads will now bind to nets via `sync_pcb_nets_from_schematic`. |
+| **F1 polyfuse placement** | **RESOLVED**. F1 doesn't fit in any small strip (south-of-cable-hole zone is 5.9 mm tall but F1 is 8 mm wide at rot 0; west-of-J3 zone too narrow). Placed at (+54, +9) in the open EAST-of-SEN66 zone with 0.88 mm clearance to PCB outline at the south corner. |
+| **DRC residue (silk_over_copper)** | **RESOLVED**. "ESP32-C6 DevKitM-1" + "USB" board-level gr_text labels moved from F.SilkS to F.Fab (assembly-drawing-only; not silkscreen-printed). The ESP32 daughterboard physically covers this region at assembly time, so the silk text underneath would be invisible to the user — F.Fab preserves the documentation value without DRC noise. C11 LD2410 decoupling cap shifted +2 mm east to clear the LDR1 silk-frame long-edge-1 line. |
+| **DRC verdict** | **0 violations**. 160 unconnected pads remain (expected pre-routing ratlines, up from 155 in v0.21 because R7 + Q1 moved pads add new ratlines). |
+| **ERC verdict** | **0 violations**. |
+
+**Final v0.22 routing-readiness verdict: READY**.
+

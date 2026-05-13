@@ -1303,19 +1303,30 @@ def gen_sen66_mechanical_footprint() -> str:
         \t\t(effects (font (size 1.27 1.27)))
         \t)""")
 
-    # No F.CrtYd in v0.21+: the SEN66 body sits 21.5 mm ABOVE the OAS
-    # PCB (zip-tied face-up onto the board). Components mounted on the
-    # PCB beneath the SEN66's body shadow are perfectly fine as long
-    # as their own height (typically 0.5–3 mm for 0402/0603/SOT-23/
-    # SOIC) stays well under the 21 mm air gap. A body-sized PCB-level
-    # courtyard would falsely flag those legitimate placements as
-    # `courtyards_overlap`, which is exactly what the v0.20 → v0.21
-    # 15-DRC-violations baseline revealed (5 of 15 violations were
-    # SENS1-vs-Q1/D3/R1/R4/F1 false positives, all components physically
-    # safe under the 21 mm SEN66 standoff). Same convention used for
-    # MOD1 (ESP32-C6-DevKitM-1) and MOD2 (MIKROE-2462) — see
-    # `_emit_daughterboard_reference_pcb_footprint`.
-    courtyard = ""
+    # v0.22: F.CrtYd RESTORED as a programmatic guardrail. The v0.21 agent
+    # removed the courtyard reasoning that "SEN66 floats 21.5 mm above PCB".
+    # That was WRONG. The SEN66 lies FLAT on the PCB on its 25.6 x 55.2 mm
+    # back face — there is ZERO clearance under it. The 21.5 mm is the
+    # body height ABOVE the PCB, not a standoff. Any SMD component placed
+    # inside the SEN66 body shadow on the PCB plane physically cannot
+    # exist; the SEN66 body would crush it. Restoring the courtyard makes
+    # KiCad's DRC re-trigger `courtyards_overlap` on any such mistake,
+    # which is exactly what we want as a guardrail. The 0.25 mm clearance
+    # margin matches the KiCad default. Daughterboards on female pin
+    # sockets (MOD1 ESP32, MOD2 MIKROE) are DIFFERENT — they sit on
+    # 8-11 mm tall pin sockets so SMD components do fit under them; their
+    # mech-refs intentionally OMIT the courtyard so DRC stays silent
+    # there. See `_emit_daughterboard_reference_pcb_footprint`.
+    crty_inset = -0.25  # outset 0.25 mm beyond body
+    courtyard = textwrap.dedent(f"""\
+        \t(fp_rect
+        \t\t(start {fmt(x_min + crty_inset)} {fmt(y_min + crty_inset)})
+        \t\t(end {fmt(x_max - crty_inset)} {fmt(y_max - crty_inset)})
+        \t\t(stroke (width 0.05) (type solid))
+        \t\t(fill no)
+        \t\t(layer "F.CrtYd")
+        \t\t(uuid "{U('sen66:fp:courtyard')}")
+        \t)""")
 
     body_blocks = "\n".join(
         block for block in [
@@ -2178,11 +2189,20 @@ def gen_sen66_reference_pcb_footprint(x: float, y: float, rotation: int) -> str:
         \t\t\t(uuid "{U('fp-conn-label:' + uuid_tag)}")
         \t\t\t(effects (font (size 1.0 1.0) (thickness 0.15)))
         \t\t)
+        \t\t(fp_rect
+        \t\t\t(start {fmt(-0.25)} {fmt(-0.25)})
+        \t\t\t(end {fmt(SEN66_BODY_X + 0.25)} {fmt(SEN66_BODY_Y + 0.25)})
+        \t\t\t(stroke (width 0.05) (type solid))
+        \t\t\t(fill no)
+        \t\t\t(layer "F.CrtYd")
+        \t\t\t(uuid "{U('fp-courtyard:' + uuid_tag)}")
+        \t\t)
         \t)""")
-        # v0.21: No F.CrtYd — the SEN66 body sits 21.5 mm above the
-        # OAS PCB, so a body-sized courtyard falsely flags every PCB-
-        # surface SMD beneath as `courtyards_overlap`. See the matching
-        # comment in `gen_sen66_mechanical_footprint()` above.
+        # v0.22: F.CrtYd RESTORED as a programmatic guardrail. SEN66 lies
+        # FLAT on PCB on its 25.6 x 55.2 mm back face — ZERO clearance
+        # under it (the 21.5 mm is body height ABOVE PCB, not standoff).
+        # NO SMD components may be placed inside; the courtyard
+        # intentionally encloses the body shadow so DRC catches mistakes.
 
 
 def _kicad_install_path() -> Path:
@@ -3857,17 +3877,29 @@ def gen_capacitor_polarized_radial_pcb_footprint(*, x: float, y: float, rotation
 
 def gen_sot23_3pin_pcb_footprint(*, x: float, y: float, rotation: int,
                                   reference: str, value: str, uuid_tag: str,
-                                  descr: str = "SOT-23 3-pin") -> str:
+                                  descr: str = "SOT-23 3-pin",
+                                  pin_names: tuple[str, str, str] = ("1", "2", "3")) -> str:
     """SOT-23 footprint — 3 pads. Pin 1 at bottom-left (-X, +Y), pin 2 at
     bottom-right (+X, +Y), pin 3 at top (0, -Y). Matches KiCad's stock
     SOT-23 footprint orientation, which in turn matches both the
     Device:Q_PMOS_GDS / Device:Q_NMOS_GDS symbol pinout (1=G, 2=S, 3=D)
-    AND the Diode:BAT54 etc. orientation."""
-    # Standard SOT-23 pad positions per Package_TO_SOT_SMD.pretty SOT-23
+    AND the Diode:BAT54 etc. orientation.
+
+    `pin_names` lets the caller override the pad designators when the
+    matching schematic symbol uses letter pins (e.g. Device:Q_PMOS which
+    numbers its pins "G", "S", "D" — not "1", "2", "3"). Use
+    `pin_names=("G", "S", "D")` for that symbol so `sync_pcb_nets_from_schematic`
+    can match the netlist nodes (Q1.G / Q1.S / Q1.D) to the corresponding
+    physical pads. v0.22 fix for Task #24 — previously pads were always
+    "1"/"2"/"3" so Q1 ended up with three pads on no_net.
+    """
+    # Standard SOT-23 pad positions per Package_TO_SOT_SMD.pretty SOT-23.
+    # Position-to-letter mapping (per Device:Q_PMOS pinout): bottom-left
+    # = G, bottom-right = S, top = D.
     pads = [
-        ("1", -0.95,  1.10),
-        ("2",  0.95,  1.10),
-        ("3",  0.00, -1.10),
+        (pin_names[0], -0.95,  1.10),
+        (pin_names[1],  0.95,  1.10),
+        (pin_names[2],  0.00, -1.10),
     ]
     pad_w, pad_h = 1.0, 0.6
     rot_clause = f" {rotation}" if rotation != 0 else ""
@@ -4578,223 +4610,292 @@ def gen_power_pcb_footprints() -> str:
     # the J1 anchor). With J1 east edge at +11.9 (incl. body), available
     # X ∈ [+13, +22] (avoid ZT1 at +20.5).
     # Row Y=+9 (mid Strip-F).
+    # v0.22 INPUT-PROTECTION CLUSTER — relocated to clear SEN66 body shadow.
+    # SEN66 lies FLAT on PCB on its 25.6 x 55.2 mm back face (ZERO clearance
+    # under it; the 21.5 mm is body height ABOVE PCB, not standoff). The
+    # v0.21 placements had Q1, F1, D3, R1, R4 inside the SEN66 body shadow
+    # X ∈ [+23.5, +49.1], Y ∈ [-33.2, +22.0], which the SEN66 body would
+    # physically crush. v0.22 moves these 5 parts NORTH of the SEN66 body
+    # shadow into the strip X ∈ [+22.5, +30] (WEST of the SEN66 socket J3
+    # at X ∈ [+30.02, +41.98]), Y ∈ [+23, +42] (north of SEN66 courtyard
+    # +22.25, south of PCB chord +43.5).
+    # D1 (SMBJ24A TVS) — south of cable hole strip. Must clear:
+    #   - D12 LED ring courtyard at PCB ~(+9.5, +5.5..+8.0) rotation 240
+    #     (rotated-rectangle east edge reaches +11.67 at Y=+4.19 and
+    #     decreases northward).
+    #   - PCB cable hole at R=6 around origin.
+    # D1 SMB body 4.5×3.6 + courtyard → bbox 7.9 × 3.8 wide.
+    # Placed at (+15.5, +9): west +11.55 (clears D12 by 0.0... let me
+    # actually move it further east. At (+16, +9.5): bbox X∈[+12.05,
+    # +19.95], Y∈[+7.60, +11.40]. D12 polygon extends only to ~Y=+8.01
+    # at X=+9.47; at Y=+7.60 the D12 polygon X reaches further west,
+    # ~+11.5 or so. Border crossing analysis: D12 polygon at Y=+7.60
+    # (interpolating edge from (+11.67,+4.19) to (+9.47,+8.01)):
+    # t=(7.60-4.19)/(8.01-4.19)=0.893; X=+11.67+0.893*(-2.20)=+9.71.
+    # D1 west +12.05 > +9.71 ✓ clear by 2.34 mm.
     parts.append(gen_diode_smb_pcb_footprint(
-        x=+15, y=+9, rotation=0,
+        x=+16, y=+9.5, rotation=0,
         reference="D1", value="SMBJ24A",
         uuid_tag="d1-tvs-smbj24a",
         descr="SMBJ24A TVS surge clamp, 24 V standoff, 38.9 V clamp @ 1 A.",
     ))
+    # Q1 P-MOSFET reverse-polarity protection. SOT-23 with letter pin
+    # names ("G", "S", "D") matching the Device:Q_PMOS schematic symbol
+    # — required so `sync_pcb_nets_from_schematic` matches Q1.G/S/D
+    # netlist nodes to the corresponding physical pads. The v0.21
+    # footprint used numeric pads "1"/"2"/"3" so all three pads ended
+    # up on no_net (Task #24).
+    # Q1 must clear D1 east (+19.95) and SEN66 crty west (+23.25). Q1
+    # anchor (+22, +9.5): west +20.10 > D1 east +19.95 ✓; east +23.90 >
+    # SEN66 crty west +23.25 by 0.65 mm → INSIDE SEN66 courtyard. Bad.
+    # Use Y row at +6 (north of D1) which has more X room (Q1 small).
+    # Actually keep Y=+9 alignment for clean trace routing. Compromise:
+    # ZT1 at PCB (+20.5, 0) bbox X∈[+19, +22], Y∈[-1.5, +1.5]. Q1 at
+    # Y=+9 is south of ZT1 entirely. Q1 at (+22, +9.5): D1 east +19.95
+    # vs Q1 west +20.10 → 0.15 mm gap ✓. SEN66 west +23.25 vs Q1 east
+    # +23.90 → 0.65 mm INTO SEN66 courtyard. Compromise: SEN66 here is
+    # the courtyard, not the body. SEN66 body Y range starts at -33.2
+    # north and +22.0 south. At Y=+9.5, SEN66 IS occupying the strip
+    # (Y=+9.5 ∈ [-33.2, +22]). Q1 east +23.90 > body west +23.5 by 0.40
+    # mm → 0.40 mm INSIDE SEN66 BODY SHADOW. BAD.
+    # Final compromise: move Q1 to north-of-SEN66 zone after all,
+    # at (+27, +25). Already verified safe in plan_check.
     parts.append(gen_sot23_3pin_pcb_footprint(
-        x=+22, y=+9, rotation=0,
+        x=+27, y=+25, rotation=0,
         reference="Q1", value="PMV65XP",
         uuid_tag="q1-pmos",
         descr="P-MOSFET reverse-polarity protection. SOT-23. Vds=-50 V / Vgs=±20 V.",
+        pin_names=("G", "S", "D"),
     ))
-    # F1 — 7.3 × 5 mm polyfuse, place under the SEN66 body shadow at
-    # PCB Y=+18, X around +30 (between SEN66 body left edge +23.5 and
-    # right edge +49.1, well west of SEN66 connector at X≈+49.1).
-    # SEN66 body is 21.5 mm above PCB (clearance for 5 mm body height).
-    parts.append(gen_polyfuse_smd_pcb_footprint(
-        x=+30, y=+18, rotation=0,
-        reference="F1", value="MF-RHT075/60-2",
-        uuid_tag="f1-ptc",
-        descr="PTC polyfuse 750 mA hold / 1.5 A trip / 60 V (Bourns MF-RHT075/60-2).",
-    ))
-    # D3, R1, R4 — small parts, place in the cluster strip above J1
-    # extending east of Q1.
+    # D3 — Q1 gate-source Zener clamp. North of SEN66, west of J3 SEN66
+    # socket (west edge +30.02). Stacked column at X=+27/28.
     parts.append(gen_diode_sod323_pcb_footprint(
-        x=+26, y=+9, rotation=0,
+        x=+27, y=+28, rotation=0,
         reference="D3", value="BZT52C18",
         uuid_tag="d3-zener",
         descr="18 V Zener clamp on Q1 gate-source to keep |Vgs| ≤ 18 V.",
     ))
+    # F1 — polyfuse. Doesn't fit in any of the small strips (south-of-cable
+    # is 5.9 mm tall but F1 needs 8 mm in width at rotation 0; west-of-J3
+    # strip is too narrow at rotation 0 and rotation 90 would collide with
+    # J9 Qwiic). Placed in the open zone EAST of SEN66 body (X > +49.35
+    # SEN66 crty east edge) and EAST of ZT2 (X > +53.60). F1 at (+54, +9)
+    # gives bbox X∈[+50.05, +57.95], Y∈[+6.20, +11.80] — clears SEN66 east
+    # by 0.70 mm, PCB outline by 0.88 mm at the Y=+11.80 south corner.
+    parts.append(gen_polyfuse_smd_pcb_footprint(
+        x=+54, y=+9, rotation=0,
+        reference="F1", value="MF-RHT075/60-2",
+        uuid_tag="f1-ptc",
+        descr="PTC polyfuse 750 mA hold / 1.5 A trip / 60 V (Bourns MF-RHT075/60-2).",
+    ))
     parts.append(gen_resistor_0603_pcb_footprint(
-        x=+34, y=+10, rotation=0,
+        x=+25, y=+33, rotation=0,
         reference="R1", value="100k",
         uuid_tag="r1-gate-pulldown",
         descr="100 kΩ gate-GND pulldown for Q1 (P-MOSFET reverse-polarity).",
     ))
     parts.append(gen_resistor_0603_pcb_footprint(
-        x=+38, y=+10, rotation=0,
+        x=+25, y=+35.5, rotation=0,
         reference="R4", value="1k",
         uuid_tag="r4-gate-series",
         descr="1 kΩ gate series resistor between Q1.G and Vgs clamp junction.",
     ))
 
-    # ---- Buck1 cluster (24 V → 5 V): U1 LM2596S + L1 + D2 + bulk caps.
-    # Place in the strip between LED ring outer (Y=-12) and J5 ESP32
-    # row at Y=-25.97. Available Y ∈ [-24, -12]. U1's TO-263-5 footprint
-    # has courtyard Y range -5.3..+5.0 (centered on body); placing U1
-    # anchor at Y=-18 gives U1 courtyard Y=-23.3..-13 — fits.
-    parts.append(gen_to263_5_pcb_footprint(
-        x=-12, y=-18, rotation=0,
-        reference="U1", value="LM2596S-5.0",
-        uuid_tag="u1-lm2596",
-        descr="LM2596S-5.0 5 V 3 A asynchronous step-down buck (TI), TO-263-5.",
-    ))
-    # L1 — 5x5 mm SMD inductor, place east of U1 with 3 mm gap
-    parts.append(gen_inductor_smd_5x5_pcb_footprint(
-        x=-3, y=-18, rotation=0,
-        reference="L1", value="33uH",
-        uuid_tag="l1-buck1",
-        descr="33 µH ≥2 A SMD shielded power inductor (Wurth WE-PD-S or eq).",
-    ))
-    # D2 SMA — place east of L1
-    parts.append(gen_diode_sma_pcb_footprint(
-        x=+4, y=-18, rotation=0,
-        reference="D2", value="SS14",
-        uuid_tag="d2-schottky",
-        descr="SS14 Schottky diode 40 V / 1 A, SMA, freewheeling for U1 buck.",
-    ))
-    # C3 input bulk — radial 8 mm cap, west of U1
-    parts.append(gen_capacitor_polarized_radial_pcb_footprint(
-        x=-22, y=-18, rotation=0,
-        reference="C3", value="100uF/50V",
-        uuid_tag="c3-u1-vin-bulk",
-        diameter_mm=8.0, pitch_mm=3.5,
-        descr="100 µF / 50 V radial electrolytic input bulk for U1 buck.",
-    ))
-    parts.append(gen_capacitor_0603_pcb_footprint(
-        x=-22, y=-12, rotation=0,
-        reference="C13", value="100nF",
-        uuid_tag="c13-u1-vin-hf",
-        descr="100 nF input HF ceramic bypass at U1.VIN (paired with C3).",
-    ))
-    # C4 output bulk + C14 HF — east of D2, on the +5V output rail. C4
-    # is 6.3 mm diameter radial; place at X=+10 leaves D2 east edge at
-    # X=+4+2.15=+6.15 vs C4 west edge at +10-3.15=+6.85 → 0.7 mm gap.
-    # C4 east edge at +10+3.15=+13.15 still west of LED ring outer X=+12
-    # at θ=0... LED D11 at θ=0: PCB (+11, 0), with body half-width 2 mm
-    # → east edge X=+13. Overlap. Move C4 to NORTH-EAST of D2.
-    # Better: place C4 in the cap-LED gap. Actually C4 has been moved.
-    # New plan: U1+L1+D2 row at Y=-18; C4 sits ABOVE D2, at Y=-23.
-    # That keeps it within the ESP32-shadow keepaway strip.
-    # C4 — radial 6.3 mm cap. Place east of D2, north of input protection,
-    # in the strip Y=-15..-12 above the LED ring outer (R=12, +Y=12 at θ=90°
-    # but irrelevant in this X range). Anchor (+7, -14).
-    parts.append(gen_capacitor_polarized_radial_pcb_footprint(
-        x=+7, y=-15, rotation=0,
-        reference="C4", value="220uF/10V",
-        uuid_tag="c4-u1-vout-bulk",
-        diameter_mm=6.3, pitch_mm=2.5,
-        descr="220 µF / 10 V radial electrolytic output bulk on +5V rail.",
-    ))
-    parts.append(gen_capacitor_0603_pcb_footprint(
-        x=+2, y=-13, rotation=0,
-        reference="C14", value="100nF",
-        uuid_tag="c14-u1-vout-hf",
-        descr="100 nF HF ceramic bypass on +5V rail (paired with C4).",
-    ))
+    # v0.22 POWER SECTION LAYOUT
+    # ===========================
+    # Everything is FULLY INSIDE the ESP32-C6 DevKitM-1 daughterboard shadow
+    # (X ∈ [-27.76, +20.50], Y ∈ [-50.10, -24.70]) EXCEPT C2 which goes
+    # WEST of the ESP32 body. The DevKitM-1 sits ~8.6 mm above the OAS PCB
+    # on its 2x15 P2.54 mm female pin sockets (J5+J6), leaving comfortable
+    # Z room for 5-10 mm tall SMD passives. NFC daughterboard body shadow
+    # Y ∈ [-16.51, +40.64] starts south of all power components — no overlap.
+    #
+    # IMPORTANT: ESP32 pin socket pad rows (J5 at Y=-25.97 pads y∈[-27.74,
+    # -24.20]; J6 at Y=-48.83 pads y∈[-50.60, -47.06]) block SMD placement
+    # in those Y bands. Usable inside-ESP32 SMD strip: Y ∈ [-47, -28]
+    # (with ~0.5 mm margin from pin pads).
+    #
+    # Layout strategy (column-based to avoid TO-263/radial collisions):
+    #   Column X=-20 : bulk radial caps — C1 north (Y=-32.5), C3 south (Y=-41)
+    #   Row Y=-30   : north flank — small HF caps, I²C pullups, R7
+    #   Row Y=-37   : Buck1 main — U1, D2, L1, C4 in single E-W row
+    #   Row Y=-44   : Buck2 main — U2, L2, R2, R3
+    #   Row Y=-46   : south flank — small HF caps near J6 pad row
+    #
+    # C2 (Y2 GND-Earth_Protective) sits OUTSIDE the daughterboard, at
+    # (-32, -25) in the strip west of ESP32 west edge.
 
-    # ---- Buck2 cluster (5 V → 3.3 V): U2 TPS62933 + L2 + FB divider + caps.
-    # Place under the ESP32 body shadow (PCB Y between ESP32 J5 row at
-    # Y=-25.97 and J6 row at Y=-48.83) where the 8.6 mm ESP32 standoff
-    # leaves plenty of vertical room for SMD parts. Buck1 is in the
-    # strip Y=-13..-25 east of the ESP32; Buck2 sits SOUTH of Buck1.
-    # Strip: X ∈ [-27, +20], Y ∈ [-45, -30]. Lots of room.
-    parts.append(gen_sot583_pcb_footprint(
-        x=-22, y=-37, rotation=0,
-        reference="U2", value="TPS62933",
-        uuid_tag="u2-tps62933",
-        descr="TPS62933 5 V→3.3 V synchronous buck (TI), SOT-583/VSON-8.",
-    ))
-    parts.append(gen_inductor_smd_5x5_pcb_footprint(
-        x=-13, y=-37, rotation=0,
-        reference="L2", value="2.2uH",
-        uuid_tag="l2-buck2",
-        descr="2.2 µH ≥2 A SMD shielded power inductor for U2 buck.",
-    ))
-    parts.append(gen_resistor_0603_pcb_footprint(
-        x=-8, y=-37, rotation=0,
-        reference="R2", value="100k",
-        uuid_tag="r2-fb-top",
-        descr="FB top divider for TPS62933 (sets +3.3V).",
-    ))
-    parts.append(gen_resistor_0603_pcb_footprint(
-        x=-8, y=-40, rotation=0,
-        reference="R3", value="30.9k",
-        uuid_tag="r3-fb-bot",
-        descr="FB bottom divider for TPS62933 (sets +3.3V).",
-    ))
-    parts.append(gen_capacitor_0805_pcb_footprint(
-        x=-26, y=-37, rotation=0,
-        reference="C5", value="10uF",
-        uuid_tag="c5-u2-vin-bulk",
-        descr="10 µF 0805 ceramic input bulk for U2.VIN (+5V).",
-    ))
-    parts.append(gen_capacitor_0603_pcb_footprint(
-        x=-26, y=-40, rotation=0,
-        reference="C15", value="100nF",
-        uuid_tag="c15-u2-vin-hf",
-        descr="100 nF input HF ceramic bypass at U2.VIN.",
-    ))
-    parts.append(gen_capacitor_0805_pcb_footprint(
-        x=-3, y=-37, rotation=0,
-        reference="C6", value="22uF",
-        uuid_tag="c6-u2-vout-bulk",
-        descr="22 µF 0805 ceramic output bulk on +3.3V rail.",
-    ))
-    parts.append(gen_capacitor_0603_pcb_footprint(
-        x=-3, y=-40, rotation=0,
-        reference="C16", value="100nF",
-        uuid_tag="c16-u2-vout-hf",
-        descr="100 nF HF ceramic bypass on +3.3V rail.",
-    ))
-    parts.append(gen_capacitor_0603_pcb_footprint(
-        x=-22, y=-40, rotation=0,
-        reference="C7", value="22pF",
-        uuid_tag="c7-fb-feedforward",
-        descr="FB feedforward cap (BW shaping for TPS62933).",
-    ))
-    parts.append(gen_capacitor_0603_pcb_footprint(
-        x=-19, y=-40, rotation=0,
-        reference="C8", value="100nF",
-        uuid_tag="c8-u2-bst",
-        descr="Bootstrap cap C(BST) between U2.SW and U2.VOS.",
-    ))
-
-    # ---- C1 (+24V protected bulk) + C2 (Y2 GND-PE) — between LED ring and
-    # cable hole, west side
+    # ---- Column X=-20: bulk +24V caps (C1 + C3) ----
     parts.append(gen_capacitor_polarized_radial_pcb_footprint(
-        x=-32, y=-19, rotation=0,
+        x=-20, y=-32.5, rotation=0,
         reference="C1", value="100uF/50V",
         uuid_tag="c1-protected-bulk",
         diameter_mm=8.0, pitch_mm=3.5,
         descr="100 µF / 50 V radial electrolytic bulk on protected +24V rail.",
     ))
-    parts.append(gen_capacitor_0805_pcb_footprint(
-        x=-32, y=-12, rotation=0,
-        reference="C2", value="10nF Y2",
-        uuid_tag="c2-y2",
-        descr="10 nF Y2 safety class — GND ↔ Earth_Protective EMI bridge.",
+    # C3 anchor Y=-41. C1 at Y=-32.5 above, C5 at Y=-46.5 below.
+    parts.append(gen_capacitor_polarized_radial_pcb_footprint(
+        x=-20, y=-41, rotation=0,
+        reference="C3", value="100uF/50V",
+        uuid_tag="c3-u1-vin-bulk",
+        diameter_mm=8.0, pitch_mm=3.5,
+        descr="100 µF / 50 V radial electrolytic input bulk for U1 buck.",
     ))
 
-    # ---- C9 ESP32 bulk + C17 HF, R5/R6 I2C pullups ---
-    # Place between ESP32 J5 row (Y=-25.97) and Buck2 cluster (Y around -37).
-    # Strip Y=-28..-34, X centered between ESP32 and SEN66 area, X ∈ [+5, +15].
+    # ---- Row Y=-37: Buck1 (24V→5V) main components ----
+    parts.append(gen_to263_5_pcb_footprint(
+        x=-9, y=-37, rotation=0,
+        reference="U1", value="LM2596S-5.0",
+        uuid_tag="u1-lm2596",
+        descr="LM2596S-5.0 5 V 3 A asynchronous step-down buck (TI), TO-263-5.",
+    ))
+    parts.append(gen_diode_sma_pcb_footprint(
+        x=+2, y=-37, rotation=0,
+        reference="D2", value="SS14",
+        uuid_tag="d2-schottky",
+        descr="SS14 Schottky diode 40 V / 1 A, SMA, freewheeling for U1 buck.",
+    ))
+    parts.append(gen_inductor_smd_5x5_pcb_footprint(
+        x=+9, y=-37, rotation=0,
+        reference="L1", value="33uH",
+        uuid_tag="l1-buck1",
+        descr="33 µH ≥2 A SMD shielded power inductor (Wurth WE-PD-S or eq).",
+    ))
+    parts.append(gen_capacitor_polarized_radial_pcb_footprint(
+        x=+16, y=-37, rotation=0,
+        reference="C4", value="220uF/10V",
+        uuid_tag="c4-u1-vout-bulk",
+        diameter_mm=6.3, pitch_mm=2.5,
+        descr="220 µF / 10 V radial electrolytic output bulk on +5V rail.",
+    ))
+
+    # ---- Row Y=-44: Buck2 (5V→3.3V) main components ----
+    # U2 anchor Y=-43.5 (was -44) to clear C8 courtyard at Y=-46 by > 0.05 mm.
+    # SOT-583 courtyard half-height is 1.5 (wider than the 0603/0805 default).
+    parts.append(gen_sot583_pcb_footprint(
+        x=-2, y=-43.5, rotation=0,
+        reference="U2", value="TPS62933",
+        uuid_tag="u2-tps62933",
+        descr="TPS62933 5 V→3.3 V synchronous buck (TI), SOT-583/VSON-8.",
+    ))
+    parts.append(gen_inductor_smd_5x5_pcb_footprint(
+        x=+4, y=-44, rotation=0,
+        reference="L2", value="2.2uH",
+        uuid_tag="l2-buck2",
+        descr="2.2 µH ≥2 A SMD shielded power inductor for U2 buck.",
+    ))
+    parts.append(gen_resistor_0603_pcb_footprint(
+        x=+10, y=-44, rotation=0,
+        reference="R2", value="100k",
+        uuid_tag="r2-fb-top",
+        descr="FB top divider for TPS62933 (sets +3.3V).",
+    ))
+    parts.append(gen_resistor_0603_pcb_footprint(
+        x=+13, y=-44, rotation=0,
+        reference="R3", value="30.9k",
+        uuid_tag="r3-fb-bot",
+        descr="FB bottom divider for TPS62933 (sets +3.3V).",
+    ))
+
+    # ---- Row Y=-30: north flank — HF bypass caps for buck stages + I²C pullups + R7 ----
+    parts.append(gen_capacitor_0603_pcb_footprint(
+        x=-14, y=-30, rotation=0,
+        reference="C13", value="100nF",
+        uuid_tag="c13-u1-vin-hf",
+        descr="100 nF input HF ceramic bypass at U1.VIN (paired with C3).",
+    ))
+    parts.append(gen_capacitor_0603_pcb_footprint(
+        x=-6, y=-30, rotation=0,
+        reference="C14", value="100nF",
+        uuid_tag="c14-u1-vout-hf",
+        descr="100 nF HF ceramic bypass on +5V rail (paired with C4).",
+    ))
     parts.append(gen_capacitor_0805_pcb_footprint(
-        x=+10, y=-30, rotation=0,
+        x=+0, y=-30, rotation=0,
         reference="C9", value="10uF",
         uuid_tag="c9-esp32-bulk",
         descr="10 µF 0805 ceramic bulk on ESP32 +3V3.",
     ))
     parts.append(gen_capacitor_0603_pcb_footprint(
-        x=+10, y=-33, rotation=0,
+        x=+4, y=-30, rotation=0,
         reference="C17", value="100nF",
         uuid_tag="c17-esp32-hf",
         descr="100 nF HF ceramic decoupling on ESP32 +3V3.",
     ))
+    # v0.22 — I²C pull-ups reduced from 10 kΩ → 4.7 kΩ (Task #17 M1). At the
+    # realized bus length (~60-100 mm on PCB), with ~100 pF total bus
+    # capacitance, 10 kΩ gives rise time τ = 1 µs / t_r(10-90%) ≈ 2.2 µs,
+    # exceeding the I²C standard-mode spec (t_r ≤ 1 µs at 100 kHz).
+    # 4.7 kΩ drops τ to ~470 ns / t_r ≈ 1.0 µs, within spec. The SEN66
+    # datasheet §3.1 *recommends* 10 kΩ but does not mandate it; lower
+    # values are explicitly allowed.
     parts.append(gen_resistor_0603_pcb_footprint(
-        x=+14, y=-30, rotation=0,
-        reference="R5", value="10k",
+        x=+8, y=-30, rotation=0,
+        reference="R5", value="4.7k",
         uuid_tag="r5-i2c-sda-pullup",
-        descr="I²C SDA 10 kΩ pull-up to +3V3 (per SEN66 datasheet §3.1).",
+        descr="I²C SDA 4.7 kΩ pull-up to +3V3 (v0.22 spec — sized for bus rise time at realized ~60-100 mm bus length, see CLAUDE.md M1).",
     ))
     parts.append(gen_resistor_0603_pcb_footprint(
-        x=+14, y=-33, rotation=0,
-        reference="R6", value="10k",
+        x=+11, y=-30, rotation=0,
+        reference="R6", value="4.7k",
         uuid_tag="r6-i2c-scl-pullup",
-        descr="I²C SCL 10 kΩ pull-up to +3V3 (per SEN66 datasheet §3.1).",
+        descr="I²C SCL 4.7 kΩ pull-up to +3V3 (v0.22 spec — see R5).",
+    ))
+    # R7 — GPIO 8 boot-strap 10 kΩ pull-up to +3V3 (v0.22, Task #18 M2).
+    # See R7 schematic block for rationale.
+    parts.append(gen_resistor_0603_pcb_footprint(
+        x=+14, y=-30, rotation=0,
+        reference="R7", value="10k",
+        uuid_tag="r7-gpio8-bootstrap-pullup",
+        descr="GPIO 8 boot-strap 10 kΩ pull-up to +3V3 (v0.22, see CLAUDE.md M2). Replaces the DevKitM-1's onboard pull-up that doesn't work in OAS (VCC_5V unpowered).",
+    ))
+
+    # ---- Row Y=-46: south flank — Buck2 HF/feedback caps + Buck2 bulk ----
+    # C5 at X=-25 (was -20) to avoid 0.05 mm courtyard overlap with C3
+    # radial cap directly above at (-20, -41).
+    parts.append(gen_capacitor_0805_pcb_footprint(
+        x=-25, y=-46, rotation=0,
+        reference="C5", value="10uF",
+        uuid_tag="c5-u2-vin-bulk",
+        descr="10 µF 0805 ceramic input bulk for U2.VIN (+5V).",
+    ))
+    parts.append(gen_capacitor_0603_pcb_footprint(
+        x=-17, y=-46, rotation=0,
+        reference="C15", value="100nF",
+        uuid_tag="c15-u2-vin-hf",
+        descr="100 nF input HF ceramic bypass at U2.VIN.",
+    ))
+    parts.append(gen_capacitor_0805_pcb_footprint(
+        x=-14, y=-46, rotation=0,
+        reference="C6", value="22uF",
+        uuid_tag="c6-u2-vout-bulk",
+        descr="22 µF 0805 ceramic output bulk on +3.3V rail.",
+    ))
+    parts.append(gen_capacitor_0603_pcb_footprint(
+        x=-10, y=-46, rotation=0,
+        reference="C16", value="100nF",
+        uuid_tag="c16-u2-vout-hf",
+        descr="100 nF HF ceramic bypass on +3.3V rail.",
+    ))
+    parts.append(gen_capacitor_0603_pcb_footprint(
+        x=-6, y=-46, rotation=0,
+        reference="C7", value="22pF",
+        uuid_tag="c7-fb-feedforward",
+        descr="FB feedforward cap (BW shaping for TPS62933).",
+    ))
+    parts.append(gen_capacitor_0603_pcb_footprint(
+        x=-2, y=-46, rotation=0,
+        reference="C8", value="100nF",
+        uuid_tag="c8-u2-bst",
+        descr="Bootstrap cap C(BST) between U2.SW and U2.VOS.",
+    ))
+
+    # ---- C2 (Y2 safety cap) — WEST of ESP32, outside daughterboard shadow ----
+    parts.append(gen_capacitor_0805_pcb_footprint(
+        x=-32, y=-25, rotation=0,
+        reference="C2", value="10nF Y2",
+        uuid_tag="c2-y2",
+        descr="10 nF Y2 safety class — GND ↔ Earth_Protective EMI bridge.",
     ))
 
     # Sensor decoupling caps: C10 (SEN66 +3V3), C11 (LD2410 +5V), C12 (NFC +3V3).
@@ -4810,10 +4911,12 @@ def gen_power_pcb_footprints() -> str:
     ))
     # LD2410 J4 pads at PCB X=-44.74, Y=+19.05 (1×5 P1.27 row going south
     # from anchor). Place C11 NORTH of the pad row (toward LD2410 body).
-    # C11 schematic shows top pin (pin 1) → +5V (J4 pin 5), bottom (pin 2) → GND.
-    # Anchor (-44, +14) — north of J4 pin 5 (+5V) at PCB Y=+19.05.
+    # v0.22 — anchor shifted from (-44, +14) to (-42, +14) so C11's pad 2
+    # (at PCB X=-41.15) is fully east of the LDR1 mech-ref's silk-frame
+    # long-edge-1 line at PCB X=-43.67. The v0.21 placement at X=-44
+    # straddled the silk line and triggered silk_over_copper DRC.
     parts.append(gen_capacitor_0603_pcb_footprint(
-        x=-44, y=+14, rotation=0,
+        x=-42, y=+14, rotation=0,
         reference="C11", value="100nF",
         uuid_tag="c11-ld2410-decoupling-pcb",
         descr="100 nF local decoupling for LD2410 (J4 pin 5 / +5V).",
@@ -5155,20 +5258,24 @@ def gen_silk_labels() -> str:
     parts.append(_silk("SEN66 SIN-T", sen66_body_cx, sen66_body_cy + 8.0,
                        "sen66-mpn", size=1.0))
 
-    # ---- v0.15.8: ESP32 and MIKROE-2462 body-label boards (mirror Task
-    # #8 for these daughterboards). The body labels live INSIDE the
-    # respective body silk rects but rotate with the footprint, making
-    # them upside-down or vertical depending on placement. Board-level
-    # gr_text keeps them horizontal.
-    # ESP32 body centre (rotation 90 -> LIB +Y → PCB +X, +X → PCB -Y).
-    # Body LIB extent: 0..body_w × 0..body_l. Centre LIB = (body_w/2,
-    # body_l/2). PCB = (anchor_x + body_l/2, anchor_y - body_w/2).
+    # ---- v0.15.8: ESP32 and MIKROE-2462 body-label boards.
+    # v0.22 — moved ESP32 body labels to F.Fab (was F.SilkS). The body
+    # center now sits over the power-section SMD components placed under
+    # the daughterboard shadow (U1 LM2596S, D2 SS14, etc.), which triggers
+    # silk_over_copper DRC warnings when the labels are on F.SilkS.
+    # Since the ESP32 daughterboard physically COVERS this part of the
+    # PCB at assembly time, the silk text underneath would be invisible
+    # to the user anyway — moving it to F.Fab (assembly drawing layer,
+    # rendered in 2D-top.png but not silkscreen-printed) preserves the
+    # documentation value while clearing the DRC noise.
     esp32_body_cx = ESP32_ANCHOR_X + ESP32_BODY_L / 2.0
     esp32_body_cy = ESP32_ANCHOR_Y - ESP32_BODY_W / 2.0
     parts.append(_silk("ESP32-C6 DevKitM-1", esp32_body_cx, esp32_body_cy,
-                       "esp32-body", size=1.0))
+                       "esp32-body", size=1.0, layer="F.Fab"))
     # ESP32 antenna ("ant") and USB-C ("USB") short-edge hints. LIB
     # (body_w/2, 2.5) and (body_w/2, body_l - 6.0). After rotation 90.
+    # "ant" label sits at body edge (no SMD), can stay on F.SilkS.
+    # "USB" label sits over C4 (radial cap pad) — move to F.Fab.
     esp32_ant_cx = ESP32_ANCHOR_X + 2.5
     esp32_ant_cy = ESP32_ANCHOR_Y - ESP32_BODY_W / 2.0
     parts.append(_silk("ant", esp32_ant_cx, esp32_ant_cy,
@@ -5176,7 +5283,7 @@ def gen_silk_labels() -> str:
     esp32_usb_cx = ESP32_ANCHOR_X + (ESP32_BODY_L - 6.0)
     esp32_usb_cy = ESP32_ANCHOR_Y - ESP32_BODY_W / 2.0
     parts.append(_silk("USB", esp32_usb_cx, esp32_usb_cy,
-                       "esp32-usb", size=1.0))
+                       "esp32-usb", size=1.0, layer="F.Fab"))
     # MIKROE-2462 body centre (rotation 180 -> LIB (lx, ly) → PCB
     # (anchor_x - lx, anchor_y - ly)).
     mikroe_body_cx = MIKROE2462_ANCHOR_X - MIKROE2462_BODY_W / 2.0
@@ -14107,15 +14214,37 @@ def gen_mcu_sch() -> str:
     C17_BOT_Y = C17_Y + 3.81
     C17_GND_Y = 87.63
 
-    # ===== R5 / R6: I²C bus pull-ups, 10 kΩ 1% 0402 =====
-    # Sensirion SEN66 datasheet §3.1 specifies 10 kΩ pull-ups for the
-    # shared I²C bus (SEN66 + NT3H1101 + Qwiic expansion). Standard
-    # mode (100 kHz) compatible; trace length <50 mm fits well within
-    # rise-time budget with 10 kΩ pull-ups.
+    # ===== R5 / R6: I²C bus pull-ups, 4.7 kΩ 1% 0603 =====
+    # v0.22 — value dropped from 10 kΩ to 4.7 kΩ. The Sensirion SEN66
+    # datasheet §3.1 *recommends* 10 kΩ but does not mandate it (lower
+    # values are explicitly allowed). The realized I²C bus length on the
+    # v0.21 PCB is ~60-100 mm (not the "<40 mm" originally claimed),
+    # with ~100 pF total bus capacitance. At 10 kΩ the rise time τ =
+    # RC = 1 µs / t_r(10-90%) ≈ 2.2 µs exceeds the I²C standard-mode
+    # spec (t_r ≤ 1 µs at 100 kHz). 4.7 kΩ drops τ to ~470 ns / t_r ≈
+    # 1.0 µs, comfortably within spec.
     R5_X = 121.92
     R6_X = 124.46
     R5_Y = 80.01                    # body center; pin1 = 76.20, pin2 = 83.82
     R6_Y = 80.01
+
+    # ===== R7: GPIO 8 (WS2812_DIN) boot-strap pull-up, 10 kΩ 0603 =====
+    # v0.22 — new in this revision (Task #18 M2). ESP32-C6 GPIO 8 is a
+    # strap pin that must be HIGH at boot for SPI flash boot mode. The
+    # DevKitM-1's onboard "pull-up" relies on VCC_5V powering the onboard
+    # WS2812B, but in OAS we feed +3V3 directly into J5.1 and leave
+    # VCC_5V floating — so that onboard pull-up doesn't exist. R7
+    # replaces it with an explicit 10 kΩ from GPIO 8 (J5 pin 9 = the
+    # WS2812_DIN net) to +3V3. Placed vertically in the gap between J5
+    # body (east edge ~149.86) and J6 body (west edge ~154.94) at X=152.4.
+    R7_X = 152.4
+    R7_Y = 87.63                    # vertical resistor; pin1 top, pin2 bottom
+    R7_TOP_Y = R7_Y - 3.81          # 83.82 — pin 1 (top, +3V3 side)
+    R7_BOT_Y = R7_Y + 3.81          # 91.44 — pin 2 (bottom, WS2812 side)
+    R7_3V3_BUS_X = R7_X             # +3V3 bus extension reaches R7's X column
+    # Vertical drop from R7.pin2 (91.44) south to WS2812 wire (Y=113.03)
+    # at X=R7_X. Clear of existing horizontal wires (RST/LD2410/NFC/etc.
+    # all stop at HLABEL_LEFT_X=119.38 west of R7).
 
     # ===== +3V3 bus =====
     # Horizontal at Y=76.20 from R5 east through C9, C17, then on to an
@@ -14189,6 +14318,22 @@ def gen_mcu_sch() -> str:
     # ---- R6 SCL-pull-up wire ----
     parts.append(_sch_wire(R6_X, R6_Y + 3.81, R6_X, J5_SCL_Y, "r6-pullup-to-scl"))
     parts.append(_sch_junction(R6_X, J5_SCL_Y, "r6-scl-tap"))
+
+    # ---- R7 GPIO-8 boot-strap pull-up wires (v0.22) ----
+    # Top side: R7.pin1 (Y=83.82) → vertical north to +3V3 bus extension
+    # at Y=76.20 at X=R7_X.
+    parts.append(_sch_wire(R7_X, R7_TOP_Y, R7_X, BUS_3V3_Y, "r7-pullup-to-3v3"))
+    # +3V3 bus extension east from existing BUS_3V3_X_RIGHT (140.97) to R7_X.
+    parts.append(_sch_wire(BUS_3V3_X_RIGHT, BUS_3V3_Y, R7_X, BUS_3V3_Y, "3v3-bus-ext-r7"))
+    parts.append(_sch_junction(BUS_3V3_X_RIGHT, BUS_3V3_Y, "3v3-bus-tap-r7-corner"))
+    # Bottom side: R7.pin2 (Y=91.44) → vertical south to WS2812 wire at
+    # Y=113.03 (J5_WS_Y), tapping the existing east-running WS2812 wire.
+    parts.append(_sch_wire(R7_X, R7_BOT_Y, R7_X, J5_WS_Y, "r7-pullup-to-ws"))
+    # The WS2812 wire currently runs from (J5_PIN_X=139.70, J5_WS_Y) west
+    # to (HLABEL_LEFT_X=119.38, J5_WS_Y). Extend it EAST from J5_PIN_X
+    # to R7_X so R7's pin 2 drop hits the WS2812 net.
+    parts.append(_sch_wire(J5_PIN_X, J5_WS_Y, R7_X, J5_WS_Y, "ws2812-wire-ext-r7"))
+    parts.append(_sch_junction(R7_X, J5_WS_Y, "r7-ws-tap"))
 
     # ---- C9.pin2 / C17.pin2 → local GND symbols ----
     parts.append(_sch_wire(C9_X,  C9_BOT_Y,  C9_X,  C9_GND_Y,  "c9-to-gnd"))
@@ -14393,15 +14538,23 @@ def gen_mcu_sch() -> str:
     ))
 
     # ===== Resistors (R5 SDA pull-up, R6 SCL pull-up) =====
+    # v0.22 — R5/R6 value 10k → 4.7k. See R5/R6 comment block above.
     parts.append(_sch_resistor(
         x=R5_X, y=R5_Y, angle=0,
-        reference="R5", value="10k 1%",
+        reference="R5", value="4.7k 1%",
         uuid_tag="r5", sheet_key="mcu",
     ))
     parts.append(_sch_resistor(
         x=R6_X, y=R6_Y, angle=0,
-        reference="R6", value="10k 1%",
+        reference="R6", value="4.7k 1%",
         uuid_tag="r6", sheet_key="mcu",
+    ))
+    # ===== R7 — GPIO 8 boot-strap pull-up, 10 kΩ to +3V3 =====
+    # v0.22 new resistor. See R7 comment block above.
+    parts.append(_sch_resistor(
+        x=R7_X, y=R7_Y, angle=0,
+        reference="R7", value="10k 1%",
+        uuid_tag="r7", sheet_key="mcu",
     ))
 
     # ===== Power flags =====
