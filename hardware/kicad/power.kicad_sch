@@ -3665,7 +3665,7 @@
 			(justify left)
 		)
 	)
-	(property "Footprint" ""
+	(property "Footprint" "Package_TO_SOT_SMD:SOT-23"
 		(at 82.55 78.74 0)
 		(effects
 			(font
@@ -3948,7 +3948,7 @@
 			(justify left)
 		)
 	)
-	(property "Footprint" ""
+	(property "Footprint" "Capacitor_THT:CP_Radial_D8.0mm_P3.50mm"
 		(at 111.76 66.04 0)
 		(effects
 			(font
@@ -5091,7 +5091,7 @@
 			(justify left)
 		)
 	)
-	(property "Footprint" ""
+	(property "Footprint" "Capacitor_THT:CP_Radial_D8.0mm_P3.50mm"
 		(at 129.54 66.04 0)
 		(effects
 			(font
@@ -5231,7 +5231,7 @@
 			(justify left)
 		)
 	)
-	(property "Footprint" ""
+	(property "Footprint" "Capacitor_THT:CP_Radial_D6.3mm_P2.50mm"
 		(at 208.28 60.96 0)
 		(effects
 			(font

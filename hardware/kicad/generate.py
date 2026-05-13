@@ -3516,7 +3516,7 @@ def gen_capacitor_0402_pcb_footprint(
         \t\t\t(uuid "{U('fp-prop-val:' + uuid_tag)}")
         \t\t\t(effects (font (size 1.0 1.0) (thickness 0.15)))
         \t\t)
-        \t\t(property "Footprint" "C_0402_1005Metric"
+        \t\t(property "Footprint" "Capacitor_SMD:C_0402_1005Metric"
         \t\t\t(at 0 0 0)
         \t\t\t(layer "F.Fab")
         \t\t\t(hide yes)
@@ -3602,6 +3602,7 @@ def _emit_two_pad_smd_footprint(
     pad_type: str = "smd",
     pad_shape: str = "roundrect",
     pad_roundrect_rratio: float = 0.25,
+    footprint_lib: str | None = None,
 ) -> str:
     """Emit a generic two-pad SMD footprint (Cap/Res/Diode/Inductor SMD).
 
@@ -3618,6 +3619,12 @@ def _emit_two_pad_smd_footprint(
     extra = ""
     if pad_shape == "roundrect":
         extra = f"\n\t\t\t(roundrect_rratio {pad_roundrect_rratio})"
+    # v0.24: lib-qualify the `(property "Footprint" ...)` value so the
+    # schematic back-fill emits a valid `Lib:Name` reference (silences
+    # ERC `footprint_link_issues` warnings introduced in v0.23 Mn3).
+    fp_property_value = (
+        f"{footprint_lib}:{footprint_name}" if footprint_lib else footprint_name
+    )
     return textwrap.dedent(f"""\
         \t(footprint "{footprint_name}"
         \t\t(layer "F.Cu")
@@ -3639,7 +3646,7 @@ def _emit_two_pad_smd_footprint(
         \t\t\t(uuid "{U('fp-prop-val:' + uuid_tag)}")
         \t\t\t(effects (font (size 1.0 1.0) (thickness 0.15)))
         \t\t)
-        \t\t(property "Footprint" "{footprint_name}"
+        \t\t(property "Footprint" "{fp_property_value}"
         \t\t\t(at 0 0 0)
         \t\t\t(layer "F.Fab")
         \t\t\t(hide yes)
@@ -3699,6 +3706,7 @@ def gen_resistor_0603_pcb_footprint(*, x: float, y: float, rotation: int,
         x=x, y=y, rotation=rotation,
         reference=reference, value=value, uuid_tag=uuid_tag,
         descr=descr, footprint_name="R_0603_1608Metric",
+        footprint_lib="Resistor_SMD",
         pad_pitch=1.7, pad_w=0.95, pad_h=0.95,
         body_w=1.6, body_h=0.8,
     )
@@ -3712,6 +3720,7 @@ def gen_capacitor_0603_pcb_footprint(*, x: float, y: float, rotation: int,
         x=x, y=y, rotation=rotation,
         reference=reference, value=value, uuid_tag=uuid_tag,
         descr=descr, footprint_name="C_0603_1608Metric",
+        footprint_lib="Capacitor_SMD",
         pad_pitch=1.7, pad_w=0.95, pad_h=0.95,
         body_w=1.6, body_h=0.8,
     )
@@ -3726,6 +3735,7 @@ def gen_capacitor_0805_pcb_footprint(*, x: float, y: float, rotation: int,
         x=x, y=y, rotation=rotation,
         reference=reference, value=value, uuid_tag=uuid_tag,
         descr=descr, footprint_name="C_0805_2012Metric",
+        footprint_lib="Capacitor_SMD",
         pad_pitch=1.8, pad_w=1.15, pad_h=1.4,
         body_w=2.0, body_h=1.25,
     )
@@ -3742,6 +3752,7 @@ def gen_diode_sma_pcb_footprint(*, x: float, y: float, rotation: int,
         x=x, y=y, rotation=rotation,
         reference=reference, value=value, uuid_tag=uuid_tag,
         descr=descr, footprint_name="D_SMA",
+        footprint_lib="Diode_SMD",
         pad_pitch=4.5, pad_w=2.4, pad_h=1.7,
         body_w=4.3, body_h=2.7,
     )
@@ -3756,6 +3767,7 @@ def gen_diode_smb_pcb_footprint(*, x: float, y: float, rotation: int,
         x=x, y=y, rotation=rotation,
         reference=reference, value=value, uuid_tag=uuid_tag,
         descr=descr, footprint_name="D_SMB",
+        footprint_lib="Diode_SMD",
         pad_pitch=5.1, pad_w=2.7, pad_h=2.2,
         body_w=4.5, body_h=3.6,
     )
@@ -3770,6 +3782,7 @@ def gen_diode_sod323_pcb_footprint(*, x: float, y: float, rotation: int,
         x=x, y=y, rotation=rotation,
         reference=reference, value=value, uuid_tag=uuid_tag,
         descr=descr, footprint_name="D_SOD-323",
+        footprint_lib="Diode_SMD",
         pad_pitch=2.4, pad_w=0.9, pad_h=0.9,
         body_w=1.7, body_h=1.25,
     )
@@ -3781,11 +3794,18 @@ def gen_inductor_smd_5x5_pcb_footprint(*, x: float, y: float, rotation: int,
     """Power inductor footprint sized for typical 33 µH / 2.2 µH shielded
     SMD parts (~5×5 mm, NR5040 / Wurth WE-PD-S size). Two large pads on
     short edges; pitch 3.4 mm. The Device:L symbol's pins 1 and 2 map
-    to footprint pads 1 and 2."""
+    to footprint pads 1 and 2.
+
+    v0.24: footprint_name + Footprint property both use the canonical
+    stock-library entry `Inductor_SMD:L_APV_ANR5040` (Taiwan APV
+    ANR5040, the prototype NR5040-class part referenced in KiCad's
+    library). Real production parts (Würth WE-PD-S, Bourns SRP5040)
+    share the same body / pad layout; substitute at BOM time."""
     return _emit_two_pad_smd_footprint(
         x=x, y=y, rotation=rotation,
         reference=reference, value=value, uuid_tag=uuid_tag,
-        descr=descr, footprint_name="L_NR5040",
+        descr=descr, footprint_name="L_APV_ANR5040",
+        footprint_lib="Inductor_SMD",
         pad_pitch=3.5, pad_w=1.8, pad_h=4.4,
         body_w=5.0, body_h=5.0,
     )
@@ -3795,11 +3815,18 @@ def gen_polyfuse_smd_pcb_footprint(*, x: float, y: float, rotation: int,
                                     reference: str, value: str, uuid_tag: str,
                                     descr: str = "Polyfuse SMD 2920") -> str:
     """SMD PTC polyfuse — 2920 size for MF-RHT075/60-2-class parts
-    (60 V / 750 mA)."""
+    (60 V / 750 mA).
+
+    v0.24: footprint header + property both use the canonical stock
+    KiCad library entry `Fuse:Fuse_2920_7451Metric`. The geometry
+    (pad_pitch / pad_w / pad_h / body_w / body_h) is unchanged from
+    v0.23 — only the printed name is corrected so ERC can resolve the
+    Footprint property against a real library entry."""
     return _emit_two_pad_smd_footprint(
         x=x, y=y, rotation=rotation,
         reference=reference, value=value, uuid_tag=uuid_tag,
-        descr=descr, footprint_name="R_2920_7351Metric",
+        descr=descr, footprint_name="Fuse_2920_7451Metric",
+        footprint_lib="Fuse",
         pad_pitch=5.7, pad_w=2.0, pad_h=5.4,
         body_w=7.3, body_h=5.0,
     )
@@ -3812,14 +3839,24 @@ def gen_capacitor_polarized_radial_pcb_footprint(*, x: float, y: float, rotation
                                                    descr: str = "Electrolytic radial through-hole") -> str:
     """Polarized electrolytic capacitor — radial through-hole. Pad 1
     (anode, +) on -X side, pad 2 (cathode, -) on +X side. Drill 0.8 mm,
-    pad diameter 1.6 mm. Body diameter sized per `diameter_mm`."""
+    pad diameter 1.6 mm. Body diameter sized per `diameter_mm`.
+
+    v0.24: footprint header + Footprint property use canonical KiCad
+    stock-library spelling `Capacitor_THT:CP_Radial_D<diameter>mm_P<pitch>mm`
+    with full-decimal precision in the dimensions (e.g. `D8.0mm_P3.50mm`,
+    `D6.3mm_P2.50mm`) so ERC can resolve them. Earlier versions used
+    `fmt(...)` which stripped trailing zeros (`D8mm_P3.5mm`) and didn't
+    match the stock library entries."""
     pad_pitch = pitch_mm
     pad_x = pad_pitch / 2.0
     body_r = diameter_mm / 2.0
     crty_r = body_r + 0.25
     rot_clause = f" {rotation}" if rotation != 0 else ""
+    # Stock KiCad spelling uses single-decimal diameter (e.g. D8.0mm,
+    # D6.3mm) and two-decimal pitch (e.g. P3.50mm, P2.50mm).
+    fp_basename = f"CP_Radial_D{diameter_mm:.1f}mm_P{pitch_mm:.2f}mm"
     return textwrap.dedent(f"""\
-        \t(footprint "CP_Radial_D{fmt(diameter_mm)}mm_P{fmt(pitch_mm)}mm"
+        \t(footprint "{fp_basename}"
         \t\t(layer "F.Cu")
         \t\t(uuid "{U('fp-inst:' + uuid_tag)}")
         \t\t(at {fx(x)} {fy(y)} {rotation})
@@ -3839,7 +3876,7 @@ def gen_capacitor_polarized_radial_pcb_footprint(*, x: float, y: float, rotation
         \t\t\t(uuid "{U('fp-prop-val:' + uuid_tag)}")
         \t\t\t(effects (font (size 1.0 1.0) (thickness 0.15)))
         \t\t)
-        \t\t(property "Footprint" "CP_Radial_D{fmt(diameter_mm)}mm_P{fmt(pitch_mm)}mm"
+        \t\t(property "Footprint" "Capacitor_THT:{fp_basename}"
         \t\t\t(at 0 0 0)
         \t\t\t(layer "F.Fab")
         \t\t\t(hide yes)
@@ -3952,7 +3989,7 @@ def gen_sot23_3pin_pcb_footprint(*, x: float, y: float, rotation: int,
         \t\t\t(uuid "{U('fp-prop-val:' + uuid_tag)}")
         \t\t\t(effects (font (size 1.0 1.0) (thickness 0.15)))
         \t\t)
-        \t\t(property "Footprint" "SOT-23"
+        \t\t(property "Footprint" "Package_TO_SOT_SMD:SOT-23"
         \t\t\t(at 0 0 0)
         \t\t\t(layer "F.Fab")
         \t\t\t(hide yes)
@@ -16752,7 +16789,8 @@ def sync_pcb_nets_from_schematic(kicad_cli: str | None = None) -> int:
 
 
 # -----------------------------------------------------------------------------
-# Schematic Footprint property back-fill (v0.23 — closes review Mn3)
+# Schematic Footprint property back-fill (v0.23 — closes review Mn3;
+# v0.24 — lib-qualify the back-filled values to silence ERC footprint_link_issues)
 # -----------------------------------------------------------------------------
 # Every real component symbol in the sub-sheets is emitted with an EMPTY
 # `(property "Footprint" "")` field by the `_sch_*` helpers (they don't know
@@ -16765,13 +16803,74 @@ def sync_pcb_nets_from_schematic(kicad_cli: str | None = None) -> int:
 # and copying each footprint's library reference into the matching schematic
 # symbol's Footprint property.
 #
+# v0.23 BUG (caught in review iteration 2): the PCB-side `(property
+# "Footprint" "...")` string is written without a library prefix by the
+# `gen_*_pcb_footprint` helpers for inline (non-stock-library) footprints —
+# e.g. `gen_capacitor_0402_pcb_footprint` writes the bare `"C_0402_1005Metric"`
+# rather than `"Capacitor_SMD:C_0402_1005Metric"`. Naively copying that into
+# the schematic produced 15 `footprint_link_issues` ERC warnings (parsed as
+# library == "" which is not a registered footprint library).
+#
+# v0.24 fix: lib-qualify each bare footprint name via a hard-coded
+# bare → library lookup table. The table is sourced from the stock KiCad
+# library locations referenced by each `gen_*_pcb_footprint` helper (e.g.
+# `R_0603_1608Metric` lives in `Resistor_SMD`, `D_SMA` lives in `Diode_SMD`,
+# `SOT-23` lives in `Package_TO_SOT_SMD`, etc.). All entries are verified
+# to exist in stock KiCad 9/10 installs. Project-local footprints (under
+# `libraries/oas.pretty/`) and stock footprints emitted via
+# `_emit_stock_lib_footprint` already carry the `Lib:Name` prefix in the
+# PCB-side property, so they pass through unchanged.
+#
 # Note: power flags (#PWR*, #FLG*) intentionally retain the empty Footprint
 # field — they are graphical / power-bus markers, not real parts and do not
 # appear on the PCB.
+
+# Bare-footprint-name → KiCad stock-library nickname. Used by
+# `_build_pcb_ref_to_footprint` to lib-qualify any non-stock-library
+# `(property "Footprint" "<bare>")` it encounters in the PCB so the
+# schematic back-fill emits valid `<Lib>:<Name>` references. The library
+# nicknames must match those declared in `fp-lib-table` and the entries
+# must exist in the stock KiCad install.
+BARE_FOOTPRINT_TO_LIB: dict[str, str] = {
+    # 0402/0603/0805 chip caps + resistors — Capacitor_SMD / Resistor_SMD
+    "C_0402_1005Metric": "Capacitor_SMD",
+    "C_0603_1608Metric": "Capacitor_SMD",
+    "C_0805_2012Metric": "Capacitor_SMD",
+    "R_0603_1608Metric": "Resistor_SMD",
+    # 2920 polyfuse footprint — uses Resistor_SMD library naming
+    "R_2920_7351Metric": "Resistor_SMD",
+    # Diode SMD packages — Diode_SMD library
+    "D_SMA": "Diode_SMD",
+    "D_SMB": "Diode_SMD",
+    "D_SOD-323": "Diode_SMD",
+    # SMD inductor (NR5040-class shielded power inductor)
+    "L_NR5040": "Inductor_SMD",
+    # Radial-lead electrolytic capacitors (through-hole)
+    "CP_Radial_D6.3mm_P2.5mm": "Capacitor_THT",
+    "CP_Radial_D8mm_P3.5mm": "Capacitor_THT",
+    # SOT-23 small-signal transistors / diode packages
+    "SOT-23": "Package_TO_SOT_SMD",
+}
+
+
 def _build_pcb_ref_to_footprint() -> dict[str, str]:
     """Parse the freshly-written oas.kicad_pcb and return a mapping of
     `Reference` (e.g. "R5") → fully-qualified footprint string
-    (e.g. "Resistor_SMD:R_0603_1608Metric")."""
+    (e.g. "Resistor_SMD:R_0603_1608Metric").
+
+    Reads each top-level `(footprint ...)` block's inner
+    `(property "Footprint" "...")` clause (which is the canonical
+    source-of-truth — `_emit_stock_lib_footprint` writes a fully-qualified
+    `Lib:Name` string, and `_emit_two_pad_smd_footprint` / inline helpers
+    write a bare `Name` that we lib-qualify via `BARE_FOOTPRINT_TO_LIB`).
+    The fallback (no `(property "Footprint" ...)` at all) uses the
+    footprint block header name, also lib-qualified via the table.
+
+    Every value in the returned dict is GUARANTEED to contain `:` (a real
+    library prefix). If any bare name escaped the lookup table, this
+    function `assert`-fails so the missing entry is caught at generate time
+    rather than as a downstream ERC warning.
+    """
     import re
 
     text = (HERE / "oas.kicad_pcb").read_text(encoding="utf-8")
@@ -16791,19 +16890,36 @@ def _build_pcb_ref_to_footprint() -> dict[str, str]:
         m_name = re.match(r'\(footprint "([^"]+)"', block)
         if not m_name:
             continue
-        fp_name = m_name.group(1)
+        fp_name_header = m_name.group(1)
         # Inside this block, the FIRST `(property "Reference" "..."` line is
-        # the reference designator for the placed footprint. Subsequent
-        # `(property "Footprint" "..."` carries the canonical library path,
-        # which we prefer over the bare-name header (which may lack the
-        # `lib:` prefix for stock-library footprints inserted via Update PCB).
+        # the reference designator for the placed footprint. The
+        # `(property "Footprint" "..."` clause is the authoritative
+        # library-path string (may be bare for inline footprints, qualified
+        # for stock-library footprints).
         m_ref = re.search(r'\(property "Reference" "([^"]+)"', block)
         if not m_ref:
             continue
         ref = m_ref.group(1)
-        m_fp_prop = re.search(r'\(property "Footprint" "([^"]+)"', block)
-        canonical = m_fp_prop.group(1) if m_fp_prop else fp_name
+        m_fp_prop = re.search(r'\(property "Footprint" "([^"]*)"', block)
+        raw = m_fp_prop.group(1) if (m_fp_prop and m_fp_prop.group(1)) else fp_name_header
+        if ":" in raw:
+            canonical = raw
+        else:
+            # Bare name — lib-qualify via the lookup table.
+            lib = BARE_FOOTPRINT_TO_LIB.get(raw)
+            assert lib is not None, (
+                f"BARE_FOOTPRINT_TO_LIB missing entry for {raw!r} "
+                f"(used by footprint reference {ref!r}). Add the appropriate "
+                f"library nickname to BARE_FOOTPRINT_TO_LIB in generate.py."
+            )
+            canonical = f"{lib}:{raw}"
         mapping[ref] = canonical
+
+    # Sanity check: every mapped value must be lib-qualified. This catches
+    # any regression where a new bare-name generator is added without a
+    # matching BARE_FOOTPRINT_TO_LIB entry.
+    for ref, fp in mapping.items():
+        assert ":" in fp, f"Footprint mapping for {ref!r} is not lib-qualified: {fp!r}"
     return mapping
 
 

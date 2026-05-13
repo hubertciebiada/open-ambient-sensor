@@ -1540,7 +1540,7 @@
         				(justify left)
         			)
         		)
-        		(property "Footprint" ""
+        		(property "Footprint" "Connector_JST:JST_SH_SM04B-SRSS-TB_1x04-1MP_P1.00mm_Horizontal"
         			(at 95.25 82.55 0)
         			(effects
         				(font
@@ -1616,7 +1616,7 @@
         				(justify left)
         			)
         		)
-        		(property "Footprint" ""
+        		(property "Footprint" "Connector_PinHeader_2.54mm:PinHeader_1x06_P2.54mm_Vertical"
         			(at 95.25 132.08 0)
         			(effects
         				(font

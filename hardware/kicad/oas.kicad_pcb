@@ -2163,7 +2163,7 @@
 	(layer "F.Cu")
 	(descr "Through hole straight pin header, 1x06, 2.54mm pitch, single row")
 	(tags "Through hole pin header THT 1x06 2.54mm single row")
-	(attr through_hole)
+	(attr through_hole exclude_from_pos_files exclude_from_bom dnp)
 	(duplicate_pad_numbers_are_jumpers no)
 	(fp_line
 			(start -1.38 -1.38)
@@ -4066,7 +4066,7 @@
 		(uuid "1e0ad774-2e8c-51e7-8777-494d009b6022")
 		(effects (font (size 1.0 1.0) (thickness 0.15)))
 	)
-	(property "Footprint" "C_0402_1005Metric"
+	(property "Footprint" "Capacitor_SMD:C_0402_1005Metric"
 		(at 0 0 0)
 		(layer "F.Fab")
 		(hide yes)
@@ -4253,7 +4253,7 @@
 		(uuid "0e66d879-338d-5f09-be81-ab32efa7a33d")
 		(effects (font (size 1.0 1.0) (thickness 0.15)))
 	)
-	(property "Footprint" "C_0402_1005Metric"
+	(property "Footprint" "Capacitor_SMD:C_0402_1005Metric"
 		(at 0 0 0)
 		(layer "F.Fab")
 		(hide yes)
@@ -4440,7 +4440,7 @@
 		(uuid "7bb57d21-ab59-526d-8a65-f5698d537c63")
 		(effects (font (size 1.0 1.0) (thickness 0.15)))
 	)
-	(property "Footprint" "C_0402_1005Metric"
+	(property "Footprint" "Capacitor_SMD:C_0402_1005Metric"
 		(at 0 0 0)
 		(layer "F.Fab")
 		(hide yes)
@@ -4627,7 +4627,7 @@
 		(uuid "9c687841-280d-5d33-8dca-c1f962c570ff")
 		(effects (font (size 1.0 1.0) (thickness 0.15)))
 	)
-	(property "Footprint" "C_0402_1005Metric"
+	(property "Footprint" "Capacitor_SMD:C_0402_1005Metric"
 		(at 0 0 0)
 		(layer "F.Fab")
 		(hide yes)
@@ -4814,7 +4814,7 @@
 		(uuid "ddc1b665-e7a1-5574-878a-fda120e88b7e")
 		(effects (font (size 1.0 1.0) (thickness 0.15)))
 	)
-	(property "Footprint" "C_0402_1005Metric"
+	(property "Footprint" "Capacitor_SMD:C_0402_1005Metric"
 		(at 0 0 0)
 		(layer "F.Fab")
 		(hide yes)
@@ -5001,7 +5001,7 @@
 		(uuid "1c90460f-40dd-5364-af98-846d07f34e5e")
 		(effects (font (size 1.0 1.0) (thickness 0.15)))
 	)
-	(property "Footprint" "C_0402_1005Metric"
+	(property "Footprint" "Capacitor_SMD:C_0402_1005Metric"
 		(at 0 0 0)
 		(layer "F.Fab")
 		(hide yes)
@@ -5188,7 +5188,7 @@
 		(uuid "90f3ffb4-5f46-5610-aec0-64744eb743e5")
 		(effects (font (size 1.0 1.0) (thickness 0.15)))
 	)
-	(property "Footprint" "C_0402_1005Metric"
+	(property "Footprint" "Capacitor_SMD:C_0402_1005Metric"
 		(at 0 0 0)
 		(layer "F.Fab")
 		(hide yes)
@@ -5375,7 +5375,7 @@
 		(uuid "b1362d95-475d-586d-9da3-de507822c839")
 		(effects (font (size 1.0 1.0) (thickness 0.15)))
 	)
-	(property "Footprint" "C_0402_1005Metric"
+	(property "Footprint" "Capacitor_SMD:C_0402_1005Metric"
 		(at 0 0 0)
 		(layer "F.Fab")
 		(hide yes)
@@ -5562,7 +5562,7 @@
 		(uuid "ca017832-9a62-575c-921c-fa23ec05de46")
 		(effects (font (size 1.0 1.0) (thickness 0.15)))
 	)
-	(property "Footprint" "C_0402_1005Metric"
+	(property "Footprint" "Capacitor_SMD:C_0402_1005Metric"
 		(at 0 0 0)
 		(layer "F.Fab")
 		(hide yes)
@@ -5749,7 +5749,7 @@
 		(uuid "48d6d14a-7784-58da-93a2-bbc296337085")
 		(effects (font (size 1.0 1.0) (thickness 0.15)))
 	)
-	(property "Footprint" "C_0402_1005Metric"
+	(property "Footprint" "Capacitor_SMD:C_0402_1005Metric"
 		(at 0 0 0)
 		(layer "F.Fab")
 		(hide yes)
@@ -5936,7 +5936,7 @@
 		(uuid "263f2418-cb27-5df4-9720-0f03c9c34e10")
 		(effects (font (size 1.0 1.0) (thickness 0.15)))
 	)
-	(property "Footprint" "C_0402_1005Metric"
+	(property "Footprint" "Capacitor_SMD:C_0402_1005Metric"
 		(at 0 0 0)
 		(layer "F.Fab")
 		(hide yes)
@@ -6008,7 +6008,7 @@
         			(uuid "7b54995e-7552-5358-80e5-b77cd1ee7ee8")
         			(effects (font (size 1.0 1.0) (thickness 0.15)))
         		)
-        		(property "Footprint" "D_SMB"
+        		(property "Footprint" "Diode_SMD:D_SMB"
         			(at 0 0 0)
         			(layer "F.Fab")
         			(hide yes)
@@ -6082,7 +6082,7 @@
 		(uuid "81109b9d-e97c-5a9f-a412-dfeca7117eaf")
 		(effects (font (size 1.0 1.0) (thickness 0.15)))
 	)
-	(property "Footprint" "SOT-23"
+	(property "Footprint" "Package_TO_SOT_SMD:SOT-23"
 		(at 0 0 0)
 		(layer "F.Fab")
 		(hide yes)
@@ -6164,7 +6164,7 @@
         			(uuid "e29e7ee7-140f-5a14-bcc8-9bb9ec7103b8")
         			(effects (font (size 1.0 1.0) (thickness 0.15)))
         		)
-        		(property "Footprint" "D_SOD-323"
+        		(property "Footprint" "Diode_SMD:D_SOD-323"
         			(at 0 0 0)
         			(layer "F.Fab")
         			(hide yes)
@@ -6218,7 +6218,7 @@
 			(net 19 "Net-(D3-A)")
         		)
         	)
-        	(footprint "R_2920_7351Metric"
+        	(footprint "Fuse_2920_7451Metric"
         		(layer "F.Cu")
         		(uuid "c4743922-4c9e-5f76-be7b-33a0edb7b266")
         		(at 202.5 114 0)
@@ -6238,7 +6238,7 @@
         			(uuid "cc7f9d4e-8579-5557-9b84-6f2ccb0eee36")
         			(effects (font (size 1.0 1.0) (thickness 0.15)))
         		)
-        		(property "Footprint" "R_2920_7351Metric"
+        		(property "Footprint" "Fuse:Fuse_2920_7451Metric"
         			(at 0 0 0)
         			(layer "F.Fab")
         			(hide yes)
@@ -6312,7 +6312,7 @@
         			(uuid "2ebb3701-99f2-5b59-8e20-1d122527f8af")
         			(effects (font (size 1.0 1.0) (thickness 0.15)))
         		)
-        		(property "Footprint" "R_0603_1608Metric"
+        		(property "Footprint" "Resistor_SMD:R_0603_1608Metric"
         			(at 0 0 0)
         			(layer "F.Fab")
         			(hide yes)
@@ -6386,7 +6386,7 @@
         			(uuid "e17c76a6-1c84-5603-b037-5da5755caa58")
         			(effects (font (size 1.0 1.0) (thickness 0.15)))
         		)
-        		(property "Footprint" "R_0603_1608Metric"
+        		(property "Footprint" "Resistor_SMD:R_0603_1608Metric"
         			(at 0 0 0)
         			(layer "F.Fab")
         			(hide yes)
@@ -6440,7 +6440,7 @@
 			(net 19 "Net-(D3-A)")
         		)
         	)
-(footprint "CP_Radial_D8mm_P3.5mm"
+(footprint "CP_Radial_D8.0mm_P3.50mm"
 	(layer "F.Cu")
 	(uuid "1a92e331-a768-5cf1-a998-b027df7031ba")
 	(at 128.5 72.5 0)
@@ -6460,7 +6460,7 @@
 		(uuid "9e87c33f-c8cc-5f65-a0c5-d226297c80cf")
 		(effects (font (size 1.0 1.0) (thickness 0.15)))
 	)
-	(property "Footprint" "CP_Radial_D8mm_P3.5mm"
+	(property "Footprint" "Capacitor_THT:CP_Radial_D8.0mm_P3.50mm"
 		(at 0 0 0)
 		(layer "F.Fab")
 		(hide yes)
@@ -6514,7 +6514,7 @@
 		(net 16 "GND")
 	)
 )
-(footprint "CP_Radial_D8mm_P3.5mm"
+(footprint "CP_Radial_D8.0mm_P3.50mm"
 	(layer "F.Cu")
 	(uuid "a9bcddd0-4ffb-543b-a9c7-194d49a8a894")
 	(at 128.5 64 0)
@@ -6534,7 +6534,7 @@
 		(uuid "eda612ce-8218-56c0-8a3c-78e14567b416")
 		(effects (font (size 1.0 1.0) (thickness 0.15)))
 	)
-	(property "Footprint" "CP_Radial_D8mm_P3.5mm"
+	(property "Footprint" "Capacitor_THT:CP_Radial_D8.0mm_P3.50mm"
 		(at 0 0 0)
 		(layer "F.Fab")
 		(hide yes)
@@ -6714,7 +6714,7 @@
         			(uuid "79913afc-42e1-5dc1-85ed-0c5347539ee9")
         			(effects (font (size 1.0 1.0) (thickness 0.15)))
         		)
-        		(property "Footprint" "D_SMA"
+        		(property "Footprint" "Diode_SMD:D_SMA"
         			(at 0 0 0)
         			(layer "F.Fab")
         			(hide yes)
@@ -6768,7 +6768,7 @@
 			(net 16 "GND")
         		)
         	)
-        	(footprint "L_NR5040"
+        	(footprint "L_APV_ANR5040"
         		(layer "F.Cu")
         		(uuid "83031c79-6393-573e-b4d7-9e4d320d8060")
         		(at 157.5 68 0)
@@ -6788,7 +6788,7 @@
         			(uuid "2f1069e2-ec9c-5a26-845f-073cbf1bffc7")
         			(effects (font (size 1.0 1.0) (thickness 0.15)))
         		)
-        		(property "Footprint" "L_NR5040"
+        		(property "Footprint" "Inductor_SMD:L_APV_ANR5040"
         			(at 0 0 0)
         			(layer "F.Fab")
         			(hide yes)
@@ -6842,7 +6842,7 @@
 			(net 18 "Net-(D2-K)")
         		)
         	)
-(footprint "CP_Radial_D6.3mm_P2.5mm"
+(footprint "CP_Radial_D6.3mm_P2.50mm"
 	(layer "F.Cu")
 	(uuid "7a1d7c78-1da7-5d3a-889c-065ce85cfaa9")
 	(at 164.5 68 0)
@@ -6862,7 +6862,7 @@
 		(uuid "519f96cc-bac5-5d64-bb12-1e263096132a")
 		(effects (font (size 1.0 1.0) (thickness 0.15)))
 	)
-	(property "Footprint" "CP_Radial_D6.3mm_P2.5mm"
+	(property "Footprint" "Capacitor_THT:CP_Radial_D6.3mm_P2.50mm"
 		(at 0 0 0)
 		(layer "F.Fab")
 		(hide yes)
@@ -7038,7 +7038,7 @@
 	(net 33 "Net-(U2-FB)")
 )
 	)
-        	(footprint "L_NR5040"
+        	(footprint "L_APV_ANR5040"
         		(layer "F.Cu")
         		(uuid "a41f647b-914e-5d96-943d-9b5901425a20")
         		(at 152.5 61 0)
@@ -7058,7 +7058,7 @@
         			(uuid "855224af-5b29-51d6-85c9-85c2881ec724")
         			(effects (font (size 1.0 1.0) (thickness 0.15)))
         		)
-        		(property "Footprint" "L_NR5040"
+        		(property "Footprint" "Inductor_SMD:L_APV_ANR5040"
         			(at 0 0 0)
         			(layer "F.Fab")
         			(hide yes)
@@ -7132,7 +7132,7 @@
         			(uuid "21f763d2-d110-584b-b1c6-6e24b89af0c4")
         			(effects (font (size 1.0 1.0) (thickness 0.15)))
         		)
-        		(property "Footprint" "R_0603_1608Metric"
+        		(property "Footprint" "Resistor_SMD:R_0603_1608Metric"
         			(at 0 0 0)
         			(layer "F.Fab")
         			(hide yes)
@@ -7206,7 +7206,7 @@
         			(uuid "f9a8063c-95b5-5d6b-b555-b468bf77eee1")
         			(effects (font (size 1.0 1.0) (thickness 0.15)))
         		)
-        		(property "Footprint" "R_0603_1608Metric"
+        		(property "Footprint" "Resistor_SMD:R_0603_1608Metric"
         			(at 0 0 0)
         			(layer "F.Fab")
         			(hide yes)
@@ -7280,7 +7280,7 @@
         			(uuid "c99db3b5-4d18-5a43-82a1-bbcb7a798008")
         			(effects (font (size 1.0 1.0) (thickness 0.15)))
         		)
-        		(property "Footprint" "C_0603_1608Metric"
+        		(property "Footprint" "Capacitor_SMD:C_0603_1608Metric"
         			(at 0 0 0)
         			(layer "F.Fab")
         			(hide yes)
@@ -7354,7 +7354,7 @@
         			(uuid "7f94ced9-04ba-5a37-a2ec-a0f89c1a2866")
         			(effects (font (size 1.0 1.0) (thickness 0.15)))
         		)
-        		(property "Footprint" "C_0603_1608Metric"
+        		(property "Footprint" "Capacitor_SMD:C_0603_1608Metric"
         			(at 0 0 0)
         			(layer "F.Fab")
         			(hide yes)
@@ -7428,7 +7428,7 @@
         			(uuid "130a3efe-7374-5f54-9adf-7f593219d5ce")
         			(effects (font (size 1.0 1.0) (thickness 0.15)))
         		)
-        		(property "Footprint" "C_0805_2012Metric"
+        		(property "Footprint" "Capacitor_SMD:C_0805_2012Metric"
         			(at 0 0 0)
         			(layer "F.Fab")
         			(hide yes)
@@ -7502,7 +7502,7 @@
         			(uuid "1b026675-a209-57f3-b96d-88f06fae72dc")
         			(effects (font (size 1.0 1.0) (thickness 0.15)))
         		)
-        		(property "Footprint" "C_0603_1608Metric"
+        		(property "Footprint" "Capacitor_SMD:C_0603_1608Metric"
         			(at 0 0 0)
         			(layer "F.Fab")
         			(hide yes)
@@ -7576,7 +7576,7 @@
         			(uuid "e3b82fd1-8055-5bb3-a3e1-fdb434688382")
         			(effects (font (size 1.0 1.0) (thickness 0.15)))
         		)
-        		(property "Footprint" "R_0603_1608Metric"
+        		(property "Footprint" "Resistor_SMD:R_0603_1608Metric"
         			(at 0 0 0)
         			(layer "F.Fab")
         			(hide yes)
@@ -7650,7 +7650,7 @@
         			(uuid "fa40f7ce-8c7b-590f-bac7-7ea06171ad18")
         			(effects (font (size 1.0 1.0) (thickness 0.15)))
         		)
-        		(property "Footprint" "R_0603_1608Metric"
+        		(property "Footprint" "Resistor_SMD:R_0603_1608Metric"
         			(at 0 0 0)
         			(layer "F.Fab")
         			(hide yes)
@@ -7724,7 +7724,7 @@
         			(uuid "73df3a2a-bd07-55f8-9433-f60d7016b6ea")
         			(effects (font (size 1.0 1.0) (thickness 0.15)))
         		)
-        		(property "Footprint" "R_0603_1608Metric"
+        		(property "Footprint" "Resistor_SMD:R_0603_1608Metric"
         			(at 0 0 0)
         			(layer "F.Fab")
         			(hide yes)
@@ -7798,7 +7798,7 @@
         			(uuid "736765e8-0292-5daa-98b3-b824d167139f")
         			(effects (font (size 1.0 1.0) (thickness 0.15)))
         		)
-        		(property "Footprint" "C_0805_2012Metric"
+        		(property "Footprint" "Capacitor_SMD:C_0805_2012Metric"
         			(at 0 0 0)
         			(layer "F.Fab")
         			(hide yes)
@@ -7872,7 +7872,7 @@
         			(uuid "fea26e83-aa39-5c02-ae29-e78935ef16b1")
         			(effects (font (size 1.0 1.0) (thickness 0.15)))
         		)
-        		(property "Footprint" "C_0603_1608Metric"
+        		(property "Footprint" "Capacitor_SMD:C_0603_1608Metric"
         			(at 0 0 0)
         			(layer "F.Fab")
         			(hide yes)
@@ -7946,7 +7946,7 @@
         			(uuid "0fa4f87d-89ea-56cb-a862-3d9a753dabfe")
         			(effects (font (size 1.0 1.0) (thickness 0.15)))
         		)
-        		(property "Footprint" "C_0805_2012Metric"
+        		(property "Footprint" "Capacitor_SMD:C_0805_2012Metric"
         			(at 0 0 0)
         			(layer "F.Fab")
         			(hide yes)
@@ -8020,7 +8020,7 @@
         			(uuid "20052454-e371-5d3a-88a2-f798795ebd82")
         			(effects (font (size 1.0 1.0) (thickness 0.15)))
         		)
-        		(property "Footprint" "C_0603_1608Metric"
+        		(property "Footprint" "Capacitor_SMD:C_0603_1608Metric"
         			(at 0 0 0)
         			(layer "F.Fab")
         			(hide yes)
@@ -8094,7 +8094,7 @@
         			(uuid "e7625bb4-b806-5ac0-9e2f-1ba427983939")
         			(effects (font (size 1.0 1.0) (thickness 0.15)))
         		)
-        		(property "Footprint" "C_0603_1608Metric"
+        		(property "Footprint" "Capacitor_SMD:C_0603_1608Metric"
         			(at 0 0 0)
         			(layer "F.Fab")
         			(hide yes)
@@ -8168,7 +8168,7 @@
         			(uuid "f061f505-12f1-540a-aac0-47d1eba51075")
         			(effects (font (size 1.0 1.0) (thickness 0.15)))
         		)
-        		(property "Footprint" "C_0603_1608Metric"
+        		(property "Footprint" "Capacitor_SMD:C_0603_1608Metric"
         			(at 0 0 0)
         			(layer "F.Fab")
         			(hide yes)
@@ -8242,7 +8242,7 @@
         			(uuid "43bdc8a0-2902-5e67-b75e-3e796aa98137")
         			(effects (font (size 1.0 1.0) (thickness 0.15)))
         		)
-        		(property "Footprint" "C_0805_2012Metric"
+        		(property "Footprint" "Capacitor_SMD:C_0805_2012Metric"
         			(at 0 0 0)
         			(layer "F.Fab")
         			(hide yes)
@@ -8316,7 +8316,7 @@
         			(uuid "3c18a060-be2c-58ed-a2e0-d7a461f22d4a")
         			(effects (font (size 1.0 1.0) (thickness 0.15)))
         		)
-        		(property "Footprint" "C_0603_1608Metric"
+        		(property "Footprint" "Capacitor_SMD:C_0603_1608Metric"
         			(at 0 0 0)
         			(layer "F.Fab")
         			(hide yes)
@@ -8390,7 +8390,7 @@
         			(uuid "2fc5a5d3-2dfd-5bc5-a328-374a96c3b3ca")
         			(effects (font (size 1.0 1.0) (thickness 0.15)))
         		)
-        		(property "Footprint" "C_0603_1608Metric"
+        		(property "Footprint" "Capacitor_SMD:C_0603_1608Metric"
         			(at 0 0 0)
         			(layer "F.Fab")
         			(hide yes)
@@ -8464,7 +8464,7 @@
         			(uuid "47f5d539-acf7-5976-890d-238f80b0e16f")
         			(effects (font (size 1.0 1.0) (thickness 0.15)))
         		)
-        		(property "Footprint" "C_0603_1608Metric"
+        		(property "Footprint" "Capacitor_SMD:C_0603_1608Metric"
         			(at 0 0 0)
         			(layer "F.Fab")
         			(hide yes)
@@ -8523,7 +8523,7 @@
 	(uuid "248ec511-6502-5242-b00e-7b0f4487f47a")
 	(at 94.5 97 0)
 	(descr "1x6 P2.54 mm THT recovery header (Do-Not-Populate by default).")
-	(attr through_hole)
+	(attr through_hole exclude_from_pos_files exclude_from_bom dnp)
 	(property "Reference" "J2"
 		(at 2.5 6.35 0)
 		(layer "F.SilkS")

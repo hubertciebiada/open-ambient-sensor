@@ -152,9 +152,20 @@ def main() -> None:
         "--severity-error", "--severity-warning",
         str(PCB),
     ])
+    # v0.24 fix (review iteration 2 Mj2): make ERC strict on warnings.
+    # `--severity-warning` includes warning-level violations in the report;
+    # `--exit-code-violations` makes kicad-cli return non-zero when any
+    # violation (error OR warning) exists. Without both flags, the v0.23
+    # Mn3 regression (15 `footprint_link_issues` warnings) silently passed
+    # CI because the subprocess returned 0. Mirrors the DRC step's
+    # `--severity-error --severity-warning` strictness — every ERC issue
+    # now aborts the regenerate run, matching CLAUDE.md "PCB design
+    # workflow" §3 ("aborts on any error or warning").
     run([
         kcli, "sch", "erc",
         "--output", str(erc_report),
+        "--severity-error", "--severity-warning",
+        "--exit-code-violations",
         str(SCH),
     ])
 
