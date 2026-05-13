@@ -123,7 +123,7 @@ Additional features:
 | MCU | **ESP32-C6-DevKitM-1-N4** (EAN 5904422385651) | — | confirmed v0.5 (re-evaluated against XIAO C6 + bare MINI-1 SMT alternatives) |
 | Air quality combo | Sensirion SEN66 (`SEN66-SIN-T`, material 3.001.030) + JST GH 6-pin cable accessory (50 cm AWG26, ordered separately — Sensirion ships SEN66 *without* a cable) | I²C via JST GH cable | tentative |
 | Presence | HiLink LD2410B/C | UART @ 256000 baud | tentative |
-| Visual indicator | onboard RGB NeoPixel on DevKitM-1 (GPIO 8) | 1-wire RMT | confirmed v0.4 (no external WS2812 needed) |
+| Visual indicator | **12 × SK6812-SIDE** (4020 side-emit) on Ø22 mm pitch ring around the central cable hole, driven by GPIO 8 from the LM2596S +5V rail | 1-wire RMT, WS281x protocol | confirmed v0.16 (replaces onboard NeoPixel — see OPEN ISSUE #2 resolution) |
 | NFC dynamic tag | **MIKROE-2462 NFC Tag 2 Click** (NXP NT3H1101 + onboard PCB antenna, mikroBUS) | I²C + NFC | confirmed v0.12 (chip ID v0.15.8) |
 | Power input | TVS + PTC + 24V terminal block | — | confirmed v0.2 |
 | Buck 24V → 5V | LM2596S-5.0 (async) | — | confirmed v0.2 |
@@ -164,7 +164,7 @@ The schematic is split into four hierarchical sub-sheets by **function**, not by
 | GPIO 17 | UART1 RX ← LD2410 TX | 256000 baud |
 | **GPIO 2** | LD2410 OUT (presence interrupt) | safe non-strap input |
 | **GPIO 3** | NT3H1101 FD (NFC field-detect interrupt) | safe non-strap input |
-| GPIO 8 | WS2812 DIN (onboard NeoPixel) | strap pin but OK — LED defaults idle-low |
+| GPIO 8 | WS2812 DIN — external SK6812-SIDE AQI ring (v0.16) | strap pin but OK — LED defaults idle-low. Onboard DevKitM-1 NeoPixel shares this GPIO but is unreachable in deployed units (its VDD floats on VCC_5V); the external ring on +5V is the active indicator. |
 | GPIO 12 / 13 | Native USB-Serial-JTAG D+ / D− | wired to one of DevKitM-1's two USB-C ports; the other USB-C uses the onboard USB-to-UART bridge |
 
 **Reserved / unavailable**:
@@ -175,17 +175,9 @@ The schematic is split into four hierarchical sub-sheets by **function**, not by
 
 See `docs/ARCHITECTURE.md` for the canonical pinout table including onboard hardware notes (power LED desolder plan, button accessibility, etc.).
 
-### 🔴 OPEN ISSUE — onboard NeoPixel powered from V5V, not V3V3 (v0.15.8)
+### ✅ RESOLVED — onboard NeoPixel V5V issue (closed in v0.16, option c)
 
-Discovered during independent code review (`hardware/components/esp32-c6-devkitm-1-n4.md` "Discrepancies"): the DevKitM-1's on-board WS2812B (D6) has its **VDD pin tied to VCC_5V**, not VCC_3V3. In a deployed OAS unit there is no 5 V cable plugged into either of DevKitM-1's USB-C ports, so VCC_5V floats and **the onboard NeoPixel will not light up**. This contradicts the v0.4 plan of using D6 as the OAS status LED via GPIO 8.
-
-Three remediation options under consideration (decision pending):
-
-- **(a) Solder a wire bridging VCC_5V ↔ VCC_3V3 on the DevKitM-1 board.** Marginal — WS2812B's nominal VDD spec is 3.7–5.3 V; some 0.5 mm batches work at 3.3 V, others do not. Not deterministic across production runs. Zero added BOM cost.
-- **(b) Wire the OAS 5 V rail (LM2596S-5.0 buck output) to the DevKitM-1 J1.14 (5V) pin** through the female pin sockets. Reintroduces ~150–200 mW of LDO-style heat in the MCU sector (LDO between 5 V and 3.3 V via DevKitM-1's onboard SGM2212), which gates Pillar #1 (SEN66 self-heating budget). Also adds one wire between the buck output and the MCU socket.
-- **(c) Add an external WS2812B on the OAS PCB driven by GPIO 8 from J1.9.** Reintroduces the BOM line eliminated in v0.3 (~€0.40). Deterministic, mostly cool (a single WS2812B at idle is <1 mA). Allows custom positioning for aesthetic acceptability (Pillar #2). Probably the cleanest path; needs a yes/no from the user.
-
-Pending user decision; not blocking other tasks. Task #2 from the v0.15.7 review remains `in_progress`.
+(Originally raised v0.15.8.) The DevKitM-1's on-board WS2812B (D6) has its **VDD pin tied to VCC_5V**, not VCC_3V3, and so does not light in a deployed OAS unit (no USB → VCC_5V floats). v0.16 resolves this by adopting **option (c)**: the OAS PCB carries 12 × SK6812-SIDE LEDs as an external "AQI ring" around the central cable hole, driven from GPIO 8 (same line that drives the onboard NeoPixel). The ring is powered from the LM2596S-5.0 +5V rail and lights up unconditionally; the onboard NeoPixel is left as a no-op in firmware (its presence on the chain is irrelevant since the ring is the active indicator). See v0.16 changelog entry for full rationale and `hardware/components/_research-led-diffuse-ring.md` for the SK6812-SIDE selection research.
 
 ---
 
@@ -580,3 +572,21 @@ Past mistake to avoid: in v0.3 of this project, "GPIO 4 → GPIO 10 / GPIO 5 →
   - **DOC — SEN66 cable accessory note**: Sensirion ships SEN66-SIN-T *without* a cable (per all retail listings checked). 50 cm AWG26 JST GH 6-pin reference cable is a separate accessory (Sensirion or third-party). Added to BOM expectations.
   - **OPEN ISSUE flagged — onboard NeoPixel powered from V5V, not V3V3**. Discovered during the same review: the DevKitM-1's onboard WS2812B has VDD tied to VCC_5V (USB VBUS), so it will not light up in a deployed OAS unit (no USB plugged in). Three remediation options recorded for user decision; not blocking other tasks. See "OPEN ISSUE" callout under the ESP32-C6-DevKitM-1-N4 pinout section.
   - DRC=0, ERC=0 across all changes.
+
+- **v0.16** — AQI status LED ring added (resolves OPEN ISSUE #2).
+  - **Decision**: build a custom ring of **12 × SK6812-SIDE** addressable RGB LEDs (4020 side-emit, integrated WS281x controller) on a Ø22 mm pitch circle centred on the PCB origin (= centre of the Ø12 mm cable pass-through hole). Per `hardware/components/_research-led-diffuse-ring.md` (research dated 2026-05-13). Each LED emits radially OUTWARD, parallel to the PCB plane, so the perforated AK-N-94 cover sees only diffuse spillage off the cover interior — no "dot through perforation" effect that plagues top-emit NeoPixels under perforated covers.
+  - **Why side-emit over top-emit (geometric reasoning, not optical)**: top-emit LEDs at 5.76 mm pitch (12 LEDs on Ø22 mm) would need ≥11.5 mm cover standoff (1.5–2× the LED pitch) to mix into a smooth gradient — borderline in OAS's 17 mm height budget once SEN66 is factored in. Side-emit LEDs throw their cone parallel to the PCB, so the cover never sees the die in line-of-sight — dotting is eliminated structurally, not optically. Smoke-detector indicator-halo optics pattern.
+  - **Pinout (verified twice)**: 1=DIN, 2=VDD, 3=DOUT, 4=GND. Cross-checked between the Normand SK6812 SIDE-A 2018 rev 01 datasheet and the OPSCO SK6812 SIDE-A-001 2021 rev A/1 datasheet — both agree. This is DIFFERENT from KiCad's stock `LED:SK6812` symbol (which is the PLCC4 5050 variant with 1=VSS/2=DIN/3=VDD/4=DOUT); OAS ships its own `OAS:SK6812-SIDE` symbol and `oas:SK6812-SIDE` footprint to avoid that pitfall. Full part spec in `hardware/components/sk6812-side.md`.
+  - **Geometry**: LED ring radius 11.0 mm; LEDs at θ = 0°, 30°, 60°, … 330°. Each LED's KiCad rotation = `(270 - θ) mod 360` so the body-local -Y (emission face) points radially outward in PCB frame. Inner edge of LED body sits ≈10 mm from the PCB origin → 4 mm radial clearance to the cable hole edge at R = 6 mm. Outer edge at R ≈ 12 mm. Tightest external clearance: 0.26 mm to the MIKROE-2462 silk rectangle at PCB X = -12.26 mm (D17 at θ = 180°); silk-overlap DRC kept clean by suppressing all F.SilkS body / arrow geometry on the LED footprint (F.Fab carries the body outline + pin-1 dot + emission arrow for the assembler).
+  - **Daisy chain**: D11 (θ = 0°) → D12 (θ = 30°) → … → D22 (θ = 330°). D11 DIN driven from MCU GPIO 8 via the new hierarchical net `WS2812_DIN`. D22 DOUT terminates open (no_connect marker).
+  - **Decoupling**: 1 × 100 nF 0402 X7R per LED (C20 – C31). Placed on the OAS PCB radially INWARD from each LED at R = 7.6 mm, body local rotation matching the LED so cap pads are reachable from the LED's VDD pad with a short trace. Net BOM line count +13 (12 LEDs + 1 0402 cap reel; the 12 caps are quantity-12 of the same SKU).
+  - **Schematic side** (`sensors.kicad_sch`, chunk #5d): 12 D11..D22 instances of `OAS:SK6812-SIDE` symbol arranged in a tidy vertical column (X = 40.64 mm, row pitch 25.4 mm). Each LED has its own +5V power flag at VDD (top), GND flag at GND (bottom), and a paired Device:C decoupling cap to the east bridging +5V ↔ GND. DIN wired from the chain or the `WS2812_DIN` hier label (D11 only); DOUT wired to the next LED's DIN via a 5-segment L-route that crosses NO LED body (avoids spurious DIN ↔ DOUT shorts).
+  - **MCU side** (`mcu.kicad_sch`): GPIO 8 (J1.9) moved from the no-connect list to the signal list. New `WS2812_DIN` hierarchical label on the LEFT edge at row Y = U3.9. New SUBSHEET_PINS entry on the MCU sheet LEFT edge (dy = 11.43) and the sensors sheet LEFT edge (dy = 8.89), plus a root-sheet inter-sheet wire route at X = 41.91 (one grid step west of the existing NFC_FD vertical at X = 44.45).
+  - **PCB side** (`oas.kicad_pcb`): 12 SK6812-SIDE footprints + 12 0402 cap footprints under `gen_sensors_pcb_footprints`. New project-local footprint `oas:SK6812-SIDE` and symbol `OAS:SK6812-SIDE`. New library file `libraries/oas.pretty/SK6812-SIDE.kicad_mod`. Board-level F.SilkS "AQI ring" label at PCB (10.6, -10.6), in empty space between D22 and the ESP32 body.
+  - **BOM impact**: +1 BOM line for the LED (qty 12 × SK6812-SIDE) + same 100 nF 0402 SKU already used elsewhere. **~€1.85 per unit at qty 100** for the 12 LEDs (per research file pricing as of 2026-05-13).
+  - **5 V draw**: peak 12 × ~50 mA = **600 mA** worst case (all LEDs full white at brightness 255); breathing-animation average **~80 mA**. LM2596S-5.0 is rated 3 A — comfortable margin even with LD2410 (~80 mA) + SEN66 sensor headroom on the same rail.
+  - **PCB area consumed**: ~520 mm² (~6 % of board) in previously empty central negative space around the cable hole.
+  - **Resolution of OPEN ISSUE #2**: the new external ring is driven from the LM2596S-derived +5 V rail (not the DevKitM-1's USB-VBUS-derived 5 V), so it lights up unconditionally in deployed units. GPIO 8 is still the data line — the DevKitM-1's onboard NeoPixel sits on the same GPIO but is unreachable (its V5V floats); firmware treats the chain as 12 pixels (the ring) and ignores the onboard pixel. Option (c) of the three options previously listed.
+  - **Open follow-up**: optional 3D-printed white reflector trough OR post-prototype frosted-PETG annular insert (Part C6 of the research file) deferred until the first physical AK-N-94 sample arrives and we can assess whether the cover's white perforations diffuse adequately on their own.
+  - **References**: `hardware/components/_research-led-diffuse-ring.md` (decision rationale + alternatives), `hardware/components/sk6812-side.md` (verified part spec, pin layout, datasheet links).
+  - DRC = 0, ERC = 0.

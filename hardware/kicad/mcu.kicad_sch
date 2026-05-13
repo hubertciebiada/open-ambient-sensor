@@ -1784,6 +1784,16 @@
 )
 (wire
 	(pts
+		(xy 139.7 113.03) (xy 119.38 113.03)
+	)
+	(stroke
+		(width 0)
+		(type default)
+	)
+	(uuid "b2b530c5-97de-5e0d-87a5-c7ed65f52295")
+)
+(wire
+	(pts
 		(xy 139.7 95.25) (xy 137.16 95.25)
 	)
 	(stroke
@@ -2338,6 +2348,17 @@
 	)
 	(uuid "b3cd52a7-8b69-5697-9e62-b415238961ec")
 )
+(hierarchical_label "WS2812_DIN"
+	(shape output)
+	(at 119.38 113.03 180)
+	(effects
+		(font
+			(size 1.27 1.27)
+		)
+		(justify right)
+	)
+	(uuid "b2830fda-078f-5ce0-8bb2-b5188029cbe8")
+)
 (hierarchical_label "UART_TX"
 	(shape output)
 	(at 222.25 95.25 0)
@@ -2379,10 +2400,6 @@
 (no_connect
 	(at 139.7 110.49)
 	(uuid "3f0a3d48-45a5-5cae-99b2-cfaf61a04fb2")
-)
-(no_connect
-	(at 139.7 113.03)
-	(uuid "8ce79e4c-f5aa-5f93-8a77-2ecefe50dc74")
 )
 (no_connect
 	(at 139.7 120.65)

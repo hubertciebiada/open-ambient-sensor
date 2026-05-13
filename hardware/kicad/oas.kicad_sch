@@ -122,6 +122,16 @@
 				(justify right)
 			)
 		)
+		(pin "WS2812_DIN" output
+			(at 101.6 62.23 180)
+			(uuid "2bfad749-f491-5fd2-950e-687a916a8678")
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify right)
+			)
+		)
 		(pin "UART_TX" output
 			(at 139.7 52.07 0)
 			(uuid "63ba750e-98d7-59ed-864e-b3833bbd19c8")
@@ -237,6 +247,16 @@
 		(pin "NFC_FD" output
 			(at 50.8 95.25 180)
 			(uuid "9c248140-2f6c-513d-a4f6-673ee8c63a19")
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify right)
+			)
+		)
+		(pin "WS2812_DIN" input
+			(at 50.8 97.79 180)
+			(uuid "9b5ee7e5-5e47-5ccd-802f-4c5d49f116da")
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -473,6 +493,36 @@
 		(type default)
 	)
 	(uuid "8bd47f8d-8728-5f13-8bf4-520537398690")
+)
+(wire
+	(pts
+		(xy 50.8 97.79) (xy 41.91 97.79)
+	)
+	(stroke
+		(width 0)
+		(type default)
+	)
+	(uuid "9e2f0553-9702-596d-b99d-a76bec7ca092")
+)
+(wire
+	(pts
+		(xy 41.91 97.79) (xy 41.91 62.23)
+	)
+	(stroke
+		(width 0)
+		(type default)
+	)
+	(uuid "6705761c-6794-59a4-84a5-bb6def227324")
+)
+(wire
+	(pts
+		(xy 41.91 62.23) (xy 101.6 62.23)
+	)
+	(stroke
+		(width 0)
+		(type default)
+	)
+	(uuid "2f236b91-d065-5fe9-b636-c6ddcf49ef0a")
 )
 	(sheet_instances
 		(path "/"

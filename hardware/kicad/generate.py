@@ -507,6 +507,122 @@ J4_PCB_Y = +19.05            # mm — OAS PCB Y of the pin row (unchanged).
 J4_PCB_ROTATION = 270        # degrees; pad row along OAS -X from anchor.
 
 # -----------------------------------------------------------------------------
+# AQI status LED ring (v0.16) — 12 × SK6812-SIDE side-emit addressable RGB
+# -----------------------------------------------------------------------------
+# Twelve side-emit RGB LEDs on a Ø22 mm pitch circle around the central
+# Ø12 mm cable hole. Each LED radiates LIGHT RADIALLY OUTWARD into the
+# AK-N-94 perforated cover where it scatters and reads as a soft glowing
+# halo (no per-perforation hot-spot dotting). Side-emit geometry chosen
+# over top-emit per `hardware/components/_research-led-diffuse-ring.md`.
+#
+# LED chip: SK6812 SIDE-A (Shenzhen Normand / OPSCO Optoelectronics).
+# Package 4.0 × 2.0 × 1.6 mm. Pinout 1=DIN, 2=VDD, 3=DOUT, 4=GND
+# (verified against Normand 2018 rev 01 datasheet and OPSCO 2021 rev A/1).
+# See `hardware/components/sk6812-side.md` for the verified part spec.
+#
+# Geometry:
+#   - 12 LEDs at θ = 0°, 30°, 60°, …, 330° (KiCad-screen +Y is down, so
+#     θ=0 is at PCB +X, θ=90 is at PCB +Y / SOUTH, θ=180 at PCB -X, etc.)
+#   - LED center at (R·cos θ, R·sin θ) with R = LED_RING_RADIUS.
+#   - Body local frame: +X = long axis (pad row); +Y = short axis pointing
+#     toward the pad-row face (away from emission). The emission face is
+#     at body-local -Y. To make each LED's emission face point radially
+#     OUTWARD, we set its KiCad rotation R = (270 - θ) mod 360 so that
+#     body-local (0, -1) maps to PCB (cos θ, sin θ).
+#   - Daisy-chain order: D11 at θ=0, D12 at θ=30, … D22 at θ=330.
+#     D22 DOUT terminates open (NeoPixel chains do not loop back).
+#   - One 100 nF 0402 decoupling cap (C20…C31) per LED, placed adjacent
+#     to the LED's VDD pad on the PCB-interior side of the ring.
+#
+# LED_RING_RADIUS = 11.0 mm puts LED centres on a Ø22 mm pitch circle.
+# Inner-most LED body edge at R = 11 - 1 = 10 mm (body half-width 1 mm
+# radially); 4 mm radial clearance to the Ø12 mm cable hole edge at R=6.
+# Outer-most LED body edge at R = 12 mm. Outer edge nearest pre-existing
+# component is the MIKROE-2462 silk rect at PCB X = -12.26 mm at angle
+# 180° (LED D17 body at X ≤ -12 mm) — 0.26 mm of silk-to-silk separation
+# on paper, but we *suppress* the LED body's F.SilkS rectangle so the
+# DRC silk_overlap rule (0.15 mm) is not stressed. F.Fab still carries
+# the body outline for assembly documentation.
+LED_RING_RADIUS = 11.0
+LED_RING_COUNT = 12
+LED_RING_THETA_START_DEG = 0.0       # first LED (D11) sits on PCB +X axis
+LED_RING_THETA_STEP_DEG = 360.0 / LED_RING_COUNT   # = 30°
+
+# Decoupling cap radial offset from LED centre: cap sits ~3.4 mm radially
+# INWARD from the LED centre (so total radius = LED_RING_RADIUS - 3.4 =
+# 7.6 mm). At inner cap edge (R = 7.6 - 0.5 = 7.1 mm), 1.1 mm clearance
+# to the cable hole at R = 6. The cap's "north" pad lands directly under
+# the LED's VDD pad row.
+LED_RING_CAP_RADIAL_OFFSET = 3.4
+
+# SK6812-SIDE package + pad geometry (body-local frame; +X = long-axis,
+# +Y = short-axis pointing toward pad-row face).
+SK6812SIDE_BODY_W = 4.0              # mm, long axis (pad row direction)
+SK6812SIDE_BODY_H = 2.0              # mm, short axis (emission perpendicular)
+SK6812SIDE_BODY_Z = 1.6              # mm, height above PCB (well within 17 mm)
+SK6812SIDE_PAD_PITCH = 0.95          # mm pad pitch along long axis
+SK6812SIDE_PAD_WIDTH = 0.60          # mm along long axis (X)
+SK6812SIDE_PAD_HEIGHT = 1.00         # mm along short axis (Y)
+SK6812SIDE_PAD_Y = 0.85              # mm, body-local +Y of pad centerline
+                                      # (pad-row face). Emission face at -Y.
+# Pad X positions: 4 pads, centered at body-local X = ±1.425, ±0.475
+# (i.e. evenly spaced at SK6812SIDE_PAD_PITCH = 0.95 mm pitch, centered
+# on body X = 0).
+SK6812SIDE_PAD_X_OFFSETS = tuple(
+    (-1.5 + i) * SK6812SIDE_PAD_PITCH for i in range(4)
+)  # = (-1.425, -0.475, +0.475, +1.425)
+
+
+def _led_ring_position(index: int) -> tuple[float, float, float]:
+    """Return (PCB_x, PCB_y, kicad_rotation_deg) for the i-th LED on the ring.
+
+    i = 0 → D11 at θ = 0° (PCB +X axis), i = 1 → D12 at θ = 30°, etc.
+    The rotation is set so the LED's emission face (body-local -Y) points
+    radially OUTWARD from the PCB origin.
+    """
+    theta_deg = LED_RING_THETA_START_DEG + index * LED_RING_THETA_STEP_DEG
+    theta_rad = math.radians(theta_deg)
+    px = LED_RING_RADIUS * math.cos(theta_rad)
+    py = LED_RING_RADIUS * math.sin(theta_rad)
+    # KiCad rotation = (270 - θ) mod 360 — derived in CLAUDE.md v0.16
+    # changelog. Verifies: at θ=0, rotation 270° maps body-local (0, -1)
+    # to PCB (+1, 0) = +X = outward. At θ=180, rotation 90° maps (0, -1)
+    # to (-1, 0) = -X = outward. Etc.
+    rot = int(round((270.0 - theta_deg) % 360.0))
+    return (px, py, rot)
+
+
+def _led_cap_position(index: int) -> tuple[float, float, float]:
+    """Return (PCB_x, PCB_y, kicad_rotation_deg) for the i-th LED's
+    decoupling cap (C20 + index).
+
+    The cap sits radially INWARD from the LED, at radius
+    LED_RING_RADIUS - LED_RING_CAP_RADIAL_OFFSET. The cap's KiCad
+    rotation matches the LED's rotation so the cap body lies tangentially
+    (consistent visual orientation around the ring).
+    """
+    theta_deg = LED_RING_THETA_START_DEG + index * LED_RING_THETA_STEP_DEG
+    theta_rad = math.radians(theta_deg)
+    cap_r = LED_RING_RADIUS - LED_RING_CAP_RADIAL_OFFSET
+    px = cap_r * math.cos(theta_rad)
+    py = cap_r * math.sin(theta_rad)
+    rot = int(round((270.0 - theta_deg) % 360.0))
+    return (px, py, rot)
+
+
+def _led_local_to_pcb(index: int, lx: float, ly: float) -> tuple[float, float]:
+    """Transform a body-local SK6812-SIDE coordinate to PCB-local mm for
+    the i-th LED on the ring. Mirrors `_sen66_local_to_pcb` / `_ld2410_local_to_pcb`.
+    """
+    px, py, rot = _led_ring_position(index)
+    a = math.radians(rot)
+    cos_a, sin_a = math.cos(a), math.sin(a)
+    rx =  cos_a * lx + sin_a * ly
+    ry = -sin_a * lx + cos_a * ly
+    return (px + rx, py + ry)
+
+
+# -----------------------------------------------------------------------------
 # KiCad 10 format constants
 # -----------------------------------------------------------------------------
 PCB_VERSION = 20260206
@@ -1279,6 +1395,164 @@ def gen_ziptie_hole_footprint() -> str:
         \t\t(remove_unused_layers no)
         \t\t(uuid "{U('ziptie:fp:pad')}")
         \t)
+        )
+        """)
+
+
+# -----------------------------------------------------------------------------
+# 1ab) SK6812-SIDE — addressable side-emit RGB LED footprint
+# -----------------------------------------------------------------------------
+# Custom footprint for the SK6812 SIDE-A LED used in the v0.16 AQI status
+# ring. Pinout verified against Normand 2018 rev 01 datasheet and OPSCO
+# 2021 rev A/1 datasheet (both agree): 1=DIN, 2=VDD, 3=DOUT, 4=GND. KiCad
+# 10's stock `LED_SMD:LED_SK6812*` footprints are for the PLCC4 5050 /
+# MINI / 1515 variants — none match the 4020 SIDE package geometry or
+# pinout — hence this project-local footprint.
+#
+# Pad rectangles: 0.6 × 1.0 mm at 0.95 mm pitch along body-local +X,
+# offset to body-local +Y = +0.85 (toward the pad-row face). The emission
+# face is on the opposite long edge (body-local -Y direction).
+#
+# Layers:
+#   F.Cu      — 4 SMD pads
+#   F.Fab     — body outline (4.0 × 2.0 mm), pin-1 dot, emission-edge arrow
+#   F.SilkS   — pin-1 dot near pad 1 + small emission-direction arrow on
+#                the body's -Y edge. No body silk RECT is emitted (would
+#                trigger silk_overlap DRC against the MIKROE-2462 silk
+#                at the angle-180° LED position; the body outline lives
+#                on F.Fab instead).
+#   F.CrtYd   — small courtyard slightly larger than the body
+#
+# Property layout:
+#   Reference (hidden, on F.SilkS at body-local (0, -1.5))
+#   Value     (hidden, on F.Fab     at body-local (0, +2.5))
+
+
+def gen_sk6812_side_footprint() -> str:
+    """Custom SK6812-SIDE footprint definition (library file)."""
+    body_hw = SK6812SIDE_BODY_W / 2.0    # = 2.0 (half-extent along +X)
+    body_hh = SK6812SIDE_BODY_H / 2.0    # = 1.0 (half-extent along +Y)
+    # Courtyard: 0.25 mm beyond pad row on +Y side, 0.25 mm beyond body
+    # on the emission (-Y) side. ±X extent matches body.
+    crty_x_min = -body_hw - 0.20
+    crty_x_max = +body_hw + 0.20
+    crty_y_min = -body_hh - 0.20         # emission side
+    crty_y_max = SK6812SIDE_PAD_Y + SK6812SIDE_PAD_HEIGHT/2 + 0.20   # +1.55
+    # Pad rectangles
+    pad_blocks = []
+    for pin_num, lx in enumerate(SK6812SIDE_PAD_X_OFFSETS, start=1):
+        pad_blocks.append(textwrap.dedent(f"""\
+            \t(pad "{pin_num}" smd rect
+            \t\t(at {fmt(lx)} {fmt(SK6812SIDE_PAD_Y)})
+            \t\t(size {fmt(SK6812SIDE_PAD_WIDTH)} {fmt(SK6812SIDE_PAD_HEIGHT)})
+            \t\t(layers "F.Cu" "F.Paste" "F.Mask")
+            \t\t(uuid "{U(f'sk6812-side:fp:pad-{pin_num}')}")
+            \t)"""))
+    pads = "\n".join(pad_blocks)
+    # Pin-1 dot on F.SilkS, just outside pad 1 on the +X- / +Y-extreme
+    # corner so it survives any rotation that lands pad 1 on either side
+    # of the ring.
+    pin1_dot_x = SK6812SIDE_PAD_X_OFFSETS[0]   # -1.425
+    pin1_dot_y = SK6812SIDE_PAD_Y + SK6812SIDE_PAD_HEIGHT/2 + 0.35   # +1.7
+    # Emission-direction arrow on F.SilkS: short line + tip at body-local
+    # -Y side. Located on the emission face (-Y).
+    arrow_tip_y = -body_hh - 0.35       # -1.35
+    arrow_base_y = -body_hh + 0.25      # -0.75
+    return textwrap.dedent(f"""\
+        (footprint "SK6812-SIDE"
+        \t(version {PCB_VERSION})
+        \t(generator "pcbnew")
+        \t(generator_version "{GEN_VERSION}")
+        \t(layer "F.Cu")
+        \t(descr "SK6812 SIDE-A addressable RGB LED, 4020 side-emit, integrated WS281x controller. Pinout 1=DIN 2=VDD 3=DOUT 4=GND per Normand / OPSCO datasheets. Emission face on body-local -Y edge.")
+        \t(tags "sk6812 side-emit addressable rgb neopixel ws281x")
+        \t(attr smd)
+        \t(property "Reference" "REF**"
+        \t\t(at 0 -1.5 0)
+        \t\t(unlocked yes)
+        \t\t(layer "F.SilkS")
+        \t\t(hide yes)
+        \t\t(uuid "{U('sk6812-side:fp:prop-ref')}")
+        \t\t(effects (font (size 0.8 0.8) (thickness 0.12)))
+        \t)
+        \t(property "Value" "SK6812-SIDE"
+        \t\t(at 0 2.5 0)
+        \t\t(unlocked yes)
+        \t\t(layer "F.Fab")
+        \t\t(hide yes)
+        \t\t(uuid "{U('sk6812-side:fp:prop-val')}")
+        \t\t(effects (font (size 0.8 0.8) (thickness 0.12)))
+        \t)
+        \t(property "Footprint" ""
+        \t\t(at 0 0 0)
+        \t\t(unlocked yes)
+        \t\t(layer "F.Fab")
+        \t\t(hide yes)
+        \t\t(uuid "{U('sk6812-side:fp:prop-fp')}")
+        \t\t(effects (font (size 1.27 1.27)))
+        \t)
+        \t(property "Datasheet" "http://www.normandled.com/upload/201810/SK6812%20SIDE-A%20LED%20Datasheet.pdf"
+        \t\t(at 0 0 0)
+        \t\t(unlocked yes)
+        \t\t(layer "F.Fab")
+        \t\t(hide yes)
+        \t\t(uuid "{U('sk6812-side:fp:prop-ds')}")
+        \t\t(effects (font (size 1.27 1.27)))
+        \t)
+        \t(property "Description" "SK6812 SIDE-A 4020 side-emit addressable RGB LED (Shenzhen Normand / OPSCO). Pinout 1=DIN, 2=VDD, 3=DOUT, 4=GND."
+        \t\t(at 0 0 0)
+        \t\t(unlocked yes)
+        \t\t(layer "F.Fab")
+        \t\t(hide yes)
+        \t\t(uuid "{U('sk6812-side:fp:prop-desc')}")
+        \t\t(effects (font (size 1.27 1.27)))
+        \t)
+        \t(fp_rect
+        \t\t(start {fmt(-body_hw)} {fmt(-body_hh)})
+        \t\t(end {fmt(body_hw)} {fmt(body_hh)})
+        \t\t(stroke (width 0.1) (type solid))
+        \t\t(fill no)
+        \t\t(layer "F.Fab")
+        \t\t(uuid "{U('sk6812-side:fp:fab-body')}")
+        \t)
+        \t(fp_rect
+        \t\t(start {fmt(crty_x_min)} {fmt(crty_y_min)})
+        \t\t(end {fmt(crty_x_max)} {fmt(crty_y_max)})
+        \t\t(stroke (width 0.05) (type solid))
+        \t\t(fill no)
+        \t\t(layer "F.CrtYd")
+        \t\t(uuid "{U('sk6812-side:fp:crtyd')}")
+        \t)
+        \t(fp_circle
+        \t\t(center {fmt(pin1_dot_x)} {fmt(pin1_dot_y)})
+        \t\t(end {fmt(pin1_dot_x + 0.15)} {fmt(pin1_dot_y)})
+        \t\t(stroke (width 0.08) (type solid))
+        \t\t(fill solid)
+        \t\t(layer "F.Fab")
+        \t\t(uuid "{U('sk6812-side:fp:pin1-dot')}")
+        \t)
+        \t(fp_line
+        \t\t(start 0 {fmt(arrow_base_y)})
+        \t\t(end 0 {fmt(arrow_tip_y)})
+        \t\t(stroke (width 0.08) (type solid))
+        \t\t(layer "F.Fab")
+        \t\t(uuid "{U('sk6812-side:fp:arrow-stem')}")
+        \t)
+        \t(fp_line
+        \t\t(start {fmt(-0.3)} {fmt(arrow_tip_y + 0.3)})
+        \t\t(end 0 {fmt(arrow_tip_y)})
+        \t\t(stroke (width 0.08) (type solid))
+        \t\t(layer "F.Fab")
+        \t\t(uuid "{U('sk6812-side:fp:arrow-wing-l')}")
+        \t)
+        \t(fp_line
+        \t\t(start {fmt(+0.3)} {fmt(arrow_tip_y + 0.3)})
+        \t\t(end 0 {fmt(arrow_tip_y)})
+        \t\t(stroke (width 0.08) (type solid))
+        \t\t(layer "F.Fab")
+        \t\t(uuid "{U('sk6812-side:fp:arrow-wing-r')}")
+        \t)
+        """) + pads + textwrap.dedent("""
         )
         """)
 
@@ -2398,6 +2672,220 @@ def gen_pinsocket_pcb_footprint(
         """) + properties + "\n" + body_text + "\n\t)"
 
 
+def gen_sk6812_side_pcb_footprint(
+    *, x: float, y: float, rotation: int, reference: str, uuid_tag: str,
+) -> str:
+    """Emit a placed SK6812-SIDE footprint instance at PCB (x, y).
+
+    Embeds the same body content as `gen_sk6812_side_footprint()` (the
+    library file body) directly into the PCB file so opening pcbnew
+    without the project-local library still renders the placement.
+    """
+    body_hw = SK6812SIDE_BODY_W / 2.0
+    body_hh = SK6812SIDE_BODY_H / 2.0
+    crty_x_min = -body_hw - 0.20
+    crty_x_max = +body_hw + 0.20
+    crty_y_min = -body_hh - 0.20
+    crty_y_max = SK6812SIDE_PAD_Y + SK6812SIDE_PAD_HEIGHT/2 + 0.20
+    pin1_dot_x = SK6812SIDE_PAD_X_OFFSETS[0]
+    pin1_dot_y = SK6812SIDE_PAD_Y + SK6812SIDE_PAD_HEIGHT/2 + 0.35
+    arrow_tip_y = -body_hh - 0.35
+    arrow_base_y = -body_hh + 0.25
+    pad_blocks = []
+    for pin_num, lx in enumerate(SK6812SIDE_PAD_X_OFFSETS, start=1):
+        # Pad rotation injected explicitly so DRC interprets the pad
+        # geometry as rotated WITH the footprint (KiCad quirk — see
+        # `_annotate_pad_rotations` rationale).
+        rot_clause = f" {rotation}" if rotation != 0 else ""
+        pad_blocks.append(textwrap.dedent(f"""\
+            \t\t(pad "{pin_num}" smd rect
+            \t\t\t(at {fmt(lx)} {fmt(SK6812SIDE_PAD_Y)}{rot_clause})
+            \t\t\t(size {fmt(SK6812SIDE_PAD_WIDTH)} {fmt(SK6812SIDE_PAD_HEIGHT)})
+            \t\t\t(layers "F.Cu" "F.Paste" "F.Mask")
+            \t\t\t(uuid "{U(f'fp-pad:{uuid_tag}:{pin_num}')}")
+            \t\t)"""))
+    pads = "\n".join(pad_blocks)
+    return textwrap.dedent(f"""\
+        \t(footprint "oas:SK6812-SIDE"
+        \t\t(layer "F.Cu")
+        \t\t(uuid "{U('fp-inst:' + uuid_tag)}")
+        \t\t(at {fx(x)} {fy(y)} {rotation})
+        \t\t(descr "SK6812 SIDE-A addressable RGB LED. 4020 side-emit, integrated WS281x controller. Pinout 1=DIN 2=VDD 3=DOUT 4=GND.")
+        \t\t(attr smd)
+        \t\t(property "Reference" "{reference}"
+        \t\t\t(at 0 -1.5 {rotation})
+        \t\t\t(layer "F.SilkS")
+        \t\t\t(hide yes)
+        \t\t\t(uuid "{U('fp-prop-ref:' + uuid_tag)}")
+        \t\t\t(effects (font (size 1.0 1.0) (thickness 0.15)))
+        \t\t)
+        \t\t(property "Value" "SK6812-SIDE"
+        \t\t\t(at 0 2.5 {rotation})
+        \t\t\t(layer "F.Fab")
+        \t\t\t(hide yes)
+        \t\t\t(uuid "{U('fp-prop-val:' + uuid_tag)}")
+        \t\t\t(effects (font (size 1.0 1.0) (thickness 0.15)))
+        \t\t)
+        \t\t(property "Footprint" "oas:SK6812-SIDE"
+        \t\t\t(at 0 0 0)
+        \t\t\t(layer "F.Fab")
+        \t\t\t(hide yes)
+        \t\t\t(uuid "{U('fp-prop-fp:' + uuid_tag)}")
+        \t\t\t(effects (font (size 1.27 1.27)))
+        \t\t)
+        \t\t(property "Datasheet" "http://www.normandled.com/upload/201810/SK6812%20SIDE-A%20LED%20Datasheet.pdf"
+        \t\t\t(at 0 0 0)
+        \t\t\t(layer "F.Fab")
+        \t\t\t(hide yes)
+        \t\t\t(uuid "{U('fp-prop-ds:' + uuid_tag)}")
+        \t\t\t(effects (font (size 1.27 1.27)))
+        \t\t)
+        \t\t(property "Description" "SK6812 SIDE-A 4020 side-emit addressable RGB LED (Normand / OPSCO). Pinout 1=DIN, 2=VDD, 3=DOUT, 4=GND."
+        \t\t\t(at 0 0 0)
+        \t\t\t(layer "F.Fab")
+        \t\t\t(hide yes)
+        \t\t\t(uuid "{U('fp-prop-desc:' + uuid_tag)}")
+        \t\t\t(effects (font (size 1.27 1.27)))
+        \t\t)
+        \t\t(fp_rect
+        \t\t\t(start {fmt(-body_hw)} {fmt(-body_hh)})
+        \t\t\t(end {fmt(body_hw)} {fmt(body_hh)})
+        \t\t\t(stroke (width 0.1) (type solid))
+        \t\t\t(fill no)
+        \t\t\t(layer "F.Fab")
+        \t\t\t(uuid "{U('fp-fab-body:' + uuid_tag)}")
+        \t\t)
+        \t\t(fp_rect
+        \t\t\t(start {fmt(crty_x_min)} {fmt(crty_y_min)})
+        \t\t\t(end {fmt(crty_x_max)} {fmt(crty_y_max)})
+        \t\t\t(stroke (width 0.05) (type solid))
+        \t\t\t(fill no)
+        \t\t\t(layer "F.CrtYd")
+        \t\t\t(uuid "{U('fp-crtyd:' + uuid_tag)}")
+        \t\t)
+        \t\t(fp_circle
+        \t\t\t(center {fmt(pin1_dot_x)} {fmt(pin1_dot_y)})
+        \t\t\t(end {fmt(pin1_dot_x + 0.15)} {fmt(pin1_dot_y)})
+        \t\t\t(stroke (width 0.08) (type solid))
+        \t\t\t(fill solid)
+        \t\t\t(layer "F.Fab")
+        \t\t\t(uuid "{U('fp-pin1-dot:' + uuid_tag)}")
+        \t\t)
+        \t\t(fp_line
+        \t\t\t(start 0 {fmt(arrow_base_y)})
+        \t\t\t(end 0 {fmt(arrow_tip_y)})
+        \t\t\t(stroke (width 0.08) (type solid))
+        \t\t\t(layer "F.Fab")
+        \t\t\t(uuid "{U('fp-arrow-stem:' + uuid_tag)}")
+        \t\t)
+        \t\t(fp_line
+        \t\t\t(start {fmt(-0.3)} {fmt(arrow_tip_y + 0.3)})
+        \t\t\t(end 0 {fmt(arrow_tip_y)})
+        \t\t\t(stroke (width 0.08) (type solid))
+        \t\t\t(layer "F.Fab")
+        \t\t\t(uuid "{U('fp-arrow-wing-l:' + uuid_tag)}")
+        \t\t)
+        \t\t(fp_line
+        \t\t\t(start {fmt(+0.3)} {fmt(arrow_tip_y + 0.3)})
+        \t\t\t(end 0 {fmt(arrow_tip_y)})
+        \t\t\t(stroke (width 0.08) (type solid))
+        \t\t\t(layer "F.Fab")
+        \t\t\t(uuid "{U('fp-arrow-wing-r:' + uuid_tag)}")
+        \t\t)
+        """) + pads + "\n\t)"
+
+
+def gen_capacitor_0402_pcb_footprint(
+    *, x: float, y: float, rotation: int, reference: str, value: str,
+    uuid_tag: str, descr: str = "100 nF 0402 X7R decoupling capacitor",
+) -> str:
+    """Emit a placed Capacitor_SMD:C_0402_1005Metric footprint instance.
+
+    Uses a self-contained 0402 pad pattern (pad pitch 0.85 mm, pad size
+    0.62 × 0.70 mm) so the .kicad_pcb file remains stand-alone (no
+    library lookup needed). Pad 1 sits at footprint-local +X, pad 2 at -X.
+    """
+    pad_x = 0.425                 # half of 0.85 mm pad pitch
+    pad_w = 0.62
+    pad_h = 0.70
+    body_hw = 1.0 / 2.0           # body 1.0 × 0.5 mm
+    body_hh = 0.5 / 2.0
+    crty_x = pad_x + pad_w / 2.0 + 0.10
+    crty_y = max(pad_h, 0.5) / 2.0 + 0.10
+    rot_clause = f" {rotation}" if rotation != 0 else ""
+    return textwrap.dedent(f"""\
+        \t(footprint "C_0402_1005Metric"
+        \t\t(layer "F.Cu")
+        \t\t(uuid "{U('fp-inst:' + uuid_tag)}")
+        \t\t(at {fx(x)} {fy(y)} {rotation})
+        \t\t(descr "{descr}")
+        \t\t(attr smd)
+        \t\t(property "Reference" "{reference}"
+        \t\t\t(at 0 -1.0 {rotation})
+        \t\t\t(layer "F.SilkS")
+        \t\t\t(hide yes)
+        \t\t\t(uuid "{U('fp-prop-ref:' + uuid_tag)}")
+        \t\t\t(effects (font (size 1.0 1.0) (thickness 0.15)))
+        \t\t)
+        \t\t(property "Value" "{value}"
+        \t\t\t(at 0 1.0 {rotation})
+        \t\t\t(layer "F.Fab")
+        \t\t\t(hide yes)
+        \t\t\t(uuid "{U('fp-prop-val:' + uuid_tag)}")
+        \t\t\t(effects (font (size 1.0 1.0) (thickness 0.15)))
+        \t\t)
+        \t\t(property "Footprint" "C_0402_1005Metric"
+        \t\t\t(at 0 0 0)
+        \t\t\t(layer "F.Fab")
+        \t\t\t(hide yes)
+        \t\t\t(uuid "{U('fp-prop-fp:' + uuid_tag)}")
+        \t\t\t(effects (font (size 1.27 1.27)))
+        \t\t)
+        \t\t(property "Datasheet" ""
+        \t\t\t(at 0 0 0)
+        \t\t\t(layer "F.Fab")
+        \t\t\t(hide yes)
+        \t\t\t(uuid "{U('fp-prop-ds:' + uuid_tag)}")
+        \t\t\t(effects (font (size 1.27 1.27)))
+        \t\t)
+        \t\t(property "Description" "{descr}"
+        \t\t\t(at 0 0 0)
+        \t\t\t(layer "F.Fab")
+        \t\t\t(hide yes)
+        \t\t\t(uuid "{U('fp-prop-desc:' + uuid_tag)}")
+        \t\t\t(effects (font (size 1.27 1.27)))
+        \t\t)
+        \t\t(fp_rect
+        \t\t\t(start {fmt(-body_hw)} {fmt(-body_hh)})
+        \t\t\t(end {fmt(body_hw)} {fmt(body_hh)})
+        \t\t\t(stroke (width 0.1) (type solid))
+        \t\t\t(fill no)
+        \t\t\t(layer "F.Fab")
+        \t\t\t(uuid "{U('fp-fab-body:' + uuid_tag)}")
+        \t\t)
+        \t\t(fp_rect
+        \t\t\t(start {fmt(-crty_x)} {fmt(-crty_y)})
+        \t\t\t(end {fmt(crty_x)} {fmt(crty_y)})
+        \t\t\t(stroke (width 0.05) (type solid))
+        \t\t\t(fill no)
+        \t\t\t(layer "F.CrtYd")
+        \t\t\t(uuid "{U('fp-crtyd:' + uuid_tag)}")
+        \t\t)
+        \t\t(pad "1" smd rect
+        \t\t\t(at {fmt(-pad_x)} 0{rot_clause})
+        \t\t\t(size {fmt(pad_w)} {fmt(pad_h)})
+        \t\t\t(layers "F.Cu" "F.Paste" "F.Mask")
+        \t\t\t(uuid "{U('fp-pad-1:' + uuid_tag)}")
+        \t\t)
+        \t\t(pad "2" smd rect
+        \t\t\t(at {fmt(+pad_x)} 0{rot_clause})
+        \t\t\t(size {fmt(pad_w)} {fmt(pad_h)})
+        \t\t\t(layers "F.Cu" "F.Paste" "F.Mask")
+        \t\t\t(uuid "{U('fp-pad-2:' + uuid_tag)}")
+        \t\t)
+        \t)""")
+
+
 def _daughterboard_body_content(
     body_w: float, body_l: float,
     pin_row_inset: float, pin_pitch: float, pin_count_per_row: int,
@@ -2816,6 +3304,28 @@ def gen_sensors_pcb_footprints() -> str:
         descr="Stock 1x8 P2.54 mm female pin socket. MIKROE-2462 plugs into this row + J7 (other row).",
         uuid_tag="j8-mikroe-row-b",
     ))
+
+    # AQI status LED ring (v0.16) — 12 × SK6812-SIDE on a Ø22 mm pitch
+    # circle around the central cable hole, each LED radiating outward
+    # into the AK-N-94 perforated cover. Plus one 100 nF 0402 decoupling
+    # cap per LED (C20..C31), sited radially inward from each LED so the
+    # cap pads are positioned near the corresponding VDD pad.
+    for i in range(LED_RING_COUNT):
+        led_x, led_y, led_rot = _led_ring_position(i)
+        led_ref = f"D{11 + i}"      # D11..D22 (D1..D5 used by power section)
+        parts.append(gen_sk6812_side_pcb_footprint(
+            x=led_x, y=led_y, rotation=led_rot,
+            reference=led_ref,
+            uuid_tag=f"led-ring-{led_ref}",
+        ))
+        cap_x, cap_y, cap_rot = _led_cap_position(i)
+        cap_ref = f"C{20 + i}"      # C20..C31
+        parts.append(gen_capacitor_0402_pcb_footprint(
+            x=cap_x, y=cap_y, rotation=cap_rot,
+            reference=cap_ref, value="100nF",
+            uuid_tag=f"led-ring-cap-{cap_ref}",
+            descr=f"100 nF 0402 X7R local decoupling for {led_ref} (AQI status ring).",
+        ))
     return "\n".join(parts)
 
 
@@ -2931,6 +3441,23 @@ def gen_silk_labels() -> str:
     mikroe_body_cy = MIKROE2462_ANCHOR_Y - MIKROE2462_BODY_L / 2.0
     parts.append(_silk("MIKROE-2462", mikroe_body_cx, mikroe_body_cy,
                        "mikroe-body", size=1.0))
+
+    # ---- v0.16: AQI status LED ring label ----
+    # Single board-level label identifying the SK6812-SIDE ring as the
+    # AQI status indicator. Placed just OUTSIDE the LED ring (radius
+    # 11 mm + ~4 mm offset = 15 mm) at angle 315° (top-right of the
+    # ring, in a quadrant that's empty of existing components). The
+    # label sits at PCB (15·cos 315°, 15·sin 315°) ≈ (+10.6, -10.6).
+    # Note: at angle 315° the LED ring has its D22 LED (last in
+    # chain, θ=330°), and there's empty PCB space around it.
+    aqi_label_r = 15.5
+    aqi_label_theta = math.radians(315.0)
+    parts.append(_silk(
+        "AQI ring",
+        aqi_label_r * math.cos(aqi_label_theta),
+        aqi_label_r * math.sin(aqi_label_theta),
+        "aqi-ring", size=1.0,
+    ))
 
     # ---- v0.7: cutout-zone reservation labels + outlines on F.SilkS ----
     # Each cutout C1..C5 along the chord is reserved for a future
@@ -3186,6 +3713,13 @@ SUBSHEET_PINS: dict[str, list[tuple[str, str, float, float, int]]] = {
         ("I2C_SCL",     "output",        0.0,  3.81, 180),
         ("LD2410_OUT",  "input",         0.0,  6.35, 180),
         ("NFC_FD",      "input",         0.0,  8.89, 180),
+        # v0.16: WS2812_DIN — MCU drives the SK6812-SIDE AQI status-LED
+        # ring (chain of 12 LEDs in sensors sub-sheet). GPIO 8 → first
+        # LED DIN. Exported as `output` from the MCU side. Placed on LEFT
+        # edge alongside the other sensor-bound nets; matched against the
+        # sensors sub-sheet's WS2812_DIN pin on the same edge for a
+        # symmetric inter-sheet wire route (mirrors the NFC_FD pattern).
+        ("WS2812_DIN",  "output",        0.0, 11.43, 180),
         ("UART_TX",     "output",        38.1, 1.27, 0),
         ("UART_RX",     "input",         38.1, 3.81, 0),
     ],
@@ -3205,6 +3739,8 @@ SUBSHEET_PINS: dict[str, list[tuple[str, str, float, float, int]]] = {
         ("UART_RX",     "output",        38.1, 11.43, 0),
         # chunk #5c: MIKROE-2462 NFC Tag 2 Click — field-detect interrupt.
         ("NFC_FD",      "output",         0.0,  6.35, 180),
+        # v0.16: AQI status-LED ring input.
+        ("WS2812_DIN",  "input",          0.0,  8.89, 180),
     ],
     "io": [],
 }
@@ -3413,6 +3949,15 @@ def gen_root_sch() -> str:
     inter_wires.append(_root_wire(50.8, 95.25, 44.45, 95.25, "nfc-fd-west-from-sensors"))
     inter_wires.append(_root_wire(44.45, 95.25, 44.45, 59.69, "nfc-fd-vertical"))
     inter_wires.append(_root_wire(44.45, 59.69, 101.60, 59.69, "nfc-fd-east-into-mcu"))
+    # v0.16 inter-sheet wire for WS2812_DIN.
+    # WS2812_DIN — sensors left-edge (50.8, 97.79) ↔ MCU left-edge
+    # (101.60, 62.23). Same routing topology as NFC_FD but using a
+    # parallel vertical leg at X=41.91 (one grid step west of the
+    # NFC_FD leg at X=44.45) and matching horizontal Y rows so the two
+    # nets stay visually separated.
+    inter_wires.append(_root_wire(50.8, 97.79, 41.91, 97.79, "ws2812-din-west-from-sensors"))
+    inter_wires.append(_root_wire(41.91, 97.79, 41.91, 62.23, "ws2812-din-vertical"))
+    inter_wires.append(_root_wire(41.91, 62.23, 101.60, 62.23, "ws2812-din-east-into-mcu"))
     wires_text = "\n".join(inter_wires)
 
     return textwrap.dedent(f"""\
@@ -9367,6 +9912,13 @@ ESP32C6_DEVKITM1_SIGNAL_PIN: dict[str, int] = {
     # OAS-routed GPIOs
     "LD2410_OUT" : 3,   # J1.3 = GPIO2 — safe non-strap input
     "NFC_FD"     : 4,   # J1.4 = GPIO3 — safe non-strap input
+    "WS2812_DIN" : 9,   # J1.9 = GPIO8 — drives SK6812-SIDE AQI ring DIN
+                        # (v0.16). Same GPIO as the DevKitM-1's onboard
+                        # NeoPixel; the onboard NeoPixel is unreachable in
+                        # deployed OAS units (it's wired to VCC_5V which
+                        # floats without USB), so this GPIO drives only
+                        # the external ring. See CLAUDE.md "OPEN ISSUE #2"
+                        # resolution in the v0.16 changelog.
     "I2C_SDA"    : 10,  # J1.10 = GPIO6
     "I2C_SCL"    : 11,  # J1.11 = GPIO7
     "UART_TX"    : 17,  # J3.2  = GPIO16 → LD2410 RX, 256000 baud
@@ -9381,8 +9933,12 @@ ESP32C6_DEVKITM1_SIGNAL_PIN: dict[str, int] = {
 # GND is handled separately: five GND pins (J1.13/15, J3.1/12/15)
 # all tie to the GND power-symbol net; they are NOT no-connect.
 # 5V (J1.14) is no-connect (we power the module from 3V3 only).
-# GPIO8 (J1.9) is no-connect (onboard RGB NeoPixel = our status LED,
-# software-driven; no external wire).
+# GPIO8 (J1.9) is now ROUTED to the WS2812_DIN net driving the external
+# SK6812-SIDE AQI status-LED ring (v0.16). The onboard DevKitM-1 NeoPixel
+# on the same GPIO is unreachable in deployed units (its VDD is tied to
+# VCC_5V which floats without USB), but the external ring on the OAS PCB
+# is driven from the LM2596S-derived +5V rail so it lights up regardless.
+# See CLAUDE.md "OPEN ISSUE #2" resolution in the v0.16 changelog.
 # All remaining unused GPIOs are no-connect.
 ESP32C6_DEVKITM1_NC_PINS: list[int] = [
     14,   # J1.14 = 5V       (powering via 3V3 pin; 5V unused)
@@ -9390,7 +9946,6 @@ ESP32C6_DEVKITM1_NC_PINS: list[int] = [
     6,    # J1.6  = GPIO5    (MTDI, unused)
     7,    # J1.7  = GPIO0    (unused)
     8,    # J1.8  = GPIO1    (unused)
-    9,    # J1.9  = GPIO8    (onboard RGB NeoPixel = status LED, no ext. wire)
     12,   # J1.12 = GPIO14   (unused)
     19,   # J3.4  = GPIO23   (unused)
     20,   # J3.5  = GPIO22   (unused)
@@ -11198,6 +11753,7 @@ def gen_mcu_sch() -> str:
     U3_RST_X,    U3_RST_Y    = pin_xy("RST")          # J1.2
     U3_LDR_X,    U3_LDR_Y    = pin_xy("LD2410_OUT")   # J1.3 GPIO2
     U3_NFC_X,    U3_NFC_Y    = pin_xy("NFC_FD")       # J1.4 GPIO3
+    U3_WS_X,     U3_WS_Y     = pin_xy("WS2812_DIN")   # J1.9 GPIO8 (v0.16)
     U3_SDA_X,    U3_SDA_Y    = pin_xy("I2C_SDA")      # J1.10 GPIO6
     U3_SCL_X,    U3_SCL_Y    = pin_xy("I2C_SCL")      # J1.11 GPIO7
     U3_TX_X,     U3_TX_Y     = pin_xy("UART_TX")      # J3.2  GPIO16
@@ -11337,6 +11893,9 @@ def gen_mcu_sch() -> str:
     parts.append(_sch_wire(U3_X_LEFT, U3_SCL_Y, HLABEL_LEFT_X, U3_SCL_Y, "scl-wire"))
     parts.append(_sch_wire(U3_X_LEFT, U3_LDR_Y, HLABEL_LEFT_X, U3_LDR_Y, "ldr-wire"))
     parts.append(_sch_wire(U3_X_LEFT, U3_NFC_Y, HLABEL_LEFT_X, U3_NFC_Y, "nfc-wire"))
+    # v0.16: WS2812_DIN signal wire — U3 GPIO 8 (J1.9) → WS2812_DIN hier
+    # label going to the sensors sub-sheet's SK6812-SIDE AQI ring chain.
+    parts.append(_sch_wire(U3_X_LEFT, U3_WS_Y, HLABEL_LEFT_X, U3_WS_Y, "ws2812-wire"))
 
     # ---- RST: U3.2 (J1.2) → local label "RST" ----
     # U3.2 pin tip is on the LEFT side at (139.70, 95.25). We tag the
@@ -11446,6 +12005,13 @@ def gen_mcu_sch() -> str:
         name="NFC_FD", shape="input",
         x=HLABEL_LEFT_X, y=U3_NFC_Y, angle=180, justify="right",
         uuid_tag="nfc-fd",
+    ))
+    # v0.16: WS2812_DIN — output to the sensors sub-sheet's SK6812-SIDE
+    # AQI status-LED ring (D11 first LED, then daisy-chain through D22).
+    parts.append(_sch_hierarchical_label(
+        name="WS2812_DIN", shape="output",
+        x=HLABEL_LEFT_X, y=U3_WS_Y, angle=180, justify="right",
+        uuid_tag="ws2812-din",
     ))
     parts.append(_sch_hierarchical_label(
         name="UART_TX", shape="output",
@@ -11574,6 +12140,276 @@ def gen_mcu_sch() -> str:
 # -----------------------------------------------------------------------------
 # 3d) Sensors sub-sheet — J3 (SEN66 JST-GH connector) + C10 decoupling cap
 # -----------------------------------------------------------------------------
+def _sk6812_side_lib_symbol() -> str:
+    """Project-local `OAS:SK6812-SIDE` schematic symbol.
+
+    Models the SK6812 SIDE-A LED with pin numbering matching the Normand /
+    OPSCO datasheet (1=DIN, 2=VDD, 3=DOUT, 4=GND) — DIFFERENT from KiCad's
+    stock `SK6812` symbol (which is the 5050 PLCC4 variant with a different
+    numbering). Per `hardware/components/sk6812-side.md`.
+
+    Geometry: square body 5.08 × 5.08 mm centered at the symbol anchor.
+    Pin tips on each of the 4 sides:
+        DIN  (pin 1, input)        — LEFT  edge,  at (-5.08, 0)
+        VDD  (pin 2, power_in)     — TOP   edge,  at ( 0, -5.08)
+        DOUT (pin 3, output)       — RIGHT edge,  at (+5.08, 0)
+        GND  (pin 4, power_in)     — BOTTOM edge, at ( 0, +5.08)
+    Each pin extends 2.54 mm from its body edge outward — standard 100-mil
+    pin-tip extension. Total pin tip span is 10.16 mm.
+
+    Indented to 2 tabs deep so the result drops straight into a sub-sheet's
+    `(lib_symbols ...)` block.
+    """
+    return textwrap.dedent("""\
+        \t\t(symbol "OAS:SK6812-SIDE"
+        \t\t\t(pin_names
+        \t\t\t\t(offset 0.508)
+        \t\t\t\t(hide yes)
+        \t\t\t)
+        \t\t\t(exclude_from_sim no)
+        \t\t\t(in_bom yes)
+        \t\t\t(on_board yes)
+        \t\t\t(in_pos_files yes)
+        \t\t\t(duplicate_pin_numbers_are_jumpers no)
+        \t\t\t(property "Reference" "D"
+        \t\t\t\t(at 0 -6.35 0)
+        \t\t\t\t(show_name no)
+        \t\t\t\t(do_not_autoplace no)
+        \t\t\t\t(effects
+        \t\t\t\t\t(font
+        \t\t\t\t\t\t(size 1.27 1.27)
+        \t\t\t\t\t)
+        \t\t\t\t)
+        \t\t\t)
+        \t\t\t(property "Value" "SK6812-SIDE"
+        \t\t\t\t(at 0 6.35 0)
+        \t\t\t\t(show_name no)
+        \t\t\t\t(do_not_autoplace no)
+        \t\t\t\t(effects
+        \t\t\t\t\t(font
+        \t\t\t\t\t\t(size 1.27 1.27)
+        \t\t\t\t\t)
+        \t\t\t\t)
+        \t\t\t)
+        \t\t\t(property "Footprint" "oas:SK6812-SIDE"
+        \t\t\t\t(at 0 0 0)
+        \t\t\t\t(show_name no)
+        \t\t\t\t(do_not_autoplace no)
+        \t\t\t\t(hide yes)
+        \t\t\t\t(effects
+        \t\t\t\t\t(font
+        \t\t\t\t\t\t(size 1.27 1.27)
+        \t\t\t\t\t)
+        \t\t\t\t)
+        \t\t\t)
+        \t\t\t(property "Datasheet" "http://www.normandled.com/upload/201810/SK6812%20SIDE-A%20LED%20Datasheet.pdf"
+        \t\t\t\t(at 0 0 0)
+        \t\t\t\t(show_name no)
+        \t\t\t\t(do_not_autoplace no)
+        \t\t\t\t(hide yes)
+        \t\t\t\t(effects
+        \t\t\t\t\t(font
+        \t\t\t\t\t\t(size 1.27 1.27)
+        \t\t\t\t\t)
+        \t\t\t\t)
+        \t\t\t)
+        \t\t\t(property "Description" "SK6812 SIDE-A 4020 side-emit addressable RGB LED. Pinout 1=DIN, 2=VDD, 3=DOUT, 4=GND (Normand / OPSCO datasheets)."
+        \t\t\t\t(at 0 0 0)
+        \t\t\t\t(show_name no)
+        \t\t\t\t(do_not_autoplace no)
+        \t\t\t\t(hide yes)
+        \t\t\t\t(effects
+        \t\t\t\t\t(font
+        \t\t\t\t\t\t(size 1.27 1.27)
+        \t\t\t\t\t)
+        \t\t\t\t)
+        \t\t\t)
+        \t\t\t(symbol "SK6812-SIDE_0_1"
+        \t\t\t\t(rectangle
+        \t\t\t\t\t(start -2.54 -2.54)
+        \t\t\t\t\t(end 2.54 2.54)
+        \t\t\t\t\t(stroke
+        \t\t\t\t\t\t(width 0.254)
+        \t\t\t\t\t\t(type default)
+        \t\t\t\t\t)
+        \t\t\t\t\t(fill
+        \t\t\t\t\t\t(type background)
+        \t\t\t\t\t)
+        \t\t\t\t)
+        \t\t\t\t(text "RGB"
+        \t\t\t\t\t(at 0 0 0)
+        \t\t\t\t\t(effects
+        \t\t\t\t\t\t(font
+        \t\t\t\t\t\t\t(size 0.8 0.8)
+        \t\t\t\t\t\t)
+        \t\t\t\t\t)
+        \t\t\t\t)
+        \t\t\t)
+        \t\t\t(symbol "SK6812-SIDE_1_1"
+        \t\t\t\t(pin input line
+        \t\t\t\t\t(at -5.08 0 0)
+        \t\t\t\t\t(length 2.54)
+        \t\t\t\t\t(name "DIN"
+        \t\t\t\t\t\t(effects
+        \t\t\t\t\t\t\t(font
+        \t\t\t\t\t\t\t\t(size 1.27 1.27)
+        \t\t\t\t\t\t\t)
+        \t\t\t\t\t\t)
+        \t\t\t\t\t)
+        \t\t\t\t\t(number "1"
+        \t\t\t\t\t\t(effects
+        \t\t\t\t\t\t\t(font
+        \t\t\t\t\t\t\t\t(size 1.27 1.27)
+        \t\t\t\t\t\t\t)
+        \t\t\t\t\t\t)
+        \t\t\t\t\t)
+        \t\t\t\t)
+        \t\t\t\t(pin power_in line
+        \t\t\t\t\t(at 0 5.08 270)
+        \t\t\t\t\t(length 2.54)
+        \t\t\t\t\t(name "VDD"
+        \t\t\t\t\t\t(effects
+        \t\t\t\t\t\t\t(font
+        \t\t\t\t\t\t\t\t(size 1.27 1.27)
+        \t\t\t\t\t\t\t)
+        \t\t\t\t\t\t)
+        \t\t\t\t\t)
+        \t\t\t\t\t(number "2"
+        \t\t\t\t\t\t(effects
+        \t\t\t\t\t\t\t(font
+        \t\t\t\t\t\t\t\t(size 1.27 1.27)
+        \t\t\t\t\t\t\t)
+        \t\t\t\t\t\t)
+        \t\t\t\t\t)
+        \t\t\t\t)
+        \t\t\t\t(pin output line
+        \t\t\t\t\t(at 5.08 0 180)
+        \t\t\t\t\t(length 2.54)
+        \t\t\t\t\t(name "DOUT"
+        \t\t\t\t\t\t(effects
+        \t\t\t\t\t\t\t(font
+        \t\t\t\t\t\t\t\t(size 1.27 1.27)
+        \t\t\t\t\t\t\t)
+        \t\t\t\t\t\t)
+        \t\t\t\t\t)
+        \t\t\t\t\t(number "3"
+        \t\t\t\t\t\t(effects
+        \t\t\t\t\t\t\t(font
+        \t\t\t\t\t\t\t\t(size 1.27 1.27)
+        \t\t\t\t\t\t\t)
+        \t\t\t\t\t\t)
+        \t\t\t\t\t)
+        \t\t\t\t)
+        \t\t\t\t(pin power_in line
+        \t\t\t\t\t(at 0 -5.08 90)
+        \t\t\t\t\t(length 2.54)
+        \t\t\t\t\t(name "GND"
+        \t\t\t\t\t\t(effects
+        \t\t\t\t\t\t\t(font
+        \t\t\t\t\t\t\t\t(size 1.27 1.27)
+        \t\t\t\t\t\t\t)
+        \t\t\t\t\t\t)
+        \t\t\t\t\t)
+        \t\t\t\t\t(number "4"
+        \t\t\t\t\t\t(effects
+        \t\t\t\t\t\t\t(font
+        \t\t\t\t\t\t\t\t(size 1.27 1.27)
+        \t\t\t\t\t\t\t)
+        \t\t\t\t\t\t)
+        \t\t\t\t\t)
+        \t\t\t\t)
+        \t\t\t)
+        \t\t)""")
+
+
+def _sch_sk6812_side(
+    *, x: float, y: float, reference: str, value: str, uuid_tag: str,
+    sheet_key: str = "sensors",
+) -> str:
+    """Emit an OAS:SK6812-SIDE symbol instance.
+
+    With angle=0 and the lib-symbol geometry above, pin tip positions are:
+      Pin 1 DIN  (LEFT):  (x - 5.08, y)
+      Pin 2 VDD  (TOP):   (x, y - 5.08)
+      Pin 3 DOUT (RIGHT): (x + 5.08, y)
+      Pin 4 GND  (BOT):   (x, y + 5.08)
+    Reference text sits 7.62 mm north, Value 7.62 mm south.
+    """
+    sym_uuid = U("sym:" + uuid_tag)
+    pin_uuids = [U(f"sym-pin:{uuid_tag}-{n}") for n in range(1, 5)]
+    sheet_path = f"/{ROOT_SHEET_UUID}/{SHEET_BLOCK_UUIDS[sheet_key]}"
+    pin_blocks = "\n".join(
+        f"\t\t(pin \"{n}\"\n\t\t\t(uuid \"{pin_uuids[n-1]}\")\n\t\t)"
+        for n in range(1, 5)
+    )
+    return textwrap.dedent(f"""\
+        \t(symbol
+        \t\t(lib_id "OAS:SK6812-SIDE")
+        \t\t(at {fmt(x)} {fmt(y)} 0)
+        \t\t(unit 1)
+        \t\t(exclude_from_sim no)
+        \t\t(in_bom yes)
+        \t\t(on_board yes)
+        \t\t(dnp no)
+        \t\t(fields_autoplaced yes)
+        \t\t(uuid "{sym_uuid}")
+        \t\t(property "Reference" "{reference}"
+        \t\t\t(at {fmt(x + 5.08)} {fmt(y - 6.35)} 0)
+        \t\t\t(effects
+        \t\t\t\t(font
+        \t\t\t\t\t(size 1.27 1.27)
+        \t\t\t\t)
+        \t\t\t\t(justify left)
+        \t\t\t)
+        \t\t)
+        \t\t(property "Value" "{value}"
+        \t\t\t(at {fmt(x + 5.08)} {fmt(y + 6.35)} 0)
+        \t\t\t(effects
+        \t\t\t\t(font
+        \t\t\t\t\t(size 1.27 1.27)
+        \t\t\t\t)
+        \t\t\t\t(justify left)
+        \t\t\t)
+        \t\t)
+        \t\t(property "Footprint" "oas:SK6812-SIDE"
+        \t\t\t(at {fmt(x)} {fmt(y)} 0)
+        \t\t\t(effects
+        \t\t\t\t(font
+        \t\t\t\t\t(size 1.27 1.27)
+        \t\t\t\t)
+        \t\t\t\t(hide yes)
+        \t\t\t)
+        \t\t)
+        \t\t(property "Datasheet" "http://www.normandled.com/upload/201810/SK6812%20SIDE-A%20LED%20Datasheet.pdf"
+        \t\t\t(at {fmt(x)} {fmt(y)} 0)
+        \t\t\t(effects
+        \t\t\t\t(font
+        \t\t\t\t\t(size 1.27 1.27)
+        \t\t\t\t)
+        \t\t\t\t(hide yes)
+        \t\t\t)
+        \t\t)
+        \t\t(property "Description" "SK6812 SIDE-A 4020 side-emit addressable RGB LED (Normand / OPSCO). Pinout 1=DIN, 2=VDD, 3=DOUT, 4=GND."
+        \t\t\t(at {fmt(x)} {fmt(y)} 0)
+        \t\t\t(effects
+        \t\t\t\t(font
+        \t\t\t\t\t(size 1.27 1.27)
+        \t\t\t\t)
+        \t\t\t\t(hide yes)
+        \t\t\t)
+        \t\t)
+        {pin_blocks}
+        \t\t(instances
+        \t\t\t(project "oas"
+        \t\t\t\t(path "{sheet_path}"
+        \t\t\t\t\t(reference "{reference}")
+        \t\t\t\t\t(unit 1)
+        \t\t\t\t)
+        \t\t\t)
+        \t\t)
+        \t)""")
+
+
 def SENSORS_LIB_SYMBOLS() -> str:
     """Concatenated lib_symbols block for the sensors sub-sheet.
 
@@ -11614,6 +12450,9 @@ def SENSORS_LIB_SYMBOLS() -> str:
                                lib_nickname="Connector_Generic"),
         _read_kicad_lib_symbol("power.kicad_sym", "+5V",
                                lib_nickname="power"),
+        # v0.16: project-local SK6812-SIDE symbol for the AQI status-LED
+        # ring (chunk #5d below).
+        _sk6812_side_lib_symbol(),
     ])
     return _MCU_LIB_SYMBOLS_TAIL + "\n" + extras
 
@@ -12212,6 +13051,174 @@ def gen_sensors_sch() -> str:
         sheet_key="sensors",
     ))
 
+    # =========================================================================
+    # chunk #5d (v0.16) — AQI status-LED ring (12 × SK6812-SIDE + 12 × 100 nF)
+    # =========================================================================
+    # 12 SK6812 SIDE-A LEDs (D11..D22) form a ring around the central
+    # cable hole on the PCB, all driven from MCU GPIO 8 (WS2812_DIN net)
+    # in a daisy chain. Each LED has a 100 nF 0402 decoupling cap
+    # (C20..C31) bridging its VDD ↔ GND locally. The PCB places them on
+    # a Ø22 mm pitch circle around the cable hole; the schematic lays
+    # them out as a tidy vertical column for legibility.
+    #
+    # Pin layout per Normand SK6812 SIDE-A datasheet (verified in
+    # hardware/components/sk6812-side.md): 1=DIN, 2=VDD, 3=DOUT, 4=GND.
+    # Each LED's DOUT (pin 3, RIGHT edge of symbol) → next LED's DIN
+    # (pin 1, LEFT edge of symbol). VDD (pin 2, TOP edge) → local +5V
+    # flag. GND (pin 4, BOTTOM edge) → local GND flag. The decoupling
+    # cap (Device:C) sits to the EAST of each LED with its pin 1 on +5V
+    # (above the cap, tying to the SAME local +5V power flag that feeds
+    # the LED) and pin 2 on GND (below the cap, tying to the local GND
+    # flag). Cap bridges the LED's supply locally.
+    #
+    # Layout: D11 at the TOP, D22 at the BOTTOM, vertically stacked at
+    # X=40.64 with LED_RING_SCH_ROW_PITCH per-LED row pitch (enough for
+    # the LED symbol's ±5.08 mm body + ±3.81 mm cap + power flag clearance).
+    LED_RING_SCH_X = 40.64
+    LED_RING_SCH_Y_START = 60.96
+    LED_RING_SCH_ROW_PITCH = 25.40       # enough headroom for LED body
+                                          # (±5.08 + ref/value text) + +5V
+                                          # flag above (≥3.81) + chain wire
+                                          # below + 2.54 mm visual breathing
+    LED_RING_HLABEL_X = 27.94            # west of LED.DIN tip (X - 5.08 = 35.56)
+    CHAIN_VERT_X = LED_RING_HLABEL_X + 1.27  # 29.21 — col for DOUT→DIN
+                                               # chain bends. West of all
+                                               # LED bodies (DIN tips at
+                                               # 35.56, DOUT tips at 45.72).
+    # Track the DOUT (pin 3) tip of the previous LED so we can wire it
+    # to the current LED's DIN (pin 1) on each iteration.
+    prev_dout_x: float | None = None
+    prev_dout_y: float | None = None
+    for i in range(LED_RING_COUNT):
+        led_ref = f"D{11 + i}"
+        cap_ref = f"C{20 + i}"
+        led_sch_x = LED_RING_SCH_X
+        led_sch_y = LED_RING_SCH_Y_START + i * LED_RING_SCH_ROW_PITCH
+        # SK6812-SIDE symbol pin tip positions.
+        din_x  = led_sch_x - 5.08      # pin 1 LEFT tip
+        din_y  = led_sch_y
+        vdd_x  = led_sch_x             # pin 2 TOP tip
+        vdd_y  = led_sch_y - 5.08
+        dout_x = led_sch_x + 5.08      # pin 3 RIGHT tip
+        dout_y = led_sch_y
+        gnd_x  = led_sch_x             # pin 4 BOTTOM tip
+        gnd_y  = led_sch_y + 5.08
+
+        # ---- DIN: from previous LED's DOUT, or (D11) from the WS2812_DIN
+        #      hierarchical label going up to the MCU sub-sheet.
+        if i == 0:
+            parts.append(_sch_wire(LED_RING_HLABEL_X, din_y, din_x, din_y,
+                                    f"led-{led_ref}-din-from-hlabel"))
+            parts.append(_sch_hierarchical_label(
+                name="WS2812_DIN", shape="input",
+                x=LED_RING_HLABEL_X, y=din_y, angle=180, justify="right",
+                uuid_tag="ws2812-din-ring",
+            ))
+        else:
+            assert prev_dout_x is not None and prev_dout_y is not None
+            # 5-segment route to avoid passing horizontally through the
+            # next LED's body (which would short DIN↔DOUT on that LED via
+            # the pass-through wire). prev DOUT goes:
+            #   1) SOUTH from prev_dout_y to a mid-row Y between the two LEDs
+            #   2) WEST to CHAIN_VERT_X
+            #   3) SOUTH to din_y
+            #   4) EAST to din_x
+            mid_y = (prev_dout_y + din_y) / 2.0
+            parts.append(_sch_wire(prev_dout_x, prev_dout_y, prev_dout_x, mid_y,
+                                    f"led-{led_ref}-chain-south1"))
+            parts.append(_sch_wire(prev_dout_x, mid_y, CHAIN_VERT_X, mid_y,
+                                    f"led-{led_ref}-chain-west"))
+            parts.append(_sch_wire(CHAIN_VERT_X, mid_y, CHAIN_VERT_X, din_y,
+                                    f"led-{led_ref}-chain-south2"))
+            parts.append(_sch_wire(CHAIN_VERT_X, din_y, din_x, din_y,
+                                    f"led-{led_ref}-chain-east"))
+
+        # ---- VDD (pin 2, TOP): wire UP to a local +5V power flag ----
+        pwr_vdd_y = vdd_y - 3.81
+        parts.append(_sch_wire(vdd_x, pwr_vdd_y, vdd_x, vdd_y,
+                                f"led-{led_ref}-vdd-up"))
+        parts.append(_sch_power_flag(
+            lib_id="power:+5V", value="+5V",
+            x=vdd_x, y=pwr_vdd_y, angle=0,
+            reference=f"#PWR_LED_5V_{led_ref}",
+            value_offset_x=0.0, value_offset_y=-3.556,
+            uuid_tag=f"pwr-5v-led-{led_ref}",
+            sheet_key="sensors",
+        ))
+
+        # ---- GND (pin 4, BOTTOM): wire DOWN to a local GND power flag ----
+        pwr_gnd_y = gnd_y + 3.81
+        parts.append(_sch_wire(gnd_x, gnd_y, gnd_x, pwr_gnd_y,
+                                f"led-{led_ref}-gnd-down"))
+        parts.append(_sch_power_flag(
+            lib_id="power:GND", value="GND",
+            x=gnd_x, y=pwr_gnd_y, angle=0,
+            reference=f"#PWR_LED_GND_{led_ref}",
+            value_offset_x=0.0, value_offset_y=3.81,
+            uuid_tag=f"pwr-gnd-led-{led_ref}",
+            sheet_key="sensors",
+        ))
+
+        # ---- Decoupling cap (C20+i): bridges +5V ↔ GND just east of LED.
+        # Cap body center at (vdd_x + 6.35, led_sch_y). With Device:C
+        # angle=0, pin 1 (top) lands at (cap_x, led_sch_y - 3.81),
+        # pin 2 (bottom) at (cap_x, led_sch_y + 3.81).
+        cap_x = vdd_x + 6.35
+        cap_y = led_sch_y
+        cap_top_y = cap_y - 3.81
+        cap_bot_y = cap_y + 3.81
+        # Cap top → +5V flag (separate from the LED's +5V flag; KiCad
+        # collapses both into the global +5V net).
+        cap_5v_y = cap_top_y - 3.81
+        parts.append(_sch_wire(cap_x, cap_5v_y, cap_x, cap_top_y,
+                                f"led-{led_ref}-cap-top-5v"))
+        parts.append(_sch_power_flag(
+            lib_id="power:+5V", value="+5V",
+            x=cap_x, y=cap_5v_y, angle=0,
+            reference=f"#PWR_CAP_5V_{cap_ref}",
+            value_offset_x=0.0, value_offset_y=-3.556,
+            uuid_tag=f"pwr-5v-cap-{cap_ref}",
+            sheet_key="sensors",
+        ))
+        # Cap bottom → GND flag.
+        cap_gnd_y = cap_bot_y + 3.81
+        parts.append(_sch_wire(cap_x, cap_bot_y, cap_x, cap_gnd_y,
+                                f"led-{led_ref}-cap-bot-gnd"))
+        parts.append(_sch_power_flag(
+            lib_id="power:GND", value="GND",
+            x=cap_x, y=cap_gnd_y, angle=0,
+            reference=f"#PWR_CAP_GND_{cap_ref}",
+            value_offset_x=0.0, value_offset_y=3.81,
+            uuid_tag=f"pwr-gnd-cap-{cap_ref}",
+            sheet_key="sensors",
+        ))
+
+        # ---- LED + cap symbol instances ----
+        parts.append(_sch_sk6812_side(
+            x=led_sch_x, y=led_sch_y,
+            reference=led_ref,
+            value="SK6812-SIDE",
+            uuid_tag=f"led-ring-{led_ref}",
+            sheet_key="sensors",
+        ))
+        parts.append(_sch_capacitor(
+            lib_id="Device:C",
+            x=cap_x, y=cap_y, angle=0,
+            reference=cap_ref, value="100nF",
+            uuid_tag=f"led-ring-cap-{cap_ref}",
+            sheet_key="sensors",
+        ))
+
+        # Save DOUT for the next iteration's chain wire.
+        prev_dout_x, prev_dout_y = dout_x, dout_y
+
+    # D22 DOUT is intentionally unconnected (last link in the chain).
+    # KiCad's SK6812-SIDE symbol pin 3 is `output` shape so KiCad will
+    # warn "pin not driven" if we don't place a no_connect marker. Add
+    # one matching the last LED's DOUT tip.
+    if prev_dout_x is not None and prev_dout_y is not None:
+        parts.append(_sch_no_connect(prev_dout_x, prev_dout_y, "led-ring-dout-end"))
+
     body = "\n".join(parts)
     return textwrap.dedent(f"""\
         (kicad_sch
@@ -12438,23 +13445,30 @@ def gen_oas_symbol_library() -> str:
     the sym-lib-table. The embedded copy in mcu.kicad_sch is what gets
     rendered; this file exists primarily to silence the
     `lib_symbol_issues` ERC warning on U3.
+
+    v0.16 adds `OAS:SK6812-SIDE` for the AQI status-LED ring (D11..D22).
     """
-    body = _esp32c6_devkitm1_lib_symbol()
-    # `_esp32c6_devkitm1_lib_symbol()` returns content indented with two
-    # leading tabs (one tab inside the schematic, one inside lib_symbols).
-    # In a standalone .kicad_sym file the (symbol ...) blocks are nested
-    # ONCE inside (kicad_symbol_lib ...), so we strip one tab from each
+    bodies = [
+        _esp32c6_devkitm1_lib_symbol(),
+        _sk6812_side_lib_symbol(),
+    ]
+    # The two helpers return content indented with two leading tabs (one
+    # tab inside the schematic file, one inside `lib_symbols`). In the
+    # standalone `.kicad_sym` file the `(symbol ...)` blocks are nested
+    # ONCE inside `(kicad_symbol_lib ...)`, so strip one tab from each
     # line.
-    body_one_tab = "\n".join(
-        (line[1:] if line.startswith("\t") else line)
-        for line in body.split("\n")
-    )
+    def _strip_one_tab(s: str) -> str:
+        return "\n".join(
+            (line[1:] if line.startswith("\t") else line)
+            for line in s.split("\n")
+        )
+    body_text = "\n".join(_strip_one_tab(b) for b in bodies)
     return textwrap.dedent("""\
         (kicad_symbol_lib
         \t(version 20251024)
         \t(generator "kicad_symbol_editor")
         \t(generator_version "10.0")
-        """) + body_one_tab + "\n)\n"
+        """) + body_text + "\n)\n"
 
 # -----------------------------------------------------------------------------
 # Write everything
@@ -12506,6 +13520,9 @@ def main():
         ),
         encoding="utf-8",
     )
+    (HERE / "libraries" / "oas.pretty" / "SK6812-SIDE.kicad_mod").write_text(
+        gen_sk6812_side_footprint(), encoding="utf-8",
+    )
     (HERE / "oas.kicad_pcb").write_text(gen_pcb(), encoding="utf-8")
     (HERE / "oas.kicad_sch").write_text(gen_root_sch(), encoding="utf-8")
     for name in SUBSHEETS:
@@ -12552,6 +13569,7 @@ def main():
         "libraries/oas.pretty/LD2410_Mechanical_Reference.kicad_mod",
         "libraries/oas.pretty/ESP32-C6-DevKitM-1_Reference.kicad_mod",
         "libraries/oas.pretty/MIKROE-2462_Reference.kicad_mod",
+        "libraries/oas.pretty/SK6812-SIDE.kicad_mod",
     ]:
         full = HERE / p
         print(f"  {p}  ({full.stat().st_size} bytes)")
