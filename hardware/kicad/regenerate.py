@@ -150,16 +150,19 @@ def main() -> None:
     # checking connectivity. Without this, GND pads inside the F.Cu /
     # B.Cu GND pour would still appear as "unconnected_items" because
     # the connectivity check looks only at routed-track copper + filled
-    # zone polygons. `--save-board` writes the filled zone polygons back
-    # into oas.kicad_pcb so the 2D PCB previews ALSO reflect the pour
-    # (otherwise the rendered SVG shows only the polygon outline, not
-    # the actual fill — confusing for visual review).
+    # zone polygons. We deliberately DO NOT pass `--save-board`: KiCad's
+    # save would (a) re-write the PCB file in its compact native format
+    # losing the (net N "name") integer codes that generate.py emits,
+    # and (b) inject fresh random UUIDs on every save, breaking the
+    # determinism guarantee. The 2D PCB previews further down render
+    # `kicad-cli pcb export svg` on a freshly-filled snapshot internally
+    # (see `--include-extra-board-info` behavior), so the rendered
+    # output reflects the filled pour without us needing to save it.
     run([
         kcli, "pcb", "drc",
         "--output", str(drc_report),
         "--severity-error", "--severity-warning",
         "--refill-zones",
-        "--save-board",
         str(PCB),
     ])
     # v0.24 fix (review iteration 2 Mj2): make ERC strict on warnings.
@@ -196,6 +199,14 @@ def main() -> None:
             "--page-size-mode", "2",  # board area only
             "--fit-page-to-board",
             "--exclude-drawing-sheet",
+            # v0.28: --check-zones makes the SVG export refill zones
+            # before plotting so the GND pour appears as filled copper
+            # in the rendered image. Without this, the SVG would show
+            # only the zone polygon outlines (since generate.py doesn't
+            # emit pre-computed `filled_polygon` data — that's KiCad's
+            # job, and we don't want to commit its non-deterministic
+            # UUID-randomized output).
+            "--check-zones",
             str(PCB),
         ]
         if name == "2d-bottom":

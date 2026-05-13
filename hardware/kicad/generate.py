@@ -17809,6 +17809,12 @@ def _apply_schematic_footprints(content: str, ref_to_fp: dict[str, str]) -> str:
 # Final state (v0.28e) routes every chunk.
 ROUTING_CHUNKS: tuple[str, ...] = (
     "gnd",        # Chunk 1 — F.Cu + B.Cu GND copper pour
+    # The rest of the v0.28 chunks (local-decoupling, LED-ring power,
+    # I²C/UART/GPIO, long-distance power) require obstacle-aware path
+    # planning that is beyond what naive direct/Manhattan emitters can
+    # achieve without DRC violations. Deferred to a follow-up that uses
+    # either an external auto-router (e.g. Freerouting) or per-net
+    # hand-planned paths. See CLAUDE.md v0.28 changelog.
 )
 
 
@@ -17921,14 +17927,24 @@ def _routing_pad_db() -> tuple[dict, dict]:
                         continue
                     lx = float(m_pat.group(1))
                     ly = float(m_pat.group(2))
-                    # Net assignment
+                    # Net assignment. Generate.py emits the legacy
+                    # `(net <code> "<name>")` format; `kicad-cli pcb drc
+                    # --save-board` re-saves the file in KiCad 10's new
+                    # compact `(net "<name>")` format (no integer code on
+                    # pads, integer codes carried only by the header
+                    # `(net N "<name>")` table). Handle both.
                     m_net = re.search(r'\(net\s+(\d+)\s+"([^"]*)"\)', pad_block)
                     if m_net:
                         net_code = int(m_net.group(1))
                         net_name = m_net.group(2)
                     else:
-                        net_code = 0
-                        net_name = ""
+                        m_net2 = re.search(r'\(net\s+"([^"]*)"\)', pad_block)
+                        if m_net2:
+                            net_code = 0   # filled later via _net_code()
+                            net_name = m_net2.group(1)
+                        else:
+                            net_code = 0
+                            net_name = ""
                     # Compute global position via rotation + translation
                     a = math.radians(fp_ang)
                     ca, sa = math.cos(a), math.sin(a)
