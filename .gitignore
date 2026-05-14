@@ -45,6 +45,25 @@ hardware/kicad/oas_drc_violations.json
 # but DRC/ERC text reports (prefixed `_`) are not.
 hardware/kicad/renders/_*
 
+# Production gerber export (regenerable from generate.py via export_production.py;
+# never source-of-truth — a specific snapshot may be committed manually when
+# sending to fab, but day-to-day regenerations should not appear in git diff)
+hardware/gerbers/*.gtl
+hardware/gerbers/*.gbl
+hardware/gerbers/*.gts
+hardware/gerbers/*.gbs
+hardware/gerbers/*.gto
+hardware/gerbers/*.gbo
+hardware/gerbers/*.gtp
+hardware/gerbers/*.gbp
+hardware/gerbers/*.gm1
+hardware/gerbers/*.gbrjob
+hardware/gerbers/*.drl
+hardware/gerbers/*-drl_map.pdf
+hardware/gerbers/*-pos.csv
+hardware/gerbers/oas-bom.csv
+hardware/gerbers/oas-jlcpcb.zip
+
 # ESPHome ########
 .esphome/
 firmware/esphome/.esphome/
