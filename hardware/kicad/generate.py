@@ -6107,7 +6107,7 @@ def gen_pcb() -> str:
     setup = textwrap.dedent(f"""\
         \t(setup
         {stackup}
-        \t\t(pad_to_mask_clearance 0)
+        \t\t(pad_to_mask_clearance 0.05)
         \t\t(allow_soldermask_bridges_in_footprints no)
         \t\t(tenting front back)
         \t\t(aux_axis_origin {fmt(PAGE_CENTRE_X)} {fmt(PAGE_CENTRE_Y)})
@@ -16664,6 +16664,13 @@ def gen_pro() -> str:
                     "allow_blind_buried_vias": False,
                     "allow_microvias": False,
                     "max_error": 0.005,
+                    # v0.39: kept at 0.15 mm (KiCad-clean). JLCPCB's DFM
+                    # scanner warned about 4 sub-0.20 mm clearances in v0.34,
+                    # but their fab capability IS 0.15 mm - the warning is a
+                    # yield hint, not a defect. Bumping to 0.20 mm would
+                    # trigger 121 DRC violations + require re-routing every
+                    # autoroute-packed trace. Cost is not justified for the
+                    # 5-prototype quantity.
                     "min_clearance": 0.15,
                     "min_connection": 0.0,
                     "min_copper_edge_clearance": 0.3,
@@ -16684,7 +16691,11 @@ def gen_pro() -> str:
                     # future high-current GND pad (e.g. >2 A continuous)
                     # is added.
                     "min_resolved_spokes": 1,
-                    "min_silk_clearance": 0.15,
+                    # v0.39: JLCPCB DFM wants silk-to-pad clearance >= 0.20 mm.
+                    # Bumping this rule causes DRC to enumerate every silk
+                    # drawing closer than 0.20 mm to a pad - those are
+                    # exactly the 17 occurrences the DFM scanner flagged.
+                    "min_silk_clearance": 0.20,
                     "min_text_height": 1.0,
                     "min_text_thickness": 0.15,
                     "min_through_hole_diameter": 0.3,
@@ -19544,6 +19555,113 @@ def _net_code(nets: dict, name: str) -> int | None:
     return cache.get(name)
 
 
+# v0.39: JLCPCB DFM "silkscreen line width" minimum is 0.15 mm. The stock
+# KiCad libraries (Connector_PinSocket, PinHeader, Phoenix MSTBA, etc.)
+# emit silk frames at 0.12 mm by default - safely below KiCad's own DRC
+# minimum_silkscreen_clearance rule (which only checks pad-to-silk
+# clearance, not line width itself), but flagged by JLCPCB's DFM scanner
+# as 50 "Silkscreen line width" warnings at 0.12 mm. The post-process
+# below walks every silk-layer drawing record in the freshly-emitted
+# oas.kicad_pcb and lifts any (stroke (width X)) where X < 0.15 to 0.15.
+#
+# Text (fp_text / gr_text) carries its stroke in (effects (font
+# (thickness T))) and our generators already emit 0.15 there (verified
+# by audit). The post-process touches that field too for safety - if
+# any stock-library footprint emits text at thinner thickness it gets
+# normalized in the same pass.
+SILK_MIN_STROKE_MM = 0.15
+SILK_DRAWING_KINDS = (
+    "fp_line", "fp_arc", "fp_circle", "fp_poly", "fp_rect", "fp_text",
+    "gr_line", "gr_arc", "gr_circle", "gr_poly", "gr_rect", "gr_text",
+)
+
+
+def _lift_silk_line_widths(min_mm: float = SILK_MIN_STROKE_MM) -> int:
+    """Read `oas.kicad_pcb`, walk every silk-layer drawing block, and
+    rewrite any `(stroke (width X))` / `(thickness T)` clause whose
+    value is below `min_mm`. Returns the count of lifted strokes.
+
+    Uses depth-counting parse for block extraction (same pattern as
+    `_apply_schematic_footprints`). Layer detection is by the FIRST
+    `(layer "...")` inside the block - drawing records have at most one
+    layer clause and it's always at the same depth as the geometry."""
+    import re
+
+    pcb_path = HERE / "oas.kicad_pcb"
+    text = pcb_path.read_text(encoding="utf-8")
+    n = len(text)
+    out_parts: list[str] = []
+    cursor = 0
+    lifted = 0
+
+    # Pre-build a regex that finds the start of every drawing block.
+    # Each kind starts with `(<kind>` followed by whitespace, `(`, or
+    # newline. Use a single alternation to walk all matches in source
+    # order so we keep the output deterministic across runs.
+    kinds_alt = "|".join(re.escape(k) for k in SILK_DRAWING_KINDS)
+    starter = re.compile(r"\((?:" + kinds_alt + r")(?=[\s(])")
+
+    for m in starter.finditer(text):
+        idx = m.start()
+        if idx < cursor:
+            # Skip if we've already consumed past this match (shouldn't
+            # happen since each finditer match starts at a distinct
+            # position, but defensive).
+            continue
+        out_parts.append(text[cursor:idx])
+        depth = 0
+        j = idx
+        while j < n:
+            ch = text[j]
+            if ch == "(":
+                depth += 1
+            elif ch == ")":
+                depth -= 1
+                if depth == 0:
+                    j += 1
+                    break
+            j += 1
+        block = text[idx:j]
+        # Find the block's layer. Skip non-silk.
+        m_layer = re.search(r'\(layer\s+"([^"]+)"', block)
+        layer = m_layer.group(1) if m_layer else None
+        if layer in ("F.SilkS", "B.SilkS"):
+            # Lift (stroke (width X)) if X < min.
+            def _lift_stroke(mm: re.Match) -> str:
+                nonlocal lifted
+                w = float(mm.group(1))
+                if w < min_mm:
+                    lifted += 1
+                    return f"(stroke (width {min_mm})"
+                return mm.group(0)
+            block = re.sub(
+                r'\(stroke\s*\(width\s+([\d.]+)\)',
+                _lift_stroke,
+                block,
+            )
+            # Lift (thickness T) if T < min (used inside text effects).
+            def _lift_thickness(mm: re.Match) -> str:
+                nonlocal lifted
+                t = float(mm.group(1))
+                if t < min_mm:
+                    lifted += 1
+                    return f"(thickness {min_mm})"
+                return mm.group(0)
+            block = re.sub(
+                r'\(thickness\s+([\d.]+)\)',
+                _lift_thickness,
+                block,
+            )
+        out_parts.append(block)
+        cursor = j
+
+    out_parts.append(text[cursor:])
+    new_text = "".join(out_parts)
+    if new_text != text:
+        pcb_path.write_text(new_text, encoding="utf-8")
+    return lifted
+
+
 def apply_routing_to_pcb(chunks: tuple[str, ...] = ("power",)) -> int:
     """Read oas.kicad_pcb, compute copper tracks for the requested chunks,
     and write the PCB back with `(segment ...)` / `(via ...)` / `(zone ...)`
@@ -19749,6 +19867,14 @@ def main():
     print("Applying copper routing…")
     n_tracks = apply_routing_to_pcb(chunks=ROUTING_CHUNKS)
     print(f"  {n_tracks} track records emitted (chunks: {', '.join(ROUTING_CHUNKS) or '(none)'}).")
+
+    # v0.39: JLCPCB DFM silk-line-width normalization (post-process).
+    # See `_lift_silk_line_widths` docstring for rationale. Runs AFTER
+    # routing so the routing-emitted PCB content is the canonical input.
+    print()
+    print(f"Normalizing silk line widths to >= {SILK_MIN_STROKE_MM} mm…")
+    n_lifted = _lift_silk_line_widths()
+    print(f"  {n_lifted} silk strokes lifted to {SILK_MIN_STROKE_MM} mm.")
 
     # Geometry summary for the human
     print(f"Half-chord: {HALF_CHORD:.4f} mm")

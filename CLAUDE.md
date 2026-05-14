@@ -389,6 +389,31 @@ Past mistake to avoid: in v0.3 of this project, "GPIO 4 → GPIO 10 / GPIO 5 →
 - BOM: cross-check against manufacturer stock the same day as ordering
 - Firmware: validate ESPHome config compiles cleanly before tagging a release
 
+### External services — MANUAL TRIGGER ONLY
+
+The OAS pipeline (`regenerate.py`) is fully offline: every guard (DRC, ERC,
+determinism, DC simulation, boot-pin audit, ampacity, Z-clearance) runs
+against local files only. **Never auto-trigger any external service** from
+`regenerate.py` or any CI loop.
+
+Specifically:
+
+- **JLCPCB DFM upload** (`tools/jlcdfm_upload.py`): runs Playwright against
+  `https://jlcdfm.com` to upload `oas-jlcpcb.zip` and download the analysis
+  report. **Run only when the user explicitly asks** (e.g. "puść DFM",
+  "run the dfm check"). JLCPCB's `/api/overseas-dfm-service/checkIp` endpoint
+  tracks upload volume per IP — running on every regenerate would risk
+  rate-limiting, captcha-gating, or IP block. Document each manual run in
+  the commit message that triggered it.
+- **JLCPCB SMT quote / order**: never automated. Always user-initiated.
+- **Future external services** (TI WEBENCH, LCSC stock check, OSHPark
+  upload, etc.): same rule. Default is offline; external calls require
+  explicit user request per run.
+
+When adding a new external-service tool: name it `tools/<service>_<action>.py`,
+keep it OUT of `regenerate.py`'s default flow, and put a `print(...)` banner
+at the top of the script stating "live external service, run manually".
+
 ### KiCad schematic conventions
 
 - **`no_connect` markers** on intentionally-unused IC pins. Without them, ERC warns "pin not connected". Use freely — they are documentation that says "this is deliberate, not an oversight." Common on ESP32-C6-DevKitM-1-N4 pins we don't wire (5V, unused GPIOs).
