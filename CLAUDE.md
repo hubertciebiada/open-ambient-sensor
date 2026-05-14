@@ -445,11 +445,21 @@ break into two classes the iteration loop has shown:
   Expansion warnings BUT created 1 Soldermask Bridge DANGER + 59 extra
   Mask-Exposes-Trace warnings + 5 extra Pad Spacing warnings. Net
   negative. Reverted in v0.40.
-- 50 W Missing PTH + 50 W Unconnected via — these are likely the 38
-  GND stitching vias inside the GND pour zones (added v0.31/v0.32 to
-  bridge pour islands). JLCPCB sees them as "via with no track
-  terminating" even though they're connected through the pour. Cannot
-  remove without re-introducing unconnected_items DRC violations.
+- 50 W Missing PTH + 50 W Unconnected via — FALSE POSITIVES, confirmed
+  via live JLCDFM Details inspection. JLCPCB reports 139 actual "Missing
+  PTH" results (only first 50 shown in dialog). OAS PTH drill count
+  is 137 (65 vias + 72 connector PTH pins) — near 1:1 match. The 139
+  flagged pads are connector pins (J5/J6/J7/J8/J4/J1/J10 pin sockets +
+  headers), all emitted by KiCad as `(pad thru_hole layers "*.Cu"
+  "*.Mask")` with proper PTH drills. JLCPCB's algorithm misclassifies
+  them because the GND pour uses thermal-relief connect_pads mode
+  (thermal_gap 0.508, thermal_bridge_width 0.508), giving B.Cu a
+  cross-pattern around each GND pin instead of solid copper. The
+  algorithm sees "F.Cu round/square solid pad ≠ B.Cu 4-spoke pattern"
+  and flags as missing PTH. Fixing requires changing the pour to
+  solid-fill connect_pads, which would make hand-soldering harder
+  (heat sink to entire pour mass). Trade-off rejects fix; accept as
+  residual.
 
 **Lesson:** DFM warnings come in two flavors. *Routing-quality warnings*
 flagged on individual segments are sometimes fixable by editing
