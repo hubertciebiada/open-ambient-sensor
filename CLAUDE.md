@@ -429,6 +429,22 @@ Past mistake to avoid: in v0.3 of this project, "GPIO 4 → GPIO 10 / GPIO 5 →
 
 ## Changelog
 
+- **v0.34** — Pre-flight gerber check: independent verification of `export_production.py` output before fab upload.
+  - **Why**: kicad-cli exports gerbers from `oas.kicad_pcb` via KiCad's own plotter. If something went wrong in that conversion (aperture macro bug, missing layer, mangled drill file, etc.) it would slip through silently until JLCPCB's DFM scan caught it days later. v0.34 adds a 5-second sanity check using a completely independent parser (pygerber 2.4.3) so the regression surfaces locally before the fab order goes out.
+  - **`hardware/kicad/tools/preflight_gerbers.py` (new, ~190 lines)** — four-stage check:
+    1. **File integrity** — confirms every expected output file exists with non-zero size (9 gerbers + 2 drill files + zip bundle); reads the zip with `zipfile.testzip()` to detect corruption; verifies the bundle has the expected 11 entries.
+    2. **Drill statistics** — Excellon parser walks `oas-PTH.drl` / `oas-NPTH.drl` line-by-line:
+       - PTH: 5 tool sizes (0.30 / 0.65 / 0.80 / 1.00 / 1.40 mm), 137 holes total — 0.30 mm vias dominate the count after v0.32 closed the routing with 65 vias.
+       - NPTH: 2 tool sizes (3.00 / 3.80 mm), exactly 7 holes — 4 zip-tie + 3 M3 mounting, no surprises. Tool-size set is compared against `EXPECTED_NPTH_TOOLS = {3.00, 3.80}` (the only NPTH sizes generate.py is allowed to emit); hole count compared against `EXPECTED_NPTH_COUNT = 7`. Either mismatch aborts.
+       - Min PTH drill verified ≥ 0.30 mm (JLCPCB standard 2-layer cutoff; thinner needs the "Min hole 0.2 mm" upgrade option which costs extra).
+    3. **Composite top render** — pygerber's `Project([F.Cu, F.Mask, F.SilkS, Edge.Cuts]).parse().render_raster(dpmm=20)` produces `renders/preflight-top.png`. Files are ordered bottom-up so Edge.Cuts ends on top of the visual stack.
+    4. **Composite bottom render** — same for B.Cu + B.Mask + B.SilkS + Edge.Cuts → `renders/preflight-bottom.png`.
+  - **Manual review step**: open `preflight-top.png` next to `2d-top.png` (and `preflight-bottom.png` next to `2d-bottom.png`). The two pairs should be GEOMETRICALLY identical — same board outline, same hole positions, same pad positions, same silkscreen labels. Color differences are expected (pygerber's default green vs KiCad's red theme). Geometric mismatches mean something went wrong between `.kicad_pcb` and gerber emission. v0.34 itself verifies clean: top + bottom both match the KiCad-side renders pad-for-pad.
+  - **pygerber 2.4.3** — Python-native gerber parser/renderer, MIT licensed. Already on the user's machine (`pip install pygerber`). The script aborts with a clear "ERROR: pygerber not installed. Run: pip install pygerber" if it's missing — kept out of `requirements.txt` because pre-flight is an optional dev-time step.
+  - **Output committed as visual changelog**: `renders/preflight-top.png` (108 kB) + `renders/preflight-bottom.png` (64 kB) join `2d-top.png` / `2d-bottom.png` as part of the diffable visual record. Reviewers can see what JLCPCB will actually see without re-running pygerber. Each routing/placement change in future PRs touches all four PNGs in lock-step.
+  - **Workflow**: `python regenerate.py` (sources + previews) → `python export_production.py` (gerbers) → `python tools/preflight_gerbers.py` (verify) → eyeball top/bottom comparison → upload `oas-jlcpcb.zip` to JLCPCB.
+  - **What the check is NOT**: it doesn't run DFM rules (JLCPCB does that on upload), doesn't simulate the manufacturing process, doesn't catch design errors (DRC/ERC do that). It's a translation-layer check — "did the gerbers come out of KiCad faithfully matching the source-of-truth PCB file?". Caught zero issues on first run, which is the expected result given the project's bit-identical determinism guarantee.
+
 - **v0.33** — Production export infrastructure: `export_production.py` generates JLCPCB-ready deliverables in one command (~3 s).
   - **Trigger**: v0.32 closed routing at ABSOLUTE ZERO (DRC = 0, ERC = 0, 0 unconnected pads). Next step in the lifecycle is sending the board to fab. v0.33 builds the bridge from the source-of-truth Python + `oas.kicad_*` files to a JLCPCB upload bundle.
   - **`hardware/kicad/export_production.py` (new, ~220 lines)** — single script that runs all four `kicad-cli` production exports in sequence:
