@@ -1,0 +1,32 @@
+Comment,Designator,Footprint,Manufacturer,MPN,LCSC,JLCPCB_Library,Qty
+47nF,C8,Capacitor_SMD:C_0603_1608Metric,Samsung Electro-Mechanics,CL10B473KB8NNNC,C1622,Basic,1
+100nF,"C7,C10-C17",Capacitor_SMD:C_0603_1608Metric,Yageo,CC0603KRX7R9BB104,C14663,Basic,9
+100nF,"C20-C22,C24-C31",Capacitor_SMD:C_0402_1005Metric,Samsung Electro-Mechanics,CL05B104KO5NNNC,C1525,Basic,11
+1k,R4,Resistor_SMD:R_0603_1608Metric,UNI-ROYAL (Uniroyal Elec),0603WAF1001T5E,C21190,Basic,1
+100k 1%,"R1,R2",Resistor_SMD:R_0603_1608Metric,UNI-ROYAL (Uniroyal Elec),0603WAF1003T5E,C25803,Basic,2
+100uF 50V,"C1,C3",Capacitor_THT:CP_Radial_D8.0mm_P3.50mm,,,,THT (hand-solder),2
+10k 1%,R7,Resistor_SMD:R_0603_1608Metric,UNI-ROYAL (Uniroyal Elec),0603WAF1002T5E,C25804,Basic,1
+10nF Y2,C2,Capacitor_SMD:C_0805_2012Metric,Walsin Tech Corp,0805B103K251CT,C303895,Extended,1
+10uF 16V,"C5,C9",Capacitor_SMD:C_0805_2012Metric,Samsung Electro-Mechanics,CL21A106KAYNNNE,C15850,Basic,2
+10V Zener 200mW,D3,Diode_SMD:D_SOD-323,Changjiang Electronics Tech (CJ),CJ BZT52C10S,C8492,Basic,1
+1x15 P2.54 mm female socket (ESP32 J1 antenna-side row),J5,Connector_PinSocket_2.54mm:PinSocket_1x15_P2.54mm_Vertical,,,,THT (hand-solder),1
+1x15 P2.54 mm female socket (ESP32 J3 USB-side row),J6,Connector_PinSocket_2.54mm:PinSocket_1x15_P2.54mm_Vertical,,,,THT (hand-solder),1
+"1x5 P1.27mm through-hole header (HLK-LD2410B daughterboard, soldered)",J4,Connector_PinHeader_1.27mm:PinHeader_1x05_P1.27mm_Vertical,,,,THT (hand-solder),1
+1x8 P2.54 mm female socket (MIKROE-2462 mikroBUS pins 1..8 — AN/RST/CS/SCK/MISO/MOSI/+3V3/GND),J7,Connector_PinSocket_2.54mm:PinSocket_1x08_P2.54mm_Vertical,,,,THT (hand-solder),1
+1x8 P2.54 mm female socket (MIKROE-2462 mikroBUS pins 9..16 — PWM/INT/RX/TX/SCL/SDA/+5V/GND),J8,Connector_PinSocket_2.54mm:PinSocket_1x08_P2.54mm_Vertical,,,,THT (hand-solder),1
+2.2uH 2A,L2,Inductor_SMD:L_APV_ANR5040,CENKER,CKCS5040-2.2uH/M,C354602,Extended,1
+220uF 10V,C4,Capacitor_THT:CP_Radial_D6.3mm_P2.50mm,,,,THT (hand-solder),1
+22uF 10V,C6,Capacitor_SMD:C_0805_2012Metric,Samsung Electro-Mechanics,CL21A226MAQNNNE,C45783,Basic,1
+30.9k 1%,R3,Resistor_SMD:R_0603_1608Metric,UNI-ROYAL (Uniroyal Elec),0603WAF3092T5E,C23116,Extended,1
+33uH 2A,L1,Inductor_SMD:L_APV_ANR5040,CENKER,CKCS5040-33uH/M,C354612,Extended,1
+4.7k 1%,"R5,R6",Resistor_SMD:R_0603_1608Metric,UNI-ROYAL (Uniroyal Elec),0603WAF4701T5E,C23162,Basic,2
+AO3401A,Q1,Package_TO_SOT_SMD:SOT-23,Alpha & Omega Semiconductor,AO3401A,C15127,Extended,1
+JST SH SM04B-SRSS-TB (Qwiic / Stemma QT),J9,Connector_JST:JST_SH_SM04B-SRSS-TB_1x04-1MP_P1.00mm_Horizontal,JST Sales America,SM04B-SRSS-TB(LF)(SN),C160404,Extended,1
+"JST SM06B-GHS-TB (SEN66-SIN-T, MPN 3.001.030; TME/Mouser)",J3,Connector_JST:JST_GH_SM06B-GHS-TB_1x06-1MP_P1.25mm_Horizontal,JST Sales America,SM06B-GHS-TB(LF)(SN),C133065,Extended,1
+LM2596S-5.0,U1,Package_TO_SOT_SMD:TO-263-5_TabPin3,Texas Instruments,LM2596S-5.0/NOPB,C116713,Extended,1
+"Phoenix_MSTBA_2,5/3-G-5,08",J1,"Connector_Phoenix_MSTB:PhoenixContact_MSTBA_2,5_3-G-5,08_1x03_P5.08mm_Horizontal",,,,THT (hand-solder),1
+PTC 750mA / 60V,F1,Fuse:Fuse_2920_7451Metric,Littelfuse,2920L075/60MR,C207083,Extended,1
+SK6812-SIDE,"D11-D13,D15-D22",oas:SK6812-SIDE,OPSCO Optoelectronics,SK6812SIDE-A,C5378721,Extended,11
+SMBJ24A,D1,Diode_SMD:D_SMB,Brightking,SMBJ24A,C87268,Basic,1
+SS14,D2,Diode_SMD:D_SMA,MDD (Microdiode Semiconductor),SS14,C2480,Basic,1
+TPS62933,U2,Package_TO_SOT_SMD:SOT-583-8,Texas Instruments,TPS62933DRLR,C3200405,Extended,1

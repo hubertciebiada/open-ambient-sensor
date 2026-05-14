@@ -75,6 +75,11 @@ firmware/esphome/.esphome/
 *.swp
 *~
 
+# Playwright MCP / DFM live-upload temp artifacts ########
+.playwright-mcp/
+*.kicad_pcb.tmp
+*.kicad_pro.tmp
+
 # Screenshots, scratch ########
 Zrzut*.png
 screenshot*.png

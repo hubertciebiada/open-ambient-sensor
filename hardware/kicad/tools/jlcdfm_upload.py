@@ -252,17 +252,61 @@ def main() -> None:
                 timeout=TIMEOUT_MS,
                 polling=2000,
             )
-            print(f"  Detected navigation OR result strings.")
+            print(f"  Reached viewer page.")
             print(f"  Current URL: {page.url}")
-            # Give the result page a couple seconds to finish rendering.
+            # Give the viewer time to load the gerber + render.
             page.wait_for_timeout(5_000)
             try:
                 page.wait_for_load_state("networkidle", timeout=30_000)
             except Exception:
                 pass
         except Exception as e:
-            print(f"  WARNING: result not detected ({type(e).__name__}).")
+            print(f"  WARNING: viewer not detected ({type(e).__name__}).")
             print(f"  URL is still: {page.url}")
+
+        # On the viewer page (jlcdfm.com/viewer?pcbUploadFileId=...) every
+        # DFM check row starts at status "Unanalyzed". A "DFM check" button
+        # at the top of the left analysis panel triggers the actual run.
+        # Click it and wait for the rows to populate with Danger/Warning/Good.
+        print(f"  Triggering 'DFM check' button...")
+        try:
+            # Try multiple matchers - the button may be a styled <button>,
+            # <div>, or el-button instance.
+            for selector in [
+                ('role-button', lambda: page.get_by_role("button", name="DFM check").first),
+                ('text', lambda: page.get_by_text("DFM check", exact=True).first),
+                ('class', lambda: page.locator('.el-button:has-text("DFM check")').first),
+            ]:
+                name, locator_fn = selector
+                try:
+                    btn = locator_fn()
+                    if btn.is_visible(timeout=3000):
+                        btn.click()
+                        print(f"  Clicked DFM check button via {name!r} matcher.")
+                        break
+                except Exception:
+                    continue
+            # Wait for the analysis rows to flip from "Unanalyzed" to a
+            # result count (Danger/Warning/Good). 60 s should be plenty.
+            page.wait_for_function(
+                """() => {
+                    if (!document.body) return false;
+                    const t = document.body.innerText || '';
+                    // Once analysis completes, rows show results not
+                    // "Unanalyzed" - look for at least one occurrence of
+                    // "Danger", "Warning", or "Good" in the panel area.
+                    const hasResults = /\\b(Danger|Warning|Good)\\b/.test(t);
+                    const stillUnanalyzed = /Unanalyzed/.test(t);
+                    return hasResults && !stillUnanalyzed;
+                }""",
+                timeout=120_000,
+                polling=2000,
+            )
+            print(f"  Analysis complete - results populated.")
+            page.wait_for_timeout(3_000)
+        except Exception as e:
+            print(f"  WARNING: DFM check trigger failed ({type(e).__name__}: {e}).")
+            print(f"  Will save current state for manual inspection.")
 
         # Save full-page screenshot for visual diff across iterations.
         screenshot_path = OUT_DIR / "dfm-result.png"
