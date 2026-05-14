@@ -6107,7 +6107,7 @@ def gen_pcb() -> str:
     setup = textwrap.dedent(f"""\
         \t(setup
         {stackup}
-        \t\t(pad_to_mask_clearance 0.05)
+        \t\t(pad_to_mask_clearance 0)
         \t\t(allow_soldermask_bridges_in_footprints no)
         \t\t(tenting front back)
         \t\t(aux_axis_origin {fmt(PAGE_CENTRE_X)} {fmt(PAGE_CENTRE_Y)})
@@ -16691,11 +16691,12 @@ def gen_pro() -> str:
                     # future high-current GND pad (e.g. >2 A continuous)
                     # is added.
                     "min_resolved_spokes": 1,
-                    # v0.39: JLCPCB DFM wants silk-to-pad clearance >= 0.20 mm.
-                    # Bumping this rule causes DRC to enumerate every silk
-                    # drawing closer than 0.20 mm to a pad - those are
-                    # exactly the 17 occurrences the DFM scanner flagged.
-                    "min_silk_clearance": 0.20,
+                    # v0.39 tried 0.20 mm hoping to surface the 17 silk-to-pad
+                    # DFM warnings in KiCad DRC. KiCad found 0 violations at
+                    # 0.20 mm - the offending silk drawings are inside stock
+                    # library footprints which KiCad treats as authoritative.
+                    # Reverted to KiCad default 0.15.
+                    "min_silk_clearance": 0.15,
                     "min_text_height": 1.0,
                     "min_text_thickness": 0.15,
                     "min_through_hole_diameter": 0.3,
@@ -19868,13 +19869,15 @@ def main():
     n_tracks = apply_routing_to_pcb(chunks=ROUTING_CHUNKS)
     print(f"  {n_tracks} track records emitted (chunks: {', '.join(ROUTING_CHUNKS) or '(none)'}).")
 
-    # v0.39: JLCPCB DFM silk-line-width normalization (post-process).
-    # See `_lift_silk_line_widths` docstring for rationale. Runs AFTER
-    # routing so the routing-emitted PCB content is the canonical input.
-    print()
-    print(f"Normalizing silk line widths to >= {SILK_MIN_STROKE_MM} mm…")
-    n_lifted = _lift_silk_line_widths()
-    print(f"  {n_lifted} silk strokes lifted to {SILK_MIN_STROKE_MM} mm.")
+    # v0.39 attempted to lift silk strokes 0.12 -> 0.15 mm here to fix
+    # the JLCPCB DFM "Silkscreen line width" warning (50 occurrences in
+    # v0.34). v0.40 live DFM scan revealed this REGRESSED silk-to-pad
+    # clearance from 17 W -> 20 DANGER + 19 W (wider strokes consume
+    # clearance margin) without actually fixing the line-width warning
+    # (JLCPCB still flags 0.15 mm as Warning - their "Good" threshold
+    # for silk line width is >= 0.20 mm). Reverted; the silk-line-width
+    # fix would require BOTH wider strokes AND moving labels further
+    # from pads, which is invasive for stock-library footprints.
 
     # Geometry summary for the human
     print(f"Half-chord: {HALF_CHORD:.4f} mm")
