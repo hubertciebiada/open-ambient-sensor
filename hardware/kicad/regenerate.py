@@ -158,10 +158,21 @@ def main() -> None:
     # `kicad-cli pcb export svg` on a freshly-filled snapshot internally
     # (see `--include-extra-board-info` behavior), so the rendered
     # output reflects the filled pour without us needing to save it.
+    # v0.28d: add `--exit-code-violations` to mirror the ERC pattern below.
+    # Without this flag, `kicad-cli pcb drc` returns 0 even when the report
+    # file contains violations, so a regression with DRC errors would slip
+    # through CI just like v0.23's ERC warnings did before v0.24. With the
+    # flag, kicad-cli returns 5 when any violation (error or warning, given
+    # --severity-error --severity-warning) is found → regenerate.py aborts.
+    # Verified via deliberate violation in v0.28d (track placed across PCB
+    # outline confirmed exit code 5 + regenerate.py exit). CLAUDE.md "PCB
+    # design workflow" §3 ("aborts on any error or warning") now enforced
+    # end-to-end for both DRC and ERC.
     run([
         kcli, "pcb", "drc",
         "--output", str(drc_report),
         "--severity-error", "--severity-warning",
+        "--exit-code-violations",
         "--refill-zones",
         str(PCB),
     ])
