@@ -36,6 +36,11 @@ hardware/kicad/erc.json
 hardware/kicad/*.svg
 hardware/kicad/*.pdf
 hardware/kicad/*.rpt
+
+# Freerouting intermediate artifacts (DSN export → autorouter → SES import roundtrip)
+hardware/kicad/*.dsn
+hardware/kicad/*.ses
+hardware/kicad/oas_drc_violations.json
 # Inside renders/: PNGs and SVGs are committed as visual changelog,
 # but DRC/ERC text reports (prefixed `_`) are not.
 hardware/kicad/renders/_*
