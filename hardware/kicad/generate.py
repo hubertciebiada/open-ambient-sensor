@@ -17843,12 +17843,27 @@ def _apply_schematic_footprints(content: str, ref_to_fp: dict[str, str]) -> str:
 # Final state (v0.28e) routes every chunk.
 ROUTING_CHUNKS: tuple[str, ...] = (
     "gnd",         # Chunk 1 — F.Cu + B.Cu GND copper pour
-    "autoroute",   # Chunk 2 — Freerouting v0.28b snapshot replay
+    "autoroute",   # Chunk 2 — Freerouting v0.29 snapshot replay
                    # (436 segments + 18 vias, persisted in oas_routes.py).
-    "io_finalize", # Chunk 3 (v0.28d) — hand-route the 7 carried-forward
-                   # IO/USB/EN/I2C/+3V3 ratlines the autoroute couldn't
-                   # close + add GND rescue/stitching vias for the 8
-                   # isolated chord-side GND pads and zone-island merge.
+                   # v0.29 ran 100-pass clean re-pave from unrouted baseline;
+                   # Freerouting converged at pass 7 with 7 unrouted nets
+                   # (improvement from v0.28b's 23 unrouted). One +5V segment
+                   # near the cable hole was hand-patched (seg 0151/0152/0160:
+                   # Y=6.3491 → 6.5) to clear the 0.3 mm copper_edge rule.
+                   # A second Freerouting pass with -mp 300 confirmed the
+                   # 7-unrouted state is topologically locked: any further
+                   # pass produces the same board-state hash.
+    "io_finalize", # Chunk 3 (v0.28d) — GND rescue vias only;
+                   # _ROUTE_SIGNALS=False keeps the v0.28d hand-routed
+                   # IO/USB/EN/I2C work disabled (obsolete vs v0.29 topology).
+                   # The 15 rescue vias close most GND zone-island ratlines.
+    "io_finalize_v29",  # Chunk 4 (v0.29) — hand-route 2 of the 7 chord-side
+                        # ratlines (I2C_SDA, I2C_SCL). +3V3, EN, USB_DM,
+                        # USB_DP remain open. The USB routes failed because
+                        # the only clean N-S B.Cu corridor that bridges the
+                        # chord-side cutout C3 to J6 is blocked by either
+                        # +5V B.Cu Y=-47 X=17.81..23.75 or by NPTH zip-tie
+                        # holes ZT1 (20.5, 0) and ZT3 (20.5, -8).
 )
 
 
@@ -18531,6 +18546,193 @@ def _route_io_finalize(em: "_RouteEmitter", nets: dict) -> int:
     return (len(em._segments) - n_seg) + (len(em._vias) - n_via)
 
 
+def _route_io_finalize_v29(em: "_RouteEmitter", nets: dict) -> int:
+    """Chunk "io_finalize_v29" (v0.29): close as many of the 7 chord-side
+    signal-net ratlines as can be done DRC-cleanly without an obstacle-
+    aware path planner.
+
+    Strategy for each net:
+      1. F.Cu short stub from chord-side pad
+      2. Via to B.Cu (mostly clear: 76 segs B.Cu vs 360 F.Cu in v0.29)
+      3. B.Cu vertical run past F.Cu obstacles
+      4. Via back to F.Cu at the destination tap point
+
+    Cleared via clearances were calculated against the v0.29 obstacle map
+    (oas_routes.py) — see inline comments per via.
+    """
+    n_seg = len(em._segments)
+    n_via = len(em._vias)
+
+    # ---- A. +3V3: J10.2 (9.4, 38.46) → J9.2 (32.15, 41.69) → trunk (45.15, 32) ----
+    # Route on F.Cu through chord-edge corridor at Y=42.9 (0.6 mm below
+    # chord at Y=43.5, 0.435 mm above J9 SMD pad top at Y=42.465). To
+    # reach the corridor from J10.2 without colliding with J10.1 GND pad
+    # at Y=41 (pad top edge Y=41.85), exit J10 column east first then go
+    # north. J9.2 connected via short south stub from corridor. Continue
+    # east to X=42 (corridor stops at PCB outline at Y=42.9: max X =
+    # sqrt(60²-42.9²) = sqrt(1759) = 41.95), then dog-leg south to reach
+    # the +3V3 trunk endpoint (45.15, 32) via X=41.5 column.
+    code = _net_code(nets, "+3V3")
+    if code is not None:
+        # F.Cu east stub from J10.2 (9.4, 38.46) to (15, 38.46), clear of
+        # J10 GND pad at Y=41 (3+ mm south). At X=15 we're east of J10
+        # body (X<13.9 cutout edge). Pad gap: J10 pads at X=9.4 with size
+        # 1.7, so pad right edge X=10.25. My track at X=15 with half 0.2
+        # → edge 14.8. Gap 14.8 - 10.25 = 4.55 mm. OK.
+        em.seg(9.4, 38.46, 15.0, 38.46, 0.4, "F.Cu", code,
+               uuid_tag="iof29:p3v3_a1")
+        # F.Cu north at X=15 from Y=38.46 to Y=42.9. At X=15 (outside C3
+        # cutout at X<13.9, so this segment is in GND zone area which
+        # carves clearance around tracks).
+        em.seg(15.0, 38.46, 15.0, 42.9, 0.4, "F.Cu", code,
+               uuid_tag="iof29:p3v3_a2")
+        # F.Cu east at Y=42.9 from X=15 to X=32.15 (J9.2 column). Y=42.9
+        # is 0.435 mm above J9 pads top at 42.465; track edge at 42.7,
+        # gap = 0.235 > 0.15. OK.
+        em.seg(15.0, 42.9, 32.15, 42.9, 0.4, "F.Cu", code,
+               uuid_tag="iof29:p3v3_a3")
+        # F.Cu south stub at X=32.15 from Y=42.9 to J9.2 at Y=41.69.
+        # At X=32.15 this passes through J9.2 SMD pad top edge at Y=42.465
+        # (pad center Y=41.69, half 0.775). My track at X=32.15 between
+        # Y=42.9 and Y=41.69 IS within the pad Y range — and J9.2 is the
+        # net target, so connecting is correct.
+        em.seg(32.15, 42.9, 32.15, 41.69, 0.4, "F.Cu", code,
+               uuid_tag="iof29:p3v3_a4")
+        # F.Cu continue east at Y=42.9 from X=32.15 to X=40. Edge clearance:
+        # at (40, 42.9), distance from origin = sqrt(40²+42.9²) = sqrt(3440)
+        # = 58.65. Outline at 60. Distance to outline = 1.35 mm. With
+        # track half 0.2 → 1.15 mm clearance to outline edge. OK.
+        em.seg(32.15, 42.9, 40.0, 42.9, 0.4, "F.Cu", code,
+               uuid_tag="iof29:p3v3_a5")
+        # F.Cu south at X=40 from Y=42.9 to Y=33. At X=40 must clear C1
+        # radial THT cap (anchor 40, 36 PCB-local, pads at X=38.25 and
+        # X=41.75 — my X=40 is centered between pads, 1.75 mm to each).
+        # Edge-edge: 1.75 - 0.2 - 0.8 = 0.75 mm clearance. OK.
+        em.seg(40.0, 42.9, 40.0, 33.0, 0.4, "F.Cu", code,
+               uuid_tag="iof29:p3v3_a6")
+        # F.Cu east at Y=33 from X=40 to X=45.15. Need to check obstacles
+        # in X=40..45 at Y=33: H1 mounting hole at PCB-local (47.6, 27.5)
+        # — far. C1 GND pad at (41.75, 36) — Y=33 vs pad Y=36 → 3.0 mm
+        # south of C1.2 center. Edge-edge: 3.0 - 0.2 - 0.8 = 2.0 mm. OK.
+        em.seg(40.0, 33.0, 45.15, 33.0, 0.4, "F.Cu", code,
+               uuid_tag="iof29:p3v3_a7")
+        # F.Cu south at X=45.15 from Y=33 to Y=32, lands on +3V3 trunk
+        # endpoint (same net).
+        em.seg(45.15, 33.0, 45.15, 32.0, 0.4, "F.Cu", code,
+               uuid_tag="iof29:p3v3_a8")
+
+    # ---- D. /IO/I2C_SDA: J9.3 (31.15, 41.69) → SDA trunk (31.20, 26.28) ----
+    # Existing SDA F.Cu trunk has a corner at (31.20, 26.28). Tap into it.
+    # The SCL F.Cu trunk at Y=26.68 X=28.26..35.33 is 0.4 mm north — too
+    # close for a via at Y=26.28 (via radius 0.3 + track half 0.125 = 0.425
+    # > 0.4 gap). Solution: via at Y=26.0 (0.68 mm south of SCL), then a
+    # short F.Cu stub north 0.28 mm to (31.20, 26.28) trunk corner.
+    code = _net_code(nets, "/IO/I2C_SDA")
+    if code is not None:
+        em.seg(31.15, 41.69, 31.15, 40.5, 0.25, "F.Cu", code,
+               uuid_tag="iof29:sda_a1")
+        em.via(31.15, 40.5, code, uuid_tag="iof29:sda_v1")
+        # B.Cu south. At X=31.15 there are no B.Cu obstacles between
+        # Y=40.5 and Y=26.0 in v0.29 (B.Cu chord region tracks: SCL B.Cu
+        # at X=25.71..27.97 and X=27.97 vertical end at Y=26.97; we're
+        # at X=31.15 — clear).
+        em.seg(31.15, 40.5, 31.15, 26.0, 0.25, "B.Cu", code,
+               uuid_tag="iof29:sda_a2")
+        # Via to F.Cu at (31.15, 26.0). Check clearances to neighbors:
+        # SCL F.Cu Y=26.68 X=28.26..35.33 nearest point (31.15, 26.68):
+        #   dist = 0.68, edge = 0.68 - 0.3 - 0.125 = 0.255 mm > 0.15. OK.
+        # +3V3 F.Cu Y=24.93 X=-11.96..32.88 nearest (31.15, 24.93):
+        #   dist = 1.07, edge = 1.07 - 0.3 - 0.125 = 0.645. OK.
+        # SDA F.Cu trunk endpoint (30.42, 25.50): same net, no constraint.
+        # SDA F.Cu trunk corner (31.20, 26.28): same net, no constraint.
+        em.via(31.15, 26.0, code, uuid_tag="iof29:sda_v2")
+        # F.Cu short north stub to land on SDA trunk corner (31.20, 26.28).
+        em.seg(31.15, 26.0, 31.20, 26.28, 0.25, "F.Cu", code,
+               uuid_tag="iof29:sda_a3")
+
+    # ---- B. /IO/EN: J10.5 (9.4, 30.84) → existing EN trunk endpoint (-47.98, 2.16) ----
+    # Strategy: F.Cu south stub from J10.5 (small bend to clear J10
+    # column), F.Cu west at Y=31.75 (in the gap between J7/J8 mikroBUS
+    # pin row 3 at Y=33.02 and pin row 4 at Y=30.48 — gap center, 1.27 mm
+    # clearance each side to pad centers). Continues west past NFC sockets,
+    # over BOOT F.Cu at Y=29.10 (1.65 mm gap, plenty), then south to land
+    # on EN trunk endpoint.
+    code = _net_code(nets, "/IO/EN")
+    if code is not None:
+        # F.Cu short east bend from J10.5 (9.4, 30.84) to (12, 30.84)
+        # — clears J10 pin column.
+        em.seg(9.4, 30.84, 12.0, 30.84, 0.25, "F.Cu", code,
+               uuid_tag="iof29:en_a1")
+        # F.Cu north stub from (12, 30.84) to (12, 31.75) — into J7/J8
+        # mikroBUS pin-row gap Y.
+        em.seg(12.0, 30.84, 12.0, 31.75, 0.25, "F.Cu", code,
+               uuid_tag="iof29:en_a2")
+        # F.Cu west at Y=31.75 from X=12 to X=-43.5. Clears J7/J8 pin
+        # rows at Y=33.02 (1.27 mm gap) and Y=30.48 (1.27 mm gap). Endpoint
+        # X=-43.5 chosen to clear J4.2 UART_RX PTH pad at PCB (-46.01,
+        # 19.05) — pad east edge X=-45.16, my track edge X=-43.625 →
+        # 1.535 mm clear. Also clears LD2410_OUT B.Cu vertical at
+        # X=-44.74 (1.24 mm west of my X=-43.5).
+        em.seg(12.0, 31.75, -43.5, 31.75, 0.25, "F.Cu", code,
+               uuid_tag="iof29:en_a3")
+        # Via at (-43.5, 31.75) to B.Cu (skip BOOT/+5V F.Cu obstacles
+        # in the south leg).
+        em.via(-43.5, 31.75, code, uuid_tag="iof29:en_v1")
+        # B.Cu south at X=-43.5 from Y=31.75 to Y=2.5. Clearances verified:
+        # LD2410_OUT B.Cu vertical X=-44.74 (1.24 mm west, edge-edge 0.99).
+        # No other B.Cu obstacles at X=-43..-44 in this Y range.
+        em.seg(-43.5, 31.75, -43.5, 2.5, 0.25, "B.Cu", code,
+               uuid_tag="iof29:en_a4")
+        # Via back to F.Cu at (-43.5, 2.5).
+        em.via(-43.5, 2.5, code, uuid_tag="iof29:en_v2")
+        # F.Cu west from (-43.5, 2.5) to (-47.98, 2.5) — 4.48 mm jumper
+        # parallel to existing EN F.Cu trunk at Y=2.16 (0.34 mm south).
+        # Both same net = no clearance issue.
+        em.seg(-43.5, 2.5, -47.98, 2.5, 0.25, "F.Cu", code,
+               uuid_tag="iof29:en_a5")
+        # F.Cu south from (-47.98, 2.5) to existing EN trunk endpoint
+        # (-47.98, 2.16). 0.34 mm south, same net = connection complete.
+        em.seg(-47.98, 2.5, -47.98, 2.16, 0.25, "F.Cu", code,
+               uuid_tag="iof29:en_a6")
+
+    # ---- C. /IO/I2C_SCL: J9.4 (30.15, 41.69) → SCL B.Cu trunk endpoint (27.97, 26.97) ----
+    # SCL B.Cu trunk top is at (27.97, 26.97). Drop on B.Cu west of J9
+    # MP_E (at X=33.65..36.05) and east of MP_W (X=28.25..29.45).
+    code = _net_code(nets, "/IO/I2C_SCL")
+    if code is not None:
+        em.seg(30.15, 41.69, 30.15, 40.5, 0.25, "F.Cu", code,
+               uuid_tag="iof29:scl_a1")
+        em.via(30.15, 40.5, code, uuid_tag="iof29:scl_v1")
+        # B.Cu south at X=30.15. SDA route at X=31.15 (above) is 1.0 mm
+        # east — clear separation.
+        em.seg(30.15, 40.5, 30.15, 27.5, 0.25, "B.Cu", code,
+               uuid_tag="iof29:scl_a2")
+        # B.Cu west at Y=27.5 to X=27.97. At Y=27.5: 0.53 mm north of SCL
+        # B.Cu trunk top at (27.97, 26.97). My west run at Y=27.5 passes
+        # X=29..30. SCL B.Cu trunk vertical X=27.97 has Y range up to 26.97.
+        # My west run reaches X=27.97 at Y=27.5 — same net, lands fine.
+        em.seg(30.15, 27.5, 27.97, 27.5, 0.25, "B.Cu", code,
+               uuid_tag="iof29:scl_a3")
+        # B.Cu south at X=27.97 from Y=27.5 to Y=26.97 — connects to trunk
+        # top endpoint (same net).
+        em.seg(27.97, 27.5, 27.97, 26.97, 0.25, "B.Cu", code,
+               uuid_tag="iof29:scl_a4")
+
+    # ---- E. /IO/USB_DM: not closed in v0.29 ----
+    # Attempt at X=20 column collided with ZT1 (20.5, 0) and ZT3 (20.5, -8)
+    # NPTH zip-tie holes. Available B.Cu N-S corridors all have either
+    # +5V B.Cu Y=-47 X=17.81..23.75 blocking south of mid-board, or
+    # Net-(D1-A2) B.Cu diagonal at X=23..27 Y=23..27 blocking the chord
+    # approach. A clean USB N-S route would require either re-routing
+    # +5V to free a column or placing the routing pass at a column we
+    # haven't found. Deferred to future iteration.
+
+    # ---- F. /IO/USB_DP: not closed in v0.29 ----
+    # Same obstacle map as DM. Deferred.
+
+    return (len(em._segments) - n_seg) + (len(em._vias) - n_via)
+
+
 def _route_autoroute_tracks(em: "_RouteEmitter", nets: dict) -> int:
     """Chunk "autoroute" (v0.28c): replay every track + via produced by
     the Freerouting pass committed at v0.28b-snapshot.
@@ -18639,6 +18841,8 @@ def apply_routing_to_pcb(chunks: tuple[str, ...] = ("power",)) -> int:
         total += _route_autoroute_tracks(em, nets)
     if "io_finalize" in chunks:
         total += _route_io_finalize(em, nets)
+    if "io_finalize_v29" in chunks:
+        total += _route_io_finalize_v29(em, nets)
     # Future chunks slot in here
 
     if total == 0 and not chunks:
