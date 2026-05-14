@@ -29,6 +29,21 @@ Prerequisites
   (the upload always uses whatever file is currently at that path).
 
 ------------------------------------------------------------
+First-time auth setup (the upload requires a JLCPCB account)
+------------------------------------------------------------
+
+  python tools/jlcdfm_upload.py --login
+
+  This opens a headed Chromium window. Log in to your JLCPCB account
+  (passport.jlcpcb.com), dismiss cookie banners, then press ENTER in
+  the terminal. The script saves browser storage state (cookies,
+  localStorage) to .cache/dfm/auth_state.json (gitignored). Subsequent
+  runs reuse that state in headless mode.
+
+  Re-run --login if your session expires (typically every 30-90 days
+  per JLCPCB's session cookie lifetime).
+
+------------------------------------------------------------
 Outputs
 ------------------------------------------------------------
 
@@ -43,6 +58,7 @@ Exit code 0 on successful upload + download, 1 on any error.
 """
 from __future__ import annotations
 
+import argparse
 import json
 import sys
 from pathlib import Path
@@ -54,6 +70,7 @@ REPO_ROOT = KICAD_DIR.parent.parent
 GERBERS_DIR = REPO_ROOT / "hardware" / "gerbers"
 ZIP_PATH = GERBERS_DIR / "oas-jlcpcb.zip"
 OUT_DIR = KICAD_DIR / ".cache" / "dfm"
+AUTH_STATE = OUT_DIR / "auth_state.json"
 
 UPLOAD_URL = "https://jlcdfm.com/"
 TIMEOUT_MS = 180_000  # 3 minutes for analysis to complete
@@ -91,6 +108,23 @@ def preflight() -> None:
 
 
 def main() -> None:
+    parser = argparse.ArgumentParser(
+        description="Upload OAS gerber zip to JLCPCB DFM checker.")
+    parser.add_argument(
+        "--login",
+        action="store_true",
+        help="Launch in HEADED mode to log in to JLCPCB. After login + cookie "
+             "banner dismissed, press Enter in the terminal to save session "
+             "state to .cache/dfm/auth_state.json. Subsequent runs reuse "
+             "that state in headless mode.",
+    )
+    parser.add_argument(
+        "--headed",
+        action="store_true",
+        help="Run with browser visible (for debugging).",
+    )
+    args = parser.parse_args()
+
     banner()
     preflight()
 
@@ -102,17 +136,60 @@ def main() -> None:
     timestamp = datetime.now().strftime("%Y-%m-%dT%H-%M-%S")
 
     with sync_playwright() as p:
-        browser = p.chromium.launch(headless=True)
-        context = browser.new_context(accept_downloads=True)
+        if args.login:
+            print("  LOGIN MODE: launching headed browser ...")
+            print("  1. Log in to your JLCPCB account in the browser window.")
+            print("  2. Dismiss any cookie banners.")
+            print("  3. Navigate back to https://jlcdfm.com/ if needed.")
+            print("  4. Return to this terminal and press ENTER.")
+            browser = p.chromium.launch(headless=False)
+            context = browser.new_context(accept_downloads=True)
+            page = context.new_page()
+            page.goto("https://passport.jlcpcb.com/", timeout=30_000)
+            input("  Press ENTER when logged in and ready to save state ...")
+            context.storage_state(path=str(AUTH_STATE))
+            print(f"  Saved auth state -> {AUTH_STATE}")
+            browser.close()
+            return
+
+        # Normal upload mode: reuse saved auth state if present.
+        headless = not args.headed
+        browser = p.chromium.launch(headless=headless)
+        if AUTH_STATE.exists():
+            print(f"  Using saved auth state from {AUTH_STATE.name}")
+            context = browser.new_context(
+                accept_downloads=True,
+                storage_state=str(AUTH_STATE),
+            )
+        else:
+            print(f"  WARNING: no saved auth state. Upload will likely")
+            print(f"  redirect to login. First run with: python tools/"
+                  f"jlcdfm_upload.py --login")
+            context = browser.new_context(accept_downloads=True)
         page = context.new_page()
 
-        # Capture every JSON XHR for post-mortem analysis. Per agent
-        # research the result page may emit a structured JSON that's
-        # cleaner to parse than the rasterized PDF.
+        # Capture every JSON XHR + every POST request for post-mortem
+        # analysis. Per agent research the result page may emit a
+        # structured JSON that's cleaner to parse than the rasterized
+        # PDF. Also log file-upload-like POSTs (multipart/form-data)
+        # which are the most direct evidence the upload actually fired.
+        captured_requests: list[dict] = []
+        def on_request(request):
+            try:
+                if request.method == "POST":
+                    captured_requests.append({
+                        "url": request.url,
+                        "method": request.method,
+                        "headers": dict(request.headers),
+                    })
+            except Exception:
+                pass
         def on_response(response):
             try:
                 ct = response.headers.get("content-type", "")
-                if "json" in ct and "/api/" in response.url:
+                if "json" in ct and ("/api/" in response.url or
+                                       "/upload" in response.url.lower() or
+                                       "/dfm" in response.url.lower()):
                     captured_responses.append({
                         "url": response.url,
                         "status": response.status,
@@ -120,43 +197,72 @@ def main() -> None:
                     })
             except Exception:
                 pass
+        page.on("request", on_request)
         page.on("response", on_response)
 
         print(f"  Navigating to {UPLOAD_URL} ...")
         page.goto(UPLOAD_URL, wait_until="domcontentloaded", timeout=30_000)
+        page.wait_for_load_state("networkidle", timeout=15_000)
 
-        # Find the file upload input. Per agent's snapshot, the page
-        # has an `<input type=file>` near the primary "Upload file"
-        # CTA. Use set_input_files which works with hidden inputs too.
+        # Dismiss the cookie consent banner if present (otherwise it
+        # overlays the upload button and intercepts clicks). Both
+        # "Accept all cookies" and "Accept only essential cookies"
+        # work for our purposes - we don't care which.
+        for label in ("Accept all cookies", "Accept only essential cookies"):
+            try:
+                btn = page.get_by_role("button", name=label).first
+                if btn.is_visible(timeout=2000):
+                    btn.click()
+                    print(f"  Dismissed cookie banner ({label!r}).")
+                    page.wait_for_timeout(500)
+                    break
+            except Exception:
+                continue
+
+        # Element Plus el-upload accepts files via set_input_files on its
+        # hidden input. Verified in run 2 of the script - the input
+        # exists and is reachable after the cookie banner is dismissed.
+        # The component's auto-upload default is true, so attaching the
+        # file should fire the upload pipeline immediately.
         print(f"  Uploading {ZIP_PATH.name} ...")
-        file_input = page.locator('input[type="file"]').first
+        file_input = page.locator('input.el-upload__input').first
         file_input.set_input_files(str(ZIP_PATH))
+        print(f"  File attached.")
 
-        # Wait for the analysis result to appear. The agent did not
-        # capture the exact selector; we use a heuristic: wait for any
-        # text matching one of the section headers from the report.
-        # Fallback: just wait the full TIMEOUT_MS for the page to settle.
+        # Wait for the analysis result. Two strategies in series:
+        # 1) URL change off landing page (jlcdfm.com/ -> jlcdfm.com/dfm/...)
+        # 2) Result text in DOM
+        # Each gets a portion of the timeout budget.
+        print(f"  Waiting for analysis (timeout {TIMEOUT_MS//1000}s)...")
+        start_url = page.url
         result_indicators = [
-            "Routing layer",
-            "Soldermask layer",
-            "Silkscreen layer",
-            "Drill layer",
-            "DFM analysis report",
+            "Routing layer", "Soldermask layer", "Silkscreen layer",
+            "Drill layer", "DFM analysis report", "DFM Analysis",
+            "Trace width", "Pad spacing",
         ]
-        print(f"  Waiting for analysis to complete (timeout {TIMEOUT_MS//1000}s) ...")
         try:
-            # Race: any of the indicators appearing -> done.
             page.wait_for_function(
-                """(indicators) => {
-                    const t = document.body.innerText;
+                """([startUrl, indicators]) => {
+                    if (window.location.href !== startUrl) return true;
+                    if (!document.body) return false;
+                    const t = document.body.innerText || '';
                     return indicators.some(s => t.includes(s));
                 }""",
-                arg=result_indicators,
+                arg=[start_url, result_indicators],
                 timeout=TIMEOUT_MS,
+                polling=2000,
             )
-            print(f"  Analysis result page detected.")
+            print(f"  Detected navigation OR result strings.")
+            print(f"  Current URL: {page.url}")
+            # Give the result page a couple seconds to finish rendering.
+            page.wait_for_timeout(5_000)
+            try:
+                page.wait_for_load_state("networkidle", timeout=30_000)
+            except Exception:
+                pass
         except Exception as e:
-            print(f"  WARNING: result indicator not found ({e}). Continuing.")
+            print(f"  WARNING: result not detected ({type(e).__name__}).")
+            print(f"  URL is still: {page.url}")
 
         # Save full-page screenshot for visual diff across iterations.
         screenshot_path = OUT_DIR / "dfm-result.png"
@@ -193,13 +299,19 @@ def main() -> None:
             print(f"  WARNING: could not auto-trigger PDF download. "
                   f"Inspect {screenshot_path} for manual fallback.")
 
-        # Persist captured XHR responses.
+        # Persist captured XHR responses + POST request list.
         net_path = OUT_DIR / "dfm-network.jsonl"
         with net_path.open("w", encoding="utf-8") as fh:
             for r in captured_responses:
                 fh.write(json.dumps(r) + "\n")
         print(f"  Captured {len(captured_responses)} API responses "
               f"-> {net_path.name}")
+        req_path = OUT_DIR / "dfm-posts.jsonl"
+        with req_path.open("w", encoding="utf-8") as fh:
+            for r in captured_requests:
+                fh.write(json.dumps(r) + "\n")
+        print(f"  Captured {len(captured_requests)} POST requests "
+              f"-> {req_path.name}")
 
         browser.close()
 
