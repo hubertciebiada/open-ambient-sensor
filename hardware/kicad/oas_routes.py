@@ -16,6 +16,18 @@ corridor X=17.81..23.75 has no other F.Cu copper, so the moved
 segment causes no new collisions; the freed B.Cu Y=-47 corridor
 lets USB_DM/USB_DP run cleanly south to J6 row.
 
+v0.31 GND-island bridging vias (16 added at the end of
+ROUTES_VIAS): each via crosses F.Cu↔B.Cu inside a disconnected
+GND zone island so the island physically joins the opposite-
+layer main GND pour through the via barrel. Positions chosen
+by analyzing the freshly-filled zone polygons (via
+`kicad-cli pcb drc --refill-zones --save-board`); each via
+spot lies inside both the source island and the opposite-layer
+GND main pour, and clears every existing pad / track / via at
+the design's 0.15 mm copper / 0.5 mm hole-to-hole rules.
+80% reduction in unconnected_items (10 -> 2 at v0.31).
+
+
 Coordinates are PCB-local (origin = PCB centre); page-space
 conversion is applied automatically at emit time via fx()/fy().
 """
@@ -481,4 +493,42 @@ ROUTES_VIAS = [
     {"net_name": 'Net-(D1-A2)', "at": (26.8446, 27.0245), "size": 0.6, "drill": 0.3, "layers": ('F.Cu', 'B.Cu'), "uuid_tag": "via:0015"},
     {"net_name": 'Net-(U2-FB)', "at": (-1.5642, -45.0279), "size": 0.6, "drill": 0.3, "layers": ('F.Cu', 'B.Cu'), "uuid_tag": "via:0016"},
     {"net_name": 'Net-(U2-FB)', "at": (7.7749, -46.298), "size": 0.6, "drill": 0.3, "layers": ('F.Cu', 'B.Cu'), "uuid_tag": "via:0017"},
+    # ------------------------------------------------------------------
+    # v0.31: GND-island bridging vias. Each via crosses F.Cu <-> B.Cu so
+    # that the F.Cu (or B.Cu) GND island it sits inside is electrically
+    # joined to the opposite-layer GND main pour. Positions were chosen
+    # by `_tmp_find_vias.py` (committed snapshot of the analysis): each
+    # candidate point lies inside BOTH the source island and the target
+    # opposite-layer GND polygon, and clears every existing pad/track/via
+    # at the default 0.15 mm copper-clearance rule. Coordinates are PCB-
+    # local (origin = PCB centre); `fx()/fy()` converts to page-space at
+    # emit time.
+    # ------------------------------------------------------------------
+    {"net_name": 'GND', "at": (-21.3370, -30.0661), "size": 0.6, "drill": 0.3, "layers": ('F.Cu', 'B.Cu'), "uuid_tag": "gnd-island-fcu-0"},
+    {"net_name": 'GND', "at": ( -0.0664, -33.8495), "size": 0.6, "drill": 0.3, "layers": ('F.Cu', 'B.Cu'), "uuid_tag": "gnd-island-fcu-4"},
+    {"net_name": 'GND', "at": ( -2.0941,  -6.6512), "size": 0.6, "drill": 0.3, "layers": ('F.Cu', 'B.Cu'), "uuid_tag": "gnd-island-fcu-15"},
+    {"net_name": 'GND', "at": (  6.0167, -30.7460), "size": 0.6, "drill": 0.3, "layers": ('F.Cu', 'B.Cu'), "uuid_tag": "gnd-island-fcu-2"},
+    {"net_name": 'GND', "at": (  0.2476,   7.5517), "size": 0.6, "drill": 0.3, "layers": ('F.Cu', 'B.Cu'), "uuid_tag": "gnd-island-fcu-10"},
+    {"net_name": 'GND', "at": (  6.0350,   6.0475), "size": 0.6, "drill": 0.3, "layers": ('F.Cu', 'B.Cu'), "uuid_tag": "gnd-island-fcu-11"},
+    {"net_name": 'GND', "at": (  8.0733,  -2.8258), "size": 0.6, "drill": 0.3, "layers": ('F.Cu', 'B.Cu'), "uuid_tag": "gnd-island-fcu-16"},
+    {"net_name": 'GND', "at": ( -6.8482,  -6.8496), "size": 0.6, "drill": 0.3, "layers": ('F.Cu', 'B.Cu'), "uuid_tag": "gnd-island-fcu-17"},
+    {"net_name": 'GND', "at": ( -7.6006,   2.4505), "size": 0.6, "drill": 0.3, "layers": ('F.Cu', 'B.Cu'), "uuid_tag": "gnd-island-fcu-13"},
+    {"net_name": 'GND', "at": ( -5.5291,   5.9188), "size": 0.6, "drill": 0.3, "layers": ('F.Cu', 'B.Cu'), "uuid_tag": "gnd-island-fcu-12"},
+    {"net_name": 'GND', "at": (  6.8033,  -1.1642), "size": 0.6, "drill": 0.3, "layers": ('F.Cu', 'B.Cu'), "uuid_tag": "gnd-island-fcu-14"},
+    {"net_name": 'GND', "at": ( -4.3000, -30.9004), "size": 0.6, "drill": 0.3, "layers": ('F.Cu', 'B.Cu'), "uuid_tag": "gnd-island-fcu-3"},
+    # F.Cu island #7 is too small to reach B.Cu main directly; chain it
+    # through B.Cu island #2 (which itself gets bridged below).
+    {"net_name": 'GND', "at": (  6.8294, -48.0506), "size": 0.6, "drill": 0.3, "layers": ('F.Cu', 'B.Cu'), "uuid_tag": "gnd-island-fcu-7-chain-b2"},
+    {"net_name": 'GND', "at": ( 13.6794, -45.9745), "size": 0.6, "drill": 0.3, "layers": ('F.Cu', 'B.Cu'), "uuid_tag": "gnd-island-bcu-2"},
+    {"net_name": 'GND', "at": ( 13.1020, -32.5140), "size": 0.6, "drill": 0.3, "layers": ('F.Cu', 'B.Cu'), "uuid_tag": "gnd-island-bcu-1"},
+    {"net_name": 'GND', "at": ( 11.8020, -20.7406), "size": 0.6, "drill": 0.3, "layers": ('F.Cu', 'B.Cu'), "uuid_tag": "gnd-island-bcu-0"},
+    # NOTE: gnd-island-bcu-3 (the tiny 0.68 mm² pocket on B.Cu near J2)
+    # was REMOVED. After the F.Cu / B.Cu pour redistributes around the
+    # other 16 stitching vias, the B.Cu#3 pocket gets re-absorbed into
+    # the B.Cu main pour (the local copper geometry near J2 + the
+    # UART_TX track relaxes enough that KiCad fills through). Adding a
+    # via here ended up tagged with UART_TX (the via overlapped a
+    # B.Cu UART_TX track running vertically through page X=95.915),
+    # not GND, and the resulting via_dangling DRC warning was the only
+    # remaining post-bridging issue.
 ]
