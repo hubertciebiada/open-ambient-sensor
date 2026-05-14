@@ -366,8 +366,12 @@ ROUTES_SEGMENTS = [
     {"net_name": 'Net-(D11-DOUT)', "layer": 'F.Cu', "start": (9.3733, 1.0003), "end": (9.3733, 0.475), "width": 0.25, "uuid_tag": "seg:0329"},
     {"net_name": 'Net-(D11-DOUT)', "layer": 'F.Cu', "start": (9.5027, 3.8409), "end": (8.6962, 3.3753), "width": 0.25, "uuid_tag": "seg:0330"},
     {"net_name": 'Net-(D11-DOUT)', "layer": 'F.Cu', "start": (10.15, 0.475), "end": (9.3733, 0.475), "width": 0.25, "uuid_tag": "seg:0331"},
-    {"net_name": 'Net-(D12-DOUT)', "layer": 'F.Cu', "start": (6.3091, 8.0777), "end": (6.7747, 8.8842), "width": 0.25, "uuid_tag": "seg:0332"},
-    {"net_name": 'Net-(D12-DOUT)', "layer": 'F.Cu', "start": (6.7747, 8.8842), "end": (7.1969, 8.462), "width": 0.25, "uuid_tag": "seg:0333"},
+    # v0.40 iter1: merged seg:0332+0333 into single straight segment to
+    # eliminate the 75-deg sharp corner at (6.7747, 8.8842) that JLCPCB
+    # DFM flagged. Original path: (6.31,8.08)->(6.77,8.88)->(7.20,8.46)
+    # had a 0.61 mm "spike" northward. New direct path is 0.58 mm shorter
+    # and angle-free. Single segment replaces both with same net+layer.
+    {"net_name": 'Net-(D12-DOUT)', "layer": 'F.Cu', "start": (6.3091, 8.0777), "end": (7.1969, 8.462), "width": 0.25, "uuid_tag": "seg:0332"},
     {"net_name": 'Net-(D12-DOUT)', "layer": 'F.Cu', "start": (7.1969, 8.4603), "end": (8.9667, 6.6905), "width": 0.25, "uuid_tag": "seg:0334"},
     {"net_name": 'Net-(D12-DOUT)', "layer": 'F.Cu', "start": (7.1969, 8.462), "end": (7.1969, 8.4603), "width": 0.25, "uuid_tag": "seg:0335"},
     {"net_name": 'Net-(D12-DOUT)', "layer": 'F.Cu', "start": (8.5527, 5.4864), "end": (9.3592, 5.952), "width": 0.25, "uuid_tag": "seg:0336"},

@@ -12181,19 +12181,11 @@
 	)
 	(segment
 		(start 154.8091 113.0777)
-		(end 155.2747 113.8842)
-		(width 0.25)
-		(layer "F.Cu")
-		(net 21)
-		(uuid "47dd3d2a-c91f-57cd-8ed0-af8190bb40d0")
-	)
-	(segment
-		(start 155.2747 113.8842)
 		(end 155.6969 113.462)
 		(width 0.25)
 		(layer "F.Cu")
 		(net 21)
-		(uuid "f8a26460-e779-5f7b-86de-fcbf07e1392b")
+		(uuid "47dd3d2a-c91f-57cd-8ed0-af8190bb40d0")
 	)
 	(segment
 		(start 155.6969 113.4603)
