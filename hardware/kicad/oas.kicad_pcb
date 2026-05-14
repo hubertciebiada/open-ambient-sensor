@@ -70,7 +70,7 @@
 	(net 14 "/MCU/WS2812_DIN")
 	(net 15 "Earth_Protective")
 	(net 16 "GND")
-	(net 17 "Net-(D1-A2)")
+	(net 17 "Net-(D1-A1)")
 	(net 18 "Net-(D2-K)")
 	(net 19 "Net-(D3-A)")
 	(net 20 "Net-(D11-DOUT)")
@@ -137,15 +137,15 @@
 	(uuid "e8f878cf-90a9-5001-9bea-45dd089aaa09")
 )
 (gr_rect
-	(start 153.4 133.998)
+	(start 153.4 132.498)
 	(end 162.4 148.497798)
 	(stroke (width 0.1) (type solid))
 	(fill no)
 	(layer "Dwgs.User")
 	(uuid "d18797b6-0a1d-594b-aff8-ab67157ea2fe")
 )
-(gr_text "C3\n9.0×14.5"
-	(at 157.9 141.247899)
+(gr_text "C3\n9.0×16.0"
+	(at 157.9 140.497899)
 	(layer "Dwgs.User")
 	(uuid "b12177a8-551b-5122-82f3-ea7e6d367647")
 	(effects
@@ -1755,7 +1755,7 @@
 			(layers "*.Cu" "*.Mask")
 			(remove_unused_layers no)
 			(roundrect_rratio 0.120192)
-			(net 17 "Net-(D1-A2)")
+			(net 17 "Net-(D1-A1)")
 		)
 	(pad "2" thru_hole oval
 			(at 5.08 0 180)
@@ -5991,18 +5991,18 @@
         	(footprint "D_SMB"
         		(layer "F.Cu")
         		(uuid "b592b8bd-36da-5190-b9bd-3e6c8df8d207")
-        		(at 164.5 114.5 0)
-        		(descr "SMBJ24A TVS surge clamp, 24 V standoff, 38.9 V clamp @ 1 A.")
+        		(at 164.5 114.5 180)
+        		(descr "SMBJ24A TVS surge clamp, 24 V standoff, 38.9 V clamp.")
         		(attr smd)
         		(property "Reference" "D1"
-        			(at 0 -2.7 0)
+        			(at 0 -2.7 180)
         			(layer "F.SilkS")
 			(hide yes)
         			(uuid "c33324dc-0183-5dfc-946f-6239a61989bd")
         			(effects (font (size 1.0 1.0) (thickness 0.15)))
         		)
         		(property "Value" "SMBJ24A"
-        			(at 0 2.7 0)
+        			(at 0 2.7 180)
         			(layer "F.Fab")
         			(hide yes)
         			(uuid "7b54995e-7552-5358-80e5-b77cd1ee7ee8")
@@ -6022,7 +6022,7 @@
         			(uuid "f30d0c3d-ac08-526c-b62e-4c32e7d7a1c4")
         			(effects (font (size 1.27 1.27)))
         		)
-        		(property "Description" "SMBJ24A TVS surge clamp, 24 V standoff, 38.9 V clamp @ 1 A."
+        		(property "Description" "SMBJ24A TVS surge clamp, 24 V standoff, 38.9 V clamp."
         			(at 0 0 0)
         			(layer "F.Fab")
         			(hide yes)
@@ -6045,28 +6045,35 @@
         			(layer "F.CrtYd")
         			(uuid "cd3fe6ee-6c27-5a2c-952b-5c6bd24eee4f")
         		)
+		(fp_line
+			(start -0.95 -1.1)
+			(end -0.95 1.1)
+			(stroke (width 0.12) (type solid))
+			(layer "F.SilkS")
+			(uuid "9fb415e4-9971-5b62-af51-7bdfec1c7208")
+		)
         		(pad "1" smd roundrect
-        			(at -2.55 0)
+        			(at -2.55 0 180)
         			(size 2.7 2.2)
         			(layers "F.Cu" "F.Paste" "F.Mask")
 			(roundrect_rratio 0.25)
         			(uuid "d5a09ce5-4ba0-50eb-8624-d97192435bae")
-			(net 16 "GND")
+			(net 17 "Net-(D1-A1)")
         		)
         		(pad "2" smd roundrect
-        			(at 2.55 0)
+        			(at 2.55 0 180)
         			(size 2.7 2.2)
         			(layers "F.Cu" "F.Paste" "F.Mask")
 			(roundrect_rratio 0.25)
         			(uuid "bf5e2898-4fb0-5928-a171-6139f02edf52")
-			(net 17 "Net-(D1-A2)")
+			(net 16 "GND")
         		)
         	)
         	(footprint "SOT-23"
         		(layer "F.Cu")
         		(uuid "11285b0b-fd6a-58c0-9ff9-df963c386c25")
         		(at 175.5 130 0)
-        		(descr "P-MOSFET reverse-polarity protection. SOT-23. Vds=-50 V / Vgs=±20 V.")
+        		(descr "P-MOSFET reverse-polarity protection. SOT-23. AO3401A: Vds=-30 V, Vgs=±12 V, RDS(on)=60 mΩ @ Vgs=-10 V.")
         		(attr smd)
         		(property "Reference" "Q1"
         			(at 0 -2.3 0)
@@ -6075,7 +6082,7 @@
         			(uuid "80ead5c3-b689-50e0-842a-834c1790079e")
         			(effects (font (size 1.0 1.0) (thickness 0.15)))
         		)
-        		(property "Value" "PMV65XP"
+        		(property "Value" "AO3401A"
         			(at 0 2.3 0)
         			(layer "F.Fab")
         			(hide yes)
@@ -6096,7 +6103,7 @@
         			(uuid "e7f1a453-bafd-5817-b584-870bf5418cea")
         			(effects (font (size 1.27 1.27)))
         		)
-        		(property "Description" "P-MOSFET reverse-polarity protection. SOT-23. Vds=-50 V / Vgs=±20 V."
+        		(property "Description" "P-MOSFET reverse-polarity protection. SOT-23. AO3401A: Vds=-30 V, Vgs=±12 V, RDS(on)=60 mΩ @ Vgs=-10 V."
         			(at 0 0 0)
         			(layer "F.Fab")
         			(hide yes)
@@ -6133,7 +6140,7 @@
 	(layers "F.Cu" "F.Paste" "F.Mask")
 	(roundrect_rratio 0.25)
 	(uuid "9072c856-0edd-578a-8e12-8005d70a8a10")
-	(net 17 "Net-(D1-A2)")
+	(net 17 "Net-(D1-A1)")
 )
 (pad "D" smd roundrect
 	(at 0 -1.1)
@@ -6201,13 +6208,20 @@
         			(layer "F.CrtYd")
         			(uuid "be385508-9c7c-5d39-a74a-69714b4fa1c9")
         		)
+		(fp_line
+			(start -0.5 -0.45)
+			(end -0.5 0.45)
+			(stroke (width 0.12) (type solid))
+			(layer "F.SilkS")
+			(uuid "75543ff9-c33a-5684-ad42-fa129bec9756")
+		)
         		(pad "1" smd roundrect
         			(at -1.2 0)
         			(size 0.9 0.9)
         			(layers "F.Cu" "F.Paste" "F.Mask")
 			(roundrect_rratio 0.25)
         			(uuid "748b55da-0e09-5044-a97e-54635e68b36a")
-			(net 17 "Net-(D1-A2)")
+			(net 17 "Net-(D1-A1)")
         		)
         		(pad "2" smd roundrect
         			(at 1.2 0)
@@ -6296,7 +6310,7 @@
         		(layer "F.Cu")
         		(uuid "5341af7a-68d5-5410-9781-cb4642bab77e")
         		(at 173.5 138 0)
-        		(descr "100 kΩ gate-GND pulldown for Q1 (P-MOSFET reverse-polarity).")
+        		(descr "100 kΩ 1% gate-GND pulldown for Q1 (P-MOSFET reverse-polarity).")
         		(attr smd)
         		(property "Reference" "R1"
         			(at 0 -1.375 0)
@@ -6305,7 +6319,7 @@
         			(uuid "5625dbfd-93d3-587b-90f0-d4b9892bc77b")
         			(effects (font (size 1.0 1.0) (thickness 0.15)))
         		)
-        		(property "Value" "100k"
+        		(property "Value" "100k 1%"
         			(at 0 1.375 0)
         			(layer "F.Fab")
         			(hide yes)
@@ -6326,7 +6340,7 @@
         			(uuid "98e0e22a-8400-5afa-9082-ed5d5fade787")
         			(effects (font (size 1.27 1.27)))
         		)
-        		(property "Description" "100 kΩ gate-GND pulldown for Q1 (P-MOSFET reverse-polarity)."
+        		(property "Description" "100 kΩ 1% gate-GND pulldown for Q1 (P-MOSFET reverse-polarity)."
         			(at 0 0 0)
         			(layer "F.Fab")
         			(hide yes)
@@ -6497,6 +6511,20 @@
         			(layer "F.CrtYd")
         			(uuid "e998fefc-a86f-5a2c-be1e-3073d7355627")
         		)
+        		(fp_line
+        			(start -3.15 -0.5)
+        			(end -3.15 0.5)
+        			(stroke (width 0.15) (type solid))
+        			(layer "F.SilkS")
+        			(uuid "6a7a26f6-a82b-5763-88e1-406a1f021d04")
+        		)
+        		(fp_line
+        			(start -3.65 0)
+        			(end -2.65 0)
+        			(stroke (width 0.15) (type solid))
+        			(layer "F.SilkS")
+        			(uuid "4e866231-8e9f-569b-b8be-0a7fdcc6b1f4")
+        		)
         		(pad "1" thru_hole rect
         			(at -1.75 0)
         			(size 1.6 1.6)
@@ -6570,6 +6598,20 @@
         			(fill no)
         			(layer "F.CrtYd")
         			(uuid "93cee676-b5cd-5a95-ac84-40364243b5db")
+        		)
+        		(fp_line
+        			(start -3.15 -0.5)
+        			(end -3.15 0.5)
+        			(stroke (width 0.15) (type solid))
+        			(layer "F.SilkS")
+        			(uuid "de91f980-f542-5765-b63f-8c659eba3992")
+        		)
+        		(fp_line
+        			(start -3.65 0)
+        			(end -2.65 0)
+        			(stroke (width 0.15) (type solid))
+        			(layer "F.SilkS")
+        			(uuid "bd2588c0-2f15-536f-ba4a-956d54744a98")
         		)
         		(pad "1" thru_hole rect
         			(at -1.75 0)
@@ -6751,6 +6793,13 @@
         			(layer "F.CrtYd")
         			(uuid "22246887-aa41-5598-8f8f-60ad18fa2b30")
         		)
+		(fp_line
+			(start -0.8 -0.85)
+			(end -0.8 0.85)
+			(stroke (width 0.12) (type solid))
+			(layer "F.SilkS")
+			(uuid "6376d7e5-19d6-578f-a2fa-29e99319bb45")
+		)
         		(pad "1" smd roundrect
         			(at -2.25 0)
         			(size 2.4 1.7)
@@ -6898,6 +6947,20 @@
         			(fill no)
         			(layer "F.CrtYd")
         			(uuid "60e78922-84af-5881-9255-387925b25be6")
+        		)
+        		(fp_line
+        			(start -2.65 -0.5)
+        			(end -2.65 0.5)
+        			(stroke (width 0.15) (type solid))
+        			(layer "F.SilkS")
+        			(uuid "0f8075a6-6dba-5fb6-8af0-48f1ed8738bd")
+        		)
+        		(fp_line
+        			(start -3.15 0)
+        			(end -2.15 0)
+        			(stroke (width 0.15) (type solid))
+        			(layer "F.SilkS")
+        			(uuid "039773c5-b484-5f84-9e9c-33bf7f869ff0")
         		)
         		(pad "1" thru_hole rect
         			(at -1.25 0)
@@ -8076,43 +8139,43 @@
         	)
         	(footprint "C_0603_1608Metric"
         		(layer "F.Cu")
-        		(uuid "27dc2977-3329-54b1-99c4-d427794a2d24")
+        		(uuid "4c22269a-013f-5fc1-88e1-3e86d81e2258")
         		(at 142.5 59 0)
-        		(descr "FB feedforward cap (BW shaping for TPS62933).")
+        		(descr "Bootstrap cap C(BST) between U2.SW and U2.BST. REQUIRED.")
         		(attr smd)
         		(property "Reference" "C7"
         			(at 0 -1.375 0)
         			(layer "F.SilkS")
 			(hide yes)
-        			(uuid "63814fdf-4075-5a48-8427-c9901dd1a08d")
+        			(uuid "9fa2539a-40e1-58d8-b1cd-34930275fc9a")
         			(effects (font (size 1.0 1.0) (thickness 0.15)))
         		)
-        		(property "Value" "22pF"
+        		(property "Value" "100nF"
         			(at 0 1.375 0)
         			(layer "F.Fab")
         			(hide yes)
-        			(uuid "e7625bb4-b806-5ac0-9e2f-1ba427983939")
+        			(uuid "801f5cbf-b464-55be-9b33-c42d231a0e05")
         			(effects (font (size 1.0 1.0) (thickness 0.15)))
         		)
         		(property "Footprint" "Capacitor_SMD:C_0603_1608Metric"
         			(at 0 0 0)
         			(layer "F.Fab")
         			(hide yes)
-        			(uuid "e7571d89-fb54-502e-a807-933c2b9bdbd8")
+        			(uuid "464e0906-2d02-54bb-bb6a-2971c7b95cfd")
         			(effects (font (size 1.27 1.27)))
         		)
         		(property "Datasheet" ""
         			(at 0 0 0)
         			(layer "F.Fab")
         			(hide yes)
-        			(uuid "5dd168c9-a65a-56bd-9c32-7f2b2ad79ee5")
+        			(uuid "72d56e36-9f7c-5e82-b0b4-94dc9874c0c0")
         			(effects (font (size 1.27 1.27)))
         		)
-        		(property "Description" "FB feedforward cap (BW shaping for TPS62933)."
+        		(property "Description" "Bootstrap cap C(BST) between U2.SW and U2.BST. REQUIRED."
         			(at 0 0 0)
         			(layer "F.Fab")
         			(hide yes)
-        			(uuid "e002ba42-ded0-51cd-b9d8-e4b40993ec58")
+        			(uuid "accd280f-dedb-59cd-b018-5909d507290a")
         			(effects (font (size 1.27 1.27)))
         		)
         		(fp_rect
@@ -8121,7 +8184,7 @@
         			(stroke (width 0.1) (type solid))
         			(fill no)
         			(layer "F.Fab")
-        			(uuid "68ab8593-26a3-5935-a131-8913ee86dd93")
+        			(uuid "53eaff98-5060-5c26-a7fe-52a81e8f1ad5")
         		)
         		(fp_rect
         			(start -1.425 -0.575)
@@ -8129,14 +8192,14 @@
         			(stroke (width 0.05) (type solid))
         			(fill no)
         			(layer "F.CrtYd")
-        			(uuid "d6cd90c1-3dfc-5a35-b256-9f05e9db6b6b")
+        			(uuid "bf52f266-dc5b-569a-b751-12415faed93e")
         		)
         		(pad "1" smd roundrect
         			(at -0.85 0)
         			(size 0.95 0.95)
         			(layers "F.Cu" "F.Paste" "F.Mask")
 			(roundrect_rratio 0.25)
-        			(uuid "9c85cd09-cd8a-5e25-bc38-684fb330e61c")
+        			(uuid "5916e2ec-64a9-56c7-9845-c92813730763")
 			(net 32 "Net-(U2-BST)")
         		)
         		(pad "2" smd roundrect
@@ -8144,49 +8207,49 @@
         			(size 0.95 0.95)
         			(layers "F.Cu" "F.Paste" "F.Mask")
 			(roundrect_rratio 0.25)
-        			(uuid "933c1185-b824-56e1-8184-d21c92ddfe18")
+        			(uuid "2b4ad197-b9bd-5080-8e3f-8c81201ff000")
 			(net 35 "Net-(U2-SW)")
         		)
         	)
         	(footprint "C_0603_1608Metric"
         		(layer "F.Cu")
-        		(uuid "ee00151a-d1e0-5c6a-9714-70be22ac3df1")
+        		(uuid "0fbe1241-89c3-5643-b34e-e8119c927dca")
         		(at 146.5 59 0)
-        		(descr "Bootstrap cap C(BST) between U2.SW and U2.VOS.")
+        		(descr "Soft-start cap C(SS) between U2.SS and GND. Sets ramp time.")
         		(attr smd)
         		(property "Reference" "C8"
         			(at 0 -1.375 0)
         			(layer "F.SilkS")
 			(hide yes)
-        			(uuid "606e4a41-31ab-5c5d-8fe0-d863b7ae131a")
+        			(uuid "59ba8cb8-1491-5376-90e4-d6eb79d3e263")
         			(effects (font (size 1.0 1.0) (thickness 0.15)))
         		)
-        		(property "Value" "100nF"
+        		(property "Value" "47nF"
         			(at 0 1.375 0)
         			(layer "F.Fab")
         			(hide yes)
-        			(uuid "f061f505-12f1-540a-aac0-47d1eba51075")
+        			(uuid "26bdac06-2efc-56bc-b6a1-a0f8b82bed5e")
         			(effects (font (size 1.0 1.0) (thickness 0.15)))
         		)
         		(property "Footprint" "Capacitor_SMD:C_0603_1608Metric"
         			(at 0 0 0)
         			(layer "F.Fab")
         			(hide yes)
-        			(uuid "03827dd5-31f3-51c9-9959-dd4cb8c72cd1")
+        			(uuid "46170450-7a8a-58d3-b102-bbfbb29544f8")
         			(effects (font (size 1.27 1.27)))
         		)
         		(property "Datasheet" ""
         			(at 0 0 0)
         			(layer "F.Fab")
         			(hide yes)
-        			(uuid "d7001d84-be8d-5620-b18e-2f79887b2783")
+        			(uuid "c21270c4-4454-5c7f-b0a1-b057e9227e27")
         			(effects (font (size 1.27 1.27)))
         		)
-        		(property "Description" "Bootstrap cap C(BST) between U2.SW and U2.VOS."
+        		(property "Description" "Soft-start cap C(SS) between U2.SS and GND. Sets ramp time."
         			(at 0 0 0)
         			(layer "F.Fab")
         			(hide yes)
-        			(uuid "921a4ba4-dec6-532f-ae15-8fc0624faaec")
+        			(uuid "0407486b-c040-5b17-996f-540016eab26e")
         			(effects (font (size 1.27 1.27)))
         		)
         		(fp_rect
@@ -8195,7 +8258,7 @@
         			(stroke (width 0.1) (type solid))
         			(fill no)
         			(layer "F.Fab")
-        			(uuid "af66ed73-cb0f-53a2-b04f-3be73a71b830")
+        			(uuid "1e0b4a51-6064-557b-b43c-a7bb53326304")
         		)
         		(fp_rect
         			(start -1.425 -0.575)
@@ -8203,14 +8266,14 @@
         			(stroke (width 0.05) (type solid))
         			(fill no)
         			(layer "F.CrtYd")
-        			(uuid "45d4175b-b86f-575b-bca0-5757444d45a9")
+        			(uuid "e82dd9a1-21d5-585f-ab03-a01406b8b31f")
         		)
         		(pad "1" smd roundrect
         			(at -0.85 0)
         			(size 0.95 0.95)
         			(layers "F.Cu" "F.Paste" "F.Mask")
 			(roundrect_rratio 0.25)
-        			(uuid "62ad9bbd-230b-54d1-be41-89cc6cc334e9")
+        			(uuid "6845d612-fc95-5b3f-bae5-2c4e4e4da113")
 			(net 34 "Net-(U2-SS)")
         		)
         		(pad "2" smd roundrect
@@ -8218,7 +8281,7 @@
         			(size 0.95 0.95)
         			(layers "F.Cu" "F.Paste" "F.Mask")
 			(roundrect_rratio 0.25)
-        			(uuid "a29107ce-84e8-5ccc-a8aa-d21fd5066131")
+        			(uuid "9d1c4a3f-5430-5806-8c27-d10c7c8f1fb9")
 			(net 16 "GND")
         		)
         	)
@@ -9349,8 +9412,8 @@
 	)
 	(polygon
 		(pts
-			(xy 153.4 133.998)
-			(xy 162.4 133.998)
+			(xy 153.4 132.498)
+			(xy 162.4 132.498)
 			(xy 162.4 148.497798)
 			(xy 153.4 148.497798)
 		)

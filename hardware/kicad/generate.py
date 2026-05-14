@@ -125,7 +125,7 @@ CABLE_HOLE_DIAMETER = 12.0
 #     JST SH SMD pads can sit inside the cutout area.
 CUTOUTS = [
     # name, x_min, x_max, y_min, y_max, allow_pads  (PCB-local mm, +Y = toward chord)
-    ("C3",  +4.900, +13.900, +28.998, +Y_CHORD, True),   # 9 × 15.5 mm,  J10 recovery header (6-pin 2.54 mm, DNP)
+    ("C3",  +4.900, +13.900, +27.498, +Y_CHORD, True),   # 9 × 16.0 mm,  J10 recovery header (6-pin 2.54 mm, DNP). v0.36 I2 fix: north wall moved from +28.998 → +27.498 (1.5 mm further north into PCB interior) so all 6 J10 pads sit fully inside the keepout. Pre-v0.36 pad 6 extended ~0.7 mm past the cutout north wall (audit #9 finding).
     ("C4", +18.900, +22.900, +34.998, +Y_CHORD, True),   # 4 × 9 mm,     v2 expansion placeholder (v0.28d: relaxed to allow_pads=True so routing of nearby signals isn't forced to detour around an empty placeholder)
     ("C5", +27.900, +35.400, +36.494, +42.494, True),    # 7.5 × 6 mm,   J9 Qwiic / Stemma QT expansion (JST SH 4-pin, fully inside PCB)
 ]
@@ -3641,6 +3641,7 @@ def _emit_two_pad_smd_footprint(
     pad_roundrect_rratio: float = 0.25,
     footprint_lib: str | None = None,
     hide_ref: bool = True,
+    polarity_mark: str = "none",
 ) -> str:
     """Emit a generic two-pad SMD footprint (Cap/Res/Diode/Inductor SMD).
 
@@ -3673,6 +3674,42 @@ def _emit_two_pad_smd_footprint(
         f"{footprint_lib}:{footprint_name}" if footprint_lib else footprint_name
     )
     ref_hide_line = "\n\t\t\t(hide yes)" if hide_ref else ""
+    # v0.36 I1 fix: polarity marker on F.SilkS. For diodes, pad 1 = cathode
+    # (KiCad KLC convention) and the cathode-bar marker goes on the cathode
+    # side of the body so the hand-assembler can see polarity at a glance.
+    # Without this, the silkscreen has no polarity indicator — a backwards
+    # diode is a silent failure (D1 TVS gives 0 protection, D2 freewheel
+    # shorts the SW node, D3 Zener clamp dies).
+    cathode_bar_clause = ""
+    if polarity_mark == "cathode_bar":
+        # Vertical line on F.SilkS at the cathode end. Pad 1 = cathode per
+        # KiCad's KLC. For SMA/SMB/SOD-323 the body extends BETWEEN the pads
+        # but pads also extend into the body extent on the X axis (e.g. SMA
+        # pad 1 east edge at X=-1.05 vs body west edge at X=-2.15 — pad
+        # overhangs body by 1.1 mm on the inner side). A naive "bar at body
+        # west edge" places the bar OVER pad 1's exposed metal → silk_over_copper
+        # DRC fail. Correct placement: bar between the pad's inner edge (east
+        # edge of pad 1) and the body's east-of-pad region, with ≥0.15 mm
+        # clearance to the pad mask opening. Pad 1 east edge =
+        # -(pad_pitch/2) + pad_w/2; bar at that X + 0.25 mm gives 0.25 mm
+        # clearance. The bar stays inside body_w/2 since for all our diode
+        # packages (SMA/SMB/SOD-323) body extends past the pad inner edge.
+        pad_inner_edge_x = -(pad_pitch / 2.0) + (pad_w / 2.0)
+        bar_x = pad_inner_edge_x + 0.25
+        # Bar height: keep it within body_h so it doesn't poke past the body
+        # outline. Limit to pad_h to avoid the bar extending past pad metal on
+        # the Y axis (which would only matter if bar X were over pad metal —
+        # belt-and-suspenders).
+        bar_half_h = min(body_h / 2.0 - 0.05, pad_h / 2.0)
+        cathode_bar_clause = (
+            f"\n\t\t(fp_line\n"
+            f"\t\t\t(start {fmt(bar_x)} -{fmt(bar_half_h)})\n"
+            f"\t\t\t(end {fmt(bar_x)} {fmt(bar_half_h)})\n"
+            f"\t\t\t(stroke (width 0.12) (type solid))\n"
+            f"\t\t\t(layer \"F.SilkS\")\n"
+            f"\t\t\t(uuid \"{U('fp-silk-cathode:' + uuid_tag)}\")\n"
+            f"\t\t)"
+        )
     return textwrap.dedent(f"""\
         \t(footprint "{footprint_name}"
         \t\t(layer "F.Cu")
@@ -3729,7 +3766,7 @@ def _emit_two_pad_smd_footprint(
         \t\t\t(fill no)
         \t\t\t(layer "F.CrtYd")
         \t\t\t(uuid "{U('fp-crtyd:' + uuid_tag)}")
-        \t\t)
+        \t\t){cathode_bar_clause}
         \t\t(pad "1" {pad_type} {pad_shape}
         \t\t\t(at -{fmt(pad_x)} 0{rot_clause})
         \t\t\t(size {fmt(pad_w)} {fmt(pad_h)})
@@ -3810,6 +3847,7 @@ def gen_diode_sma_pcb_footprint(*, x: float, y: float, rotation: int,
         pad_pitch=4.5, pad_w=2.4, pad_h=1.7,
         body_w=4.3, body_h=2.7,
         hide_ref=hide_ref,
+        polarity_mark="cathode_bar",
     )
 
 
@@ -3827,6 +3865,7 @@ def gen_diode_smb_pcb_footprint(*, x: float, y: float, rotation: int,
         pad_pitch=5.1, pad_w=2.7, pad_h=2.2,
         body_w=4.5, body_h=3.6,
         hide_ref=hide_ref,
+        polarity_mark="cathode_bar",
     )
 
 
@@ -3844,6 +3883,7 @@ def gen_diode_sod323_pcb_footprint(*, x: float, y: float, rotation: int,
         pad_pitch=2.4, pad_w=0.9, pad_h=0.9,
         body_w=1.7, body_h=1.25,
         hide_ref=hide_ref,
+        polarity_mark="cathode_bar",
     )
 
 
@@ -3976,6 +4016,20 @@ def gen_capacitor_polarized_radial_pcb_footprint(*, x: float, y: float, rotation
         \t\t\t(fill no)
         \t\t\t(layer "F.CrtYd")
         \t\t\t(uuid "{U('fp-crtyd:' + uuid_tag)}")
+        \t\t)
+        \t\t(fp_line
+        \t\t\t(start -{fmt(pad_x + 1.4)} -0.5)
+        \t\t\t(end -{fmt(pad_x + 1.4)} 0.5)
+        \t\t\t(stroke (width 0.15) (type solid))
+        \t\t\t(layer "F.SilkS")
+        \t\t\t(uuid "{U('fp-silk-plus-v:' + uuid_tag)}")
+        \t\t)
+        \t\t(fp_line
+        \t\t\t(start -{fmt(pad_x + 1.9)} 0)
+        \t\t\t(end -{fmt(pad_x + 0.9)} 0)
+        \t\t\t(stroke (width 0.15) (type solid))
+        \t\t\t(layer "F.SilkS")
+        \t\t\t(uuid "{U('fp-silk-plus-h:' + uuid_tag)}")
         \t\t)
         \t\t(pad "1" thru_hole rect
         \t\t\t(at -{fmt(pad_x)} 0{rot_clause})
@@ -4769,11 +4823,19 @@ def gen_power_pcb_footprints() -> str:
     # (interpolating edge from (+11.67,+4.19) to (+9.47,+8.01)):
     # t=(7.60-4.19)/(8.01-4.19)=0.893; X=+11.67+0.893*(-2.20)=+9.71.
     # D1 west +12.05 > +9.71 ✓ clear by 2.34 mm.
+    # v0.36 CRITICAL-1 fix: PCB footprint rotation 0 → 180 paired with the
+    # schematic angle 90 → 270 swap. Together these put pad 1 (cathode, per
+    # KiCad D_SMB KLC) on the EAST physical side where the Freerouting
+    # snapshot already routed the V_24V_PROT (Net-(D1-A1)) tracks. Without
+    # the PCB-side flip, pad 1 would be on the west side and the routing
+    # snapshot would short Net-(D1-A1) into D1 pad 2 = GND. The cathode bar
+    # on F.SilkS naturally follows the rotated footprint and ends up on the
+    # east side, marking the cathode-on-VIN convention.
     parts.append(gen_diode_smb_pcb_footprint(
-        x=+16, y=+9.5, rotation=0,
+        x=+16, y=+9.5, rotation=180,
         reference="D1", value="SMBJ24A",
         uuid_tag="d1-tvs-smbj24a",
-        descr="SMBJ24A TVS surge clamp, 24 V standoff, 38.9 V clamp @ 1 A.",
+        descr="SMBJ24A TVS surge clamp, 24 V standoff, 38.9 V clamp.",
     ))
     # Q1 P-MOSFET reverse-polarity protection. SOT-23 with letter pin
     # names ("G", "S", "D") matching the Device:Q_PMOS schematic symbol
@@ -4796,11 +4858,20 @@ def gen_power_pcb_footprints() -> str:
     # mm → 0.40 mm INSIDE SEN66 BODY SHADOW. BAD.
     # Final compromise: move Q1 to north-of-SEN66 zone after all,
     # at (+27, +25). Already verified safe in plan_check.
+    # v0.36 CRITICAL-4 fix: substituted PMV65XP → AO3401A.
+    # PMV65XP Vds_max = -20V (verified Nexperia datasheet, NOT -50V as the
+    # pre-v0.36 descr wrongly stated). During an SMBJ24A clamp event the rail
+    # spikes to 38.9V which would EXCEED PMV65XP's Vds rating by 19V.
+    # AO3401A (Alpha & Omega) is a direct drop-in: same SOT-23 footprint, same
+    # G/S/D pin layout (1=G, 2=S, 3=D), Vds_max = -30V (8.9V margin against
+    # the 38.9V clamp — tight but safe for transient events), Vgs_max = ±12V
+    # (same as PMV65XP, so D3 Zener clamp still applies). LCSC C15127, mass
+    # stock at JLCPCB Extended Library.
     parts.append(gen_sot23_3pin_pcb_footprint(
         x=+27, y=+25, rotation=0,
-        reference="Q1", value="PMV65XP",
+        reference="Q1", value="AO3401A",
         uuid_tag="q1-pmos",
-        descr="P-MOSFET reverse-polarity protection. SOT-23. Vds=-50 V / Vgs=±20 V.",
+        descr="P-MOSFET reverse-polarity protection. SOT-23. AO3401A: Vds=-30 V, Vgs=±12 V, RDS(on)=60 mΩ @ Vgs=-10 V.",
         pin_names=("G", "S", "D"),
     ))
     # D3 — Q1 gate-source Zener clamp. North of SEN66, west of J3 SEN66
@@ -4826,9 +4897,9 @@ def gen_power_pcb_footprints() -> str:
     ))
     parts.append(gen_resistor_0603_pcb_footprint(
         x=+25, y=+33, rotation=0,
-        reference="R1", value="100k",
+        reference="R1", value="100k 1%",
         uuid_tag="r1-gate-pulldown",
-        descr="100 kΩ gate-GND pulldown for Q1 (P-MOSFET reverse-polarity).",
+        descr="100 kΩ 1% gate-GND pulldown for Q1 (P-MOSFET reverse-polarity).",
     ))
     parts.append(gen_resistor_0603_pcb_footprint(
         x=+25, y=+35.5, rotation=0,
@@ -5050,17 +5121,23 @@ def gen_power_pcb_footprints() -> str:
         uuid_tag="c16-u2-vout-hf",
         descr="100 nF HF ceramic bypass on +3.3V rail.",
     ))
+    # v0.36 CRITICAL-3 fix: pre-v0.36 PCB-generator had C7=22pF "FB feedforward"
+    # and C8=100nF "BST bootstrap" — contradicting the schematic which has
+    # C7=100nF (BST) and C8=47nF (SS soft-start). TPS62933 default config
+    # does NOT require an FB feedforward cap, and the BST cap is mandatory
+    # (without it the high-side gate driver supply is undersized and the
+    # converter cannot start). Aligning PCB-generator to the schematic.
     parts.append(gen_capacitor_0603_pcb_footprint(
         x=-6, y=-46, rotation=0,
-        reference="C7", value="22pF",
-        uuid_tag="c7-fb-feedforward",
-        descr="FB feedforward cap (BW shaping for TPS62933).",
+        reference="C7", value="100nF",
+        uuid_tag="c7-u2-bst",
+        descr="Bootstrap cap C(BST) between U2.SW and U2.BST. REQUIRED.",
     ))
     parts.append(gen_capacitor_0603_pcb_footprint(
         x=-2, y=-46, rotation=0,
-        reference="C8", value="100nF",
-        uuid_tag="c8-u2-bst",
-        descr="Bootstrap cap C(BST) between U2.SW and U2.VOS.",
+        reference="C8", value="47nF",
+        uuid_tag="c8-u2-ss",
+        descr="Soft-start cap C(SS) between U2.SS and GND. Sets ramp time.",
     ))
 
     # ---- C2 (Y2 safety cap) — WEST of LD2410, outside daughterboard shadow ----
@@ -11271,8 +11348,18 @@ def gen_power_sch() -> str:
     # point and consumes ~uA leakage. Peak pulse power 600W. F1 (PTC)
     # downstream catches the sustained over-current that follows a
     # clamped event.
+    # angle=270 (NOT 90) — see CRITICAL-1 fix in v0.36 swarm audit. KiCad's
+    # Device:D_TVS lib_id has both pins named A1/A2 (bidirectional convention),
+    # but the SMBJ24A is UNIDIRECTIONAL with a cathode bar marker. KiCad's
+    # Diode_SMD:D_SMB stock footprint follows the KLC: pad 1 = cathode.
+    # `sync_pcb_nets_from_schematic` maps schematic-pin-N → PCB-pad-N, so
+    # whichever schematic pin sits on the VIN wire becomes PCB pad 1 = cathode
+    # only if that schematic pin number is 1. At angle=90, schematic pin 2
+    # lands on TOP (VIN) and pin 1 lands on BOTTOM (GND) → PCB pad 1 = GND
+    # = REVERSED TVS. At angle=270, pin 1 lands on TOP (VIN) and pin 2 on
+    # BOTTOM (GND) → PCB pad 1 = cathode = VIN ✓.
     parts.append(_sch_diode_tvs(
-        x=D1_X, y=D1_Y, angle=90,
+        x=D1_X, y=D1_Y, angle=270,
         reference="D1", value="SMBJ24A", uuid_tag="d1",
     ))
 
@@ -11286,7 +11373,7 @@ def gen_power_sch() -> str:
     # footprint based on the same-day JLCPCB stock check.
     parts.append(_sch_diode_zener(
         x=D3_X, y=D3_Y, angle=270,
-        reference="D3", value="18V Zener 500mW", uuid_tag="d3",
+        reference="D3", value="18V Zener 200mW", uuid_tag="d3",
     ))
 
     # ----- Q1: P-MOSFET reverse-polarity protection (PMV65XP) -----
@@ -11295,18 +11382,19 @@ def gen_power_sch() -> str:
     # then the gate is pulled negative through R4 + R1 to GND. The D3
     # Zener clamp limits |Vgs| to <=18V, so the channel turns fully on
     # at Vgs = -18V — shorting out the body diode for low conduction loss.
-    # PMV65XP from Nexperia: Vds_max = -50V (margin over the 38.9V SMBJ24A
-    # clamp, even better than the previous DMP4015SK3's -40V), Vgs_max =
-    # +/-20V (same limit as DMP4015SK3 — that's why the D3 + R4 Zener
-    # clamp from Fix #1 is still required), Id continuous = -1.95A
-    # (plenty for our ~350 mA combined load), RDS(on) typ = 90 mOhm at
-    # Vgs=-10V (slightly higher than DMP4015SK3's 70 mOhm but still
-    # negligible at 350 mA = 11 mW dissipation), SOT-23-3 package.
-    # JLCPCB Basic Parts Library — no setup fee, no intermittent-stock
-    # concern that prompted the swap away from DMP4015SK3.
+    # v0.36 CRITICAL-4: AO3401A (Alpha & Omega Semiconductor), drop-in for the
+    # pre-v0.36 PMV65XP. PMV65XP claimed Vds_max=-50V in the source comment
+    # but the actual datasheet value is Vds_max=-20V — would have been
+    # exceeded by 19V during a 38.9V SMBJ24A clamp event.
+    # AO3401A: Vds_max=-30V (8.9V margin over the 38.9V clamp — tight but
+    # safe for transient events under nanoseconds), Vgs_max=±12V (D3 Zener
+    # clamp at -18V is still REQUIRED to keep |Vgs| within ±12V at startup),
+    # Id continuous=-4A, RDS(on) typ=60 mΩ at Vgs=-10V (better than PMV65XP's
+    # 90 mΩ). Same SOT-23 footprint, same G/S/D pin order.
+    # JLCPCB Extended Library, mass stock.
     parts.append(_sch_q_pmos(
         x=Q1_X, y=Q1_Y, angle=0,
-        reference="Q1", value="PMV65XP", uuid_tag="q1",
+        reference="Q1", value="AO3401A", uuid_tag="q1",
     ))
 
     # ----- F1: PTC polyfuse, 750 mA hold / 60 V -----
@@ -11326,7 +11414,7 @@ def gen_power_sch() -> str:
     # ----- R1: 100 kΩ gate-GND pulldown -----
     parts.append(_sch_resistor(
         x=R1_X, y=R1_Y, angle=0,
-        reference="R1", value="100k", uuid_tag="r1",
+        reference="R1", value="100k 1%", uuid_tag="r1",
     ))
 
     # ----- R4: 1 kΩ series gate resistor (Zener clamp current limiter) -----
@@ -11829,15 +11917,17 @@ def gen_power_sch() -> str:
     #                  4×4 mm or 3×3 mm package — much smaller than LM2596's
     #                  33 uH because the higher fsw drops the inductor
     #                  requirement by ~15×.
-    #   * R2 44.2k 1% / R3 10k 1% (FB divider): TPS62933 FB pin reference
-    #                  voltage = 0.6 V. Vout = Vfb × (1 + R2/R3) =
-    #                  0.6 × (1 + 4.42) = 3.252 V — well within the
-    #                  ESP32-C6's 3.0-3.6 V supply window and the typical
-    #                  3.0-3.6 V supply requirements of SEN66 and NT3H1101.
-    #                  R3 = 10 kΩ gives a low-current divider
-    #                  (~60 µA), and R2 = 44.2 kΩ is the nearest E96 value.
+    #   * R2 100k 1% / R3 30.9k 1% (FB divider): TPS62933 FB pin reference
+    #                  voltage = 0.8 V per TI datasheet §"Electrical
+    #                  Characteristics" (the pre-v0.36 0.6 V assumption was
+    #                  WRONG — TPS62930 family is 0.6 V, TPS62933 is 0.8 V).
+    #                  Vout = Vref × (1 + R2/R3) = 0.8 × (1 + 100/30.9) =
+    #                  3.39 V — within ±3 % of 3.3 V target and well below
+    #                  ESP32-C6 / SEN66 / NT3H1101 absolute-max VDD of 3.6 V.
+    #                  R3 = 30.9 kΩ gives a low-current divider
+    #                  (~26 µA), and R2 = 100 kΩ is a standard E96 value.
     #                  1% tolerance keeps the output voltage variation due
-    #                  to divider tolerance below ±20 mV.
+    #                  to divider tolerance below ±35 mV (≈1 %).
     #   * C5 10uF + C15 100nF : input bulk + HF ceramic bypass at U2.VIN.
     #                  Per datasheet: ceramic X5R/X7R; 16 V rating gives
     #                  3× margin over the 5 V input.
@@ -11979,13 +12069,15 @@ def gen_power_sch() -> str:
     L2_BOT_Y = L2_Y + 3.81        # 144.78 — on SW extension row
 
     # ----- R2 / R3: feedback divider for 3.3V output -----
-    # TPS62933 FB pin reference voltage Vfb = 0.6 V.
-    #   Vout = Vfb × (1 + R2/R3)  =>  R2/R3 = (Vout/Vfb - 1) = 4.5 for Vout=3.3V
-    # With R3 = 10 kΩ (datasheet-recommended low-current divider):
-    #   R2 = 45 kΩ ideal → nearest E96 = 44.2 kΩ
-    #   → Vout = 0.6 × (1 + 4.42) = 3.252 V  (within ESP32-C6's 3.0-3.6 V window)
+    # TPS62933 FB pin reference voltage Vref = 0.8 V (TI datasheet, NOT 0.6 V
+    # as the pre-v0.36 comments wrongly stated — that was the TPS62930-family
+    # value, confused into this commentary).
+    #   Vout = Vref × (1 + R2/R3)  =>  R2/R3 = (Vout/Vref - 1) = 3.125 for Vout=3.3V
+    # With R3 = 30.9 kΩ:
+    #   R2 = 96.6 kΩ ideal → nearest E96 = 100 kΩ
+    #   → Vout = 0.8 × (1 + 100/30.9) = 3.39 V  (within ±3 % of 3.3 V target)
     #
-    # Layout: R2 (top, 44.2 kΩ) and R3 (bottom, 10 kΩ) vertically stacked,
+    # Layout: R2 (top, 100 kΩ) and R3 (bottom, 30.9 kΩ) vertically stacked,
     # forming a divider between +3.3V (R2.top) and GND (R3.bot). FB tap
     # point is the R2.bot/R3.top junction. The U2.FB pin (at X=208.28,
     # Y=152.40) routes to the FB tap via a short L-wire: drop DOWN from
@@ -12188,16 +12280,24 @@ def gen_power_sch() -> str:
         reference="C8", value="47nF", uuid_tag="c8",
     ))
 
-    # ----- R2: feedback divider top, 44.2 kΩ 1% -----
+    # ----- R2: feedback divider top, 100 kΩ 1% (v0.36 — was 44.2k pre-fix) -----
+    # See CRITICAL-2 fix in v0.36 swarm audit. TPS62933 Vref = 0.8 V per the
+    # TI datasheet §"Electrical Characteristics" (NOT 0.6 V as the pre-v0.36
+    # comments wrongly assumed). For Vout = 3.3 V: R2/R3 = (3.3/0.8 - 1) =
+    # 3.125, so R2 = 100 k + R3 = 30.9 k yields Vout = 0.8 × (1 + 100/30.9)
+    # = 3.39 V — within ±5 % of 3.3 V target. The pre-v0.36 schematic values
+    # (R2=44.2k / R3=10k) were designed for Vref=0.6 V and would have produced
+    # 4.34 V at the actual Vref=0.8 V — destroying ESP32-C6 + SEN66 (both
+    # Vdd_max = 3.6 V).
     parts.append(_sch_resistor(
         x=R2_X, y=R2_Y, angle=0,
-        reference="R2", value="44.2k 1%", uuid_tag="r2",
+        reference="R2", value="100k 1%", uuid_tag="r2",
     ))
 
-    # ----- R3: feedback divider bottom, 10 kΩ 1% -----
+    # ----- R3: feedback divider bottom, 30.9 kΩ 1% (v0.36 — was 10k pre-fix) -----
     parts.append(_sch_resistor(
         x=R3_X, y=R3_Y, angle=0,
-        reference="R3", value="10k 1%", uuid_tag="r3",
+        reference="R3", value="30.9k 1%", uuid_tag="r3",
     ))
 
     # ----- +5V drop symbol (taps the global +5V net into U2.VIN) -----
@@ -13942,6 +14042,12 @@ def _sch_conn_01x06(
     pin_uuids = [U(f"sym-pin:{uuid_tag}-{n}") for n in range(1, 7)]
     sheet_path = f"/{ROOT_SHEET_UUID}/{SHEET_BLOCK_UUIDS[sheet_key]}"
     dnp_flag = "yes" if dnp else "no"
+    # v0.36 I3 fix: when dnp=True, also set in_bom=no so the schematic-level
+    # BOM exporter (kicad-cli sch export bom) excludes the part. Without this,
+    # the schematic-level BOM ships J2/J10 in the parts list even though the
+    # PCB exclude_from_bom attribute correctly hides them in the production
+    # position files. The two flags must stay consistent.
+    in_bom_flag = "no" if dnp else "yes"
     pin_blocks = "\n".join(
         f"\t\t(pin \"{n}\"\n\t\t\t(uuid \"{pin_uuids[n-1]}\")\n\t\t)"
         for n in range(1, 7)
@@ -13952,7 +14058,7 @@ def _sch_conn_01x06(
         \t\t(at {fmt(x)} {fmt(y)} {angle})
         \t\t(unit 1)
         \t\t(exclude_from_sim no)
-        \t\t(in_bom yes)
+        \t\t(in_bom {in_bom_flag})
         \t\t(on_board yes)
         \t\t(dnp {dnp_flag})
         \t\t(fields_autoplaced yes)

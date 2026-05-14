@@ -3499,7 +3499,7 @@
 )
 (symbol
 	(lib_id "Device:D_TVS")
-	(at 66.04 87.63 90)
+	(at 66.04 87.63 270)
 	(unit 1)
 	(exclude_from_sim no)
 	(in_bom yes)
@@ -3508,7 +3508,7 @@
 	(fields_autoplaced no)
 	(uuid "f7582d46-251f-5d4b-9a15-b2dcbbe0a45d")
 	(property "Reference" "D1"
-		(at 69.85 86.36 270)
+		(at 69.85 86.36 90)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -3517,7 +3517,7 @@
 		)
 	)
 	(property "Value" "SMBJ24A"
-		(at 69.85 88.9 270)
+		(at 69.85 88.9 90)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -3586,7 +3586,7 @@
 			(justify left)
 		)
 	)
-	(property "Value" "18V Zener 500mW"
+	(property "Value" "18V Zener 200mW"
 		(at 76.2 90.17 90)
 		(effects
 			(font
@@ -3656,7 +3656,7 @@
 			(justify left)
 		)
 	)
-	(property "Value" "PMV65XP"
+	(property "Value" "AO3401A"
 		(at 87.63 78.74 0)
 		(effects
 			(font
@@ -3799,7 +3799,7 @@
 			(justify left)
 		)
 	)
-	(property "Value" "100k"
+	(property "Value" "100k 1%"
 		(at 80.01 100.33 0)
 		(effects
 			(font
@@ -6773,7 +6773,7 @@
 			(justify left)
 		)
 	)
-	(property "Value" "44.2k 1%"
+	(property "Value" "100k 1%"
 		(at 212.09 139.7 0)
 		(effects
 			(font
@@ -6843,7 +6843,7 @@
 			(justify left)
 		)
 	)
-	(property "Value" "10k 1%"
+	(property "Value" "30.9k 1%"
 		(at 212.09 147.32 0)
 		(effects
 			(font
