@@ -1567,6 +1567,33 @@
         				(hide yes)
         			)
         		)
+		(property "Manufacturer" "JST Sales America"
+			(at 0 0 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "MPN" "SM04B-SRSS-TB(LF)(SN)"
+			(at 0 0 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "LCSC" "C160404"
+			(at 0 0 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
         		(pin "1"
 			(uuid "42180eef-506b-5cb2-b7a9-685ac49e4096")
 		)

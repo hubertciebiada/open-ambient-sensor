@@ -864,6 +864,14 @@ PCB_VERSION = 20260206
 SCH_VERSION = 20260306   # canonical KiCad 10.0.2 schematic version
 GEN_VERSION = "10.0"
 
+# OAS project board-level identification — printed on F.SilkS so a physical
+# PCB can be identified by version + URL without booting the device.
+# v0.38: added per audit-26 good-practice recommendation. Update OAS_VERSION
+# on each release tag.
+OAS_NAME_SHORT = "Open Ambient Sensor"
+OAS_VERSION_LINE = "OAS  v0.38"
+OAS_REPO_URL = "github.com/HubertCiebiada/open-ambient-sensor"
+
 def fmt(x: float) -> str:
     """KiCad-style coordinate: up to 6 decimals, no trailing zeros required."""
     return f"{x:.6f}".rstrip("0").rstrip(".")
@@ -1780,7 +1788,7 @@ def gen_sk6812_side_footprint() -> str:
         \t\t(end {fmt(pin1_dot_x + 0.15)} {fmt(pin1_dot_y)})
         \t\t(stroke (width 0.08) (type solid))
         \t\t(fill solid)
-        \t\t(layer "F.Fab")
+        \t\t(layer "F.SilkS")
         \t\t(uuid "{U('sk6812-side:fp:pin1-dot')}")
         \t)
         \t(fp_line
@@ -3481,7 +3489,7 @@ def gen_sk6812_side_pcb_footprint(
         \t\t\t(end {fmt(pin1_dot_x + 0.15)} {fmt(pin1_dot_y)})
         \t\t\t(stroke (width 0.08) (type solid))
         \t\t\t(fill solid)
-        \t\t\t(layer "F.Fab")
+        \t\t\t(layer "F.SilkS")
         \t\t\t(uuid "{U('fp-pin1-dot:' + uuid_tag)}")
         \t\t)
         \t\t(fp_line
@@ -4018,15 +4026,15 @@ def gen_capacitor_polarized_radial_pcb_footprint(*, x: float, y: float, rotation
         \t\t\t(uuid "{U('fp-crtyd:' + uuid_tag)}")
         \t\t)
         \t\t(fp_line
-        \t\t\t(start -{fmt(pad_x + 1.4)} -0.5)
-        \t\t\t(end -{fmt(pad_x + 1.4)} 0.5)
+        \t\t\t(start -{fmt(body_r + 0.7)} -0.5)
+        \t\t\t(end -{fmt(body_r + 0.7)} 0.5)
         \t\t\t(stroke (width 0.15) (type solid))
         \t\t\t(layer "F.SilkS")
         \t\t\t(uuid "{U('fp-silk-plus-v:' + uuid_tag)}")
         \t\t)
         \t\t(fp_line
-        \t\t\t(start -{fmt(pad_x + 1.9)} 0)
-        \t\t\t(end -{fmt(pad_x + 0.9)} 0)
+        \t\t\t(start -{fmt(body_r + 1.2)} 0)
+        \t\t\t(end -{fmt(body_r + 0.2)} 0)
         \t\t\t(stroke (width 0.15) (type solid))
         \t\t\t(layer "F.SilkS")
         \t\t\t(uuid "{U('fp-silk-plus-h:' + uuid_tag)}")
@@ -4243,6 +4251,14 @@ def gen_to263_5_pcb_footprint(*, x: float, y: float, rotation: int,
         \t\t\t(fill no)
         \t\t\t(layer "F.CrtYd")
         \t\t\t(uuid "{U('fp-crtyd:' + uuid_tag)}")
+        \t\t)
+        \t\t(fp_circle
+        \t\t\t(center -4.5 1.5)
+        \t\t\t(end -4.1 1.5)
+        \t\t\t(stroke (width 0.1) (type solid))
+        \t\t\t(fill solid)
+        \t\t\t(layer "F.SilkS")
+        \t\t\t(uuid "{U('fp-silk-pin1:' + uuid_tag)}")
         \t\t)
         """) + "\n".join(pad_blocks) + "\n\t)"
 
@@ -4878,9 +4894,9 @@ def gen_power_pcb_footprints() -> str:
     # socket (west edge +30.02). Stacked column at X=+27/28.
     parts.append(gen_diode_sod323_pcb_footprint(
         x=+27, y=+28, rotation=0,
-        reference="D3", value="BZT52C18",
+        reference="D3", value="10V Zener 200mW",
         uuid_tag="d3-zener",
-        descr="18 V Zener clamp on Q1 gate-source to keep |Vgs| ≤ 18 V.",
+        descr="10 V Zener clamp on Q1 gate-source to keep |Vgs| ≤ 10 V (v0.37 — was 18V pre-fix; AO3401A Vgs_max=±12V).",
     ))
     # F1 — polyfuse. Doesn't fit in any of the small strips (south-of-cable
     # is 5.9 mm tall but F1 needs 8 mm in width at rotation 0; west-of-J3
@@ -5485,10 +5501,36 @@ def gen_silk_labels() -> str:
     # Centred horizontally on body mid-X = anchor_x + SEN66_BODY_Y/2 = 36.3.
     body_mid_x = SEN66_ANCHOR_X + SEN66_BODY_Y / 2
     parts.append(_silk("SEN66 air quality", body_mid_x, -3.0, "sen66-body"))
-    # v0.9: previous "-> J3" cable-direction arrow at the SEN66 connector
-    # and the "to SEN66" label at J3 are dropped — with J3 now directly
-    # below the SEN66 body shadow, the SEN66 ↔ J3 association is visually
-    # obvious from the silk outlines alone.
+    # ---- v0.38: board-level project identification ----
+    # Industry-standard prototype tracking — a physical PCB can be
+    # identified by name + version (+ URL via assembly drawing) without
+    # booting the device. Placed in the clear strip BETWEEN J7/MIKROE
+    # east silk (PCB X=-12.7) and C3 cutout west wall (PCB X=+4.9) —
+    # 17.6 mm wide, with the J1 south silk edge (Y=+24.51) on the north
+    # and J7 south silk edge (Y=+39.4) on the south.
+    #
+    # F.SilkS (printed on physical PCB) gets two short lines that fit
+    # at the board's silk_min_text_height rule (1.0 mm):
+    #   - "OAS Open Ambient Sensor" — 23 chars × ~0.7 mm = ~16.1 mm wide
+    #     at size 1.0, fits with ~0.5 mm clearance to J7/C3 silk.
+    #   - "v0.38" — 5 chars, fits easily.
+    # The full repo URL (~45 chars, too wide at silk-min size 1.0)
+    # goes on F.Fab — visible in 2d-top.png assembly renders for
+    # documentation, not printed on the physical PCB.
+    parts.append(_silk(OAS_NAME_SHORT,   -4.0, +30.0, "board-id-name",    size=1.0))
+    parts.append(_silk(OAS_VERSION_LINE, -4.0, +33.0, "board-id-version", size=1.0))
+    parts.append(_silk(OAS_REPO_URL,     -4.0, +36.0, "board-id-url",
+                       size=0.9, layer="F.Fab"))
+    # v0.9 dropped a J3-side "to SEN66" reciprocal arrow because J3 sits
+    # right under the SEN66 body shadow — at ~1.1 mm between SEN66 silk
+    # south edge (Y=+22) and J3 Reference field (Y=+23.1), there is
+    # simply no DRC-clean room for a F.SilkS arrow on the J3 side
+    # (v0.38 retry confirmed: any text taller than 1.0 mm triggers
+    # silk_overlap with J3 Reference, any text smaller than 1.0 mm
+    # trips the silk_min_text_height rule). The SEN66 mech-ref keeps
+    # its "JST GH cable ->" F.SilkS arrow on the SEN66 side and the
+    # cable direction is visually conveyed by J3 ↔ SEN66 silk being
+    # adjacent.
 
     # ---- v0.15.8: LD2410 board-level labels (board-level gr_text so
     # they read horizontally even with the LD2410 footprint rotated 270°).
@@ -10526,10 +10568,11 @@ def _sch_diode_zener(
 
     For the Q1 gate-source clamp, the cathode faces UP (toward Q1.S / VIN
     net) and the anode faces DOWN (toward the R4/R1 junction on the gate
-    side). When the gate-source voltage tries to exceed -18 V (gate well
+    side). When the gate-source voltage tries to exceed -10 V (gate well
     below source), the Zener breaks down in reverse and clamps the gate-
-    side junction to V_S - 18 V, keeping |Vgs| within the PMV65XP's
-    +/-20 V absolute maximum.
+    side junction to V_S - 10 V, keeping |Vgs| within the AO3401A's
+    +/-12 V absolute maximum (v0.37 — was 18 V Zener pre-fix; v0.36
+    swap PMV65XP → AO3401A exposed the Vgs_max regression).
 
     Reference text is placed to the right of the body, value text below it
     on the same side. The property at-angle is set so labels render
@@ -10846,7 +10889,7 @@ def gen_power_sch() -> str:
 
         J1 (input) ──┬── Q1.S → Q1.D → F1 → +24V (protected rail, exits up-right)
                      │     │            ↑
-                     │     │            D3 (18V Zener, cathode → S net,
+                     │     │            D3 (10V Zener, cathode → S net,
                      │     │                 anode → R4/R1 junction)
                      │     │
                      │     Q1.G → R4 (1k series) → (junction) → R1 (100k) → GND
@@ -10861,15 +10904,18 @@ def gen_power_sch() -> str:
     wire). A surge that exceeds Q1's Vds_max would destroy Q1 before its
     reverse-polarity function could engage, so D1 must clamp upstream of
     Q1. SMBJ24A clamps at ~38.9V at 1A peak, leaving comfortable margin
-    below Q1's absolute maximum (PMV65XP Vds_max = -50V).
+    below Q1's absolute maximum (AO3401A Vds_max = -30V; comfortable
+    margin even at the worst-case 38.9V clamp event).
 
-    The Q1 gate-source clamp (R4 + D3) is mandatory because PMV65XP
-    (like the previous DMP4015SK3) has Vgs_max = +/-20V, while the
-    natural pull-down through R1 alone would set Vgs = -24V at the 24V
-    supply, exceeding the absolute max. With D3 (18V Zener) shunting
-    the gate-side junction to source whenever the gate tries to drop
-    more than 18V below source, |Vgs| is clamped to <=18V. R4 (1k)
-    provides series isolation in the gate path.
+    The Q1 gate-source clamp (R4 + D3) is mandatory because AO3401A
+    (v0.36 swap from PMV65XP) has Vgs_max = +/-12V, while the natural
+    pull-down through R1 alone would set Vgs = -24V at the 24V supply,
+    exceeding the absolute max. With D3 (10V Zener, v0.37 — was 18V
+    pre-fix) shunting the gate-side junction to source whenever the
+    gate tries to drop more than 10V below source, |Vgs| is clamped
+    to <=10V (2V margin under AO3401A's ±12V limit; AND optimal
+    Rds_on operating point at Vgs=-10V). R4 (1k) provides series
+    isolation in the gate path.
 
     Layout (page-absolute mm, KiCad +Y is down on screen):
 
@@ -10889,12 +10935,13 @@ def gen_power_sch() -> str:
           column as R1. Body fits in clear Y band between VIN row (93.98)
           and the R4/R1 junction.
         - R1 (100k, gate pulldown) below R4; R1.bot → dedicated GND flag.
-        - D3 (18V Zener, angle=270) placed LEFT of the R4/R1 column with
+        - D3 (10V Zener, angle=270) placed LEFT of the R4/R1 column with
           its CATHODE wired UP to the VIN net (Q1.S side, via a T-tap on
           the existing vin-horiz wire) and its ANODE wired DOWN-and-RIGHT
           via an L-route to the R4/R1 junction. Clamp current at steady
-          state flows S -> D3 (reverse breakdown at Vz=18V) -> junction
-          -> R1 -> GND, drawing ~60 uA when active.
+          state flows S -> D3 (reverse breakdown at Vz=10V) -> junction
+          -> R1 -> GND, drawing ~14 mA when active (P_D3 = 140 mW,
+          within BZT52C10S 200 mW rating, 1.43x margin).
         - F1 above Q1.D, vertical Polyfuse
         - +24V flag, GND flag, Earth_Protective flag — each in its own column
           with ≥15 mm horizontal spacing between independent columns so the
@@ -11022,15 +11069,18 @@ def gen_power_sch() -> str:
     R1_TOP_Y = R1_Y - 3.81   # 105.41
     R1_BOT_Y = R1_Y + 3.81   # 113.03
 
-    # ----- D3: 18 V Zener gate-source clamp, angle=270 (body vertical) -----
-    # PMV65XP (and the predecessor DMP4015SK3) both have Vgs_max = +/-20V
-    # absolute maximum. With R1 alone pulling the gate toward GND, Vgs at
-    # the 24V supply settles at -24V — overshooting the gate-oxide limit
-    # by 20% and slowly destroying Q1. D3 (18V Zener) clamps |Vgs| to
-    # <=18V by shunting current from Q1.S to the R4/R1 junction whenever
-    # the junction voltage drops more than 18V below source. With the
-    # clamp active, the junction sits at V_S - 18V = 6V; the gate sees the
-    # same 6V through R4 (no DC gate current), so Vgs = 6 - 24 = -18V.
+    # ----- D3: 10 V Zener gate-source clamp, angle=270 (body vertical) -----
+    # AO3401A (v0.36 swap from PMV65XP) has Vgs_max = +/-12V absolute
+    # maximum. With R1 alone pulling the gate toward GND, Vgs at the 24V
+    # supply settles at -24V — exceeding the gate-oxide limit by 2x and
+    # destroying Q1. D3 (10V Zener, v0.37 — was 18V pre-fix; 18V would
+    # have clamped Vgs at -18V, still 6V over AO3401A's ±12V limit)
+    # clamps |Vgs| to <=10V by shunting current from Q1.S to the R4/R1
+    # junction whenever the junction voltage drops more than 10V below
+    # source. With the clamp active, the junction sits at V_S - 10V =
+    # 14V; the gate sees the same 14V through R4 (no DC gate current),
+    # so Vgs = 14 - 24 = -10V (2V margin under ±12V; ALSO the optimal
+    # Rds_on operating point for AO3401A at 45 mΩ).
     #
     # Pin 1 in Device:D_Zener is the CATHODE (K, lib (-3.81, 0)), pin 2 is
     # the ANODE (A, lib (3.81, 0)). With angle=270, the cathode (pin 1)
@@ -17857,6 +17907,190 @@ def _build_pcb_ref_to_footprint() -> dict[str, str]:
     return mapping
 
 
+def _build_lcsc_metadata_map() -> dict[tuple[str, str], tuple[str, str, str]]:
+    """Read hardware/bom/lcsc-mapping.csv and return a mapping of
+    `(Value, Footprint)` → `(Manufacturer, MPN, LCSC)`.
+
+    Used by `_apply_schematic_lcsc_metadata` to inject supply-chain
+    sourcing metadata into every schematic symbol instance, so the
+    same data that drives the BOM is visible inside the schematic
+    editor (and exportable via `kicad-cli sch export bom --fields`).
+
+    Skips DEPRECATED rows (LCSC starts with "DEPRECATED-") because
+    those are sentinel entries kept only to detect pre-v0.36
+    regenerated schematics — they have no matching schematic symbol.
+    """
+    import csv
+
+    mapping_path = HERE.parent / "bom" / "lcsc-mapping.csv"
+    result: dict[tuple[str, str], tuple[str, str, str]] = {}
+    with mapping_path.open("r", encoding="utf-8") as fh:
+        reader = csv.DictReader(fh)
+        for row in reader:
+            value = (row.get("Value") or "").strip()
+            footprint = (row.get("Footprint") or "").strip()
+            lcsc = (row.get("LCSC") or "").strip()
+            mfr = (row.get("Manufacturer") or "").strip()
+            mpn = (row.get("MPN") or "").strip()
+            if not value or not footprint:
+                continue
+            if lcsc.startswith("DEPRECATED-"):
+                continue
+            result[(value, footprint)] = (mfr, mpn, lcsc)
+    return result
+
+
+def _apply_schematic_lcsc_metadata(
+    content: str,
+    lcsc_map: dict[tuple[str, str], tuple[str, str, str]],
+) -> str:
+    """Post-process a sub-sheet schematic string, injecting three new
+    properties on every real-component symbol instance whose
+    `(Value, Footprint)` pair appears in `lcsc-mapping.csv`:
+
+      - `(property "Manufacturer" "...")`
+      - `(property "MPN" "...")`
+      - `(property "LCSC" "...")`
+
+    All three are emitted as HIDDEN properties at position (0, 0) so
+    they don't clutter the schematic rendering, but they become part
+    of the symbol's data and are picked up by `kicad-cli sch export
+    bom --fields "Value,Reference,Footprint,Manufacturer,MPN,LCSC,..."`.
+
+    This closes the v0.37 user concern "projekt sobie, BOM sobie": the
+    schematic is now self-sufficient for BOM generation. The
+    `lcsc-mapping.csv` post-process in `export_production.py` still
+    runs as a defensive cross-check, but a kicad-cli BOM export that
+    skips the post-process will still carry full sourcing metadata.
+
+    Walks each top-level `(symbol ...)` block. For each block whose
+    `Reference` is non-`#`-prefixed (i.e. a real component, not a
+    power flag) AND whose `(Value, Footprint)` pair has a mapping
+    entry, inserts the three new properties immediately after the
+    last existing `(property ...)` block (right before the first
+    `(pin ` or `(instances ` clause).
+
+    Deterministic UUIDs derived from the symbol's Reference so the
+    schematic file stays bit-identical across regenerations.
+    """
+    import re
+
+    out_parts: list[str] = []
+    i = 0
+    n = len(content)
+    while i < n:
+        idx = content.find("(symbol", i)
+        if idx == -1:
+            out_parts.append(content[i:])
+            break
+        out_parts.append(content[i:idx])
+        # Find matching close paren of the (symbol ...) block.
+        depth = 0
+        j = idx
+        while j < n:
+            ch = content[j]
+            if ch == "(":
+                depth += 1
+            elif ch == ")":
+                depth -= 1
+                if depth == 0:
+                    j += 1
+                    break
+            j += 1
+        block = content[idx:j]
+
+        # Extract Reference; skip power flags / virtual symbols.
+        m_ref = re.search(r'\(property "Reference" "([^"]+)"', block)
+        if m_ref and not m_ref.group(1).startswith("#"):
+            ref = m_ref.group(1)
+            m_val = re.search(r'\(property "Value" "([^"]+)"', block)
+            m_fp = re.search(r'\(property "Footprint" "([^"]*)"', block)
+            if m_val and m_fp:
+                value = m_val.group(1)
+                footprint = m_fp.group(1)
+                metadata = lcsc_map.get((value, footprint))
+                if metadata:
+                    mfr, mpn, lcsc = metadata
+                    # Find the END of the last `(property ...)` block inside
+                    # this symbol. Properties appear sequentially before the
+                    # first `(pin ` clause; we walk depth-counting to locate
+                    # each property's close paren and take the last one.
+                    last_prop_end = _find_last_property_end(block)
+                    if last_prop_end is not None:
+                        new_props = _emit_schematic_metadata_properties(
+                            ref, mfr, mpn, lcsc,
+                        )
+                        block = block[:last_prop_end] + new_props + block[last_prop_end:]
+        out_parts.append(block)
+        i = j
+    return "".join(out_parts)
+
+
+def _find_last_property_end(block: str) -> int | None:
+    """Return the position (offset within `block`) immediately AFTER the
+    closing `)` of the LAST top-level `(property "..." ...)` clause
+    inside the symbol block. Returns None if no property is found."""
+    last_end: int | None = None
+    pos = 0
+    while True:
+        idx = block.find('(property "', pos)
+        if idx == -1:
+            break
+        # Walk depth to find matching close.
+        depth = 0
+        k = idx
+        while k < len(block):
+            ch = block[k]
+            if ch == "(":
+                depth += 1
+            elif ch == ")":
+                depth -= 1
+                if depth == 0:
+                    k += 1
+                    last_end = k
+                    pos = k
+                    break
+            k += 1
+        else:
+            break
+    return last_end
+
+
+def _emit_schematic_metadata_properties(
+    reference: str, manufacturer: str, mpn: str, lcsc: str,
+) -> str:
+    """Render three hidden schematic properties (Manufacturer, MPN, LCSC)
+    matching the standard KiCad schematic property block format used by
+    Reference/Value/Footprint/Datasheet/Description (no `(uuid ...)`
+    clause — schematic symbol-instance properties don't carry UUIDs;
+    only the symbol itself has a UUID). Hidden at position (0, 0)
+    — they exist for BOM export only, never rendered."""
+    # `reference` accepted for API symmetry with _apply_schematic_lcsc_metadata
+    # but unused — schematic property blocks are not UUID-stamped.
+    _ = reference
+
+    def _prop(name: str, value: str) -> str:
+        # Escape any embedded quotes in the value.
+        safe = value.replace('"', '\\"')
+        return (
+            f'\n\t\t(property "{name}" "{safe}"\n'
+            f'\t\t\t(at 0 0 0)\n'
+            f'\t\t\t(effects\n'
+            f'\t\t\t\t(font\n'
+            f'\t\t\t\t\t(size 1.27 1.27)\n'
+            f'\t\t\t\t)\n'
+            f'\t\t\t\t(hide yes)\n'
+            f'\t\t\t)\n'
+            f'\t\t)'
+        )
+
+    return (
+        _prop("Manufacturer", manufacturer)
+        + _prop("MPN", mpn)
+        + _prop("LCSC", lcsc)
+    )
+
+
 def _apply_schematic_footprints(content: str, ref_to_fp: dict[str, str]) -> str:
     """Post-process a sub-sheet schematic string, replacing every
     `(property "Footprint" "")` field of a real-component symbol instance
@@ -19449,6 +19683,12 @@ def main():
     # warning when running the schematic-driven netlist / Update-PCB path).
     pcb_ref_to_fp = _build_pcb_ref_to_footprint()
 
+    # v0.38: load lcsc-mapping.csv to inject Manufacturer/MPN/LCSC
+    # properties into every schematic symbol (closes audit-16 "projekt
+    # sobie, BOM sobie" finding — embedded supply-chain metadata makes
+    # the schematic self-sufficient for BOM export).
+    lcsc_metadata_map = _build_lcsc_metadata_map()
+
     for name in SUBSHEETS:
         # sheet_context auto-namespaces every U() call made by the per-sheet
         # generator (and the _sch_* helpers it invokes) under `name:`, so two
@@ -19469,6 +19709,12 @@ def main():
         # the schematic-side netlist export carries the same footprint
         # reference the PCB does (v0.23 fix for review Mn3).
         content = _apply_schematic_footprints(content, pcb_ref_to_fp)
+        # v0.38: inject Manufacturer/MPN/LCSC properties on each symbol
+        # whose (Value, Footprint) matches a row in lcsc-mapping.csv.
+        # MUST run AFTER _apply_schematic_footprints so the Footprint
+        # property is populated and the (Value, Footprint) lookup key
+        # works.
+        content = _apply_schematic_lcsc_metadata(content, lcsc_metadata_map)
         (HERE / f"{name}.kicad_sch").write_text(content, encoding="utf-8")
     (HERE / "oas.kicad_pro").write_text(gen_pro(), encoding="utf-8")
     (HERE / "fp-lib-table").write_text(gen_fp_lib_table(), encoding="utf-8")

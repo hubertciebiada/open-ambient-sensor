@@ -228,11 +228,16 @@ def export_bom(kcli: str) -> None:
              produce an explicit error so the user catches missing
              coverage before submitting the order.
     """
+    # v0.38: include Manufacturer + MPN as native BOM columns. These come
+    # from schematic symbol properties injected by generate.py's
+    # `_apply_schematic_lcsc_metadata` post-process (closes audit-16
+    # "projekt sobie, BOM sobie" — full sourcing metadata now lives on
+    # the schematic, kicad-cli emits it directly into the BOM CSV).
     run([
         kcli, "sch", "export", "bom",
         "--output", str(OUT / "oas-bom.csv"),
-        "--fields", "Value,Reference,Footprint,LCSC,${QUANTITY}",
-        "--labels", "Comment,Designator,Footprint,LCSC,Qty",
+        "--fields", "Value,Reference,Footprint,Manufacturer,MPN,LCSC,${QUANTITY}",
+        "--labels", "Comment,Designator,Footprint,Manufacturer,MPN,LCSC,Qty",
         "--group-by", "Value,Footprint",
         "--sort-field", "Value",
         "--exclude-dnp",
@@ -322,6 +327,8 @@ def _postprocess_bom_with_lcsc_mapping() -> None:
             "Comment": value,
             "Designator": row.get("Designator", ""),
             "Footprint": footprint,
+            "Manufacturer": row.get("Manufacturer", ""),
+            "MPN": row.get("MPN", ""),
             "LCSC": lcsc,
             "JLCPCB_Library": lib,
             "Qty": row.get("Qty", ""),
@@ -336,7 +343,8 @@ def _postprocess_bom_with_lcsc_mapping() -> None:
             "in the BOM, then re-run export_production.py."
         )
 
-    fieldnames = ["Comment", "Designator", "Footprint", "LCSC", "JLCPCB_Library", "Qty"]
+    fieldnames = ["Comment", "Designator", "Footprint",
+                  "Manufacturer", "MPN", "LCSC", "JLCPCB_Library", "Qty"]
     with bom_path.open("w", encoding="utf-8", newline="") as f:
         writer = csv.DictWriter(f, fieldnames=fieldnames)
         writer.writeheader()

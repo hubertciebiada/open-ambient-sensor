@@ -67,7 +67,7 @@
 		(end -1.275 1.7)
 		(stroke (width 0.08) (type solid))
 		(fill solid)
-		(layer "F.Fab")
+		(layer "F.SilkS")
 		(uuid "59142775-3aa7-5f6f-b7a5-d850764201e6")
 	)
 	(fp_line

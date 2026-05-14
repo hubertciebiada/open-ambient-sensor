@@ -3993,7 +3993,7 @@
         			(end -1.275 1.7)
         			(stroke (width 0.08) (type solid))
         			(fill solid)
-        			(layer "F.Fab")
+        			(layer "F.SilkS")
         			(uuid "3b1b95a6-99a0-54ed-941d-7908dbc066bb")
         		)
         		(fp_line
@@ -4180,7 +4180,7 @@
         			(end -1.275 1.7)
         			(stroke (width 0.08) (type solid))
         			(fill solid)
-        			(layer "F.Fab")
+        			(layer "F.SilkS")
         			(uuid "1485ec83-8c11-5672-be32-435932046ff0")
         		)
         		(fp_line
@@ -4367,7 +4367,7 @@
         			(end -1.275 1.7)
         			(stroke (width 0.08) (type solid))
         			(fill solid)
-        			(layer "F.Fab")
+        			(layer "F.SilkS")
         			(uuid "b334bd65-8313-5a67-b584-04377e4c417e")
         		)
         		(fp_line
@@ -4554,7 +4554,7 @@
         			(end -1.275 1.7)
         			(stroke (width 0.08) (type solid))
         			(fill solid)
-        			(layer "F.Fab")
+        			(layer "F.SilkS")
         			(uuid "11d6f208-8c91-59ed-b8f6-ce1aa8a46a8f")
         		)
         		(fp_line
@@ -4741,7 +4741,7 @@
         			(end -1.275 1.7)
         			(stroke (width 0.08) (type solid))
         			(fill solid)
-        			(layer "F.Fab")
+        			(layer "F.SilkS")
         			(uuid "e5f0048c-84d7-5440-bdbe-2f6fe7b1ec71")
         		)
         		(fp_line
@@ -4928,7 +4928,7 @@
         			(end -1.275 1.7)
         			(stroke (width 0.08) (type solid))
         			(fill solid)
-        			(layer "F.Fab")
+        			(layer "F.SilkS")
         			(uuid "2e0ec534-b219-5272-ae87-58b4f964c489")
         		)
         		(fp_line
@@ -5115,7 +5115,7 @@
         			(end -1.275 1.7)
         			(stroke (width 0.08) (type solid))
         			(fill solid)
-        			(layer "F.Fab")
+        			(layer "F.SilkS")
         			(uuid "942f2d61-ebe0-5d84-bfd7-41ed606be2b9")
         		)
         		(fp_line
@@ -5302,7 +5302,7 @@
         			(end -1.275 1.7)
         			(stroke (width 0.08) (type solid))
         			(fill solid)
-        			(layer "F.Fab")
+        			(layer "F.SilkS")
         			(uuid "27152fcf-50cc-5c84-beb9-eafceb486cdc")
         		)
         		(fp_line
@@ -5489,7 +5489,7 @@
         			(end -1.275 1.7)
         			(stroke (width 0.08) (type solid))
         			(fill solid)
-        			(layer "F.Fab")
+        			(layer "F.SilkS")
         			(uuid "51eb2d6e-1cc5-56e6-8501-0b9a9da612a5")
         		)
         		(fp_line
@@ -5676,7 +5676,7 @@
         			(end -1.275 1.7)
         			(stroke (width 0.08) (type solid))
         			(fill solid)
-        			(layer "F.Fab")
+        			(layer "F.SilkS")
         			(uuid "9e1da344-3e80-5d83-aa79-a1e63691b42c")
         		)
         		(fp_line
@@ -5863,7 +5863,7 @@
         			(end -1.275 1.7)
         			(stroke (width 0.08) (type solid))
         			(fill solid)
-        			(layer "F.Fab")
+        			(layer "F.SilkS")
         			(uuid "81c33b19-6623-5228-bdc0-610a4eedcb66")
         		)
         		(fp_line
@@ -6155,7 +6155,7 @@
         		(layer "F.Cu")
         		(uuid "39df49f7-0438-57b5-bf7a-9ebfceb8ccf0")
         		(at 175.5 133 0)
-        		(descr "18 V Zener clamp on Q1 gate-source to keep |Vgs| ≤ 18 V.")
+        		(descr "10 V Zener clamp on Q1 gate-source to keep |Vgs| ≤ 10 V (v0.37 — was 18V pre-fix; AO3401A Vgs_max=±12V).")
         		(attr smd)
         		(property "Reference" "D3"
         			(at 0 -1.525 0)
@@ -6164,7 +6164,7 @@
         			(uuid "d5be502b-866f-5ae5-8bc7-0401558448cd")
         			(effects (font (size 1.0 1.0) (thickness 0.15)))
         		)
-        		(property "Value" "BZT52C18"
+        		(property "Value" "10V Zener 200mW"
         			(at 0 1.525 0)
         			(layer "F.Fab")
         			(hide yes)
@@ -6185,7 +6185,7 @@
         			(uuid "2dc751f3-090a-558d-ba5e-a29c62b9452e")
         			(effects (font (size 1.27 1.27)))
         		)
-        		(property "Description" "18 V Zener clamp on Q1 gate-source to keep |Vgs| ≤ 18 V."
+        		(property "Description" "10 V Zener clamp on Q1 gate-source to keep |Vgs| ≤ 10 V (v0.37 — was 18V pre-fix; AO3401A Vgs_max=±12V)."
         			(at 0 0 0)
         			(layer "F.Fab")
         			(hide yes)
@@ -6512,15 +6512,15 @@
         			(uuid "e998fefc-a86f-5a2c-be1e-3073d7355627")
         		)
         		(fp_line
-        			(start -3.15 -0.5)
-        			(end -3.15 0.5)
+        			(start -4.7 -0.5)
+        			(end -4.7 0.5)
         			(stroke (width 0.15) (type solid))
         			(layer "F.SilkS")
         			(uuid "6a7a26f6-a82b-5763-88e1-406a1f021d04")
         		)
         		(fp_line
-        			(start -3.65 0)
-        			(end -2.65 0)
+        			(start -5.2 0)
+        			(end -4.2 0)
         			(stroke (width 0.15) (type solid))
         			(layer "F.SilkS")
         			(uuid "4e866231-8e9f-569b-b8be-0a7fdcc6b1f4")
@@ -6600,15 +6600,15 @@
         			(uuid "93cee676-b5cd-5a95-ac84-40364243b5db")
         		)
         		(fp_line
-        			(start -3.15 -0.5)
-        			(end -3.15 0.5)
+        			(start -4.7 -0.5)
+        			(end -4.7 0.5)
         			(stroke (width 0.15) (type solid))
         			(layer "F.SilkS")
         			(uuid "de91f980-f542-5765-b63f-8c659eba3992")
         		)
         		(fp_line
-        			(start -3.65 0)
-        			(end -2.65 0)
+        			(start -5.2 0)
+        			(end -4.2 0)
         			(stroke (width 0.15) (type solid))
         			(layer "F.SilkS")
         			(uuid "bd2588c0-2f15-536f-ba4a-956d54744a98")
@@ -6686,6 +6686,14 @@
         			(fill no)
         			(layer "F.CrtYd")
         			(uuid "d190af05-27f8-5bac-9acf-fbf2ef8b23f5")
+        		)
+        		(fp_circle
+        			(center -4.5 1.5)
+        			(end -4.1 1.5)
+        			(stroke (width 0.1) (type solid))
+        			(fill solid)
+        			(layer "F.SilkS")
+        			(uuid "6fbd332b-cdaa-5c4f-bc64-7212df30a9e7")
         		)
 (pad "1" smd roundrect
 	(at -3.4 3.45)
@@ -6949,15 +6957,15 @@
         			(uuid "60e78922-84af-5881-9255-387925b25be6")
         		)
         		(fp_line
-        			(start -2.65 -0.5)
-        			(end -2.65 0.5)
+        			(start -3.85 -0.5)
+        			(end -3.85 0.5)
         			(stroke (width 0.15) (type solid))
         			(layer "F.SilkS")
         			(uuid "0f8075a6-6dba-5fb6-8af0-48f1ed8738bd")
         		)
         		(fp_line
-        			(start -3.15 0)
-        			(end -2.15 0)
+        			(start -4.35 0)
+        			(end -3.35 0)
         			(stroke (width 0.15) (type solid))
         			(layer "F.SilkS")
         			(uuid "039773c5-b484-5f84-9e9c-33bf7f869ff0")
@@ -8693,6 +8701,30 @@
 	(uuid "a8aa26d6-067a-5856-9570-0510da278d70")
 	(effects
 		(font (size 1 1) (thickness 0.15))
+	)
+)
+(gr_text "Open Ambient Sensor"
+	(at 144.5 135 0)
+	(layer "F.SilkS")
+	(uuid "89693e9d-adcd-51b2-b738-7c11664ef76f")
+	(effects
+		(font (size 1 1) (thickness 0.15))
+	)
+)
+(gr_text "OAS  v0.38"
+	(at 144.5 138 0)
+	(layer "F.SilkS")
+	(uuid "6b845a78-f7a8-5f0a-947f-d4bc53c6c10f")
+	(effects
+		(font (size 1 1) (thickness 0.15))
+	)
+)
+(gr_text "github.com/HubertCiebiada/open-ambient-sensor"
+	(at 144.5 141 0)
+	(layer "F.Fab")
+	(uuid "82001fb5-a8e7-5975-89a5-d136636707d2")
+	(effects
+		(font (size 0.9 0.9) (thickness 0.15))
 	)
 )
 (gr_text "HLK-LD2410B"
