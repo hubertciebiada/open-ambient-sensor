@@ -18198,6 +18198,67 @@ class _RouteEmitter:
             f'\t)'
         )
 
+    def gnd_island_keepout(self, layer: str, xmin: float, ymin: float,
+                           xmax: float, ymax: float, *, tag: str) -> None:
+        """Emit a (zone (keepout (copperpour not_allowed)) ...) rectangle
+        that prevents the GND zone-filler from creating a small stranded
+        island in the rectangle [xmin..xmax] x [ymin..ymax] (PCB-local mm).
+
+        Used to close the last few `unconnected_items` DRC reports that
+        come from sub-1.5 mm² pour fragments which cannot be bridged by
+        through-vias (because the opposite-layer GND main pour does not
+        overlap them, or because of clearance to nearby tracks).
+
+        Critical: this keepout sets ONLY `copperpour not_allowed`. It does
+        NOT set `tracks not_allowed` or `vias not_allowed` — those would
+        cascade clearance violations against every existing track/via in
+        the rectangle (a prior agent learned this the hard way: ~135 new
+        violations from over-restrictive keepouts). With `copperpour not_
+        allowed` alone, the keepout only affects future pour fill — no
+        existing object is perturbed.
+        """
+        u = str(uuid.uuid5(_OAS_NS, f"oas-zone:gnd-island-keepout:{tag}"))
+        # Convert PCB-local to page-absolute mm (gnd_zone uses the same
+        # transform via fx()/fy()).
+        x1 = xmin + PAGE_CENTRE_X
+        y1 = ymin + PAGE_CENTRE_Y
+        x2 = xmax + PAGE_CENTRE_X
+        y2 = ymax + PAGE_CENTRE_Y
+        self._zones.append(
+            f'\t(zone\n'
+            f'\t\t(net 0)\n'
+            f'\t\t(net_name "")\n'
+            f'\t\t(layer "{layer}")\n'
+            f'\t\t(uuid "{u}")\n'
+            f'\t\t(name "GND_Island_Keepout_{tag}")\n'
+            f'\t\t(hatch edge 0.5)\n'
+            f'\t\t(connect_pads\n'
+            f'\t\t\t(clearance 0.0)\n'
+            f'\t\t)\n'
+            f'\t\t(min_thickness 0.25)\n'
+            f'\t\t(filled_areas_thickness no)\n'
+            f'\t\t(keepout\n'
+            f'\t\t\t(tracks allowed)\n'
+            f'\t\t\t(vias allowed)\n'
+            f'\t\t\t(pads allowed)\n'
+            f'\t\t\t(copperpour not_allowed)\n'
+            f'\t\t\t(footprints allowed)\n'
+            f'\t\t)\n'
+            f'\t\t(fill\n'
+            f'\t\t\t(thermal_gap 0.5)\n'
+            f'\t\t\t(thermal_bridge_width 0.5)\n'
+            f'\t\t)\n'
+            f'\t\t(polygon\n'
+            f'\t\t\t(pts\n'
+            f'\t\t\t\t(xy {fmt(x1)} {fmt(y1)})\n'
+            f'\t\t\t\t(xy {fmt(x2)} {fmt(y1)})\n'
+            f'\t\t\t\t(xy {fmt(x2)} {fmt(y2)})\n'
+            f'\t\t\t\t(xy {fmt(x1)} {fmt(y2)})\n'
+            f'\t\t\t)\n'
+            f'\t\t)\n'
+            f'\t)'
+        )
+
     def render(self) -> str:
         """Concatenate all routes into a single PCB-injection string."""
         all_parts = self._segments + self._vias + self._zones
@@ -18228,7 +18289,59 @@ def _route_gnd_pour(em: "_RouteEmitter", nets: dict) -> int:
         return 0
     em.gnd_zone("F.Cu", code)
     em.gnd_zone("B.Cu", code)
-    return 2
+
+    # v0.32: close the last 3 F.Cu GND zone-island unconnected_items that
+    # v0.31 could not bridge with through-vias. Each fragment requires a
+    # different treatment:
+    #
+    #   F.Cu #5 (0.20 mm²) at (-0.876, -45.935) — sliver around C8.2 pad.
+    #     Bridge: short F.Cu track from C8.2 pad west to a clear spot at
+    #     (-2.0, -46.0), then a through-via there to B.Cu main GND pour.
+    #     Cannot use via-in-pad (0402 pad 0.62x0.70 mm; via 0.6 ⌀ just
+    #     barely fits on F.Cu but the via's B.Cu side at (-1.15, -46.0)
+    #     sits only 0.39 mm from a B.Cu Net-(U2-FB) diagonal track — FAIL).
+    #     Cannot use keepout alone (would strand C8.2's only GND path).
+    #
+    #   F.Cu #6 (1.22 mm²) at (+4.193, -48.116) — pure stranded copper
+    #     between buck-section tracks; NO pad inside, NO B.Cu main pour
+    #     overlap (B.Cu under this fragment is filled with /IO/BOOT and
+    #     Net-(U2-FB) tracks). Cannot bridge with via (no B.Cu GND to
+    #     reach). ONLY option: copperpour keepout to suppress the
+    #     fragment entirely. Safe: no pad/track inside; ~1 mm² of pour
+    #     copper deleted is electrically irrelevant.
+    #
+    #   F.Cu #9 (0.40 mm²) at (+34.125, +24.738) — sliver around J3.2
+    #     (SEN66 GND pin). Bridge: via-IN-PAD at J3.2 center (34.125,
+    #     25.15). J3.2 is 0.6x1.7 mm SMD pad; 0.6 ⌀ via fits inside on
+    #     F.Cu (same-net so no clearance issue with the pad copper).
+    #     B.Cu under J3.2: nearest non-GND track is /IO/I2C_SDA at
+    #     3.09 mm — comfortable margin. Via lands on B.Cu main GND
+    #     pour, joining J3.2 to the GND network.
+    em.gnd_island_keepout("F.Cu", +3.15, -48.80, +5.52, -47.48, tag="fcu-6")
+
+    # F.Cu#5 — C8.2 GND bridge: via overlapping C8.2 pad on F.Cu.
+    #   C8.2 is an 0805 cap with pads sized 0.95×0.95, pitch 0.85 → C8.2
+    #   covers PCB X∈[-1.625, -0.675], Y∈[-46.475, -45.525]. A 0.6 ⌀ via
+    #   centred at (-1.8, -46.0) sits with its east half (radius 0.3 →
+    #   east edge X=-1.5) INSIDE C8.2's west extent (-1.625..-0.675), so
+    #   the via's F.Cu copper merges with the pad's F.Cu copper (same
+    #   net GND, no clearance violation).
+    #   Clearances verified at (-1.8, -46.0):
+    #     C8.1 pad (Net-(U2-SS)) at (-2.85, -46.0) east edge X=-2.375:
+    #       via west edge X=-2.1 → 0.275 mm gap (need 0.15, OK).
+    #     U2-BST F.Cu horizontal Y=-46.846: 0.846 mm clear (OK).
+    #     U2-FB B.Cu diagonal (-1.564,-45.028)→(1.74,-48.332): 0.854 mm
+    #       perpendicular distance to via centre (OK).
+    em.via(-1.800, -46.000, code, uuid_tag="v032:c8_2_bridge")
+
+    # F.Cu#9 — J3.2 GND bridge: via-IN-PAD at pad center.
+    #   J3.2 is a 0.6x1.7 mm SMD pad on F.Cu only. A 0.6 ⌀ through-via at
+    #   the pad's geometric center overlaps the pad fully on F.Cu (same
+    #   net), and on B.Cu it lands 3.09 mm from the nearest non-GND
+    #   B.Cu track (/IO/I2C_SDA) — well inside the main B.Cu GND pour.
+    em.via(+34.125, +25.150, code, uuid_tag="v032:j3_2_in_pad")
+
+    return 4
 
 
 def _route_local_decoupling(em: "_RouteEmitter", nets: dict) -> int:
