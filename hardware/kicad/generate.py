@@ -11363,25 +11363,32 @@ def gen_power_sch() -> str:
         reference="D1", value="SMBJ24A", uuid_tag="d1",
     ))
 
-    # ----- D3: 18 V Zener gate-source clamp (PMV65XP Vgs protection) -----
-    # See R4/D3 constants block above for the topology rationale. D3
-    # cathode taps the J1.1 -> Q1.S VIN wire; anode lands on the R4/R1
+    # ----- D3: 10 V Zener gate-source clamp (AO3401A Vgs protection) -----
+    # v0.37: changed from 18 V to 10 V Zener after AO3401A swap (v0.36) and
+    # re-audit found AO3401A Vgs_max = ±12 V (NOT ±20 V as the original
+    # PMV65XP design assumed). 18 V Zener would have clamped Vgs at -18 V,
+    # exceeding AO3401A's ±12 V rating by 6 V. 10 V Zener clamps Vgs at
+    # -10 V — 2 V margin under ±12 V AND optimal Rds_on operating point
+    # for AO3401A (45 mΩ at Vgs=-10 V per Alpha-Omega datasheet curve).
+    # D3 cathode taps the J1.1 -> Q1.S VIN wire; anode lands on the R4/R1
     # junction so a clamp event sinks current from Q1.S through D3
-    # (reverse breakdown at Vz=18V) into the junction and out through
-    # R1 to GND. Candidate part: MMSZ4705 (18V Zener, 500mW, SOD-123,
-    # JLCPCB Basic Parts Library). PCB-layout chunk picks the final
-    # footprint based on the same-day JLCPCB stock check.
+    # (reverse breakdown at Vz=10V) into the junction and out through
+    # R1 to GND. Candidate part: BZT52C10S (10 V Zener, SOD-323, 200 mW,
+    # JLCPCB Basic Parts Library). Steady-state Pz = (24-10)/1k × 10V =
+    # 140 mW within 200 mW rating (1.43× margin).
     parts.append(_sch_diode_zener(
         x=D3_X, y=D3_Y, angle=270,
-        reference="D3", value="18V Zener 200mW", uuid_tag="d3",
+        reference="D3", value="10V Zener 200mW", uuid_tag="d3",
     ))
 
-    # ----- Q1: P-MOSFET reverse-polarity protection (PMV65XP) -----
+    # ----- Q1: P-MOSFET reverse-polarity protection (AO3401A) -----
+    # v0.36 substitution from PMV65XP (Vds=-20V was insufficient).
     # Source = J1.1 (unprotected input), Drain = +24V protected rail.
     # When input polarity is correct, the body diode conducts initially,
     # then the gate is pulled negative through R4 + R1 to GND. The D3
-    # Zener clamp limits |Vgs| to <=18V, so the channel turns fully on
-    # at Vgs = -18V — shorting out the body diode for low conduction loss.
+    # 10 V Zener clamp (v0.37) limits |Vgs| to <=10V, so the channel turns
+    # fully on at Vgs = -10V — shorting out the body diode for low Rds_on
+    # conduction loss (45 mΩ at Vgs=-10V per AO3401A datasheet).
     # v0.36 CRITICAL-4: AO3401A (Alpha & Omega Semiconductor), drop-in for the
     # pre-v0.36 PMV65XP. PMV65XP claimed Vds_max=-50V in the source comment
     # but the actual datasheet value is Vds_max=-20V — would have been

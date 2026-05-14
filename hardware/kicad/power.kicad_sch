@@ -3586,7 +3586,7 @@
 			(justify left)
 		)
 	)
-	(property "Value" "18V Zener 200mW"
+	(property "Value" "10V Zener 200mW"
 		(at 76.2 90.17 90)
 		(effects
 			(font
