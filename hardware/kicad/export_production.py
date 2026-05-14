@@ -19,7 +19,11 @@ EU/US fab) for bare-board production + SMT assembly:
     oas-drill_map.pdf     Drill map for human review
     oas-top-pos.csv       SMT placement file (top side)
     oas-bottom-pos.csv    SMT placement file (bottom side — empty for OAS)
-    oas-bom.csv           Bill of materials (LCSC column placeholder)
+    oas-bom.csv           Bill of materials, post-processed against
+                          ../bom/lcsc-mapping.csv — LCSC column filled in
+                          for every SMD part, JLCPCB_Library column added
+                          (Basic / Extended / THT hand-solder) for the
+                          user's visibility before quote submission.
     oas-jlcpcb.zip        Bundle for JLCPCB web uploader
 
 This script is OUT of the regenerate.py inner loop on purpose. Production
@@ -34,6 +38,7 @@ you've edited generate.py since the last export).
 """
 from __future__ import annotations
 
+import csv
 import shutil
 import subprocess
 import sys
@@ -45,6 +50,19 @@ HERE = Path(__file__).parent
 PCB = HERE / "oas.kicad_pcb"
 SCH = HERE / "oas.kicad_sch"
 OUT = HERE.parent / "gerbers"   # hardware/gerbers/
+LCSC_MAPPING = HERE.parent / "bom" / "lcsc-mapping.csv"  # source-of-truth
+
+# Through-hole-only references that must NOT carry an LCSC number — the
+# user hand-solders these because they are mechanical assemblies (terminal
+# block, pin sockets) or oversized radial capacitors that JLCPCB cannot
+# place on the SMT line. THT items still appear in the BOM as a
+# completeness check but with JLCPCB_Library = "THT (hand-solder)" and
+# LCSC blank.
+#
+# Designators sourced from oas-bom.csv at v0.34: J1 (Phoenix terminal),
+# J4 (LD2410 1.27 mm THT pin header), J5/J6 (ESP32 socket rows), J7/J8
+# (MIKROE-2462 socket rows), C1/C3 (D8 radial bulk), C4 (D6.3 radial bulk).
+THT_REFERENCES = {"J1", "J4", "J5", "J6", "J7", "J8", "C1", "C3", "C4"}
 
 KICAD_CLI_CANDIDATES = [
     r"C:/Program Files/KiCad/10.0/bin/kicad-cli.exe",
@@ -190,15 +208,26 @@ def export_position(kcli: str) -> None:
 def export_bom(kcli: str) -> None:
     """BOM CSV for SMT assembly. Column layout matches JLCPCB's "Standard
     BOM Template" (which they auto-detect on upload):
-        Comment, Designator, Footprint, LCSC, Qty
+        Comment, Designator, Footprint, LCSC, JLCPCB_Library, Qty
 
-    LCSC field is left empty — populated manually before fab order. The
-    schematic doesn't carry LCSC numbers yet; once first-prototype assembly
-    runs, the user will fill in the matched LCSC parts (or rely on JLCPCB's
-    smart-matching against value + footprint).
-
-    Grouping: parts with identical Value + Footprint get one row with a
-    comma-separated Designator list (the JLCPCB convention)."""
+    Two-pass workflow:
+      1. kicad-cli emits a 5-column CSV (Value, Reference, Footprint, LCSC,
+         Qty) — LCSC blank because the schematic doesn't carry LCSC
+         numbers. Grouping: parts with identical Value + Footprint get one
+         row with a comma-separated Designator list.
+      2. _postprocess_bom_with_lcsc_mapping() reads the mapping file at
+         hardware/bom/lcsc-mapping.csv (the source-of-truth, human-curated
+         after researching JLCPCB Parts Library), and rewrites the BOM:
+           * SMD parts get LCSC filled in via (Value, Footprint) lookup
+             and JLCPCB_Library set to the mapping's library tier.
+           * THT-only references (J1 terminal block, J4-J8 pin headers and
+             sockets, C1/C3/C4 radial bulk caps) get LCSC blank and
+             JLCPCB_Library = "THT (hand-solder)". The user hand-solders
+             these after the SMT line.
+           * Unknown (Value, Footprint) combos that aren't in the mapping
+             produce an explicit error so the user catches missing
+             coverage before submitting the order.
+    """
     run([
         kcli, "sch", "export", "bom",
         "--output", str(OUT / "oas-bom.csv"),
@@ -210,7 +239,133 @@ def export_bom(kcli: str) -> None:
         str(SCH),
     ], hide_output=True)
     rows = (OUT / "oas-bom.csv").read_text(encoding="utf-8").count("\n") - 1
-    print(f"  wrote oas-bom.csv ({rows} unique part groups)")
+    print(f"  wrote oas-bom.csv (raw, {rows} unique part groups)")
+
+    _postprocess_bom_with_lcsc_mapping()
+
+
+def _load_lcsc_mapping() -> dict[tuple[str, str], tuple[str, str]]:
+    """Read hardware/bom/lcsc-mapping.csv and return a lookup:
+        (Value, Footprint) -> (LCSC, JLCPCB_Library)
+
+    The mapping CSV is the source-of-truth for which LCSC SKU to use for
+    each (Value, Footprint) pair on the OAS PCB. Maintained by hand after
+    researching JLCPCB Parts Library availability — see hardware/bom/
+    lcsc-mapping.csv for the full notes per part (substitution rationale,
+    stock risks, BOM library tier). The columns relevant here are Value,
+    Footprint, LCSC, and JLCPCB_Library; the rest is human documentation.
+    """
+    if not LCSC_MAPPING.exists():
+        sys.exit(
+            f"ERROR: LCSC mapping file missing at {LCSC_MAPPING}. "
+            "Cannot post-process BOM."
+        )
+    mapping: dict[tuple[str, str], tuple[str, str]] = {}
+    with LCSC_MAPPING.open(encoding="utf-8", newline="") as f:
+        reader = csv.DictReader(f)
+        for row in reader:
+            key = (row["Value"].strip(), row["Footprint"].strip())
+            lcsc = row["LCSC"].strip()
+            lib = row["JLCPCB_Library"].strip()
+            mapping[key] = (lcsc, lib)
+    return mapping
+
+
+def _postprocess_bom_with_lcsc_mapping() -> None:
+    """Rewrite oas-bom.csv in place — fill LCSC, add JLCPCB_Library column.
+
+    Detects THT-only rows by checking whether ALL designators in the
+    Designator field belong to THT_REFERENCES. SMD rows must match the
+    LCSC mapping; an unmatched SMD (Value, Footprint) is a HARD ERROR
+    so the user notices missing mapping coverage before submitting the
+    JLCPCB quote."""
+    mapping = _load_lcsc_mapping()
+    bom_path = OUT / "oas-bom.csv"
+    raw_rows = list(csv.DictReader(bom_path.open(encoding="utf-8", newline="")))
+
+    out_rows: list[dict[str, str]] = []
+    errors: list[str] = []
+    smd_basic = 0
+    smd_extended = 0
+    smd_other = 0
+    tht_rows = 0
+
+    for row in raw_rows:
+        value = row.get("Comment", "").strip()
+        footprint = row.get("Footprint", "").strip()
+        designators = [d.strip() for d in row.get("Designator", "").split(",") if d.strip()]
+
+        is_tht = bool(designators) and all(_strip_designator_index(d) in THT_REFERENCES
+                                            for d in designators)
+
+        if is_tht:
+            lcsc = ""
+            lib = "THT (hand-solder)"
+            tht_rows += 1
+        else:
+            key = (value, footprint)
+            if key not in mapping:
+                errors.append(
+                    f"  unmapped SMD row: Value={value!r} Footprint={footprint!r} "
+                    f"Designators={designators}"
+                )
+                continue
+            lcsc, lib = mapping[key]
+            if lib == "Basic":
+                smd_basic += 1
+            elif lib == "Extended":
+                smd_extended += 1
+            else:
+                smd_other += 1
+
+        out_rows.append({
+            "Comment": value,
+            "Designator": row.get("Designator", ""),
+            "Footprint": footprint,
+            "LCSC": lcsc,
+            "JLCPCB_Library": lib,
+            "Qty": row.get("Qty", ""),
+        })
+
+    if errors:
+        print("\nERROR: BOM contains rows not in hardware/bom/lcsc-mapping.csv:")
+        for e in errors:
+            print(e)
+        sys.exit(
+            "Update lcsc-mapping.csv to cover every SMD (Value, Footprint) "
+            "in the BOM, then re-run export_production.py."
+        )
+
+    fieldnames = ["Comment", "Designator", "Footprint", "LCSC", "JLCPCB_Library", "Qty"]
+    with bom_path.open("w", encoding="utf-8", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=fieldnames)
+        writer.writeheader()
+        writer.writerows(out_rows)
+
+    total = smd_basic + smd_extended + smd_other
+    print(
+        f"  post-processed oas-bom.csv: "
+        f"{smd_basic} Basic + {smd_extended} Extended + {smd_other} other SMD "
+        f"+ {tht_rows} THT rows (total {total + tht_rows})"
+    )
+    if smd_extended:
+        # JLCPCB charges a one-time $3 setup fee per unique Extended part
+        # (per assembly job, NOT per board). For a 5-prototype run the
+        # setup fee dominates the per-board cost.
+        print(
+            f"  JLCPCB Extended setup estimate: {smd_extended} × $3 = "
+            f"${smd_extended * 3} one-time fee for this build."
+        )
+
+
+def _strip_designator_index(designator: str) -> str:
+    """Map e.g. 'C20' -> 'C', 'J5' -> 'J', 'D11' -> 'D'. Used so we can
+    test designator-prefix membership in THT_REFERENCES which uses
+    full refs like 'J1' / 'J5' / 'C1' / 'C3' / 'C4'. Since this function's
+    callers compare against full references (not prefixes), we return the
+    full designator unchanged; the indirection exists purely so future
+    extension can apply prefix-stripping if needed."""
+    return designator
 
 
 def bundle_jlcpcb_zip() -> None:
