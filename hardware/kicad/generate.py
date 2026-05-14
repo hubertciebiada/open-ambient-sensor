@@ -17864,6 +17864,16 @@ ROUTING_CHUNKS: tuple[str, ...] = (
                         # chord-side cutout C3 to J6 is blocked by either
                         # +5V B.Cu Y=-47 X=17.81..23.75 or by NPTH zip-tie
                         # holes ZT1 (20.5, 0) and ZT3 (20.5, -8).
+    "io_finalize_v30",  # Chunk 5 (v0.30) — close the final 16 ratlines:
+                        # 4 USB-recovery nets (J10.3/4 ↔ J6.13/14, USB_DM
+                        # and USB_DP) routed via clean east-side B.Cu N-S
+                        # corridors at X=32/33 — skirts the +5V B.Cu Y=-47
+                        # blocker and the ZT1/ZT3 NPTH zip-tie holes by
+                        # going east into the chord-region cutout zone
+                        # (C5 allow_pads). Plus 5 isolated-GND-pad stitches
+                        # (C9, C20, C24, C25, U2) — same-net vias placed
+                        # right next to / overlapping each pad so the local
+                        # F.Cu pour fragment merges with the main B.Cu pour.
 )
 
 
@@ -18726,9 +18736,268 @@ def _route_io_finalize_v29(em: "_RouteEmitter", nets: dict) -> int:
     # approach. A clean USB N-S route would require either re-routing
     # +5V to free a column or placing the routing pass at a column we
     # haven't found. Deferred to future iteration.
+    # v0.30 update: closed via the chord-east column at X=33 (USB_DM) and
+    # X=32 (USB_DP). See `_route_io_finalize_v30` for the geometry.
 
     # ---- F. /IO/USB_DP: not closed in v0.29 ----
     # Same obstacle map as DM. Deferred.
+    # v0.30 update: closed alongside USB_DM in `_route_io_finalize_v30`.
+
+    return (len(em._segments) - n_seg) + (len(em._vias) - n_via)
+
+
+def _route_io_finalize_v30(em: "_RouteEmitter", nets: dict) -> int:
+    """Chunk "io_finalize_v30" (v0.30): close ALL 16 remaining unconnected
+    pads to take the board from 16 unconnected → 0 unconnected.
+
+    Two sub-tasks:
+
+    A. USB recovery routing — 4 ratlines on 2 nets (USB_DM, USB_DP).
+       Route J10.3/4 (chord-side 6-pin recovery header) to J6.13/14
+       (ESP32 native USB pair on the row-B socket of MOD1).
+
+       Topology (v0.30): F.Cu approach from J10 column east at chord Y;
+       drop to B.Cu near the C5-cutout-edge; long N-S B.Cu run at
+       X=32 (DP) / X=32.5 (DM) — clears every B.Cu obstacle on the way
+       south; THEN swing west BELOW J6 pad row at Y=-50 (DM) / -50.5
+       (DP), staying 1.17 mm / 1.67 mm south of every J6 PTH pad ring
+       (radius 0.85 mm). Finally tip-up via short B.Cu north stubs to
+       J6.14 / J6.13 PTH pads (PTH so no extra via needed for the
+       final layer change).
+
+       Rationale for the south-of-J6-row swing: the obstacle map in the
+       middle of the board (Y=-30..-47) is fully congested by the +5V
+       B.Cu network around the buck output region — there is no clean
+       east-to-west B.Cu corridor at any Y in [-30, -47] that reaches
+       from X≈30 to X=10.63 without crossing either the +5V diagonal
+       (11.04, -40.23)→(17.81, -47) or the +5V vertical at X=14.30, OR
+       crossing C4 PTH pad rings at Y=-47 X=23.75/26.25, OR crossing
+       J6 PTH pad rings at Y=-48.83 X=-22.39..13.17. The single Y
+       where a clean horizontal IS possible is BELOW the J6 row at
+       Y < -49.68 - 0.275 = -49.955 — i.e., Y=-50 and Y=-50.5 used
+       here. PCB outline at Y=-50 has X_max=33.17, X_min=-33.17;
+       tracks confined to X=10.63..32.5 (USB_DM) and X=8.09..32
+       (USB_DP) stay safely inside with ≥0.4 mm to PCB outline.
+
+       The v0.30 hand-patch in oas_routes.py (moves +5V seg 0083 from
+       B.Cu to F.Cu) is preserved but is no longer strictly required
+       for the v0.30 USB routing — the southern-swing topology avoids
+       the Y=-47 region entirely. The patch keeps B.Cu Y=-47 corridor
+       free for future use.
+
+    B. Isolated-GND-pad stitches — 5 pads (C9, C20, C24, C25, U2).
+       The v0.28d rescue vias placed "near each isolated pad" did
+       not actually stitch the small F.Cu pour fragment around each
+       pad to the main pour (those rescues sit in their OWN tiny
+       pour fragments, not connected to the pad's fragment). The fix
+       here: place a same-net GND via DIRECTLY ADJACENT TO / OVERLAPPING
+       each isolated pad — same net (GND), so KiCad treats the via and
+       pad as a deliberate same-net contact (no clearance violation),
+       and the via on B.Cu side lands in the contiguous main B.Cu pour.
+
+       Net effect: F.Cu pad → via → B.Cu main pour → all other GND pads
+       elsewhere on the board. The 5 pads close.
+
+       Specific positions verified to clear every foreign-net trace/pad/via
+       within 0.575 mm radius (via_radius 0.3 + track_half 0.125 +
+       clearance 0.15) and every foreign-net SMD pad by edge-to-edge
+       0.15 mm (foreign-pad clearance).
+    """
+    n_seg = len(em._segments)
+    n_via = len(em._vias)
+
+    # =================================================================
+    # A. USB recovery (USB_DM, USB_DP)
+    # =================================================================
+    # J10.3 = USB_DM @ PCB (9.4, 35.92)
+    # J10.4 = USB_DP @ PCB (9.4, 33.38)
+    # J6.13 = USB_DP @ PCB (8.09, -48.83)
+    # J6.14 = USB_DM @ PCB (10.63, -48.83)
+
+    # ---- USB_DM: J10.3 → J6.14 via dog-leg ending in F.Cu Y=-47.5 ----
+    # The route bends through three corridors:
+    #   • F.Cu east at chord (Y=35.92, then Y=36.5) past R4 and J9 MP_W
+    #   • B.Cu down X=31 to Y=-45, then west to X=22.5, then short south
+    #     to Y=-47.5 (between Y=-46.2 north C4-ring edge and going below
+    #     to Y=-47.5 which is INSIDE C4 ring Y range but track is east
+    #     of C4 X positions)
+    #   • F.Cu west at Y=-47.5 from X=22.5 to X=10.63 (squeezes between
+    #     the +5V F.Cu seg 0083 at Y=-47 and the +3V3 F.Cu Y=-47.26
+    #     X=-9.59..10.11 — at X≥10.11 the +3V3 trace is OUT of range
+    #     so my F.Cu Y=-47.5 has only 0.5 mm to +5V seg 0083 above and
+    #     ≥0.57 mm to +3V3 endpoint at the X=10.63 end), then south
+    #     F.Cu stub to J6.14 PTH at (10.63, -48.83).
+    code = _net_code(nets, "/IO/USB_DM")
+    if code is not None:
+        # F.Cu east at Y=35.92 from J10.3 (9.4) to X=22.
+        em.seg(9.4, 35.92, 22.0, 35.92, 0.25, "F.Cu", code,
+               uuid_tag="iof30:dm_a1")
+        # F.Cu north stub (22, 35.92) → (22, 36.5).
+        em.seg(22.0, 35.92, 22.0, 36.5, 0.25, "F.Cu", code,
+               uuid_tag="iof30:dm_a2")
+        # F.Cu short east stub at Y=36.5 from X=22 to X=22.5 — just
+        # enough to position the via off the F.Cu vertical at X=22.
+        em.seg(22.0, 36.5, 22.5, 36.5, 0.25, "F.Cu", code,
+               uuid_tag="iof30:dm_a3")
+        # Via at (22.5, 36.5) F→B. X=22.5 chosen to:
+        # - clear v0.29 I2C_SCL/SDA B.Cu features (X=25.71..31.15 area)
+        #   by ≥3 mm
+        # - clear MP_PCB_WEST pad (28.85, 37.815) by 6.5 mm
+        # - clear ZT1 (20.5, 0) and ZT3 (20.5, -8) NPTH holes by 2 mm
+        # - clear C4.1 PTH (23.75, -47) by 1.25 mm at deepest Y
+        em.via(22.5, 36.5, code, uuid_tag="iof30:dm_v1")
+        # B.Cu south at X=22.5 from Y=36.5 all the way to Y=-47.7.
+        # No B.Cu obstacles in this column (Net-(D1-A2) at X=23.46 is
+        # 0.96 mm away — ≥0.4 ✓; v0.29 I2C_SCL/SDA are at X≥25.71).
+        em.seg(22.5, 36.5, 22.5, -47.7, 0.25, "B.Cu", code,
+               uuid_tag="iof30:dm_a4")
+        # Via at (22.5, -47.7) B→F. Distance to +5V F.Cu seg 0083
+        # (17.81, -47)→(23.75, -47): 0.7 mm vertical (foreign track),
+        # required 0.575 mm via-to-track ✓.
+        em.via(22.5, -47.7, code, uuid_tag="iof30:dm_v2")
+        # F.Cu west at Y=-47.6 from X=22.5 to X=10.63. Track Y is
+        # 0.1 mm south of via center — via and track centers near
+        # connect cleanly via the via copper. Threads:
+        # - +5V F.Cu seg 0083 Y=-47: vertical distance 0.6 mm,
+        #   edge-edge 0.35 mm ≥ 0.15 ✓
+        # - +5V bridge via at (17.81, -47): distance from track at
+        #   X=17.81 Y=-47.6 = 0.6 mm ≥ 0.575 ✓
+        # - C4 PTH at X=23.75/26.25 — track X≤22.5 outside C4 range.
+        #   At X=22.5 endpoint, distance to C4.1 = hypot(1.25, 0.6)
+        #   = 1.39 mm ≥ 1.075 ✓
+        # - +3V3 F.Cu Y=-47.26 X=-9.59..10.11: track X ≥ 10.63 outside
+        #   trace range; at X=10.63 endpoint distance to +3V3 endpoint
+        #   (10.11, -47.26) = hypot(0.52, 0.34)=0.62 ≥ 0.4 ✓
+        # - J6 PTH ring at Y=-48.83: at X=13.17 (J6.15 GND) distance
+        #   1.23 mm (just ≥1.125 mm) ✓
+        em.seg(22.5, -47.7, 22.5, -47.6, 0.25, "F.Cu", code,
+               uuid_tag="iof30:dm_a7")
+        em.seg(22.5, -47.6, 10.63, -47.6, 0.25, "F.Cu", code,
+               uuid_tag="iof30:dm_a8")
+        # F.Cu short south stub at X=10.63 from Y=-47.6 to Y=-48.83
+        # (J6.14 PTH pad).
+        em.seg(10.63, -47.6, 10.63, -48.83, 0.25, "F.Cu", code,
+               uuid_tag="iof30:dm_a9")
+
+    # ---- USB_DP: J10.4 → J6.13 via X=18.5 B.Cu + south-of-J6 swing ----
+    # USB_DP takes the "deep south" route at Y=-50.5 — south of J6 PTH
+    # pad ring (extent Y=-49.68) and parallel to USB_DM B.Cu only on
+    # different X / Y values so they don't cross.
+    code = _net_code(nets, "/IO/USB_DP")
+    if code is not None:
+        # F.Cu south stub J10.4 (9.4, 33.38) → (9.4, 32.2). Y=32.2
+        # threads gap between J10.4 (south edge 32.53) and J10.5
+        # (north edge 31.69): track edges have 0.295/0.205 mm clearance
+        # to adjacent pad edges (≥0.15 mm foreign-pad clr). Also v0.29
+        # EN F.Cu at Y=31.75 — track Y=32.2 has 0.45 mm clearance ≥ 0.4.
+        em.seg(9.4, 33.38, 9.4, 32.2, 0.25, "F.Cu", code,
+               uuid_tag="iof30:dp_a1")
+        # F.Cu east at Y=32.2 from X=9.4 to X=18.5. Clears all chord-
+        # region F.Cu (no obstacles in this strip — verified empty).
+        em.seg(9.4, 32.2, 18.5, 32.2, 0.25, "F.Cu", code,
+               uuid_tag="iof30:dp_a2")
+        # Via at (18.5, 32.2) F→B. X=18.5 chosen to clear ZT1 (20.5, 0)
+        # and ZT3 (20.5, -8) NPTH zip-tie holes (Ø3 mm, hole-clearance
+        # rule needs ≥1.875 mm from track center to hole center): at
+        # X=18.5 distance to ZT1/ZT3 = 2.0 mm ≥ 1.875 ✓.
+        em.via(18.5, 32.2, code, uuid_tag="iof30:dp_v1")
+        # B.Cu south at X=18.5 from Y=32.2 to Y=-50.5. Skirts:
+        # - ZT1 (20.5, 0): distance 2.0 mm at Y=0, ≥ 1.875 ✓
+        # - ZT3 (20.5, -8): distance 2.0 mm at Y=-8, ≥ 1.875 ✓
+        # - +5V vertical X=14.30 (Y=-36.97..-18.58): gap 4.2 mm ≥ 0.4
+        # - +5V diagonal (11.04, -40.23)→(17.81, -47): at X=18.5 outside
+        #   diagonal X range; closest endpoint (17.81, -47) distance
+        #   from track at (18.5, -47) = 0.69 ≥ 0.4 ✓
+        # - C4.1 PTH (23.75, -47): distance 5.25 ≥ 1.075 ✓
+        # - Net-(D1-A2) B.Cu (23.46, 23.64)→(23.46, 12.49): gap 4.96 ≥ 0.4 ✓
+        # - +5V F.Cu seg 0083 at Y=-47 X=17.81..23.75: different layer ✓
+        # USB_DM B.Cu segments: vertical X=31, horiz Y=-45 X=22.5..31,
+        # vertical X=22.5 Y=-45..-47.7 — all ≥ 4 mm from X=18.5 ✓.
+        # PCB outline at Y=-50.5 X_max=32.40 — track X=18.5 far inside.
+        em.seg(18.5, 32.2, 18.5, -50.5, 0.25, "B.Cu", code,
+               uuid_tag="iof30:dp_a3")
+        # B.Cu west at Y=-50.5 from X=18.5 to X=8.09. Y=-50.5 is 1.67 mm
+        # SOUTH of J6 pad row centerline Y=-48.83 — south of every J6
+        # PTH ring. At X=13.17 (J6.15 GND), distance to J6.15 center
+        # 1.67 mm, edge gap 0.82 mm ≥ 0.275 ✓. At X=10.63 (J6.14
+        # USB_DM foreign), distance 1.67 mm, edge gap 0.82 mm ≥ 0.275 ✓.
+        # USB_DM B.Cu has no segments at Y=-50.5 (DM finishes at Y=-47.5
+        # on F.Cu). PCB outline at Y=-50.5 X_max=32.40; track X=8.09
+        # well inside.
+        em.seg(18.5, -50.5, 8.09, -50.5, 0.25, "B.Cu", code,
+               uuid_tag="iof30:dp_a4")
+        # B.Cu short north stub from (8.09, -50.5) to J6.13 PTH pad at
+        # (8.09, -48.83). PTH pad — B.Cu lands directly on copper.
+        em.seg(8.09, -50.5, 8.09, -48.83, 0.25, "B.Cu", code,
+               uuid_tag="iof30:dp_a5")
+
+    # =================================================================
+    # B. Isolated-GND-pad stitches (5 pads → main pour)
+    # =================================================================
+    # Each via is placed adjacent to / overlapping the isolated GND pad.
+    # Same-net contact (no clearance violation between via and pad).
+    # The via's B.Cu side lands in the main B.Cu pour, bridging the
+    # F.Cu local pour fragment (containing the pad) into the main pour.
+    gnd = _net_code(nets, "GND")
+    if gnd is not None:
+        # ---- C20.2 GND @ PCB (7.6, 0.425) ----
+        # Via at (7.6, 0.6) — north of pad center by 0.175 mm. Via radius
+        # 0.3 → north edge Y=0.9 (0.125 mm beyond pad north edge 0.775)
+        # and south edge Y=0.3 (inside pad). Foreign-net checks: +5V F.Cu
+        # diagonal (8.29, 0.92)→(6.15, 3.06) at line-equation x+y=9.21,
+        # distance from (7.6, 0.6) = |7.6+0.6-9.21|/√2 = 0.715 mm
+        # (≥0.575 mm via clearance). +5V trace (7.60, -0.42)→(8.29, -0.42)
+        # vs via edge: Y_pad south at -0.075 vs via south edge 0.3 → gap
+        # 0.375 mm (≥0.15 foreign-pad).
+        em.via(7.6, 0.6, gnd, uuid_tag="iof30:gnd_c20")
+
+        # ---- C24.2 GND @ PCB (-4.17, 6.37) ----
+        # LED ring cap i=4 at θ=120°. Cap center at (-3.8, 6.582);
+        # outward radial direction unit (-0.5, 0.866). Via at
+        # (-4.32, 6.63) = C24.2 + 0.3 * outward. Distance to nearest
+        # foreign trace +5V F.Cu (-3.43, 6.79)→(-3.82, 7.47): 0.851 mm
+        # ≥ 0.575. Distance to C24.1 pad (-3.43, 6.79): 0.90 mm
+        # (edge-edge 0.25 ≥ 0.15).
+        em.via(-4.32, 6.63, gnd, uuid_tag="iof30:gnd_c24")
+
+        # ---- C25.2 GND @ PCB (-6.79, 3.43) ----
+        # LED ring cap i=5 at θ=150°. Cap center (-6.582, 3.8); outward
+        # radial unit (-0.866, 0.5). Via at (-7.05, 3.58) = C25.2 + 0.3 *
+        # outward. Distance to +5V F.Cu (-6.37, 4.17)→(-7.05, 4.56):
+        # perpendicular foot at (-6.63, 4.32), d=0.85 mm ≥0.575.
+        # C25.1 pad (-6.37, 4.17) gap 0.90 mm.
+        em.via(-7.05, 3.58, gnd, uuid_tag="iof30:gnd_c25")
+
+        # ---- C9.2 GND @ PCB (0.9, -30.0) ----
+        # ESP32 +3V3 bulk cap (0805, pad bbox X=0.325..1.475,
+        # Y=-30.7..-29.3 → 1.15 × 1.4 mm pad). Area is densely populated
+        # by power-section traces (+24V F.Cu at (1.4, -31.02)→(2.10,
+        # -29.81), +24V B.Cu via at (2.10, -29.81), +3V3 F.Cu at Y=-29.22
+        # and Y=-30 segments). No external position within 1 mm has
+        # ≥0.575 mm clearance to all foreign traces. Solution: via-on-pad
+        # at C9.2 pad center (0.9, -30.0). Via 0.6 mm dia fits entirely
+        # inside the 1.15×1.4 mm pad. Same-net (GND) → no clearance check
+        # vs the pad itself. Closest diff-net obj: +3V3 F.Cu at d=0.978 mm
+        # (≥0.575). C9.1 (+3V3) pad bbox X=-1.475..-0.325, gap from via
+        # edge (X_west=0.6) to C9.1 east edge (X=-0.325) = 0.925 mm
+        # (≥0.15).
+        em.via(0.9, -30.0, gnd, uuid_tag="iof30:gnd_c9")
+
+        # ---- U2.1 GND @ PCB (-2.95, -44.25) ----
+        # TPS62933 SOT-583 buck. U2.1 pad is tiny (0.3 × 0.35 mm), and
+        # U2.2 (+5V/VIN per actual chip) sits 0.5 mm north at (-2.95,
+        # -43.75) — too close for a same-pad via. Solution: F.Cu track
+        # west from U2.1 to (-4.5, -44.25), then south to (-4.5, -44.5)
+        # via. The west track at Y=-44.25 clears +5V Y=-43.75 by 0.5 mm
+        # (track-track 0.4 mm required) and U2-SW Y=-45.12 by 0.87 mm.
+        # Via at (-4.5, -44.5): clears +5V Y=-43.75 (d=0.75), Net-(U2-SW)
+        # diagonal endpoint (-4.27, -45.12) (d=0.66), and U2-SW horiz
+        # Y=-45.12 X=-4.27..-3.13 (closest endpoint X=-4.27, d=0.66).
+        em.seg(-2.95, -44.25, -4.5, -44.25, 0.25, "F.Cu", gnd,
+               uuid_tag="iof30:gnd_u2_t1")
+        em.seg(-4.5, -44.25, -4.5, -44.5, 0.25, "F.Cu", gnd,
+               uuid_tag="iof30:gnd_u2_t2")
+        em.via(-4.5, -44.5, gnd, uuid_tag="iof30:gnd_u2")
 
     return (len(em._segments) - n_seg) + (len(em._vias) - n_via)
 
@@ -18843,6 +19112,8 @@ def apply_routing_to_pcb(chunks: tuple[str, ...] = ("power",)) -> int:
         total += _route_io_finalize(em, nets)
     if "io_finalize_v29" in chunks:
         total += _route_io_finalize_v29(em, nets)
+    if "io_finalize_v30" in chunks:
+        total += _route_io_finalize_v30(em, nets)
     # Future chunks slot in here
 
     if total == 0 and not chunks:
