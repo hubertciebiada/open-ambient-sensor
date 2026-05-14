@@ -15,6 +15,18 @@ Single entry point for rebuilding the entire KiCad project from sources:
      Q1 Vgs / Vds and D3 power dissipation. Catches design-value
      regressions (resistor renumberings, Zener voltage drift) that
      DRC / ERC cannot detect.
+  2c. Boot-strap + signal-pin audit (tools/check_boot.py) — exports the
+     schematic netlist, maps J5/J6 socket pins to ESP32-C6 GPIOs, and
+     verifies the 5 strap pins (GPIO 4 / 5 / 8 / 9 / 15) plus 9 signal
+     pins (I2C, UART, USB, LED, interrupts) are on the expected nets.
+     Catches boot-mode bricks, missing GPIO 8 pull-up to +3V3, and
+     accidental pinout swaps in future schematic edits.
+  2d. Trace ampacity check (tools/check_ampacity.py) — parses every
+     track segment in oas.kicad_pcb, finds the narrowest segment on
+     +24V / +5V / +3V3, and verifies each carries its budgeted
+     continuous current per IPC-2221 (1 oz Cu, 10 C rise) with a 1.2x
+     safety factor. Catches pinched routes through tight pockets that
+     would fuse under sustained load.
   3. Render — produce committable PNG / SVG previews into renders/:
         2d-top.{svg,png}        Top-side production view
         2d-cutouts.{svg,png}    Edge.Cuts + Dwgs.User keepout markers
@@ -225,6 +237,25 @@ def main() -> None:
     # this catches design-value bugs.
     step("2b/5  DC voltage propagation check (tools/check_dc.py)")
     run([sys.executable, str(HERE / "tools" / "check_dc.py")])
+
+    # 2c) Boot-strap + signal-pin audit.
+    # Verifies the ESP32-C6 boots in run mode (not download mode), that
+    # GPIO 8 has the external pull-up R7 (DevKitM-1's onboard pull-up
+    # runs off VCC_5V which is unpowered in OAS), and that every signal
+    # pin is on the net the firmware expects. Catches pinout swaps that
+    # would otherwise show up as "device works on the bench but the
+    # presence interrupt lands on the wrong handler" type bugs.
+    step("2c/5  Boot-strap + signal-pin audit (tools/check_boot.py)")
+    run([sys.executable, str(HERE / "tools" / "check_boot.py")])
+
+    # 2d) Trace ampacity check (IPC-2221).
+    # Parses every routed segment on +24V / +5V / +3V3, finds the
+    # narrowest width on each rail, and verifies it can carry the
+    # net's continuous-current budget with a 1.2x safety factor at 10 C
+    # ambient rise. Catches pinched routes through tight pockets that
+    # would burn out under sustained load.
+    step("2d/5  Trace ampacity check (tools/check_ampacity.py)")
+    run([sys.executable, str(HERE / "tools" / "check_ampacity.py")])
 
     # 3a) 2D PCB SVG renders (Edge.Cuts always included)
     step("3/5  Rendering 2D PCB previews (SVG)")
