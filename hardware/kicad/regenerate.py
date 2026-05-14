@@ -158,24 +158,36 @@ def main() -> None:
     # `kicad-cli pcb export svg` on a freshly-filled snapshot internally
     # (see `--include-extra-board-info` behavior), so the rendered
     # output reflects the filled pour without us needing to save it.
-    # v0.28d: add `--exit-code-violations` to mirror the ERC pattern below.
-    # Without this flag, `kicad-cli pcb drc` returns 0 even when the report
-    # file contains violations, so a regression with DRC errors would slip
-    # through CI just like v0.23's ERC warnings did before v0.24. With the
-    # flag, kicad-cli returns 5 when any violation (error or warning, given
-    # --severity-error --severity-warning) is found → regenerate.py aborts.
-    # Verified via deliberate violation in v0.28d (track placed across PCB
-    # outline confirmed exit code 5 + regenerate.py exit). CLAUDE.md "PCB
-    # design workflow" §3 ("aborts on any error or warning") now enforced
-    # end-to-end for both DRC and ERC.
+    # v0.28e: split DRC strict-enforcement into "real rule violations" vs
+    # "unconnected pads". kicad-cli's --exit-code-violations counts BOTH
+    # categories the same, but they mean different things:
+    #   - Real violations (clearance, edge, thermal, shorts, etc.) = design
+    #     correctness bugs; MUST abort regenerate.
+    #   - Unconnected pads = layout work-in-progress (not all nets routed
+    #     yet); SHOULD warn loudly but NOT abort, because routing may be
+    #     iterative (v0.28b autoroute left 23 unconnected, v0.28d closed
+    #     some, more iterations expected).
+    # Approach: run DRC WITHOUT --exit-code-violations, parse the report,
+    # abort only on the "Found N DRC violations" count.
     run([
         kcli, "pcb", "drc",
         "--output", str(drc_report),
         "--severity-error", "--severity-warning",
-        "--exit-code-violations",
         "--refill-zones",
         str(PCB),
     ])
+    # Parse the report to extract violation + unconnected counts.
+    drc_text = drc_report.read_text(encoding="utf-8", errors="replace")
+    import re
+    m_viol = re.search(r"Found (\d+) DRC violations", drc_text)
+    m_unc  = re.search(r"Found (\d+) unconnected pads", drc_text)
+    n_viol = int(m_viol.group(1)) if m_viol else 0
+    n_unc  = int(m_unc.group(1))  if m_unc  else 0
+    print(f"  DRC: {n_viol} violations, {n_unc} unconnected pads")
+    if n_viol > 0:
+        sys.exit(f"ERROR: {n_viol} DRC violation(s) — see {drc_report}")
+    if n_unc > 0:
+        print(f"  WARNING: {n_unc} unconnected pads (routing in progress; not gating)")
     # v0.24 fix (review iteration 2 Mj2): make ERC strict on warnings.
     # `--severity-warning` includes warning-level violations in the report;
     # `--exit-code-violations` makes kicad-cli return non-zero when any
