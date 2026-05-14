@@ -414,6 +414,63 @@ When adding a new external-service tool: name it `tools/<service>_<action>.py`,
 keep it OUT of `regenerate.py`'s default flow, and put a `print(...)` banner
 at the top of the script stating "live external service, run manually".
 
+### JLCPCB DFM warning categories — what is and isn't fixable
+
+The OAS board at v0.40 holds a stable JLCPCB DFM result of **0 DANGER /
+193 W** (warnings only, fully manufacturable). The remaining warnings
+break into two classes the iteration loop has shown:
+
+**Categories where surgical fixes work (proven via iter1):**
+- Sharp trace corner — when the corner is in an OPEN area (not near
+  another pad's clearance envelope). Merge the two short segments
+  flanking the corner into one straight segment in `oas_routes.py`.
+  Iter1 fixed 1 of 9 this way (Net-(D12-DOUT) corner).
+
+**Categories where surgical fixes DON'T work (proven via iter2):**
+- LED ring sharp corners (Net-(D11..D21)-DOUT) — each 75° corner exists
+  because the trace must dodge the NEXT LED's GND pad. Merging into a
+  straight line CLIPS the GND pad and fails DRC at the 0.15 mm rule.
+  Trying to fix 12 at once produced 8 DRC violations; trying just one
+  produced 1 violation. STRUCTURAL — cannot fix without re-positioning
+  LEDs or routing wider arcs.
+- I²C parallel-bus trace spacing (~28 instances at 0.15-0.18 mm) — the
+  SDA/SCL pair was deliberately routed parallel for impedance matching.
+  Widening triggers domino-failure DRC clearance elsewhere.
+- Silkscreen line width 0.12 mm (50 W) — comes from stock-library
+  footprint silk inside PinSocket / MIKROE / Phoenix MSTBA. Lifting
+  globally to 0.15 mm doesn't satisfy JLCPCB (they want ≥ 0.20 mm) AND
+  introduces 20 silk-to-pad DANGER findings (wider strokes consume
+  clearance budget). Reverted in v0.40.
+- Pad-to-mask expansion — bumping 0 → 0.05 mm fixed 5 Negative Mask
+  Expansion warnings BUT created 1 Soldermask Bridge DANGER + 59 extra
+  Mask-Exposes-Trace warnings + 5 extra Pad Spacing warnings. Net
+  negative. Reverted in v0.40.
+- 50 W Missing PTH + 50 W Unconnected via — these are likely the 38
+  GND stitching vias inside the GND pour zones (added v0.31/v0.32 to
+  bridge pour islands). JLCPCB sees them as "via with no track
+  terminating" even though they're connected through the pour. Cannot
+  remove without re-introducing unconnected_items DRC violations.
+
+**Lesson:** DFM warnings come in two flavors. *Routing-quality warnings*
+flagged on individual segments are sometimes fixable by editing
+`oas_routes.py`. *Structural warnings* (LED ring geometry, parallel
+bus runs, stock-library silk frames, pour stitching vias) are
+inherent to the chosen architecture and would require invasive
+re-design to address. The OAS project accepts warnings of this second
+class as the cost of the current architecture — Pillar #1 (measurement
+quality) and Pillar #2 (aesthetic) decisions take precedence over
+DFM yield optimization.
+
+When working on DFM fixes:
+1. ALWAYS run live `tools/jlcdfm_upload.py` after a fix to verify it
+   reduces the targeted warning AND doesn't regress any other check
+   (the local Python silk-to-pad scanner ≠ JLCPCB's algorithm).
+2. Apply ONE change per iteration. Cross-cutting fixes (mask expansion,
+   silk lift) have a high risk of net-negative results.
+3. Stop iterating when the remaining warnings are all in the
+   "structural" class. Don't burn cycles on fundamentally unsolvable
+   warnings; document them and move on.
+
 ### KiCad schematic conventions
 
 - **`no_connect` markers** on intentionally-unused IC pins. Without them, ERC warns "pin not connected". Use freely — they are documentation that says "this is deliberate, not an oversight." Common on ESP32-C6-DevKitM-1-N4 pins we don't wire (5V, unused GPIOs).
