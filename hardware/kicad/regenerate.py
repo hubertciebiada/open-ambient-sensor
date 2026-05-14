@@ -9,6 +9,12 @@ Single entry point for rebuilding the entire KiCad project from sources:
      when no inputs changed.
   2. Validate — kicad-cli pcb drc + kicad-cli sch erc, fail loudly
      if there are any errors or warnings.
+  2b. DC voltage propagation check (tools/check_dc.py) — verifies
+     every regulated rail (V_24V_PROT, +5V, +3V3) lands in its datasheet
+     spec window when 24 V is applied at J1, plus safety margins on
+     Q1 Vgs / Vds and D3 power dissipation. Catches design-value
+     regressions (resistor renumberings, Zener voltage drift) that
+     DRC / ERC cannot detect.
   3. Render — produce committable PNG / SVG previews into renders/:
         2d-top.{svg,png}        Top-side production view
         2d-cutouts.{svg,png}    Edge.Cuts + Dwgs.User keepout markers
@@ -204,6 +210,21 @@ def main() -> None:
         "--exit-code-violations",
         str(SCH),
     ])
+
+    # 2b) DC voltage propagation check (v0.38).
+    # Runs `tools/check_dc.py` which parses R2/R3/D3 values from the
+    # freshly-generated schematic and asserts every regulated rail lands
+    # in its datasheet spec window (V_24V_PROT, +5V, +3V3) plus safety
+    # margins on Q1 Vgs / Vds and D3 power dissipation. Catches the same
+    # regression class as the v0.36 R3 10k -> 30.9k fix (which would
+    # have destroyed ESP32 + SEN66 at first power-on) and the v0.37
+    # D3 18V -> 10V fix (AO3401A Vgs overstress).
+    #
+    # Pure-Python analytical model with simplified ideal regulators and
+    # AO3401A as a series resistance — DRC + ERC catch wiring bugs,
+    # this catches design-value bugs.
+    step("2b/5  DC voltage propagation check (tools/check_dc.py)")
+    run([sys.executable, str(HERE / "tools" / "check_dc.py")])
 
     # 3a) 2D PCB SVG renders (Edge.Cuts always included)
     step("3/5  Rendering 2D PCB previews (SVG)")
