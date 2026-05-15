@@ -179,14 +179,22 @@ def export_drill(kcli: str) -> None:
 
 
 def export_position(kcli: str) -> None:
-    """SMT pick-and-place position files. JLCPCB column convention:
-        Designator, Val, Package, Mid X, Mid Y, Rotation, Layer
-      KiCad's default CSV header is:
-        Ref, Val, Package, PosX, PosY, Rot, Side
-      JLCPCB's web uploader auto-detects the column meaning, so renaming
-      isn't strictly required. We emit one file per side (top + bottom),
-      using the same drill-file origin as the gerbers and excluding DNP
-      footprints (J2 recovery header, J10 native-USB recovery header)."""
+    """SMT pick-and-place position files in JLCPCB upload-ready format.
+
+    JLCPCB CPL upload REQUIRES these exact column names (per the 2026-05-15
+    first-order learning the hard way — "Failed processing the CPL file"
+    error):
+        Designator, Mid X, Mid Y, Layer, Rotation
+    KiCad's default CSV header is `Ref, Val, Package, PosX, PosY, Rot, Side`
+    and JLCPCB does NOT auto-detect that — the comment claiming so in
+    pre-v0.40 post-order versions of this file was wrong. We post-process the CSV
+    after kicad-cli emits it: rename columns, capitalize 'Top'/'Bottom',
+    keep 4-decimal precision (more is rejected, less is fine), drop the
+    Val/Package columns (JLCPCB ignores them).
+
+    Excludes DNP footprints (J2 recovery header, J10 native-USB recovery)
+    and uses the drill-file origin so the CPL coordinate frame matches
+    the gerbers."""
     for side, fname in (("front", "oas-top-pos.csv"),
                         ("back",  "oas-bottom-pos.csv")):
         run([
@@ -200,9 +208,35 @@ def export_position(kcli: str) -> None:
             "--exclude-dnp",
             str(PCB),
         ], hide_output=True)
-        # Count rows (header + N footprints)
+        _postprocess_cpl_for_jlcpcb(OUT / fname)
         rows = (OUT / fname).read_text(encoding="utf-8").count("\n") - 1
-        print(f"  wrote {fname} ({rows} footprints)")
+        print(f"  wrote {fname} ({rows} footprints, JLCPCB-format)")
+
+
+def _postprocess_cpl_for_jlcpcb(path: Path) -> None:
+    """Rewrite a kicad-cli CPL output in place to JLCPCB upload format.
+
+    Input header (kicad-cli):   Ref,Val,Package,PosX,PosY,Rot,Side
+    Output header (JLCPCB):     Designator,Mid X,Mid Y,Layer,Rotation
+    """
+    with path.open("r", encoding="utf-8", newline="") as f:
+        rows = list(csv.reader(f))
+    if not rows:
+        return
+    # First row is header; rest are data. KiCad header is in fixed order.
+    out = [["Designator", "Mid X", "Mid Y", "Layer", "Rotation"]]
+    for row in rows[1:]:
+        if not row:
+            continue
+        ref, _val, _pkg, x, y, rot, side = row
+        x_fmt = f"{float(x):.4f}"
+        y_fmt = f"{float(y):.4f}"
+        rot_f = float(rot)
+        rot_fmt = str(int(rot_f)) if rot_f == int(rot_f) else f"{rot_f:g}"
+        layer = "Top" if side.lower().startswith("top") else "Bottom"
+        out.append([ref, x_fmt, y_fmt, layer, rot_fmt])
+    with path.open("w", encoding="utf-8", newline="") as f:
+        csv.writer(f).writerows(out)
 
 
 def export_bom(kcli: str) -> None:
@@ -276,6 +310,35 @@ def _load_lcsc_mapping() -> dict[tuple[str, str], tuple[str, str]]:
     return mapping
 
 
+def _expand_designator_ranges(s: str) -> str:
+    """Expand range notation `C10-C17` -> `C10,C11,...,C17`.
+
+    JLCPCB BOM upload does NOT understand range notation — it cross-checks
+    BOM designators against CPL designators (which are always individual),
+    and a row like `100nF | C10-C17 | C_0603 | C14663 | 9` produces a
+    `"C10-C17 designators don't exist in the CPL file"` error.
+
+    Tokens that don't match the `PREFIX<a>-<b>` pattern pass through
+    verbatim (single designators, weird names, etc.).
+    """
+    import re
+    out = []
+    for tok in s.split(","):
+        tok = tok.strip()
+        m = re.match(r"^([A-Za-z]+)([0-9]+)-([A-Za-z]*)([0-9]+)$", tok)
+        if m:
+            prefix, a, prefix2, b = m.group(1), int(m.group(2)), m.group(3), int(m.group(4))
+            # Mismatched prefixes (e.g. "C10-D17") are not a real range — pass through.
+            if prefix2 and prefix2 != prefix:
+                out.append(tok)
+                continue
+            for i in range(a, b + 1):
+                out.append(f"{prefix}{i}")
+        else:
+            out.append(tok)
+    return ",".join(out)
+
+
 def _postprocess_bom_with_lcsc_mapping() -> None:
     """Rewrite oas-bom.csv in place — fill LCSC, add JLCPCB_Library column.
 
@@ -323,13 +386,23 @@ def _postprocess_bom_with_lcsc_mapping() -> None:
             else:
                 smd_other += 1
 
+        # v0.40 post-order JLCPCB-upload-ready format: expand range notation in
+        # Designator (`C10-C17` -> `C10,C11,...,C17`) — JLCPCB does NOT
+        # accept ranges and the BOM↔CPL cross-check fails otherwise.
+        # Also strip library prefix from Footprint (`Capacitor_SMD:C_0805`
+        # -> `C_0805`) — JLCPCB only wants the bare footprint name.
+        designator_expanded = _expand_designator_ranges(
+            row.get("Designator", "")
+        )
+        footprint_bare = footprint.split(":", 1)[-1]
+
         out_rows.append({
             "Comment": value,
-            "Designator": row.get("Designator", ""),
-            "Footprint": footprint,
+            "Designator": designator_expanded,
+            "Footprint": footprint_bare,
             "Manufacturer": row.get("Manufacturer", ""),
             "MPN": row.get("MPN", ""),
-            "LCSC": lcsc,
+            "LCSC Part #": lcsc,
             "JLCPCB_Library": lib,
             "Qty": row.get("Qty", ""),
         })
@@ -344,7 +417,7 @@ def _postprocess_bom_with_lcsc_mapping() -> None:
         )
 
     fieldnames = ["Comment", "Designator", "Footprint",
-                  "Manufacturer", "MPN", "LCSC", "JLCPCB_Library", "Qty"]
+                  "Manufacturer", "MPN", "LCSC Part #", "JLCPCB_Library", "Qty"]
     with bom_path.open("w", encoding="utf-8", newline="") as f:
         writer = csv.DictWriter(f, fieldnames=fieldnames)
         writer.writeheader()

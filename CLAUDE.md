@@ -481,6 +481,113 @@ When working on DFM fixes:
    "structural" class. Don't burn cycles on fundamentally unsolvable
    warnings; document them and move on.
 
+### JLCPCB SMT assembly upload — lessons from first production order
+
+The first OAS production order was placed off the v0.40 board (5 units,
+full SMT assembly, IOSS DHL Express to PL, ~712 PLN total). The ordering
+UI surfaced several formatting and matching gotchas that are now baked
+into `export_production.py` — the *reasons* for them belong here so
+future re-orders or sister-projects skip the same iteration cycle.
+
+**CPL upload format requirements (NOT documented anywhere in JLCPCB's UI
+copy)**:
+
+- Required column names — anything else fails silently with "File
+  processing failed, please check your file and upload again":
+  `Designator, Mid X, Mid Y, Layer, Rotation`
+- `Layer` value: `Top` or `Bottom` (capitalized). Lowercase `top` fails.
+- `Rotation`: integer when integer-valued (`0`, not `0.000000`). Decimals OK
+  if non-integer.
+- Coordinate precision: 4 decimals OK. Negative coords (drill-file-origin
+  at PCB centre) are accepted.
+- Drop the Val/Package columns kicad-cli emits — they are ignored anyway.
+- The pre-v0.40 post-order comment in `export_production.py` claimed JLCPCB
+  auto-detects KiCad's `Ref/PosX/PosY/Rot/Side` headers. **That is false.**
+  Fixed by `_postprocess_cpl_for_jlcpcb()` which rewrites in place.
+
+**BOM upload format requirements**:
+
+- LCSC column must be named `LCSC Part #` (with space + hashtag). `LCSC`
+  alone does not auto-bind.
+- Designator field must contain **explicit references** — JLCPCB does NOT
+  understand range notation. A row like `100nF | C10-C17 | C_0603 | C14663 | 9`
+  produces a `"C10-C17 designators don't exist in the CPL file"` error
+  because the BOM ↔ CPL cross-checker only knows individual refs (the CPL
+  always has them individual). Expand to `C10,C11,C12,...,C17`. Fixed by
+  `_expand_designator_ranges()`.
+- Strip the library prefix from Footprint values:
+  `Capacitor_SMD:C_0805_2012Metric` → `C_0805_2012Metric`. The colon-
+  prefixed form trips JLCPCB's package matcher on some rows.
+- Extra columns (Manufacturer, MPN, JLCPCB_Library) are silently ignored
+  on upload — safe to keep for human review.
+- THT rows with empty `LCSC Part #` are silently skipped — JLCPCB does not
+  assemble them. Safe to leave them in for documentation.
+
+**"Select by System" smart-match can silently substitute the WRONG part
+even when LCSC SKU is specified**: this caught the v0.40 post-order order with TWO
+near-misses that would have shipped wrong parts:
+
+- **R3 (30.9k 1%)** — `lcsc-mapping.csv` had `C23116` but JLCPCB's database
+  maps `C23116` to `0603WAF8060T5E = 806 Ω` (three orders of magnitude
+  wrong). The actual 30.9k 1% UNI-ROYAL 0603 SKU is `C23022`.
+  With 806 Ω in the TPS62933 feedback divider, V_out target = 0.8 × (1 +
+  100k/806) = ~100 V → buck saturates at 22 V max → ESP32-C6 + SEN66
+  (both 3.6 V max) destroyed instantly.
+- **D3 (10V Zener BZT52C10S, SOD-323)** — `lcsc-mapping.csv` had `C8492`
+  but JLCPCB's smart-match returned LRC `LBSS84LT1G` P-Channel MOSFET in
+  SOT-23 (wrong device class AND wrong footprint). Correct LCSC is
+  `C19334`. D3 is Q1's Vgs Zener clamp; without it, AO3401A Vgs_max ±12V
+  can be exceeded → gate damage → reverse-polarity protection lost.
+
+**Mitigation procedure for every future SMT order**:
+
+1. Always do `Parts Selection = By Customer` (not `By JLCPCB`) so our
+   `lcsc-mapping.csv` choices stick.
+2. Download the JLCPCB "Assembly Order" XLS preview AFTER matching, BEFORE
+   submitting payment. Diff it against `lcsc-mapping.csv` row by row.
+3. Read the **Description** column on the XLS — verify the part *class*
+   matches intent (Zener vs MOSFET, capacitor vs resistor) AND verify
+   the numeric value parses cleanly (`30.9kΩ` not `806Ω`). LCSC# alone is
+   not sufficient evidence — LCSC# may have been reassigned, or our
+   `lcsc-mapping.csv` may have the wrong number from prior research.
+4. Iterate: if any row is wrong, click "Replace Part" in the UI and
+   manually search for the right MPN. Re-download Assembly Order XLS,
+   re-diff. Loop until zero discrepancies.
+5. Verify stock count per part is ≥ `qty_per_board × board_count` with
+   ≥2× safety margin — JLCPCB stock is live, parts with exact stock can
+   be consumed by parallel orders before yours is reserved.
+
+**Other JLCPCB UI defaults locked in by the v0.40 post-order order** (record so the
+next order picks the same):
+
+- PCB: 2 layers, 1.6 mm FR-4, HASL lead-free, 1 oz outer copper, tented
+  vias, Single PCB delivery, 0.3 mm min via drill, ±0.2 mm outline
+  tolerance, JLCJLCJLCJLC mark, Flying Probe test on all boards.
+- PCBA: Standard tier (required for Extended Library parts), Top side
+  only, Tooling holes "Added by JLC", Edge Rails YES added by JLC,
+  Fiducials on rails added by JLC, Depanel YES before shipping, Confirm
+  Parts Placement YES ($1 — STRONGLY RECOMMENDED for first-prototype),
+  Photo Confirmation YES (free), Parts Selection BY CUSTOMER, Stencil
+  Storage NO, Fixture Storage NO, Function Test NO (no fixture for
+  hybrid SMT+THT board anyway), Bake Components NO, Special Stencil NO,
+  Nitrogen Reflow NO, SAC305 lead-free paste.
+- THT components hand-soldered by user after delivery: J1 Phoenix
+  terminal, J4 LD2410 P1.27 row, J5/J6 ESP32 P2.54 sockets, J7/J8 NFC
+  P2.54 sockets, C1 + C3 100µF/50V radial, C4 220µF/10V radial.
+- PCBA Remark (≤500 chars) — defensive copy about polarity checks +
+  SK6812 per-LED rotation lives in the v0.40 post-order changelog if needed for the
+  next order.
+
+**Shipping for PL**: IOSS + DHL Express. €150 IOSS threshold is met for
+a 5-board prototype; VAT auto-collected, customs handled, 2–4 day transit.
+DDP not needed unless order >€150. FCA avoided (manual customs clearance
+via Poczta Polska adds chaos + clearance fees that erase the savings).
+
+**UI session "processing files" spinner**: 1–5 min is normal post-BOM
+matching (JLCPCB cross-checks every LCSC SKU vs live stock + renders 3D
+preview + recalc cost). 10+ min stuck → hard-refresh; session is cached
+under "My Orders → Continue Order".
+
 ### KiCad schematic conventions
 
 - **`no_connect` markers** on intentionally-unused IC pins. Without them, ERC warns "pin not connected". Use freely — they are documentation that says "this is deliberate, not an oversight." Common on ESP32-C6-DevKitM-1-N4 pins we don't wire (5V, unused GPIOs).
