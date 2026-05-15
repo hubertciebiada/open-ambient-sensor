@@ -1,127 +1,103 @@
+# =============================================================================
 # OAS — Open Ambient Sensor
-# Base ESPHome configuration. PRELIMINARY DRAFT — not validated against real hardware.
+# Top-level ESPHome configuration
+# =============================================================================
 #
-# Pinout and component selections follow CLAUDE.md (v0.4 ESP32-C6-DevKitM-1-N4).
-# Strap pins (GPIO 4/5/9/15) and SiP-flash-reserved pins (GPIO 10/11) are already
-# avoided — see docs/ARCHITECTURE.md for the canonical pinout.
+# Project home: https://github.com/HubertCiebiada/open-ambient-sensor
+#
+# DIY multi-sensor environmental monitor for indoor spaces. Measures air
+# quality (CO2, PM1/2.5/4/10, VOC, NOx, temperature, humidity via Sensirion
+# SEN66) and presence (HiLink LD2410 mmWave radar). RGB status ring + dynamic
+# NFC tag + Bluetooth proxy. 24V DC powered, mounts on a standard
+# wall-recessed electrical box.
+#
+# ---------------------------------------------------------------------------
+# Per-device overrides
+# ---------------------------------------------------------------------------
+#
+# Every physical OAS unit needs its own short identifier ("device_id"), a
+# human-friendly room name ("friendly_name"), and optionally a dashboard URL
+# that the NFC tag will redirect a phone to. Override these per-device in
+# one of two ways:
+#
+#   1. Copy this file (e.g. `firmware/esphome/devices/livingroom.yaml`) and
+#      set `substitutions:` at the top of the copy. Then run:
+#        esphome run firmware/esphome/devices/livingroom.yaml
+#
+#   2. Use the ESPHome dashboard (Home Assistant add-on or standalone) which
+#      lets you set substitutions in the per-device config UI.
+#
+# The substitutions below are the DEFAULTS — they let you flash a single
+# unit and verify everything works before deploying a fleet. Override at
+# least `device_id` and `friendly_name` for every real device so units
+# don't collide on the LAN.
+#
+# Substitutions you'll typically override per device:
+#   device_id      — short slug, lowercase + dashes, e.g. "livingroom".
+#                    Becomes the device hostname (oas-livingroom.local) and
+#                    the WiFi AP fallback SSID.
+#   friendly_name  — display name shown in Home Assistant, e.g. "Living Room".
+#   dashboard_url  — URL the NFC tag redirects to when tapped with a phone.
+#                    Typically your Home Assistant lovelace dashboard for
+#                    that room.
+#
+# ---------------------------------------------------------------------------
+# First-time setup
+# ---------------------------------------------------------------------------
+#
+#   1. Install ESPHome:  pip install esphome
+#   2. Copy secrets.yaml.example -> secrets.yaml (gitignored). Fill in WiFi
+#      credentials, generate an api_encryption_key, set ota/ap passwords.
+#   3. Connect device via either USB-C port (both onboard ports work).
+#   4. esphome run firmware/esphome/oas.yaml
+#   5. After first boot, open http://oas-<device_id>.local/ for the
+#      built-in web dashboard.
+#
+# Subsequent updates are over-the-air via Home Assistant (preferred) or
+# `esphome run` from any machine on the same LAN.
+# =============================================================================
 
 substitutions:
-  device_name: oas-living-room
-  friendly_name: "OAS Living Room"
+  # Per-device identity — override for every physical unit.
+  device_id: prototype
+  friendly_name: "OAS Prototype"
+
+  # NFC tag redirects to this URL when tapped with a phone. Point this at
+  # your Home Assistant lovelace dashboard, a Grafana panel, or any
+  # web page that shows the live readings for this device.
+  dashboard_url: "https://homeassistant.local/"
+
+  # Project metadata — keep these in sync with CLAUDE.md / generate.py.
+  project_name: "HubertCiebiada.open-ambient-sensor"
+  project_version: "v0.40"
 
 esphome:
-  name: ${device_name}
+  name: oas-${device_id}
   friendly_name: ${friendly_name}
-  comment: "Open Ambient Sensor — air quality and presence"
+  comment: "Open Ambient Sensor — air quality + presence"
+  project:
+    name: ${project_name}
+    version: ${project_version}
 
 esp32:
-  board: esp32-c6-devkitc-1
+  # ESP32-C6-DevKitM-1-N4: Espressif official devkit, ESP32-C6-MINI-1 SoM,
+  # 4 MB flash. Two USB-C ports (one via USB-UART bridge, one native USB-
+  # Serial-JTAG). EAN 5904422385651. See CLAUDE.md hard constraint #6.
+  board: esp32-c6-devkitm-1
+  variant: esp32c6
   framework:
+    # esp-idf required for BLE proxy memory headroom on 4 MB flash devices.
+    # arduino framework runs out of IRAM on C6 + BLE + WiFi + sensors.
     type: esp-idf
 
-# Logging
-logger:
-  level: INFO
-
-# Home Assistant native API
-api:
-  encryption:
-    key: !secret api_encryption_key
-
-# OTA
-ota:
-  - platform: esphome
-    password: !secret ota_password
-
-# WiFi
-wifi:
-  ssid: !secret wifi_ssid
-  password: !secret wifi_password
-  ap:
-    ssid: "${device_name} Fallback"
-    password: !secret ap_password
-
-captive_portal:
-
-# I²C bus shared between SEN66 (0x6B), NT3H2211 (0x55), plus Qwiic expansion
-i2c:
-  sda: GPIO6
-  scl: GPIO7
-  frequency: 100kHz
-  scan: true
-
-# UART for HiLink LD2410 presence radar
-uart:
-  id: ld2410_uart
-  tx_pin: GPIO16
-  rx_pin: GPIO17
-  baud_rate: 256000
-  parity: NONE
-  stop_bits: 1
-
-# --------------------------------------------------------------------------
-# Sensors — TODO: validate native ESPHome support; fall back to external
-# components where required (in particular for SEN66 and NT3H2211).
-# --------------------------------------------------------------------------
-
-# Sensirion SEN66 — combo air-quality sensor mounted on the enclosure cover.
-# Native ESPHome component availability TBD; placeholder below.
-#
-# sensor:
-#   - platform: sen66
-#     co2:
-#       name: "CO2"
-#     pm_1_0:
-#       name: "PM1.0"
-#     pm_2_5:
-#       name: "PM2.5"
-#     pm_4_0:
-#       name: "PM4.0"
-#     pm_10_0:
-#       name: "PM10.0"
-#     voc:
-#       name: "VOC Index"
-#     nox:
-#       name: "NOx Index"
-#     temperature:
-#       name: "Temperature"
-#     humidity:
-#       name: "Humidity"
-
-# HiLink LD2410 — presence radar
-# binary_sensor:
-#   - platform: ld2410
-#     has_target:
-#       name: "Presence"
-#     has_moving_target:
-#       name: "Moving Target"
-#     has_still_target:
-#       name: "Still Target"
-
-# ld2410:
-#   uart_id: ld2410_uart
-#   throttle: 1000ms
-
-# WS2812B status LED with breathing effect (AQI-to-colour mapping TBD)
-light:
-  - platform: neopixelbus
-    type: GRB
-    variant: WS2812
-    pin: GPIO8
-    num_leds: 1
-    name: "Status LED"
-    effects:
-      - pulse:
-          name: "Breathing"
-          transition_length: 2s
-          update_interval: 2s
-
-# Bluetooth proxy — extends BLE range for the rest of Home Assistant
-bluetooth_proxy:
-  active: true
-
-esp32_ble_tracker:
-
-# NFC dynamic tag — NXP NT3H2211 + PCB trace antenna
-# Status: needs custom external component or `lambda` block to write live data.
-# Placeholder — TODO.
+# ---------------------------------------------------------------------------
+# Packages — split by function. Each package is self-contained and may be
+# enabled/disabled per build by commenting it out below.
+# ---------------------------------------------------------------------------
+packages:
+  core:        !include packages/core.yaml
+  leds:        !include packages/leds.yaml
+  air_quality: !include packages/air-quality.yaml
+  presence:    !include packages/presence.yaml
+  nfc:         !include packages/nfc.yaml
+  bt_proxy:    !include packages/bt-proxy.yaml

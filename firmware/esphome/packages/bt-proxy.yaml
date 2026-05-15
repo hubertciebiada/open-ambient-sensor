@@ -1,0 +1,125 @@
+# =============================================================================
+# OAS — Bluetooth proxy package
+# =============================================================================
+#
+# Extends Home Assistant's BLE reach across the deployment by relaying BLE
+# advertisements and active GATT connections through every OAS unit. With
+# 5-20 OAS units distributed across a typical home, every BLE-enabled
+# device (thermometers, weighing scales, etc.) becomes reachable from HA
+# wherever it is, no extra dongles needed.
+#
+# Reference: https://esphome.io/components/bluetooth_proxy.html
+#
+# ---------------------------------------------------------------------------
+# ESP32-C6 RF coexistence
+# ---------------------------------------------------------------------------
+# The ESP32-C6 SoC integrates a single 2.4 GHz radio shared between WiFi 6
+# and BLE 5. Espressif's coexistence scheduler time-slices the radio
+# between WiFi packets, BLE scans, and BLE connections — adequate for
+# light BLE-proxy duty alongside the OAS's normal WiFi + HA API + OTA +
+# web_server traffic, but stressed if every OAS unit is also a hub for
+# many BLE devices.
+#
+# Empirically (community reports + Espressif coex documentation):
+#   - Passive scan (active: false on esp32_ble_tracker scan_parameters)
+#     uses ~5 % radio time at 1100 ms interval, negligible impact.
+#   - Active scan (active: true) doubles that to ~10 %; adds latency
+#     spikes on WiFi RTT (~50-100 ms occasionally).
+#   - BLE active GATT connections (the "active: true" knob on
+#     bluetooth_proxy below) reserves dedicated radio slots for each
+#     connected device; each slot eats ~3-5 % radio time. Max 3 in OAS
+#     to keep WiFi 6 TWT working smoothly.
+#
+# If sensor publish rates start jittering or HA reports the OAS as
+# unavailable intermittently, drop bluetooth_proxy.active to false
+# (passive-only proxy = forward advertisements but don't connect),
+# or reduce esp32_ble_tracker connection_slots.
+#
+# ---------------------------------------------------------------------------
+# Framework requirement
+# ---------------------------------------------------------------------------
+# bluetooth_proxy with active GATT connections requires the esp-idf
+# framework; the arduino framework does not have enough IRAM headroom on
+# the ESP32-C6 4 MB flash variant. oas.yaml already declares
+# `esp32.framework.type: esp-idf` for this reason — do not change it.
+#
+# ---------------------------------------------------------------------------
+# Memory cost
+# ---------------------------------------------------------------------------
+# The BLE stack adds ~80 KB IRAM + ~50 KB DRAM at runtime. On the
+# ESP32-C6-MINI-1-N4 (4 MB flash, 512 KB SRAM) this fits with headroom
+# for SEN66 + LD2410 + NFC + WiFi + HA API + web_server + OTA. If a
+# future feature pushes IRAM over the limit, the BLE proxy is the most
+# expendable component to drop.
+# =============================================================================
+
+# ---------------------------------------------------------------------------
+# BLE tracker — the underlying scanner that bluetooth_proxy plugs into.
+# ---------------------------------------------------------------------------
+esp32_ble_tracker:
+  scan_parameters:
+    # 1100 ms interval matches the iBeacon / generic-advertising recommended
+    # value and is what ESPHome / Apple use for low-power tracking.
+    interval: 1100ms
+    window: 1100ms
+    # active: false is the documented recommendation for proxy-mode
+    # operation — passive scan, no scan-request packets emitted by the
+    # OAS. Reduces 2.4 GHz noise and saves radio time for WiFi. Active
+    # scanning is only needed for devices that hide their full name
+    # behind scan-response packets, which most modern BLE sensors don't.
+    active: false
+
+# ---------------------------------------------------------------------------
+# Bluetooth proxy — the HA-facing piece.
+# ---------------------------------------------------------------------------
+bluetooth_proxy:
+  # active: true lets HA initiate GATT connections through this OAS unit,
+  # e.g. for one-shot reads of a Bluetooth thermometer or for OTA-flashing
+  # a Shelly BLE device via the proxy. If only passive advertisement
+  # forwarding is needed (the cheap, low-overhead case), set this to
+  # false and connection_slots is ignored.
+  active: true
+  # Caches discovered GATT services in NVS flash so reconnects to known
+  # devices skip the service-discovery handshake (saves ~1-2 s per
+  # reconnect). Recommended on by ESPHome docs; only disable if NVS
+  # storage is constrained, which it isn't on N4.
+  cache_services: true
+  # Max simultaneous active GATT connections this OAS unit can maintain.
+  # ESPHome docs recommend NOT exceeding 5 to avoid stability issues;
+  # OAS conservatively caps at 3 to leave radio time for WiFi 6 TWT and
+  # for any future feature additions. Bump up if you have many BLE
+  # devices clustered near one specific OAS unit and find connection
+  # failures in HA logs.
+  connection_slots: 3
+
+# ---------------------------------------------------------------------------
+# Optional kill-switch
+# ---------------------------------------------------------------------------
+# Lets the user disable the BLE proxy at runtime from HA / web_server,
+# without having to re-flash. Useful if a future RF-coexistence issue
+# is suspected — toggle off, watch whether SEN66 / WiFi behavior
+# changes, toggle back on if not implicated.
+#
+# Implementation note: ESPHome does not expose a runtime on/off knob
+# for the bluetooth_proxy component itself. This switch instead toggles
+# whether the esp32_ble_tracker is doing anything at all — turning it
+# off effectively silences the BLE radio (no scans, no connections,
+# advertisements that arrived are dropped). The bluetooth_proxy
+# component continues to exist but has nothing to forward.
+switch:
+  - platform: template
+    name: "${friendly_name} BLE Proxy"
+    id: oas_ble_proxy_enabled
+    icon: "mdi:bluetooth"
+    optimistic: true
+    restore_mode: RESTORE_DEFAULT_ON
+    entity_category: config
+    turn_on_action:
+      # Re-enable the tracker. Uses the global singleton because
+      # esp32_ble_tracker does not expose a stable id() handle across
+      # ESPHome versions.
+      - lambda: |-
+          esphome::esp32_ble_tracker::global_esp32_ble_tracker->start_scan();
+    turn_off_action:
+      - lambda: |-
+          esphome::esp32_ble_tracker::global_esp32_ble_tracker->stop_scan();

@@ -1,0 +1,124 @@
+# =============================================================================
+# OAS — core services package
+# =============================================================================
+#
+# Shared infrastructure used by every OAS unit regardless of which sensors
+# or peripherals are populated:
+#   - WiFi + AP fallback + captive portal
+#   - First-flash Improv-over-Serial provisioning
+#   - Home Assistant native API
+#   - OTA update transport
+#   - On-device web dashboard (web_server v3)
+#   - Logger (USB-only — HW UART pins are owned by LD2410)
+#   - mDNS (so devices are reachable as oas-<device_id>.local)
+#   - SNTP + Home Assistant time sources
+#   - Prometheus metrics endpoint (optional — useful for fleet monitoring)
+#
+# Per-device substitutions (device_id, friendly_name) are inherited from
+# the top-level oas.yaml.
+# =============================================================================
+
+# ---------------------------------------------------------------------------
+# WiFi
+# ---------------------------------------------------------------------------
+# fast_connect: true skips the full scan and reconnects to the last known BSSID
+# straight after boot — keeps SEN66 first-measurement latency down.
+# power_save_mode: light lets the C6 use WiFi 6 TWT (Target Wake Time) for
+# longer DTIM intervals; reduces avg current ~30% vs power_save_mode: none.
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+  fast_connect: true
+  power_save_mode: light
+
+  # AP fallback — comes up if the configured WiFi is unreachable, lets the
+  # user re-provision credentials via captive portal without re-flashing.
+  ap:
+    ssid: "OAS-${device_id}-Setup"
+    password: !secret ap_password
+
+# Captive portal on the AP fallback interface — opens a config page
+# automatically when a phone joins the OAS-<id>-Setup SSID.
+captive_portal:
+
+# ---------------------------------------------------------------------------
+# First-time provisioning over USB
+# ---------------------------------------------------------------------------
+# improv_serial lets the user pair WiFi via USB before the device has any
+# network credentials, using the Improv WiFi web app (https://www.improv-wifi.com/).
+# Saves having to type credentials into secrets.yaml for first flash.
+improv_serial:
+
+# ---------------------------------------------------------------------------
+# Home Assistant native API
+# ---------------------------------------------------------------------------
+api:
+  encryption:
+    key: !secret api_encryption_key
+  # Reboot if the API hasn't been contacted in 15 min — recovers the device
+  # from soft hangs without a power cycle. Slightly conservative; default
+  # is 5 min but OAS deployments may be far from the HA instance.
+  reboot_timeout: 15min
+
+# ---------------------------------------------------------------------------
+# Over-the-air updates
+# ---------------------------------------------------------------------------
+ota:
+  - platform: esphome
+    password: !secret ota_password
+
+# ---------------------------------------------------------------------------
+# On-device web dashboard
+# ---------------------------------------------------------------------------
+# Available at http://oas-<device_id>.local/ or http://<device-ip>/. The v3
+# UI is the modern (post-2024) ESPHome dashboard with light controls,
+# number entity sliders for sensor offset tuning, live log viewer, and
+# live sensor readouts — fully usable without Home Assistant.
+#
+# ota: false because the canonical OTA transport is the api/ota above
+# (encrypted, password-protected). The web_server's bundled OTA endpoint
+# is older and less secure; disabling it keeps the surface tighter.
+web_server:
+  port: 80
+  version: 3
+  ota: false
+  log: true
+
+# ---------------------------------------------------------------------------
+# Logger
+# ---------------------------------------------------------------------------
+# baud_rate: 0 disables the hardware UART logger because GPIO 16/17 (the
+# default UART0 pins) are owned by the LD2410 presence radar at 256000 baud
+# (see CLAUDE.md pinout). Logs are still available via:
+#   - USB-Serial-JTAG (native USB) when plugged into the second USB-C port
+#   - The web_server's live log viewer
+#   - Home Assistant device logs via the API
+logger:
+  level: INFO
+  baud_rate: 0
+
+# ---------------------------------------------------------------------------
+# mDNS — makes the device discoverable as oas-<device_id>.local on the LAN.
+# ---------------------------------------------------------------------------
+mdns:
+  disabled: false
+
+# ---------------------------------------------------------------------------
+# Time
+# ---------------------------------------------------------------------------
+# SNTP as primary so day/night LED dimming works even if HA is down.
+# Home Assistant as secondary so the device's clock stays aligned with the
+# HA system clock for log timestamps.
+time:
+  - platform: sntp
+    id: sntp_time
+  - platform: homeassistant
+    id: ha_time
+
+# ---------------------------------------------------------------------------
+# Prometheus metrics endpoint
+# ---------------------------------------------------------------------------
+# Available at http://<device>/metrics. Useful if you scrape with
+# Prometheus / Grafana alongside HA, or for fleet health monitoring.
+# Negligible overhead when not scraped.
+prometheus:

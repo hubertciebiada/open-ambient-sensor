@@ -1,0 +1,33 @@
+# OAS firmware — local .gitignore
+#
+# The project root .gitignore already covers most of this, but this local
+# file is a defense-in-depth layer so accidental `git add` from inside
+# firmware/ never picks up secrets or build artifacts.
+
+# Secrets — NEVER commit
+secrets.yaml
+esphome/secrets.yaml
+**/secrets.yaml
+
+# ESPHome build state
+.esphome/
+esphome/.esphome/
+**/.esphome/
+build/
+**/build/
+
+# Compiled firmware blobs (regenerable by ESPHome)
+*.bin
+*.elf
+*.map
+
+# Per-device override files (typically anonymized, but the user may set
+# `secrets.yaml`-equivalent values inline — safer to gitignore by default).
+# Remove this line if you want to commit anonymized device examples.
+esphome/devices/
+
+# Editor / OS scratch
+*.swp
+*~
+.DS_Store
+Thumbs.db

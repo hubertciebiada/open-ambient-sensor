@@ -1,0 +1,342 @@
+# =============================================================================
+# OAS — NFC dynamic tag package (NT3H1101 on MIKROE-2462)
+# =============================================================================
+#
+# NXP NT3H1101 NTAG I2C plus (888-byte EEPROM, 64 B SRAM, 13.56 MHz) on the
+# MikroElektronika MIKROE-2462 "NFC Tag 2 Click" daughterboard. Plugs into
+# the OAS PCB via the mikroBUS-style sockets J7 (left col) + J8 (right col).
+#
+# See hardware/components/mikroe-2462.md for the verified chip ID
+# (NT3H1101 per the MikroE datasheet PDF and TME catalog — the MikroE
+# product page's "NT3H2111" mention is a marketing artifact).
+#
+# Datasheets:
+#   - NXP NT3H1101 / NT3H1201:  https://www.nxp.com/docs/en/data-sheet/NT3H1101_1201.pdf
+#   - MikroE MIKROE-2462:       https://mm.digikey.com/Volume0/opasdata/d220001/medias/docus/2165/MIKROE-2462_Web.pdf
+#
+# ---------------------------------------------------------------------------
+# Behavior
+# ---------------------------------------------------------------------------
+# The OAS firmware periodically writes a small NDEF (NFC Data Exchange
+# Format) record into the NT3H1101 EEPROM. The record contains a URI
+# pointing at the per-device dashboard URL (substitutions.dashboard_url
+# in oas.yaml), with the latest sensor readings appended as query-string
+# parameters. When a phone is tapped against the OAS unit:
+#
+#   1. The phone's NFC stack energizes the NT3H1101 antenna (passive).
+#   2. The NT3H1101 asserts its FD (field-detect) pin LOW -> GPIO 3 IRQ.
+#   3. The firmware optionally refreshes the EEPROM contents one last
+#      time so the phone reads the freshest data possible.
+#   4. The phone reads the NDEF record and opens the URI in the default
+#      browser -> the user sees the OAS dashboard in Home Assistant /
+#      Grafana / wherever ${dashboard_url} points.
+#
+# ---------------------------------------------------------------------------
+# Why raw I2C lambdas instead of an external_component
+# ---------------------------------------------------------------------------
+# There is no maintained native ESPHome component for NT3H1101 as of
+# 2026-05. The thijses/NT3H_thijs Arduino library exists and supports
+# NT3H1101 but has no ESPHome wrapper; pulling it in via external_components
+# would require either an Arduino-framework build (the OAS uses esp-idf
+# for BLE proxy headroom — see oas.yaml) or a custom C++ shim. Adding
+# either is more code than just talking to the chip directly over I2C
+# from an ESPHome lambda, which is what this package does.
+#
+# Writing the NDEF takes ~30-40 ms (one I2C block write per 16-byte page,
+# at 400 kHz the SEN66 + NFC + Qwiic bus runs comfortably). Cadence is
+# configurable via the `nfc_refresh_interval` number entity below.
+#
+# ---------------------------------------------------------------------------
+# NT3H1101 memory map summary
+# ---------------------------------------------------------------------------
+# I2C address: 0x55 (7-bit). 16-byte pages addressed as page numbers.
+# Page 0x00 = manufacturer / serial / lock bytes (READ ONLY).
+# Page 0x01 = static lock bytes + capability container.
+# Page 0x02 = NDEF TLV start. NDEF records BEGIN here on a fresh tag.
+#   - Byte 0 of page 2 = NDEF Message TLV tag (0x03).
+#   - Byte 1 of page 2 = NDEF Message length in bytes (or 0xFF + 2-byte
+#                        length for messages >254 B; we stay short).
+#   - Byte 2 onward    = the NDEF Message itself.
+# Pages 0x03..0x37 = user data (continues NDEF message; total user space
+#                    = 56 pages * 16 B = 896 B, of which 888 B usable).
+# Page 0x38..0x3A = dynamic locks + config (TOUCH WITH CARE).
+# Page 0x3B..0x3E = session registers (NS_REG, FD pin behavior, etc.).
+# Page 0xF8..0xFB = SRAM (64 B, volatile pass-through buffer).
+#
+# Datasheet reference: NT3H1101 §8.4 "Memory Organization" (Fig 4 + Table 5).
+#
+# An NDEF "URI" record carries a single URL prefixed by a code byte that
+# the phone expands (e.g. 0x03 = "http://", 0x04 = "https://"). We use
+# 0x04 (https://) by default since dashboards are typically TLS.
+# =============================================================================
+
+# ---------------------------------------------------------------------------
+# I2C device handle for the NT3H1101.
+# ---------------------------------------------------------------------------
+# Declares the NFC tag as a generic I2C device so we can call
+# id(nfc_tag).write({...}) from lambdas. The actual bus (sda=GPIO 6,
+# scl=GPIO 7) is declared in air-quality.yaml with id: bus_a; the
+# i2c_id below pins this device to that bus.
+i2c_device:
+  - id: nfc_tag
+    i2c_id: bus_a
+    address: 0x55
+
+# ---------------------------------------------------------------------------
+# Field-detect interrupt: NT3H1101 FD pin -> ESP32-C6 GPIO 3.
+# ---------------------------------------------------------------------------
+# FD is OPEN-DRAIN on the NT3H1101 (datasheet §8.5.2). Idle = high-impedance
+# (rises to +3V3 via the click board's onboard pull-up to LD2 the FD LED).
+# Asserts LOW while an external NFC field is energizing the antenna.
+# Active-low + interrupt on FALLING edge = "phone just tapped me".
+binary_sensor:
+  - platform: gpio
+    name: "${friendly_name} NFC Field"
+    id: oas_nfc_field
+    pin:
+      number: GPIO3
+      mode:
+        input: true
+        pullup: true
+      inverted: true   # invert so HA sees ON = field present, OFF = idle
+    device_class: presence
+    filters:
+      # Debounce: phones can flicker FD as they reposition; require a
+      # stable signal for 50 ms before firing the on_press automation.
+      - delayed_on: 50ms
+      - delayed_off: 200ms
+    on_press:
+      then:
+        - logger.log: "NFC field detected — refreshing tag contents"
+        - script.execute: oas_nfc_refresh
+
+# ---------------------------------------------------------------------------
+# Status text sensor — exposes "idle" / "writing" / "error" to HA.
+# ---------------------------------------------------------------------------
+text_sensor:
+  - platform: template
+    name: "${friendly_name} NFC Status"
+    id: oas_nfc_status
+    icon: "mdi:nfc-variant"
+    update_interval: never  # only updates when the script sets it
+
+# ---------------------------------------------------------------------------
+# Configurable refresh cadence.
+# ---------------------------------------------------------------------------
+# Each refresh re-writes the EEPROM with the latest sensor JSON. EEPROM
+# endurance is rated 1M cycles per page (NT3H1101 datasheet §6 Table 4);
+# at 60-s cadence that's ~32 years of continuous operation per page,
+# but writes spread across multiple pages of a multi-page NDEF can vary.
+# The default 60 s is conservative; pushing below 10 s is unwise.
+number:
+  - platform: template
+    name: "${friendly_name} NFC Refresh Interval"
+    id: oas_nfc_refresh_interval
+    icon: "mdi:timer-refresh-outline"
+    optimistic: true
+    min_value: 10
+    max_value: 600
+    step: 10
+    initial_value: 60
+    unit_of_measurement: "s"
+    mode: slider
+    restore_value: true
+    entity_category: config
+
+# ---------------------------------------------------------------------------
+# Dashboard URL — overridable per-unit at runtime.
+# ---------------------------------------------------------------------------
+# Default is the substitution from oas.yaml. Edit at runtime via HA to
+# point a specific OAS unit at a custom dashboard without re-flashing.
+# Stored in NVS and survives reboots.
+text:
+  - platform: template
+    name: "${friendly_name} NFC Dashboard URL"
+    id: oas_nfc_dashboard_url
+    icon: "mdi:link-variant"
+    optimistic: true
+    min_length: 0
+    max_length: 200
+    mode: text
+    initial_value: "${dashboard_url}"
+    restore_value: true
+    entity_category: config
+
+# ---------------------------------------------------------------------------
+# Periodic refresh trigger.
+# ---------------------------------------------------------------------------
+interval:
+  - interval: 60s
+    # The actual cadence is derived from oas_nfc_refresh_interval; this
+    # 60 s outer loop just checks elapsed time. Cheap.
+    then:
+      - lambda: |-
+          static uint32_t last_write_ms = 0;
+          uint32_t now = millis();
+          float interval_s = id(oas_nfc_refresh_interval).state;
+          if (interval_s < 10.0f) interval_s = 60.0f;
+          if ((now - last_write_ms) >= (uint32_t)(interval_s * 1000.0f)) {
+            last_write_ms = now;
+            id(oas_nfc_refresh).execute();
+          }
+
+# ---------------------------------------------------------------------------
+# NDEF refresh script — builds the URI record and writes it via I2C.
+# ---------------------------------------------------------------------------
+# The script is defined once and invoked from (a) the periodic interval,
+# (b) the NFC field-detect on_press handler, and (c) any user-initiated
+# action (button below). queued mode prevents overlapping writes if the
+# user spams a button while a field-detect refresh is in flight.
+script:
+  - id: oas_nfc_refresh
+    mode: queued
+    max_runs: 2
+    then:
+      - lambda: |-
+          // -----------------------------------------------------------------
+          // Build the URI string: "<dashboard_url>?co2=...&temp=...&..."
+          // -----------------------------------------------------------------
+          std::string url = id(oas_nfc_dashboard_url).state;
+          // Strip a leading https:// since the NDEF URI record carries
+          // that as a 1-byte prefix code (0x04). Anything else stays in
+          // the literal URL bytes.
+          uint8_t uri_prefix_code = 0x00;  // 0x00 = no prefix, literal URL
+          const char *https_prefix = "https://";
+          const char *http_prefix  = "http://";
+          if (url.rfind(https_prefix, 0) == 0) {
+            uri_prefix_code = 0x04;  // https://
+            url.erase(0, strlen(https_prefix));
+          } else if (url.rfind(http_prefix, 0) == 0) {
+            uri_prefix_code = 0x03;  // http://
+            url.erase(0, strlen(http_prefix));
+          }
+
+          // Append live sensor readings as query parameters. Air quality
+          // sensors are declared in air-quality.yaml; presence in this
+          // same package. If a sensor isn't populated yet (early boot)
+          // its state will be NAN and we omit it from the URL.
+          char qs[256];
+          int qs_len = 0;
+          qs[0] = '\0';
+          auto append_param = [&](const char *key, float value, int decimals) {
+            if (isnan(value)) return;
+            char sep = (qs_len == 0) ? '?' : '&';
+            int n = snprintf(qs + qs_len, sizeof(qs) - qs_len,
+                             "%c%s=%.*f", sep, key, decimals, value);
+            if (n > 0 && qs_len + n < (int)sizeof(qs)) qs_len += n;
+          };
+          // Each id() reference below points at an entity declared in
+          // air-quality.yaml (sen66) or in this package (ld2410). If
+          // air-quality.yaml renames the entities, update these too.
+          // The id() lookups resolve at compile time, so renames cause
+          // a build error rather than a silent runtime miss.
+          //
+          // Sensor IDs declared by air-quality.yaml (verified post-write):
+          //   oas_co2, oas_temperature, oas_humidity, oas_pm_2_5,
+          //   oas_voc, oas_nox
+          append_param("co2",  id(oas_co2).state,         0);
+          append_param("temp", id(oas_temperature).state, 1);
+          append_param("rh",   id(oas_humidity).state,    0);
+          append_param("pm25", id(oas_pm_2_5).state,      1);
+          append_param("voc",  id(oas_voc).state,         0);
+          append_param("nox",  id(oas_nox).state,         0);
+
+          // Presence info from THIS package's ld2410 (always available).
+          append_param("presence",
+                       id(oas_presence).state ? 1.0f : 0.0f, 0);
+          append_param("dist_cm", id(oas_detection_distance).state, 0);
+
+          std::string full_url = url + std::string(qs, qs_len);
+          if (full_url.size() > 220) {
+            // NT3H1101 EEPROM accommodates ~880 B of user-data NDEF
+            // payload, but we cap to ~220 B so phones with stricter
+            // NDEF parsers don't choke. Truncate query string.
+            full_url.resize(220);
+          }
+
+          // -----------------------------------------------------------------
+          // Build the NDEF Message TLV.
+          // -----------------------------------------------------------------
+          // NDEF URI Record format (NFC Forum URI RTD):
+          //   header:  0xD1 (MB=1, ME=1, CF=0, SR=1, IL=0, TNF=001)
+          //   type_len:  0x01
+          //   payload_len: <1 + len(url_after_prefix)>
+          //   type:    'U' (0x55)
+          //   payload: <prefix_code> <url_bytes>
+          //
+          // Wrapped in an NDEF Message TLV:
+          //   tlv_tag:   0x03 (NDEF Message)
+          //   tlv_len:   <NDEF record length>
+          //   tlv_value: <the NDEF record>
+          //   terminator: 0xFE
+          //
+          // NT3H1101 §8.4: NDEF message starts at page 4 (byte offset 16),
+          // because page 3 holds the CC. But the standard NTAG approach
+          // is to put the TLV at byte 0 of page 4 with the CC already
+          // initialized by the chip manufacturer.
+          //
+          // Datasheet ref: NT3H1101 §8.4 Memory Organization, Figure 4.
+
+          uint8_t url_bytes = full_url.size();
+          uint8_t payload_len = 1 + url_bytes;        // prefix + url
+          uint8_t ndef_record_len = 4 + payload_len;  // hdr+typelen+plen+type + payload
+          uint8_t ndef_tlv_total = 2 + ndef_record_len + 1; // tag+len + record + 0xFE
+
+          // Build a contiguous byte buffer for the entire NDEF area.
+          // First 16 bytes = page 4 contents.
+          std::vector<uint8_t> ndef_buf;
+          ndef_buf.reserve(ndef_tlv_total + 16);
+          ndef_buf.push_back(0x03);              // NDEF Message TLV tag
+          ndef_buf.push_back(ndef_record_len);   // TLV length
+          ndef_buf.push_back(0xD1);              // NDEF header
+          ndef_buf.push_back(0x01);              // type length = 1
+          ndef_buf.push_back(payload_len);       // payload length
+          ndef_buf.push_back(0x55);              // type = 'U' (URI)
+          ndef_buf.push_back(uri_prefix_code);   // URI prefix code
+          for (char c : full_url) ndef_buf.push_back((uint8_t)c);
+          ndef_buf.push_back(0xFE);              // Terminator TLV
+
+          // Pad to a multiple of 16 bytes (one EEPROM page).
+          while (ndef_buf.size() % 16 != 0) ndef_buf.push_back(0x00);
+
+          // -----------------------------------------------------------------
+          // I2C write loop — one page (16 B) at a time, page 4 onward.
+          // -----------------------------------------------------------------
+          // NT3H1101 I2C protocol (§8.3.3): single-byte register address
+          // is the page number; followed by 16 data bytes. The chip
+          // automatically commits the write to EEPROM (~4.5 ms per page,
+          // datasheet §6 Table 4).
+          //
+          // We declared the chip as id(nfc_tag) (an i2c_device on the
+          // shared bus_a at address 0x55, see top of this file). Its
+          // .write(register, {bytes...}) method emits a single I2C
+          // transaction: START, addr+W, register byte, data bytes, STOP.
+          // This matches the NT3H1101 page-write format exactly.
+          id(oas_nfc_status).publish_state("writing");
+          const uint8_t NDEF_START_PAGE = 0x04;
+          bool error = false;
+          for (size_t off = 0; off < ndef_buf.size(); off += 16) {
+            uint8_t page_num = NDEF_START_PAGE + (off / 16);
+            std::vector<uint8_t> page_bytes(
+                ndef_buf.begin() + off,
+                ndef_buf.begin() + off + 16);
+            esphome::i2c::ErrorCode err =
+                id(nfc_tag).write(page_num, page_bytes);
+            if (err != esphome::i2c::ERROR_OK) {
+              ESP_LOGW("nfc", "I2C write of page 0x%02X failed (err %d)",
+                       page_num, (int)err);
+              error = true;
+              break;
+            }
+            // ~5 ms EEPROM commit delay per page. delay() is OK because
+            // this script runs on the main loop and the only thing it
+            // blocks is other I2C activity, which we want anyway.
+            delay(5);
+          }
+          if (error) {
+            id(oas_nfc_status).publish_state("error");
+          } else {
+            id(oas_nfc_status).publish_state("idle");
+            ESP_LOGI("nfc", "NDEF refresh OK (%u bytes, URL=%s)",
+                     (unsigned)full_url.size(), full_url.c_str());
+          }

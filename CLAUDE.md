@@ -628,6 +628,28 @@ under "My Orders → Continue Order".
 
 ## Changelog
 
+- **v0.40 post-order** — Production firmware skeleton added (5-package ESPHome config + IP-based web_server dashboard).
+  - `firmware/esphome/oas.yaml` top-level + 5 packages in `packages/`:
+    core, leds, air-quality, presence, nfc, bt-proxy.
+  - First-prototype HW already at fab; firmware lands here so the user can
+    flash on day-1 of arrival with no further iteration on YAML structure.
+  - 8+ LED effects with web_server-driven brightness/effect/mode selection
+    (Auto-AQI/Manual/Off/Test-Rainbow). Day-night auto-dim.
+  - SEN66 sensor offsets exposed as `number:` entities (temperature,
+    humidity, CO2) preserved across reboots via `restore_value: yes`.
+  - STAR-Engine IAQM Light preset (T1=1000, T2=3000, K=200, P=200 raw I²C
+    16-bit values, ×10 of post-scale display values) re-uploaded on every
+    boot via `on_boot:` lambda (Sensirion params are volatile per datasheet).
+  - LD2410 presence + per-gate sensitivity + max-distance + timeout all
+    exposed as `number:`/`select:` entities for web-UI tuning.
+  - NT3H1101 NFC dynamic tag: tap phone → opens dashboard URL configurable
+    via web_server text entity. Live sensor JSON written to NTAG memory
+    every 60s.
+  - Bluetooth proxy enabled (extends HA's BLE reach across deployment).
+  - Docs: `docs/FLASHING.md` (first-flash + OTA + recovery),
+    `docs/HA-INTEGRATION.md` (auto-discovery + sample automations),
+    `firmware/esphome/README.md` (per-package responsibility map).
+
 - **v0.35** — LCSC SKUs filled for full SMT assembly: `hardware/bom/lcsc-mapping.csv` + `export_production.py` post-process. Ready for JLCPCB PCBA quote.
   - **Trigger**: 5-prototype JLCPCB SMT-assembly order. With 22 unique SMD part groups across the board, hand-filling the LCSC column at upload time is error-prone (transcription errors, value/footprint mismatches), and JLCPCB's smart-match silently picks "the cheapest matching part" without the user's input on substitutions (e.g. clone vs. original IC, BOM downgrade for unobtanium parts). v0.35 makes the SKU choice explicit and committed.
   - **`hardware/bom/lcsc-mapping.csv` (new, source-of-truth)** — 22 rows, one per unique SMD `(Value, Footprint)` group. Columns: `Value, Footprint, LCSC, Manufacturer, MPN, JLCPCB_Library, Stock, Datasheet_URL, Notes`. Hand-curated against the JLCPCB Parts Library (https://jlcpcb.com/parts) and lcsc.com. Persistent across re-runs of `export_production.py` — the volatile `oas-bom.csv` in `hardware/gerbers/` (gitignored, regenerable) is derived from it.

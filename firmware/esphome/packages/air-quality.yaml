@@ -1,0 +1,449 @@
+# =============================================================================
+# OAS — air quality package
+# =============================================================================
+#
+# Sensirion SEN66 (combo: PM 1/2.5/4/10, CO2, VOC index, NOx index, T, RH) over
+# I2C from a PCB-mounted JST-GH socket (J3). SEN66 is the headline sensor and
+# Pillar #1 (measurement quality) anchor — see CLAUDE.md v0.6 / v0.15.8 / v0.22
+# entries for the architectural decisions behind this stack.
+#
+# Wiring (per CLAUDE.md "ESP32-C6-DevKitM-1-N4 pinout (v0.4 final)" table):
+#   - I2C SDA = GPIO 6
+#   - I2C SCL = GPIO 7
+#   - bus frequency = 100 kHz (Sensirion standard mode — SEN66 datasheet §3.1
+#     hard limit; the realized OAS bus length is ~220 mm including the 80 mm
+#     JST-GH cable to the SEN66 module, which is marginal for 400 kHz fast
+#     mode; do NOT bump frequency without a signal-integrity measurement)
+#   - SEN66 address = 0x6B (7-bit, fixed)
+#
+# This package also declares the primary I2C bus (id: bus_a) since the SEN66
+# is the heaviest user. The NFC (NT3H1101 @ 0x55) and Qwiic expansion packages
+# reference `bus_a` rather than declaring their own.
+#
+# Datasheet refs (paths under hardware/components/sen66.md):
+#   - Sensirion SEN6x datasheet v0.92, Dec 2025
+#   - Sensirion SEN6x mechanical / assembly guidelines v0.92, Jan 2026
+#   - Sensirion SEN6x temperature-compensation app note v1.1, Jan 2026
+# =============================================================================
+
+# ---------------------------------------------------------------------------
+# I2C bus (primary, shared with NFC + Qwiic)
+# ---------------------------------------------------------------------------
+i2c:
+  - id: bus_a
+    sda: GPIO6
+    scl: GPIO7
+    frequency: 100kHz   # SEN66 datasheet §3.1 max — DO NOT increase
+    scan: true          # logs detected addresses at startup (0x55 NFC, 0x6B SEN66, plus any Qwiic guest)
+
+# ---------------------------------------------------------------------------
+# Raw I2C device handle for the SEN66, used only for STAR-Engine writes
+# ---------------------------------------------------------------------------
+# The upstream `sensor.sen6x` component (ESPHome 2026.3.x) does NOT yet expose
+# the SEN6x temperature-compensation API the way `sensor.sen5x` does — i.e.
+# there is no `temperature_compensation:` / `acceleration_mode:` config block
+# on the sen6x platform. The SEN6x application note v1.1 calls these parameters
+# out as VOLATILE — they reset on every power cycle and MUST be re-uploaded by
+# the host on each boot. Since the platform doesn't do this for us, we open a
+# parallel i2c_device handle on the same bus + same address and issue the
+# command sequence ourselves from `on_boot:` (priority 600, well after sensor
+# init at priority 700 → device is reachable, sen6x measurement loop pauses
+# briefly while we hold the bus).
+#
+# This handle is non-conflicting with the sen6x platform: i2c_device is a thin
+# wrapper around the bus master, both end up arbitrating on the same internal
+# bus mutex.
+i2c_device:
+  - id: sen66_raw
+    i2c_id: bus_a
+    address: 0x6B
+
+# ---------------------------------------------------------------------------
+# User-adjustable calibration offsets (persisted via NVS / flash)
+# ---------------------------------------------------------------------------
+# These let the user trim the SEN66 readings without re-flashing — useful for
+# self-heating correction (e.g. unit mounted near a heat source reads ~1.5 K
+# high → set oas_temperature_offset to -1.5) or for site-specific CO2 baseline
+# drift between annual factory recalibration cycles.
+#
+# All three offsets are applied as `filter: - offset: ...` on the sen6x sensor
+# output, so they affect the published value but NOT the raw SEN66 reading.
+# Set in the web_server UI (http://oas-<id>.local/) or the Home Assistant UI.
+number:
+  - platform: template
+    name: "Temperature Offset"
+    id: oas_temperature_offset
+    icon: "mdi:thermometer-plus"
+    unit_of_measurement: "°C"
+    min_value: -10.0
+    max_value: 10.0
+    step: 0.1
+    initial_value: 0.0
+    restore_value: true
+    optimistic: true
+    mode: box
+    entity_category: config
+
+  - platform: template
+    name: "Humidity Offset"
+    id: oas_humidity_offset
+    icon: "mdi:water-percent-alert"
+    unit_of_measurement: "%"
+    min_value: -20.0
+    max_value: 20.0
+    step: 0.5
+    initial_value: 0.0
+    restore_value: true
+    optimistic: true
+    mode: box
+    entity_category: config
+
+  - platform: template
+    name: "CO2 Offset"
+    id: oas_co2_offset
+    icon: "mdi:molecule-co2"
+    unit_of_measurement: "ppm"
+    min_value: -100
+    max_value: 100
+    step: 1
+    initial_value: 0
+    restore_value: true
+    optimistic: true
+    mode: box
+    entity_category: config
+
+# ---------------------------------------------------------------------------
+# SEN66 sensor platform
+# ---------------------------------------------------------------------------
+# update_interval: 30s is the Sensirion-recommended pacing for SEN66 — the
+# sensor samples internally at 1 Hz, runs PM optical bench + CO2 NDIR + VOC/NOx
+# MOX + SHT measurement cycles, and exposes the 5 s averaged values. 30 s
+# matches the conservative "give the algorithm a stable window" cadence and
+# keeps WiFi air-time low for fleet deployments.
+#
+# Each channel:
+#   - force_update: true → ESPHome republishes even if the value didn't change
+#     (Home Assistant statistics + long-term storage benefit from regular
+#     timestamps; AQI calc downstream wants a heartbeat)
+#   - accuracy_decimals: matches Sensirion datasheet typical resolution
+#   - state_class / device_class: standard Home Assistant taxonomy so the value
+#     lands in the right energy/environment dashboard pane automatically
+#   - filter (where applied): user offset from the number entities above
+sensor:
+  - platform: sen6x
+    type: SEN66
+    i2c_id: bus_a
+    address: 0x6B
+    update_interval: 30s
+
+    pm_1_0:
+      name: "PM 1.0"
+      id: oas_pm_1_0
+      device_class: pm1
+      state_class: measurement
+      accuracy_decimals: 1
+      force_update: true
+
+    pm_2_5:
+      name: "PM 2.5"
+      id: oas_pm_2_5
+      device_class: pm25
+      state_class: measurement
+      accuracy_decimals: 1
+      force_update: true
+
+    pm_4_0:
+      name: "PM 4.0"
+      id: oas_pm_4_0
+      state_class: measurement
+      accuracy_decimals: 1
+      force_update: true
+      # No HA device_class for PM 4.0 — Sensirion-specific channel.
+
+    pm_10_0:
+      name: "PM 10"
+      id: oas_pm_10_0
+      device_class: pm10
+      state_class: measurement
+      accuracy_decimals: 1
+      force_update: true
+
+    co2:
+      name: "CO2"
+      id: oas_co2
+      device_class: carbon_dioxide
+      state_class: measurement
+      accuracy_decimals: 0
+      force_update: true
+      filters:
+        - offset: !lambda 'return id(oas_co2_offset).state;'
+
+    voc:
+      name: "VOC Index"
+      id: oas_voc
+      icon: "mdi:air-filter"
+      state_class: measurement
+      accuracy_decimals: 0
+      force_update: true
+      # VOC index is unitless Sensirion 1..500 scale (100 = typical indoor).
+
+    nox:
+      name: "NOx Index"
+      id: oas_nox
+      icon: "mdi:smog"
+      state_class: measurement
+      accuracy_decimals: 0
+      force_update: true
+      # NOx index is unitless Sensirion 1..500 scale (1 = typical indoor).
+
+    temperature:
+      name: "Temperature"
+      id: oas_temperature
+      device_class: temperature
+      state_class: measurement
+      unit_of_measurement: "°C"
+      accuracy_decimals: 1
+      force_update: true
+      filters:
+        - offset: !lambda 'return id(oas_temperature_offset).state;'
+
+    humidity:
+      name: "Humidity"
+      id: oas_humidity
+      device_class: humidity
+      state_class: measurement
+      unit_of_measurement: "%"
+      accuracy_decimals: 1
+      force_update: true
+      filters:
+        - offset: !lambda 'return id(oas_humidity_offset).state;'
+
+  # -------------------------------------------------------------------------
+  # AQI value — combined PM2.5 (US EPA breakpoints) + CO2 comfort index
+  # -------------------------------------------------------------------------
+  # Two-input air-quality index optimized for the OAS LED-ring mapping in
+  # packages/leds.yaml. The ring needs ONE scalar [0..500] to colour-map.
+  #
+  # PM2.5 → AQI (US EPA, Title 40 CFR Part 58 Appendix G, 2024 revision):
+  #   PM2.5 (µg/m³)   | AQI range  | Category
+  #   ----------------+------------+-------------------
+  #     0.0 .. 12.0   |   0 ..  50 | Good
+  #    12.1 .. 35.4   |  51 .. 100 | Moderate
+  #    35.5 .. 55.4   | 101 .. 150 | Unhealthy SG
+  #    55.5 ..150.4   | 151 .. 200 | Unhealthy
+  #   150.5 ..250.4   | 201 .. 300 | Very Unhealthy
+  #   250.5 ..500.0   | 301 .. 500 | Hazardous
+  #
+  # CO2 → comfort index (custom, scaled to AQI range so max() is meaningful):
+  #   CO2 (ppm)       | Comfort | Equiv. AQI
+  #   ----------------+---------+-----------
+  #      0 ..  800    |   5/5   |   0..50    excellent (fresh outdoor air ≈ 420 ppm)
+  #    800 .. 1000    |   4/5   |  51..100   good
+  #   1000 .. 1500    |   3/5   | 101..200   moderate
+  #   1500 .. 2000    |   2/5   | 201..300   poor (drowsy / concentration loss)
+  #    2000+          |   1/5   | 301..500   bad (ventilation required)
+  #
+  # The published value is max(pm25_aqi, co2_aqi) so the worse of the two
+  # axes drives the LED colour. This matches the "rooms with a heater on
+  # often have low PM but climbing CO2" use case.
+  - platform: template
+    name: "Air Quality Index"
+    id: oas_aqi_value
+    icon: "mdi:air-filter"
+    unit_of_measurement: "AQI"
+    accuracy_decimals: 0
+    state_class: measurement
+    update_interval: 30s
+    lambda: |-
+      // Guard against initial NaN before SEN66 first measurement.
+      float pm25 = id(oas_pm_2_5).state;
+      float co2 = id(oas_co2).state;
+      if (isnan(pm25)) pm25 = 0.0f;
+      if (isnan(co2)) co2 = 0.0f;
+
+      // --- PM2.5 → AQI piecewise linear (EPA 2024) -----------------------
+      auto pm25_aqi = [](float c) -> float {
+        struct B { float clo, chi, alo, ahi; };
+        static const B band[] = {
+          {  0.0f,  12.0f,   0.0f,  50.0f},
+          { 12.1f,  35.4f,  51.0f, 100.0f},
+          { 35.5f,  55.4f, 101.0f, 150.0f},
+          { 55.5f, 150.4f, 151.0f, 200.0f},
+          {150.5f, 250.4f, 201.0f, 300.0f},
+          {250.5f, 500.0f, 301.0f, 500.0f},
+        };
+        if (c < 0.0f) return 0.0f;
+        for (auto &b : band) {
+          if (c <= b.chi) {
+            return b.alo + (b.ahi - b.alo) * (c - b.clo) / (b.chi - b.clo);
+          }
+        }
+        return 500.0f;  // off-scale Hazardous
+      };
+
+      // --- CO2 → comfort-equiv AQI piecewise linear ---------------------
+      auto co2_aqi = [](float c) -> float {
+        if (c <=  800.0f) return  0.0f + ( 50.0f -   0.0f) * (c -    0.0f) / ( 800.0f -    0.0f);
+        if (c <= 1000.0f) return 51.0f + (100.0f -  51.0f) * (c -  800.1f) / (1000.0f -  800.1f);
+        if (c <= 1500.0f) return 101.0f + (200.0f - 101.0f) * (c - 1000.1f) / (1500.0f - 1000.1f);
+        if (c <= 2000.0f) return 201.0f + (300.0f - 201.0f) * (c - 1500.1f) / (2000.0f - 1500.1f);
+        if (c <= 5000.0f) return 301.0f + (500.0f - 301.0f) * (c - 2000.1f) / (5000.0f - 2000.1f);
+        return 500.0f;
+      };
+
+      float a = pm25_aqi(pm25);
+      float b = co2_aqi(co2);
+      return (a > b) ? a : b;
+
+# ---------------------------------------------------------------------------
+# Critical-alert flag — referenced by packages/leds.yaml for the red blink
+# ---------------------------------------------------------------------------
+# Trips when EITHER axis crosses an unambiguously unhealthy threshold:
+#   - AQI > 200  (PM2.5 path: "Unhealthy" or worse)
+#   - CO2 > 1500 ppm (cognitive-impairment threshold)
+# Hysteresis is enforced in the LED package's `on_press` / `on_release`
+# triggers so the LED doesn't flicker around the boundary.
+binary_sensor:
+  - platform: template
+    name: "Air Quality Critical"
+    id: oas_air_quality_critical
+    device_class: safety
+    lambda: |-
+      float aqi = id(oas_aqi_value).state;
+      float co2 = id(oas_co2).state;
+      if (isnan(aqi)) aqi = 0.0f;
+      if (isnan(co2)) co2 = 0.0f;
+      return (aqi > 200.0f) || (co2 > 1500.0f);
+
+# ---------------------------------------------------------------------------
+# STAR-Engine state text-sensor (diagnostic)
+# ---------------------------------------------------------------------------
+# Updated by the on_boot lambda below — shows whether the volatile
+# STAR-Engine parameters were successfully re-uploaded after the last reset.
+text_sensor:
+  - platform: template
+    name: "STAR-Engine State"
+    id: oas_star_engine_state
+    icon: "mdi:tune-vertical"
+    entity_category: diagnostic
+    update_interval: never   # only updated explicitly from lambdas
+
+# ---------------------------------------------------------------------------
+# Boot-time STAR-Engine re-upload
+# ---------------------------------------------------------------------------
+# The SEN6x STAR-Engine temperature-compensation parameters live in
+# VOLATILE registers — every power cycle resets them to factory defaults.
+# This block re-pushes the Sensirion-recommended "Light / IAQM" preset
+# (tcomp app note v1.1, Table 1) on every boot.
+#
+# Display values   → I2C raw (×10) values   → command
+#   T1 = 100 s      →  T1 = 1000             ┐  0x60B2  (offset / slope /
+#   T2 = 300 s      →  T2 = 3000             │           time-constant per
+#                                            │           slot, slots 0..4)
+#   K  = 20         →  K  =  200             ┐  0x6100  (acceleration K, P)
+#   P  = 20         →  P  =  200             ┘
+#
+# The ×10 scale factor is the Sensirion encoding for these 16-bit unsigned
+# registers — value_on_wire = value_displayed_to_user × 10. Re-tune all four
+# in the chamber procedure described in tcomp §3.2 once first prototype is
+# built, then update the constants below.
+#
+# Sensirion I2C wire format:
+#   [cmd_hi] [cmd_lo] [data_hi] [data_lo] [crc8(data_hi, data_lo)]  (×N words)
+# CRC-8 with polynomial 0x31, init 0xFF (datasheet §3.4).
+#
+# Why raw I2C and not the sen6x platform: ESPHome's sen6x component (as of
+# 2026.3.x) does NOT yet expose a `temperature_compensation:` config block
+# like sen5x does. When that block lands upstream, this on_boot lambda can
+# be deleted and replaced with `temperature_compensation:` keys on the
+# sen6x platform above.
+esphome:
+  on_boot:
+    # Priority 600: AFTER sensor init (700) so the SEN66 is reachable, but
+    # BEFORE network setup so first published readings already use the new
+    # compensation.
+    priority: 600
+    then:
+      - delay: 2s   # let SEN66 finish its 1 s startup blackout window
+      - lambda: |-
+          // CRC-8 / polynomial 0x31, init 0xFF — Sensirion convention.
+          auto crc8 = [](uint8_t a, uint8_t b) -> uint8_t {
+            uint8_t buf[2] = {a, b};
+            uint8_t c = 0xFF;
+            for (uint8_t i = 0; i < 2; i++) {
+              c ^= buf[i];
+              for (uint8_t j = 0; j < 8; j++) {
+                c = (c & 0x80) ? (uint8_t)((c << 1) ^ 0x31) : (uint8_t)(c << 1);
+              }
+            }
+            return c;
+          };
+
+          // ---- 0x60B2  Set Temperature Offset Parameters --------------
+          //   Per tcomp app note v1.1 §3.2: writes a 5-word block to slot 0:
+          //     word0 = T_offset      (signed, °C × 200)        → 0 (no offset)
+          //     word1 = slope         (signed × 10000)          → 0
+          //     word2 = time_constant (uint, seconds)           → 0
+          //     word3 = slot index    (0..4)                    → 0
+          //     word4 = reserved                                → 0
+          //   The "T1/T2" label in CLAUDE.md / hardware/components/sen66.md
+          //   refers to the time-constant field of two adjacent slots
+          //   (slot 0 = fast loop T1, slot 1 = slow loop T2). We program
+          //   both slots below.
+          //
+          //   Slot 0 — T1 = 1000 (raw) → 100 s display:
+          {
+            uint8_t buf[2 + 5*3];  // 2 cmd + 5 words × (2 data + 1 crc)
+            buf[0] = 0x60; buf[1] = 0xB2;
+            uint16_t w[5] = {0, 0, 1000, 0, 0};  // T_off, slope, time_const, slot, rsvd
+            for (uint8_t i = 0; i < 5; i++) {
+              uint8_t hi = (uint8_t)(w[i] >> 8);
+              uint8_t lo = (uint8_t)(w[i] & 0xFF);
+              buf[2 + i*3 + 0] = hi;
+              buf[2 + i*3 + 1] = lo;
+              buf[2 + i*3 + 2] = crc8(hi, lo);
+            }
+            auto err = id(sen66_raw).write(buf, sizeof(buf));
+            ESP_LOGI("sen66", "STAR slot 0 (T1=1000): err=%d", (int)err);
+          }
+          delay(20);  // tcomp §3.2 — 20 ms execution time between commands
+
+          //   Slot 1 — T2 = 3000 (raw) → 300 s display:
+          {
+            uint8_t buf[2 + 5*3];
+            buf[0] = 0x60; buf[1] = 0xB2;
+            uint16_t w[5] = {0, 0, 3000, 1, 0};  // slot index = 1
+            for (uint8_t i = 0; i < 5; i++) {
+              uint8_t hi = (uint8_t)(w[i] >> 8);
+              uint8_t lo = (uint8_t)(w[i] & 0xFF);
+              buf[2 + i*3 + 0] = hi;
+              buf[2 + i*3 + 1] = lo;
+              buf[2 + i*3 + 2] = crc8(hi, lo);
+            }
+            auto err = id(sen66_raw).write(buf, sizeof(buf));
+            ESP_LOGI("sen66", "STAR slot 1 (T2=3000): err=%d", (int)err);
+          }
+          delay(20);
+
+          // ---- 0x6100  Set RH/T Acceleration ---------------------------
+          //   Two-word write: K (uint16) then P (uint16), both ×10 raw.
+          //   K = 200 raw → 20 display; P = 200 raw → 20 display.
+          bool ok = true;
+          {
+            uint8_t buf[2 + 2*3];
+            buf[0] = 0x61; buf[1] = 0x00;
+            uint16_t w[2] = {200, 200};
+            for (uint8_t i = 0; i < 2; i++) {
+              uint8_t hi = (uint8_t)(w[i] >> 8);
+              uint8_t lo = (uint8_t)(w[i] & 0xFF);
+              buf[2 + i*3 + 0] = hi;
+              buf[2 + i*3 + 1] = lo;
+              buf[2 + i*3 + 2] = crc8(hi, lo);
+            }
+            auto err = id(sen66_raw).write(buf, sizeof(buf));
+            ESP_LOGI("sen66", "STAR accel (K=200, P=200): err=%d", (int)err);
+            if (err != esphome::i2c::ErrorCode::ERROR_OK) ok = false;
+          }
+
+          id(oas_star_engine_state).publish_state(
+              ok ? "uploaded (Light/IAQM preset)" : "FAILED — check I2C bus");

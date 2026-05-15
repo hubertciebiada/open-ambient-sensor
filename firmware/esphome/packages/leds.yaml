@@ -1,0 +1,522 @@
+# ---------------------------------------------------------------------------
+# OAS LED ring controller — 11 x SK6812-SIDE side-emit RGB
+# ---------------------------------------------------------------------------
+# Hardware: 11 LEDs (D11..D22, D14 SKIPPED for the J1 24 V terminal block)
+# arranged as a Ø22 mm ring around the central cable hole. Side-emit toward
+# the AK-N-94 perforated white ABS cover -> diffuse halo, no "dot-through-
+# perforation" pattern.
+#
+# Bus     : 1-wire WS281x family, GPIO 8 (ESP32-C6 RMT peripheral)
+# Variant : SK6812 (NOT WS2812 — different bit-timing; rgb_order GRB)
+# Rail    : +5 V from LM2596S-5.0 buck
+# Power   : 11 x 50 mA peak = 550 mA at full white; brightness cap below
+#           keeps the bus draw comfortable for the LM2596 and prevents the
+#           cover from blowing out perceptually at night.
+#
+# The D14 PCB slot is occupied by the J1 24 V terminal block (see v0.18
+# changelog). From the WS281x protocol's perspective the chain is just 11
+# sequential pixels — the missing radial position is invisible to firmware.
+# Geometric ordering on the cover, counter-clockwise from D11 (12 o'clock):
+#   index 0 = D11, 1 = D12, 2 = D13, [D14 omitted], 3 = D15, 4 = D16,
+#   5 = D17, 6 = D18, 7 = D19, 8 = D20, 9 = D21, 10 = D22.
+#
+# Cross-package contract:
+#   - packages/air-quality.yaml owns `oas_aqi_value` (template sensor, float)
+#     and `oas_air_quality_critical` (template binary_sensor). DO NOT
+#     redeclare either here.
+#   - This package owns `oas_ring` (the light entity) plus brightness /
+#     night-mode / mode-select / critical-override UI entities.
+# ---------------------------------------------------------------------------
+
+# ---------------------------------------------------------------------------
+# Globals — mode state shared across automations in this package
+# ---------------------------------------------------------------------------
+# `oas_previous_mode` remembers the mode the user had selected before a
+# critical-alert override flipped the ring to red Pulse, so we can restore
+# it cleanly when the alert clears.
+# `oas_critical_active` mirrors the latched alert state inside the C++
+# layer so the per-minute auto-dim interval can detect "do not dim while
+# alerting" without reaching back into the binary_sensor.
+globals:
+  - id: oas_previous_mode
+    type: int
+    restore_value: no
+    initial_value: '0'   # 0=Auto-AQI, 1=Manual, 2=Off, 3=Test-Rainbow
+
+  - id: oas_critical_active
+    type: bool
+    restore_value: no
+    initial_value: 'false'
+
+# ---------------------------------------------------------------------------
+# Light platform — the ring itself
+# ---------------------------------------------------------------------------
+light:
+  - platform: esp32_rmt_led_strip
+    chipset: SK6812
+    rgb_order: GRB
+    num_leds: 11
+    pin: GPIO8
+    rmt_symbols: 64
+    id: oas_ring
+    name: "OAS Ring"
+    restore_mode: ALWAYS_OFF
+    default_transition_length: 500ms
+    effects:
+      # ---------------------------------------------------------------
+      # 1. Breathing — soft sinusoidal fade, ~4 s period.
+      #    Default for AQI-status mode. The 5..30 % envelope is applied
+      #    on top of the current light brightness, so the user's max-
+      #    brightness slider still caps absolute output.
+      # ---------------------------------------------------------------
+      - pulse:
+          name: "Breathing"
+          transition_length: 2s
+          update_interval: 2s
+          min_brightness: 5%
+          max_brightness: 30%
+
+      # ---------------------------------------------------------------
+      # 2. AQI Gradient — addressable lambda. Maps oas_aqi_value (0..500)
+      #    to a colour using the US-EPA-aligned bands, with linear
+      #    interpolation between band edges for smooth transitions
+      #    (no visible "snap" as PM2.5 drifts across 50/100/150/...).
+      #    All 11 pixels share the same colour — the ring reads as a
+      #    single colour zone from the user's viewing distance.
+      # ---------------------------------------------------------------
+      - addressable_lambda:
+          name: "AQI Gradient"
+          update_interval: 200ms
+          lambda: |-
+            // Pull current AQI; guard NaN before air-quality.yaml has data.
+            float aqi = id(oas_aqi_value).state;
+            if (isnan(aqi) || aqi < 0.0f) aqi = 0.0f;
+            if (aqi > 500.0f) aqi = 500.0f;
+
+            // Band table — (upper-edge AQI, R, G, B).
+            //   0.. 50 -> green  (  0, 255,   0)
+            //  51..100 -> yellow (255, 255,   0)
+            // 101..150 -> orange (255, 128,   0)
+            // 151..200 -> red    (255,   0,   0)
+            // 201..300 -> purple (160,   0, 200)
+            // 301..500 -> maroon (130,   0,  30)
+            struct Stop { float a; uint8_t r, g, b; };
+            static const Stop stops[] = {
+              {   0.0f,   0, 255,   0},
+              {  50.0f,   0, 255,   0},
+              { 100.0f, 255, 255,   0},
+              { 150.0f, 255, 128,   0},
+              { 200.0f, 255,   0,   0},
+              { 300.0f, 160,   0, 200},
+              { 500.0f, 130,   0,  30},
+            };
+            const int N = sizeof(stops) / sizeof(stops[0]);
+
+            // Find the bracketing pair and lerp.
+            uint8_t r = stops[N - 1].r;
+            uint8_t g = stops[N - 1].g;
+            uint8_t b = stops[N - 1].b;
+            for (int i = 1; i < N; i++) {
+              if (aqi <= stops[i].a) {
+                float t = (aqi - stops[i - 1].a) /
+                          (stops[i].a - stops[i - 1].a);
+                if (t < 0.0f) t = 0.0f;
+                if (t > 1.0f) t = 1.0f;
+                r = (uint8_t)(stops[i - 1].r + t * (stops[i].r - stops[i - 1].r));
+                g = (uint8_t)(stops[i - 1].g + t * (stops[i].g - stops[i - 1].g));
+                b = (uint8_t)(stops[i - 1].b + t * (stops[i].b - stops[i - 1].b));
+                break;
+              }
+            }
+
+            // Paint the whole ring uniformly.
+            for (int i = 0; i < it.size(); i++) {
+              it[i] = ESPColor(r, g, b);
+            }
+
+      # ---------------------------------------------------------------
+      # 3. Color Wipe — sequential fill, cycling R -> G -> B every
+      #    ~10 s. Useful as a "device is talking to HA" indicator on
+      #    first boot before AQI data is available.
+      # ---------------------------------------------------------------
+      - addressable_lambda:
+          name: "Color Wipe"
+          update_interval: 100ms
+          lambda: |-
+            // 10 s per full R/G/B cycle = 30 frames per color at 100 ms
+            // update interval. Position = frame index mod (3 * num_leds).
+            static uint32_t frame = 0;
+            const int N = it.size();
+            int total = 3 * N;
+            int p = frame % total;
+            int colour_idx = p / N;
+            int filled = (p % N) + 1;
+            frame++;
+
+            uint8_t r = 0, g = 0, b = 0;
+            switch (colour_idx) {
+              case 0: r = 255; break;        // red sweep
+              case 1: g = 255; break;        // green sweep
+              case 2: b = 255; break;        // blue sweep
+            }
+            for (int i = 0; i < N; i++) {
+              if (i < filled) {
+                it[i] = ESPColor(r, g, b);
+              } else {
+                it[i] = ESPColor(0, 0, 0);
+              }
+            }
+
+      # ---------------------------------------------------------------
+      # 4. Pulse — sharp 1 Hz pulse on the whole ring. Reserved for the
+      #    critical-alert override (forced red); also selectable
+      #    manually by the user if they want a noticeable indicator.
+      # ---------------------------------------------------------------
+      - pulse:
+          name: "Pulse"
+          transition_length: 200ms
+          update_interval: 500ms
+          min_brightness: 10%
+          max_brightness: 100%
+
+      # ---------------------------------------------------------------
+      # 5. Rainbow Cycle — slow rotating hue around the ring, ~20 s per
+      #    full rotation. One full hue arc is spread across the 11
+      #    pixels, and the arc itself rotates around the ring.
+      # ---------------------------------------------------------------
+      - addressable_lambda:
+          name: "Rainbow Cycle"
+          update_interval: 50ms
+          lambda: |-
+            // 20 s / 50 ms = 400 frames per rotation.
+            static uint32_t frame = 0;
+            const int N = it.size();
+            const float frames_per_rev = 400.0f;
+            float phase = (frame % (uint32_t)frames_per_rev) / frames_per_rev;
+            frame++;
+
+            // HSV -> RGB conversion lambda (h in [0,1)).
+            auto hsv = [](float h, float s, float v,
+                          uint8_t &r, uint8_t &g, uint8_t &b) {
+              float c = v * s;
+              float hp = h * 6.0f;
+              float x = c * (1.0f - fabsf(fmodf(hp, 2.0f) - 1.0f));
+              float r1 = 0.0f, g1 = 0.0f, b1 = 0.0f;
+              if      (hp < 1.0f) { r1 = c;  g1 = x;  b1 = 0; }
+              else if (hp < 2.0f) { r1 = x;  g1 = c;  b1 = 0; }
+              else if (hp < 3.0f) { r1 = 0;  g1 = c;  b1 = x; }
+              else if (hp < 4.0f) { r1 = 0;  g1 = x;  b1 = c; }
+              else if (hp < 5.0f) { r1 = x;  g1 = 0;  b1 = c; }
+              else                { r1 = c;  g1 = 0;  b1 = x; }
+              float m = v - c;
+              r = (uint8_t)((r1 + m) * 255.0f);
+              g = (uint8_t)((g1 + m) * 255.0f);
+              b = (uint8_t)((b1 + m) * 255.0f);
+            };
+
+            for (int i = 0; i < N; i++) {
+              float h = phase + ((float)i / (float)N);
+              h = h - floorf(h);   // wrap into [0,1)
+              uint8_t r, g, b;
+              hsv(h, 1.0f, 1.0f, r, g, b);
+              it[i] = ESPColor(r, g, b);
+            }
+
+      # ---------------------------------------------------------------
+      # 6. Dot Chase — single bright white head rotating around the
+      #    ring with a 3-LED linearly-fading tail behind it. ~3 s per
+      #    rotation.
+      # ---------------------------------------------------------------
+      - addressable_lambda:
+          name: "Dot Chase"
+          update_interval: 80ms
+          lambda: |-
+            // 3 s / 80 ms ≈ 37 frames per rev. Head moves one pixel
+            // every ~3.4 frames -> step ≈ 0.29 px/frame; round to 1
+            // pixel step every 3 frames so motion stays integer.
+            static uint32_t frame = 0;
+            const int N = it.size();
+            int head = (frame / 3) % N;
+            frame++;
+
+            for (int i = 0; i < N; i++) {
+              int dist = head - i;
+              while (dist < 0) dist += N;
+              if      (dist == 0) it[i] = ESPColor(255, 255, 255);
+              else if (dist == 1) it[i] = ESPColor(160, 160, 160);
+              else if (dist == 2) it[i] = ESPColor( 80,  80,  80);
+              else if (dist == 3) it[i] = ESPColor( 30,  30,  30);
+              else                it[i] = ESPColor(  0,   0,   0);
+            }
+
+      # ---------------------------------------------------------------
+      # 7. Twinkle — random pixels flicker softly between dim and base.
+      #    Looks like distant stars. Uses a per-pixel phase derived
+      #    from a cheap hash so the pattern is non-repeating without
+      #    needing per-pixel state.
+      # ---------------------------------------------------------------
+      - addressable_lambda:
+          name: "Twinkle"
+          update_interval: 100ms
+          lambda: |-
+            static uint32_t frame = 0;
+            const int N = it.size();
+            frame++;
+            for (int i = 0; i < N; i++) {
+              // xorshift-ish per-pixel pseudo-phase, indexed by frame.
+              uint32_t h = (uint32_t)(i + 1) * 2654435761u + frame * 97u;
+              h ^= h >> 13;
+              h *= 1274126177u;
+              h ^= h >> 16;
+              float v = (float)(h & 0xFFu) / 255.0f;   // 0..1
+              // Lift floor to 0.10 so the ring never looks dead, peak 1.0.
+              v = 0.10f + 0.90f * v;
+              uint8_t lvl = (uint8_t)(v * 200.0f);
+              // Slight warm-white bias so it feels cozy rather than clinical.
+              it[i] = ESPColor(lvl, (uint8_t)(lvl * 0.85f),
+                                    (uint8_t)(lvl * 0.55f));
+            }
+
+      # ---------------------------------------------------------------
+      # 8. Comet — bright head with a 5-pixel exponentially-fading
+      #    tail rotating around the ring. ~4 s per rotation.
+      # ---------------------------------------------------------------
+      - addressable_lambda:
+          name: "Comet"
+          update_interval: 60ms
+          lambda: |-
+            // 4 s / 60 ms ≈ 67 frames per rev. Step one pixel every
+            // ~6 frames for an integer-pixel update cadence.
+            static uint32_t frame = 0;
+            const int N = it.size();
+            int head = (frame / 6) % N;
+            frame++;
+
+            // Exponential decay: each pixel behind the head loses ~45 %.
+            // Tail length capped at 5; beyond that the pixel is black.
+            for (int i = 0; i < N; i++) {
+              int dist = head - i;
+              while (dist < 0) dist += N;
+              if (dist > 5) {
+                it[i] = ESPColor(0, 0, 0);
+              } else {
+                // brightness = 255 * 0.55^dist
+                float decay = 1.0f;
+                for (int k = 0; k < dist; k++) decay *= 0.55f;
+                uint8_t lvl = (uint8_t)(255.0f * decay);
+                // Cyan-ish comet (180, 220, 255) scaled by decay.
+                it[i] = ESPColor((uint8_t)(180 * decay),
+                                 (uint8_t)(220 * decay),
+                                 (uint8_t)(255 * decay));
+              }
+            }
+
+      # ---------------------------------------------------------------
+      # 9. Solid — no animation. The HA-side colour control sets the
+      #    hue; this effect just turns animations OFF cleanly.
+      # ---------------------------------------------------------------
+      - lambda:
+          name: "Solid"
+          update_interval: 1s
+          lambda: |-
+            // Intentionally empty — leave the current state untouched
+            // so the user's chosen colour stays as set.
+
+# ---------------------------------------------------------------------------
+# Number entities — user-tunable brightness + night-mode schedule
+# ---------------------------------------------------------------------------
+number:
+  # Max-brightness slider. The auto-dim interval below applies this
+  # value scaled by the day/night factor; user-set colour and effect
+  # are preserved across the dim adjustment.
+  - platform: template
+    id: oas_ring_brightness_max
+    name: "OAS Ring Max Brightness"
+    optimistic: true
+    initial_value: 30
+    min_value: 0
+    max_value: 100
+    step: 5
+    restore_value: yes
+    unit_of_measurement: "%"
+    mode: SLIDER
+    set_action:
+      - lambda: |-
+          auto call = id(oas_ring).turn_on();
+          call.set_brightness(x / 100.0f);
+          call.perform();
+
+  # Night-mode window — when the local hour is inside [start, end)
+  # (wrapping through midnight if end < start), the auto-dim interval
+  # scales the ring to 5 % of the user's max-brightness setting.
+  - platform: template
+    id: oas_night_start
+    name: "OAS Night Mode Start Hour"
+    optimistic: true
+    initial_value: 22
+    min_value: 0
+    max_value: 23
+    step: 1
+    restore_value: yes
+    mode: BOX
+
+  - platform: template
+    id: oas_night_end
+    name: "OAS Night Mode End Hour"
+    optimistic: true
+    initial_value: 7
+    min_value: 0
+    max_value: 23
+    step: 1
+    restore_value: yes
+    mode: BOX
+
+# ---------------------------------------------------------------------------
+# Select — ring operating mode
+# ---------------------------------------------------------------------------
+select:
+  - platform: template
+    id: oas_ring_mode
+    name: "OAS Ring Mode"
+    optimistic: true
+    restore_value: yes
+    options:
+      - "Auto-AQI"
+      - "Manual"
+      - "Off"
+      - "Test-Rainbow"
+    initial_option: "Auto-AQI"
+    set_action:
+      - lambda: |-
+          // Remember which mode index we just settled into so a later
+          // critical-alert clear can restore it.
+          if (x == "Auto-AQI")      id(oas_previous_mode) = 0;
+          else if (x == "Manual")   id(oas_previous_mode) = 1;
+          else if (x == "Off")      id(oas_previous_mode) = 2;
+          else /* Test-Rainbow */   id(oas_previous_mode) = 3;
+
+          // While a critical alert is latched, the override script owns
+          // the ring — do not let mode changes punch through. The user's
+          // selection is still recorded above so it applies when the
+          // alert clears.
+          if (id(oas_critical_active)) return;
+      - if:
+          condition:
+            lambda: 'return x == "Auto-AQI";'
+          then:
+            - light.turn_on:
+                id: oas_ring
+                effect: "AQI Gradient"
+                brightness: !lambda 'return id(oas_ring_brightness_max).state / 100.0f;'
+      - if:
+          condition:
+            lambda: 'return x == "Manual";'
+          then:
+            # Manual mode preserves whatever the user last set via HA.
+            # We just make sure the ring is on at the configured cap.
+            - light.turn_on:
+                id: oas_ring
+                brightness: !lambda 'return id(oas_ring_brightness_max).state / 100.0f;'
+      - if:
+          condition:
+            lambda: 'return x == "Off";'
+          then:
+            - light.turn_off: oas_ring
+      - if:
+          condition:
+            lambda: 'return x == "Test-Rainbow";'
+          then:
+            - light.turn_on:
+                id: oas_ring
+                effect: "Rainbow Cycle"
+                brightness: !lambda 'return id(oas_ring_brightness_max).state / 100.0f;'
+
+# ---------------------------------------------------------------------------
+# Critical-alert override
+# ---------------------------------------------------------------------------
+# `oas_critical_alert` is a user-visible binary_sensor that mirrors the
+# air-quality-derived `oas_air_quality_critical` defined in
+# packages/air-quality.yaml. We re-expose it here under the name the LED
+# UX talks about ("critical alert") and hang the override automation off
+# its on_state, so any future trigger source (e.g. presence-derived
+# tamper) can be OR'd in without touching the air-quality package.
+binary_sensor:
+  - platform: template
+    id: oas_critical_alert
+    name: "OAS Critical Alert"
+    device_class: safety
+    lambda: |-
+      // Mirror air-quality.yaml's critical sensor. NaN-safe because the
+      // upstream sensor's own lambda already guards NaN inputs.
+      return id(oas_air_quality_critical).state;
+    on_state:
+      - lambda: |-
+          if (x) {
+            // Latch override.
+            id(oas_critical_active) = true;
+            auto call = id(oas_ring).turn_on();
+            call.set_rgb(1.0f, 0.0f, 0.0f);
+            call.set_brightness(0.80f);     // 80 % — overrides max cap
+            call.set_effect("Pulse");
+            call.perform();
+          } else {
+            // Clear override; restore the user's selected mode.
+            id(oas_critical_active) = false;
+            float br = id(oas_ring_brightness_max).state / 100.0f;
+            int prev = id(oas_previous_mode);
+            if (prev == 0) {
+              auto call = id(oas_ring).turn_on();
+              call.set_effect("AQI Gradient");
+              call.set_brightness(br);
+              call.perform();
+            } else if (prev == 1) {
+              auto call = id(oas_ring).turn_on();
+              call.set_brightness(br);
+              call.perform();
+            } else if (prev == 2) {
+              auto call = id(oas_ring).turn_off();
+              call.perform();
+            } else /* Test-Rainbow */ {
+              auto call = id(oas_ring).turn_on();
+              call.set_effect("Rainbow Cycle");
+              call.set_brightness(br);
+              call.perform();
+            }
+          }
+
+# ---------------------------------------------------------------------------
+# Auto-dim — runs every minute; applies day/night brightness scaling
+# ---------------------------------------------------------------------------
+# `ha_time` is declared in packages/core.yaml. We read the local-time
+# hour, compare against the user-configured night window, and re-apply
+# brightness. Critical-alert latch is honoured by skipping the apply
+# entirely while latched (the override script owns brightness then).
+interval:
+  - interval: 60s
+    then:
+      - lambda: |-
+          if (id(oas_critical_active)) return;     // override owns brightness
+          if (!id(oas_ring).remote_values.is_on()) return;
+
+          auto now = id(ha_time).now();
+          if (!now.is_valid()) return;
+
+          int h = now.hour;
+          int s = (int) id(oas_night_start).state;
+          int e = (int) id(oas_night_end).state;
+          bool night;
+          if (s == e) {
+            night = false;                          // window disabled
+          } else if (s < e) {
+            night = (h >= s) && (h < e);            // same-day window
+          } else {
+            night = (h >= s) || (h < e);            // wraps midnight
+          }
+
+          float max_pct = id(oas_ring_brightness_max).state / 100.0f;
+          float br = night ? (max_pct * 0.05f) : max_pct;
+
+          auto call = id(oas_ring).turn_on();
+          call.set_brightness(br);
+          call.set_transition_length(2000);         // 2 s smooth fade
+          call.perform();
