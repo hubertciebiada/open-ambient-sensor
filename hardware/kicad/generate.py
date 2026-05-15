@@ -869,7 +869,7 @@ GEN_VERSION = "10.0"
 # v0.38: added per audit-26 good-practice recommendation. Update OAS_VERSION
 # on each release tag.
 OAS_NAME_SHORT = "Open Ambient Sensor"
-OAS_VERSION_LINE = "OAS  v0.38"
+OAS_VERSION_LINE = "OAS  v0.40"
 OAS_REPO_URL = "github.com/HubertCiebiada/open-ambient-sensor"
 
 def fmt(x: float) -> str:
