@@ -3676,7 +3676,7 @@
 			(hide yes)
 		)
 	)
-		(property "Manufacturer" "Changjiang Electronics Tech (CJ)"
+		(property "Manufacturer" "Nanjing Semtech Electronics"
 			(at 0 0 0)
 			(effects
 				(font
@@ -3685,7 +3685,7 @@
 				(hide yes)
 			)
 		)
-		(property "MPN" "CJ BZT52C10S"
+		(property "MPN" "BZT52C10S"
 			(at 0 0 0)
 			(effects
 				(font
@@ -3694,7 +3694,7 @@
 				(hide yes)
 			)
 		)
-		(property "LCSC" "C8492"
+		(property "LCSC" "C19334"
 			(at 0 0 0)
 			(effects
 				(font
@@ -4234,7 +4234,7 @@
 			(hide yes)
 		)
 	)
-		(property "Manufacturer" "Walsin Tech Corp"
+		(property "Manufacturer" "Murata Electronics"
 			(at 0 0 0)
 			(effects
 				(font
@@ -4243,7 +4243,7 @@
 				(hide yes)
 			)
 		)
-		(property "MPN" "0805B103K251CT"
+		(property "MPN" "GRM21BR72A103KA01L"
 			(at 0 0 0)
 			(effects
 				(font
@@ -4252,7 +4252,7 @@
 				(hide yes)
 			)
 		)
-		(property "LCSC" "C303895"
+		(property "LCSC" "C97925"
 			(at 0 0 0)
 			(effects
 				(font
@@ -7491,7 +7491,7 @@
 				(hide yes)
 			)
 		)
-		(property "LCSC" "C23116"
+		(property "LCSC" "C23022"
 			(at 0 0 0)
 			(effects
 				(font

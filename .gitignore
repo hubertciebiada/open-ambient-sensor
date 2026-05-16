@@ -4,7 +4,6 @@ Thumbs.db
 desktop.ini
 
 # secrets ########
-secrets.yaml
 **/secrets.yaml
 
 # third-party manufacturer files (kept locally, not redistributable) ########
@@ -19,7 +18,6 @@ hardware/case/manufacturer-*.pdf
 **/.cache/
 **/__pycache__/
 *.bak
-*-backups/
 
 # KiCad ########
 *-backups/
@@ -29,6 +27,9 @@ hardware/case/manufacturer-*.pdf
 fp-info-cache
 ~*.lck
 _autosave-*
+
+# KiCad MCP-tool backups (timestamped safety copies)
+hardware/kicad/.mcp-backups/
 
 # Local KiCad reports/exports (regenerable, not source-of-truth)
 hardware/kicad/drc.json
@@ -44,6 +45,7 @@ hardware/kicad/oas_drc_violations.json
 # Inside renders/: PNGs and SVGs are committed as visual changelog,
 # but DRC/ERC text reports (prefixed `_`) are not.
 hardware/kicad/renders/_*
+hardware/kicad/renders/*.log
 
 # Production gerber export (regenerable from generate.py via export_production.py;
 # never source-of-truth — a specific snapshot may be committed manually when
@@ -76,12 +78,21 @@ firmware/esphome/.esphome/
 *~
 
 # Playwright MCP / DFM live-upload temp artifacts ########
-.playwright-mcp/
+# anchored + global pair (bare `.playwright-mcp/` proved ineffective)
+/.playwright-mcp/
+**/.playwright-mcp/
 *.kicad_pcb.tmp
 *.kicad_pro.tmp
 
 # Screenshots, scratch ########
 Zrzut*.png
-screenshot*.png
+# widened from screenshot*.png — catches suffix patterns (botland-...-screenshot.png etc.)
+*screenshot*.png
+# session scratch renders + previews
+led-preview*.png
+*-preview*.png
 *.scratch
+
+# Cleanup audit reports (internal working docs, not project documentation)
+_cleanup-reports/
 

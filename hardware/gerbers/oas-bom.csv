@@ -6,9 +6,9 @@ Comment,Designator,Footprint,Manufacturer,MPN,LCSC Part #,JLCPCB_Library,Qty
 100k 1%,"R1,R2",R_0603_1608Metric,UNI-ROYAL (Uniroyal Elec),0603WAF1003T5E,C25803,Basic,2
 100uF 50V,"C1,C3",CP_Radial_D8.0mm_P3.50mm,,,,THT (hand-solder),2
 10k 1%,R7,R_0603_1608Metric,UNI-ROYAL (Uniroyal Elec),0603WAF1002T5E,C25804,Basic,1
-10nF Y2,C2,C_0805_2012Metric,Walsin Tech Corp,0805B103K251CT,C303895,Extended,1
+10nF Y2,C2,C_0805_2012Metric,Murata Electronics,GRM21BR72A103KA01L,C97925,Extended,1
 10uF 16V,"C5,C9",C_0805_2012Metric,Samsung Electro-Mechanics,CL21A106KAYNNNE,C15850,Basic,2
-10V Zener 200mW,D3,D_SOD-323,Changjiang Electronics Tech (CJ),CJ BZT52C10S,C8492,Basic,1
+10V Zener 200mW,D3,D_SOD-323,Nanjing Semtech Electronics,BZT52C10S,C19334,Extended,1
 1x15 P2.54 mm female socket (ESP32 J1 antenna-side row),J5,PinSocket_1x15_P2.54mm_Vertical,,,,THT (hand-solder),1
 1x15 P2.54 mm female socket (ESP32 J3 USB-side row),J6,PinSocket_1x15_P2.54mm_Vertical,,,,THT (hand-solder),1
 "1x5 P1.27mm through-hole header (HLK-LD2410B daughterboard, soldered)",J4,PinHeader_1x05_P1.27mm_Vertical,,,,THT (hand-solder),1
@@ -17,7 +17,7 @@ Comment,Designator,Footprint,Manufacturer,MPN,LCSC Part #,JLCPCB_Library,Qty
 2.2uH 2A,L2,L_APV_ANR5040,CENKER,CKCS5040-2.2uH/M,C354602,Extended,1
 220uF 10V,C4,CP_Radial_D6.3mm_P2.50mm,,,,THT (hand-solder),1
 22uF 10V,C6,C_0805_2012Metric,Samsung Electro-Mechanics,CL21A226MAQNNNE,C45783,Basic,1
-30.9k 1%,R3,R_0603_1608Metric,UNI-ROYAL (Uniroyal Elec),0603WAF3092T5E,C23116,Extended,1
+30.9k 1%,R3,R_0603_1608Metric,UNI-ROYAL (Uniroyal Elec),0603WAF3092T5E,C23022,Extended,1
 33uH 2A,L1,L_APV_ANR5040,CENKER,CKCS5040-33uH/M,C354612,Extended,1
 4.7k 1%,"R5,R6",R_0603_1608Metric,UNI-ROYAL (Uniroyal Elec),0603WAF4701T5E,C23162,Basic,2
 AO3401A,Q1,SOT-23,Alpha & Omega Semiconductor,AO3401A,C15127,Extended,1
