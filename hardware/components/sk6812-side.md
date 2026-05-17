@@ -1,7 +1,8 @@
 # SK6812 SIDE-A — addressable side-emit RGB LED
 
-Status-LED ring element for OAS. Twelve of these arranged on a Ø22 mm pitch
-circle around the central cable hole form the AQI status indicator (see
+Status-LED ring element for OAS. Eleven of these arranged on a Ø22 mm pitch
+circle around the central cable hole form the AQI status indicator (D14
+position vacated v0.18 for the J1 24V terminal block — v0.16 had 12). See
 `_research-led-diffuse-ring.md` for the design decision). Side-emitting LEDs
 eliminate the "dot through perforation" problem that plagues top-emit LEDs
 mounted under the AK-N-94 white perforated cover.
