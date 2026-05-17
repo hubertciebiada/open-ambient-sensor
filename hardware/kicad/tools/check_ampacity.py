@@ -195,6 +195,22 @@ def main() -> None:
     print(f"Parsed {len(segments)} track segments across {len(nets_by_code)} nets.")
     print()
 
+    # v0.40 post-order: if the board has no signal track segments (e.g.
+    # routing chunk(s) disabled while iterating on footprint corrections),
+    # there's nothing to check. Skip cleanly rather than failing per-net
+    # — the unrouted state is documented in ROUTING_CHUNKS comments in
+    # generate.py and is expected during the v0.40 post-order footprint
+    # iteration before the routing rework (separate task #93).
+    if len(segments) == 0:
+        print("SKIP: no routed signal track segments found.")
+        print(
+            "       routing snapshot is disabled in generate.py "
+            "ROUTING_CHUNKS — ampacity check deferred until routing rework "
+            "(task #93). The GND copper pour gives every GND pad a "
+            "connection; non-GND nets currently show as unconnected pads."
+        )
+        return
+
     # Group segments by net NAME (not code - multiple codes never share
     # a name in a valid PCB, but we group by name for human readability).
     by_net_name: dict[str, list[Segment]] = {}

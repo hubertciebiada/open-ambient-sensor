@@ -284,8 +284,18 @@ def simulate_dc(vin: float, design: dict[str, float]) -> dict[str, float]:
     # Computed stress quantities (for safety-margin checks).
     v["Q1_Vgs"] = vgs
     v["Q1_Vds"] = v_source - v["V_24V_PROT"] if q1_on else v_source - 0.0
+    # v0.40 post-order MATH FIX: D3 Zener dissipation. With Q1's gate at
+    # DC high-impedance (Igss <= 100 nA), the gate-bias loop is
+    # V_source -> D3 -> R1 (100 kohm gate pulldown) -> GND. R4 (1 kohm
+    # gate series) carries NO steady-state current because R4 sits
+    # between the R1/D3 junction and Q1.gate, and gate current is zero.
+    # The pre-v0.40 expression used `design["R4"]` (1k) here which gave
+    # 140 mW — 100x overstated. Correct expression uses design["R1"]
+    # (100k) for I_z = (V_source - Vz) / R1 = 0.14 mA, so P_D3 = 1.4 mW
+    # steady state. (R4 is documented in lcsc-mapping.csv row 11 + power
+    # schematic; verified against power.kicad_sch R1 placement.)
     v["D3_P_diss"] = (
-        ((v_source - design["D3_Vz"]) / design["R4"]) * design["D3_Vz"]
+        ((v_source - design["D3_Vz"]) / design["R1"]) * design["D3_Vz"]
         if vgs <= -design["D3_Vz"] else 0.0
     )
 

@@ -5194,7 +5194,7 @@
 			(justify left)
 		)
 	)
-	(property "Footprint" "Inductor_SMD:L_APV_ANR5040"
+	(property "Footprint" "Inductor_SMD:L_Cenker_CKCS5040"
 		(at 193.04 60.96 0)
 		(effects
 			(font
@@ -6670,7 +6670,7 @@
 			(justify left)
 		)
 	)
-	(property "Footprint" "Inductor_SMD:L_APV_ANR5040"
+	(property "Footprint" "Inductor_SMD:L_Cenker_CKCS5040"
 		(at 195.58 130.81 0)
 		(effects
 			(font

@@ -178,15 +178,18 @@ Also update the LD2410-side body short-axis dimension `LD2410_BODY_H` from 15.24
 
 ---
 
-## Discrepancies vs current generate.py / CLAUDE.md
+## Discrepancies vs current generate.py / CLAUDE.md — **RESOLVED in v0.15.8 + v0.40 post-order**
 
-| # | Item | Current OAS value | Datasheet value | Severity | Action |
-|---|---|---|---|---|---|
-| 1 | **J4 pin order** | Pin 1=VCC, 2=GND, 3=TX, 4=RX, 5=OUT | Pin 1=**OUT**, 2=**Tx**, 3=**Rx**, 4=**GND**, 5=**VCC** | **CRITICAL — UART direction is swapped and OUT signal is at the wrong end** | Swap the `J4_PIN_Y` mapping in `gen_sensors_sch()` (lines 11849-11855) end-for-end. Re-verify schematic + PCB renders. |
-| 2 | **`LD2410_BODY_H` (short axis on PCB)** | 15.24 mm | **7 mm** (datasheet §4.1) | Medium — over-allocates PCB shadow area; may also affect F.SilkScreen body outline and zip-tie/clearance calculations near the LD2410 | Reduce `LD2410_BODY_H` to ~7.62 mm (1.27 mm grid-aligned multiple slightly above the 7 mm datasheet value, for silkscreen breathing room) **after** confirming with the physical sample dimensions on arrival. Keep `LD2410_BODY_W` at 35.56 mm (matches 35 mm datasheet + 0.56 mm margin). |
-| 3 | **`LD2410_BODY_Z` (height above OAS PCB)** | 7.0 mm | ~5–7 mm (community-measured, datasheet does not state) | Low — current value is the conservative upper bound | Keep at 7.0 mm. Mark as TBD-pending-physical-measurement in `generate.py` comment. |
-| 4 | Module identification in CLAUDE.md hardware table | "HiLink LD2410B/C" (ambiguous) | The B and C variants have **different pin orders and dimensions** | Low — but violates the Module Identification rule (no generic name) | Pin CLAUDE.md to **HLK-LD2410B** specifically. The C variant is **not** a drop-in substitute (different pin order). |
-| 5 | EAN/GTIN | Not listed | Not assigned for HLK-LD2410B at Botland (May 2026) | Low — MPN + FCC ID + LCSC C5183132 satisfy Module Identification | Document that the OAS uses MPN + FCC ID for identification rather than EAN. |
+All of the discrepancies originally listed in this section have been
+addressed in the indicated commits. Status snapshot:
+
+| # | Item | Status | Resolution |
+|---|---|---|---|
+| 1 | **J4 pin order** | RESOLVED v0.15.8 | `J4_PIN_Y` mapping in `gen_sensors_sch()` swapped end-for-end to match the HLK-LD2410B datasheet V1.04 Table 1 verbatim (Pin 1=OUT, 2=Tx, 3=Rx, 4=GND, 5=VCC). PCB pad positions unchanged; only net assignments. |
+| 2 | **`LD2410_BODY_H` (short axis on PCB)** | RESOLVED v0.15.8 | Corrected from 15.24 mm to 7.62 mm to match the LD2410B datasheet 7 mm short axis. `LD2410_ANCHOR_X` shifted +3.81 mm to recentre the new (smaller) body shadow on the J4 pin row. |
+| 3 | **`LD2410_BODY_Z` (height above OAS PCB)** | OPEN (low severity) | Kept at 7.0 mm pending physical-sample measurement. |
+| 4 | **Module identification in CLAUDE.md** | RESOLVED v0.40 post-order | CLAUDE.md hardware table pinned to "HiLink HLK-LD2410B (the -B variant specifically — NOT -C; pin order and body dimensions differ per HLK datasheet)". |
+| 5 | **EAN/GTIN** | OPEN (low severity, no action required) | LCSC C5183132 + FCC ID 2AD56HLK-LD2410B-P satisfy the Module Identification rule without needing an EAN. |
 
 ---
 

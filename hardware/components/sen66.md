@@ -151,8 +151,15 @@ horizontally outward through the AK-N-94 perforated cover) — Sensirion-approve
 | Cable length    | < 10 cm strongly recommended (datasheet §3.1, mech FAQ Q1: max 0.5 m with shielding) |
 | Logic           | TTL 5 V compatible per pin description, but ABS max on I/O pins is 5.5 V |
 
-OAS bus length is < 40 mm thanks to PCB-mount SEN66 placement (well inside the < 10 cm
-recommendation).
+OAS bus length on the v0.22+ PCB is ~220 mm total (~140 mm PCB
+minimum-spanning-tree across the 4 tap points + ~80 mm JST GH cable
+off-PCB to the SEN66 module itself). This exceeds Sensirion's "< 100 mm
+strongly recommended" envelope but stays well inside their "< 500 mm
+with shielding" hard limit. **The v0.6 "<40 mm" aspirational target
+was never met by the realized geometry** — see CLAUDE.md "Shared I²C
+bus" (v0.22 section) for the honest measurement + the I²C pull-up
+4.7 kΩ choice that brings the rise time back within spec at the
+realized bus length.
 
 ### ESD / EMC (datasheet §2.3)
 

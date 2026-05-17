@@ -157,17 +157,17 @@ is plugged in).
   estimated in CLAUDE.md v0.4/v0.5). **The desolder rework will save only
   ~5 mW** — likely below the threshold for any measurable SEN66 temperature
   bias. Re-evaluate whether the rework is worth doing.
-- **D6 — WS2812B addressable RGB LED**. DIN connects to **GPIO 8** (also strap
-  pin). VDD = VCC_5V (J2 or J4 USB VBUS). **Implication for OAS**: with the
-  external USB cable removed, VCC_5V is unpowered → the onboard WS2812 will
-  NOT light up. **This contradicts CLAUDE.md's plan to use D6 as the OAS status
-  LED via GPIO 8.** Either (a) tie VCC_5V to a 5 V rail on the OAS board (we
-  don't have one; OAS has only 3.3 V to the MCU), (b) jumper VCC_5V to VCC_3V3
-  on the DevKitM-1 (WS2812B nominally needs ≥3.7 V, so this is marginal; some
-  units work at 3.3 V, others do not — not deterministic), or (c) place an
-  external WS2812B on the OAS PCB driven by GPIO 8 from J1.9 (deterministic).
-  **This is a blocking issue for the v0.4 plan of "onboard NeoPixel as the OAS
-  status LED."** See "Discrepancies" below.
+- **D6 — WS2812B addressable RGB LED** (RESOLVED v0.16 — option c). DIN
+  connects to **GPIO 8** (also strap pin). VDD = VCC_5V (J2 or J4 USB VBUS).
+  In a deployed OAS unit (no USB cable plugged in), VCC_5V is unpowered →
+  the onboard WS2812 is dark. The v0.4 plan to use D6 as the OAS status LED
+  was therefore unworkable. v0.16 resolved this by adopting **option (c)**:
+  the OAS PCB carries an external SK6812-SIDE LED ring (11 LEDs around the
+  central cable hole, driven from GPIO 8 from the LM2596S-derived +5V rail).
+  The onboard NeoPixel sits on the same GPIO 8 daisy chain but is unreachable
+  in deployed units; firmware treats the chain as the 11-LED ring and ignores
+  the onboard pixel. See CLAUDE.md v0.16 changelog + `_research-led-diffuse-ring.md`
+  for the full rationale.
 - **SW1 — RESET button** (active low, ties CHIP_PU to GND).
 - **SW2 — BOOT button** (active low, ties GPIO 9 to GND for download mode).
 - **J4 — "USB Type-C to UART" port** (left/upper USB-C on board, depending on

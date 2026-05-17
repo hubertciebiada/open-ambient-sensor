@@ -146,27 +146,31 @@ with `chipset: SK6812` selection.
 
 ## OAS application
 
-- **Count**: 12 LEDs on a Ø22 mm pitch circle around the central cable hole.
+- **Count**: 11 LEDs on a Ø22 mm pitch circle around the central cable hole.
+  v0.18 dropped D14 (θ = 90°) from the original 12-LED layout to free the
+  J1 terminal block cable corridor between the central cable hole and the
+  chord-edge connector strip. D11..D13, D15..D22 are populated.
 - **Orientation**: emission face radially outward; long axis (pads) tangential
   to the ring. Each LED's KiCad rotation angle = `(270 - θ) mod 360`, where
   `θ` is the position-angle in PCB-local frame (0° = +X, increasing clockwise
   with KiCad's +Y-down screen convention).
 - **Supply rail**: +5 V (LM2596S-5.0 output, shared with LD2410). Peak draw
-  at 12 LEDs × ~50 mA = 600 mA full-white (worst case); average AQI breathing
-  animation ~80 mA. LM2596S-5.0 rated 3 A — comfortable margin.
+  at 11 LEDs × ~50 mA = 550 mA full-white (worst case); average AQI breathing
+  animation ~75 mA. LM2596S-5.0 rated 3 A — comfortable margin.
 - **Decoupling**: one 100 nF 0402 X7R per LED, placed adjacent to the VDD
-  pad. Twelve caps total (C20 – C31 in the schematic).
+  pad. Eleven caps total (C20..C22, C24..C31 in the schematic; C23 vacated
+  alongside D14 in v0.18).
 - **Daisy chain**: DIN of D11 driven from ESP32-C6 GPIO 8 (the same pin
   that drove the now-unusable onboard NeoPixel — see CLAUDE.md "OPEN ISSUE
-  #2" resolution in the v0.16 changelog). DOUT of D11 → DIN of D12 → ... →
-  DOUT of D22 (terminated unconnected).
+  #2" resolution in the v0.16 changelog). DOUT of D11 → DIN of D12 →
+  D13 → D15 → ... → DOUT of D22 (terminated unconnected; D14 skipped).
 - **ESPHome config** (preliminary):
   ```yaml
   light:
     - platform: esp32_rmt_led_strip
       name: "OAS AQI ring"
       pin: GPIO8
-      num_leds: 12
+      num_leds: 11
       chipset: SK6812
       rgb_order: GRB    # default for SK6812 RGB; verify against actual batch
       effects:

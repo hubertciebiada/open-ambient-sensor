@@ -14,11 +14,11 @@ Comment,Designator,Footprint,Manufacturer,MPN,LCSC Part #,JLCPCB_Library,Qty
 "1x5 P1.27mm through-hole header (HLK-LD2410B daughterboard, soldered)",J4,PinHeader_1x05_P1.27mm_Vertical,,,,THT (hand-solder),1
 1x8 P2.54 mm female socket (MIKROE-2462 mikroBUS pins 1..8 — AN/RST/CS/SCK/MISO/MOSI/+3V3/GND),J7,PinSocket_1x08_P2.54mm_Vertical,,,,THT (hand-solder),1
 1x8 P2.54 mm female socket (MIKROE-2462 mikroBUS pins 9..16 — PWM/INT/RX/TX/SCL/SDA/+5V/GND),J8,PinSocket_1x08_P2.54mm_Vertical,,,,THT (hand-solder),1
-2.2uH 2A,L2,L_APV_ANR5040,CENKER,CKCS5040-2.2uH/M,C354602,Extended,1
+2.2uH 2A,L2,L_Cenker_CKCS5040,CENKER,CKCS5040-2.2uH/M,C354602,Extended,1
 220uF 10V,C4,CP_Radial_D6.3mm_P2.50mm,,,,THT (hand-solder),1
 22uF 10V,C6,C_0805_2012Metric,Samsung Electro-Mechanics,CL21A226MAQNNNE,C45783,Basic,1
 30.9k 1%,R3,R_0603_1608Metric,UNI-ROYAL (Uniroyal Elec),0603WAF3092T5E,C23022,Extended,1
-33uH 2A,L1,L_APV_ANR5040,CENKER,CKCS5040-33uH/M,C354612,Extended,1
+33uH 2A,L1,L_Cenker_CKCS5040,CENKER,CKCS5040-33uH/M,C354612,Extended,1
 4.7k 1%,"R5,R6",R_0603_1608Metric,UNI-ROYAL (Uniroyal Elec),0603WAF4701T5E,C23162,Basic,2
 AO3401A,Q1,SOT-23,Alpha & Omega Semiconductor,AO3401A,C15127,Extended,1
 JST SH SM04B-SRSS-TB (Qwiic / Stemma QT),J9,JST_SH_SM04B-SRSS-TB_1x04-1MP_P1.00mm_Horizontal,JST Sales America,SM04B-SRSS-TB(LF)(SN),C160404,Extended,1
