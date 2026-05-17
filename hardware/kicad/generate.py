@@ -486,10 +486,17 @@ MIKROE2462_PIN_START_OFFSET = 2.54  # pin 1 at 2.54 mm from pin-1 short edge
 # The 5.74 mm antenna spiral strip at the bottom of the MIKROE body
 # is now at PCB Y=+9.83..+15.57 — well clear of the cable hole zone
 # and aimed outward toward the AK-N-94 perforated cover.
-MIKROE2462_ANCHOR_X = -12.76       # v0.15.7: rotated 180° around body
+MIKROE2462_ANCHOR_X = -14.76       # v0.15.7: rotated 180° around body
                                     # center. Anchor now at body BOTTOM-RIGHT
                                     # corner in PCB (was top-left in v0.15.6).
-                                    # Body PCB range unchanged: X=-38.16..-12.76.
+                                    # Pre-routing rework: shifted west -2 mm
+                                    # so MOD2 east silk edge (X=-14.76) clears
+                                    # the new LED-ring outer edge at R=14
+                                    # (D17 outer body edge at PCB X=-14) by
+                                    # 0.76 mm. New body PCB range:
+                                    # X=-40.16..-14.76. C11 at (-42, +14)
+                                    # west silk edge at -42.8 → 2.64 mm clear
+                                    # of new MOD2 west silk at -40.16.
 MIKROE2462_ANCHOR_Y = +40.64       # v0.15.7: bottom edge of body in PCB
                                     # (was top edge -16.51 in v0.15.6).
                                     # Body PCB range unchanged: Y=-16.51..+40.64.
@@ -607,7 +614,14 @@ J1_PCB_X = +5.08             # PCB X of pin 1. With rotation 180°, pin 2
                               # left-to-right order PE, GND, +24V when
                               # looking at the south face (cable insert
                               # side).
-J1_PCB_Y = +22.4             # PCB Y of pin row (footprint-local Y = 0).
+J1_PCB_Y = +27.4             # PCB Y of pin row (footprint-local Y = 0).
+                              # Pre-routing rework: nudged +5 mm south
+                              # (from +22.4) to open routing space north
+                              # of J1 for F1. With rot 180, courtyard
+                              # extends NORTH from the pin row; the body
+                              # bulk (terminal screws) recedes from the
+                              # cable hole. J10 chord cutout C3 may
+                              # intersect — accept temporarily.
                               # See clearance budget above for derivation.
                               # At pin_y = +22.4 with rot 180:
                               #   J1 courtyard Y = (+11.90, +24.90)
@@ -715,19 +729,20 @@ J9_PCB_ROTATION = 180        # mouth → +Y (chord side, case-wall opening)
 # Re-anchor: pad 1 at anchor_y = +42.0, pad 6 at anchor_y - 12.7 = +29.3.
 # Pad 6 inside cutout? +29.3 > +28.998 → YES, all pads inside cutout.
 # Pad 1 outer edge at +42.85 → 0.65 mm clear of chord. OK.
-J10_PCB_X = +9.4             # PCB X — centred on C3 (midpoint +9.4)
-J10_PCB_Y = +41.0            # PCB Y of pad 1 (rect-marker pad, chord side).
-                              # Initially set to +42.0 — but the stock
-                              # PinHeader's F.SilkS pin-1 corner marker
-                              # extends 1.38 mm further south (PCB +Y)
-                              # of pad 1, putting silk at PCB Y=+43.38
-                              # → only 0.12 mm clear of the chord at
-                              # +43.5237 (DRC silk_edge_clearance rule
-                              # requires 0.15 mm). Shifted north 1 mm
-                              # so pin-1 silk lands at PCB Y=+42.38
-                              # (1.14 mm clear of chord).
-J10_PCB_ROTATION = 180       # LIB +Y → PCB -Y. Pad 1 at chord, pad 6
-                              # north (into PCB interior).
+J10_PCB_X = -10.0            # PCB X of pad 1. Pre-routing rework:
+                              # moved out of the C3 chord cutout and laid
+                              # horizontal east of MOD2 (NFC click) body
+                              # shadow which extends to X=-12.76. With
+                              # rot 90 (LIB +Y → PCB +X), pads run east
+                              # from anchor: pad 1 at (-10, +35), pad 6
+                              # at (+2.7, +35). 2.76 mm clear of MOD2
+                              # east edge; 5.10 mm clear of new J1
+                              # south courtyard (+29.9). C3 chord cutout
+                              # temporarily unused (per "olać wycięcie"
+                              # directive — accept loss of external
+                              # case-side accessibility until reroute).
+J10_PCB_Y = +35.0            # PCB Y of pad row (pads horizontal at Y=+35).
+J10_PCB_ROTATION = 90        # LIB +Y → PCB +X (horizontal pad row east).
 
 # -----------------------------------------------------------------------------
 # AQI status LED ring (v0.16) — 12 × SK6812-SIDE side-emit addressable RGB
@@ -757,16 +772,16 @@ J10_PCB_ROTATION = 180       # LIB +Y → PCB -Y. Pad 1 at chord, pad 6
 #   - One 100 nF 0402 decoupling cap (C20…C31) per LED, placed adjacent
 #     to the LED's VDD pad on the PCB-interior side of the ring.
 #
-# LED_RING_RADIUS = 11.0 mm puts LED centres on a Ø22 mm pitch circle.
-# Inner-most LED body edge at R = 11 - 1 = 10 mm (body half-width 1 mm
-# radially); 4 mm radial clearance to the Ø12 mm cable hole edge at R=6.
-# Outer-most LED body edge at R = 12 mm. Outer edge nearest pre-existing
-# component is the MIKROE-2462 silk rect at PCB X = -12.26 mm at angle
-# 180° (LED D17 body at X ≤ -12 mm) — 0.26 mm of silk-to-silk separation
-# on paper, but we *suppress* the LED body's F.SilkS rectangle so the
-# DRC silk_overlap rule (0.15 mm) is not stressed. F.Fab still carries
-# the body outline for assembly documentation.
-LED_RING_RADIUS = 11.0
+# LED_RING_RADIUS = 13.0 mm (pre-routing rework: bumped from 11.0 → 13.0
+# to free up the cable-hole / centre routing channel). LED centres now on
+# a Ø26 mm pitch circle. Inner-most LED body edge at R = 12 mm (body
+# half-width 1 mm radially); 6 mm radial clearance to the Ø12 mm cable
+# hole edge at R=6. Outer-most LED body edge at R = 14 mm. Note the
+# MIKROE-2462 silk rect previously at PCB X = -12.26 mm (180°) is now
+# touched by D17's outer edge (X = -14) — F.SilkS suppression on the LED
+# body keeps DRC silk_overlap green; if NFC click footprint complains,
+# MOD2 anchor must also shift radially outward in a follow-up step.
+LED_RING_RADIUS = 13.0
 LED_RING_COUNT = 12
 LED_RING_THETA_START_DEG = 0.0       # first LED (D11) sits on PCB +X axis
 LED_RING_THETA_STEP_DEG = 360.0 / LED_RING_COUNT   # = 30°
@@ -4726,15 +4741,14 @@ def gen_power_pcb_footprints() -> str:
         uuid_tag="d3-zener",
         descr="10 V Zener clamp on Q1 gate-source to keep |Vgs| ≤ 10 V (v0.37 — was 18V pre-fix; AO3401A Vgs_max=±12V).",
     ))
-    # F1 — polyfuse. Doesn't fit in any of the small strips (south-of-cable
-    # is 5.9 mm tall but F1 needs 8 mm in width at rotation 0; west-of-J3
-    # strip is too narrow at rotation 0 and rotation 90 would collide with
-    # J9 Qwiic). Placed in the open zone EAST of SEN66 body (X > +49.35
-    # SEN66 crty east edge) and EAST of ZT2 (X > +53.60). F1 at (+54, +9)
-    # gives bbox X∈[+50.05, +57.95], Y∈[+6.20, +11.80] — clears SEN66 east
-    # by 0.70 mm, PCB outline by 0.88 mm at the Y=+11.80 south corner.
+    # F1 — polyfuse. Pre-routing rework: relocated to (+15, +25) close to
+    # J1's east pin (J1 pin 1 +24V at PCB X=+5.08, Y=+27.4 after the +5 mm
+    # J1 shift). Gives short upstream path J1 → F1 → C3 / U1. F1 bbox at
+    # (+15, +25) rotation 0: X∈[+11.05, +18.95], Y∈[+22.20, +27.80] —
+    # clears new J1 courtyard east edge (+9.12) by 1.93 mm and SEN66 west
+    # courtyard (+23.50) by 4.55 mm.
     parts.append(gen_polyfuse_smd_pcb_footprint(
-        x=+54, y=+9, rotation=0,
+        x=+15, y=+25, rotation=0,
         reference="F1", value="MF-RHT075/60-2",
         uuid_tag="f1-ptc",
         descr="PTC polyfuse 750 mA hold / 1.5 A trip / 60 V (Bourns MF-RHT075/60-2).",
@@ -4817,19 +4831,19 @@ def gen_power_pcb_footprints() -> str:
     # C3 (U1.VIN input bulk) — sits directly south of U1 in the same
     # west column to keep U1.VIN trace length minimal.
     parts.append(gen_capacitor_polarized_radial_pcb_footprint(
-        x=-34, y=-24, rotation=0,
+        x=-34, y=-22, rotation=0,
         reference="C3", value="100uF/50V",
         uuid_tag="c3-u1-vin-bulk",
         diameter_mm=8.0, pitch_mm=3.5,
-        descr="100 µF / 50 V radial electrolytic input bulk for U1 buck. v0.26: relocated from (-20, -41) inside ESP32 shadow to (-34, -24); 1.0 mm gap to ESP32 west edge, sits just south of U1.",
+        descr="100 µF / 50 V radial electrolytic input bulk for U1 buck. Pre-routing rework: nudged south +2 mm to (-34, -22) to open routing channel above U1.",
     ))
 
     # ---- v0.26: U1 in west-of-ESP32 strip ----
     parts.append(gen_to263_5_pcb_footprint(
-        x=-34, y=-34, rotation=0,
+        x=-36, y=-34, rotation=0,
         reference="U1", value="LM2596S-5.0",
         uuid_tag="u1-lm2596",
-        descr="LM2596S-5.0 5 V 3 A asynchronous step-down buck (TI), TO-263-5. v0.26: relocated from (-9, -37) inside ESP32 shadow to (-34, -34) west of ESP32. 4.6 mm package height was only +0.9 mm margin under daughterboard — too tight. New location: 0.94 mm gap to ESP32 west edge, 3.17 mm gap to LD2410 east edge, 1.45 mm gap to C3 south.",
+        descr="LM2596S-5.0 5 V 3 A asynchronous step-down buck (TI), TO-263-5. Pre-routing rework: shifted west to (-36, -34) for 2.94 mm gap to ESP32 west edge and 1.17 mm gap to LD2410 east edge.",
     ))
     # D2, L1 stay inside ESP32 shadow (both <4 mm tall, comfortably within
     # the 5.5 mm budget). Switch-node trace from U1.OUT (pin 2 at PCB
@@ -5013,10 +5027,10 @@ def gen_power_pcb_footprints() -> str:
     # mounting hole H1 at (+47.631, +27.5) (distance 5.21 mm, gap 1.36
     # mm after H1 2.85 + C10 1.0 keep-clear).
     parts.append(gen_capacitor_0603_pcb_footprint(
-        x=+46, y=+32, rotation=0,
+        x=+30, y=-47, rotation=0,
         reference="C10", value="100nF",
         uuid_tag="c10-sen66-decoupling",
-        descr="100 nF local decoupling for SEN66 (J3 +3V3 pin 1/6). v0.26: shifted east from (+42, +33) to (+46, +32) to clear C1 relocated to (+40, +36).",
+        descr="100 nF local decoupling for SEN66 (J3 +3V3 pin 1/6). Pre-routing rework: relocated to (+30, -47), east of C4 (+25, -47) in the upper-right corner cluster.",
     ))
     # LD2410 J4 pads at PCB X=-44.74, Y=+19.05 (1×5 P1.27 row going south
     # from anchor). Place C11 NORTH of the pad row (toward LD2410 body).
@@ -5350,8 +5364,13 @@ def gen_silk_labels() -> str:
     # The full repo URL (~45 chars, too wide at silk-min size 1.0)
     # goes on F.Fab — visible in 2d-top.png assembly renders for
     # documentation, not printed on the physical PCB.
-    parts.append(_silk(OAS_NAME_SHORT,   -4.0, +30.0, "board-id-name",    size=1.0))
-    parts.append(_silk(OAS_VERSION_LINE, -4.0, +33.0, "board-id-version", size=1.0))
+    # Pre-routing rework: board-id silk lines moved from F.SilkS to F.Fab
+    # because the new J1 / F1 / J10 placements occupy the central south
+    # strip the labels used to live in. Still visible in 2D renders.
+    parts.append(_silk(OAS_NAME_SHORT,   -4.0, +30.0, "board-id-name",
+                       size=1.0, layer="F.Fab"))
+    parts.append(_silk(OAS_VERSION_LINE, -4.0, +33.0, "board-id-version",
+                       size=1.0, layer="F.Fab"))
     parts.append(_silk(OAS_REPO_URL,     -4.0, +36.0, "board-id-url",
                        size=0.9, layer="F.Fab"))
     # v0.9 dropped a J3-side "to SEN66" reciprocal arrow because J3 sits
@@ -5476,7 +5495,8 @@ def gen_silk_labels() -> str:
     # placement chosen in v0.17 doesn't work here because MIKROE-2462's
     # body silk extends to PCB X = -12.26 at this Y range; the east
     # side is the cleaner option for v0.18's south flip.
-    parts.append(_silk("J1 (24V)", +15.0, J1_PCB_Y, "j1-body-id", size=1.0))
+    parts.append(_silk("J1 (24V)", +15.0, J1_PCB_Y, "j1-body-id",
+                       size=1.0, layer="F.Fab"))
     # Per-pin function labels on F.Fab. Pin-row Y − 0.8 mm (north of
     # pin row) → inside the body's north face (toward cable entry),
     # near each pin clamp. F.Fab is silk-overlap-exempt so positioning
@@ -5515,20 +5535,17 @@ def gen_silk_labels() -> str:
     # The cutout "J9 Qwiic" label (emitted by the cutout loop above)
     # marks the connector identity from outside the case.
 
-    # J10 — 6-pin 2.54 mm pin header. With rotation 180°, pad 1 at
-    # (J10_PCB_X, J10_PCB_Y) = (+9.4, +42.0); pads stack NORTH at
+    # J10 — 6-pin 2.54 mm pin header. With rotation 270°, pad 1 at
+    # (J10_PCB_X, J10_PCB_Y) = (-21.35, +35) and pads run EAST at
     # 2.54 mm pitch. Per-pin function labels on F.Fab placed
-    # immediately to the EAST of each pad. F.Fab is silk-overlap-
+    # immediately NORTH of each pad. F.Fab is silk-overlap-
     # exempt so positioning right next to the pads is fine, and
     # F.Fab text isn't subject to the silk_min_text_height rule.
-    # Pin 1 (GND) sits at Y=+42.0 (near chord) — its label at the
-    # SAME row would clip the chord; position pin 1's label NORTH
-    # of the pad row instead so it stays inside the PCB.
     j10_pin_labels = ["GND", "+3V3", "USB-", "USB+", "EN", "BOOT"]
     for i, lbl in enumerate(j10_pin_labels):
-        py = J10_PCB_Y - i * 2.54
+        px = J10_PCB_X + i * 2.54
         parts.append(_silk(
-            lbl, J10_PCB_X + 3.0, py,
+            lbl, px, J10_PCB_Y - 2.5,
             f"j10-pin{i+1}-{lbl.lower().replace('+', 'p').replace('-', 'm')}",
             size=0.8, layer="F.Fab",
         ))
@@ -5569,13 +5586,16 @@ def gen_silk_labels() -> str:
     SILK_TEXT_MIN_HORIZONTAL_FIT = 5.0   # mm — width needed to keep label
                                           # at 1.0 mm horizontal inside the rect
     CUTOUT_LABELS = {
-        "C3": "J10 flash",
+        "C3": "C3 v2",
         "C4": "C4 v2",
         "C5": "J9 Qwiic",
     }
     # Cutouts that host a connector (with its own body silk) — skip the
     # cutout silk rect to avoid silk_overlap DRC violations. The text
     # label still emits, positioned just NORTH of the connector body.
+    # C3 lost its J10 occupant in pre-routing rework but J1 body has
+    # since slid south into the cutout zone; rect kept suppressed to
+    # avoid silk_overlap against J1's own silk.
     CUTOUTS_WITHOUT_RECT = {"C3", "C5"}
     for name, x1, x2, y1, y2, allow_pads in CUTOUTS:
         rx1, rx2 = x1 + SILK_EDGE_INSET, x2 - SILK_EDGE_INSET
@@ -5602,16 +5622,7 @@ def gen_silk_labels() -> str:
         # body shadow (i.e., into the PCB interior, away from the
         # case-wall edge) where it doesn't clash with connector silk.
         # For other cutouts, use the cutout centre.
-        if name == "C3":
-            # C3 hosts J10. With J10_PCB_Y=+41.0 (after the v0.19 pin-1
-            # silk-marker shift), the J10 silk frame north edge sits at
-            # PCB Y = +41.0 − 14.08 = +26.92. J1 body silk south edge
-            # at Y=+24.51. Available gap = 2.41 mm. Centre the 1.0 mm
-            # label at the mid-gap (Y=+25.7) so it clears both edges
-            # with ≥0.6 mm margin (well above the 0.15 mm
-            # silk_overlap DRC rule).
-            tx, ty = +9.4, +25.7
-        elif name == "C5":
+        if name == "C5":
             # C5 hosts J9 (body at PCB X=+27.75..+35.55, Y=+36.41..+42.47).
             # Place label NORTH of the J9 body at PCB Y=+34.5 (clear of
             # body's north silk at Y=+36.41).
@@ -5798,9 +5809,12 @@ def gen_silk_labels() -> str:
         # C11 west of LD2410 (LD2410 has F.CrtYd but no daughterboard
         # shadow per se — body label gr_text is at center; C11 at
         # X=-42 is INSIDE LD2410 X range -51..-43.47 but C11 sits south
-        # of LD2410 silk frame Y=-16.51-0.5=-17.01 to ~-15.91. C11
-        # at Y=+14 is well south. Safe to use F.SilkS.
-        ("C11", 0.0, -2.0, "F.SilkS"),
+        # of LD2410 silk frame Y=-16.51-0.5=-17.01 to ~-15.91.
+        # Pre-routing rework: MOD2 shifted west -2 mm to clear LED bump,
+        # bringing MOD2 west silk to X=-40.16. C11 designator label
+        # silk text at (-42, +12) now within ~0.6 mm of MOD2 silk →
+        # moved to F.Fab to avoid silk_overlap.
+        ("C11", 0.0, -2.0, "F.Fab"),
         # C12 INSIDE MIKROE shadow (X=-38.16..-12.76, Y=-16.51..+40.64,
         # C12 anchor (-25, +23) is inside) → F.Fab
         ("C12", 0.0, -2.0, "F.Fab"),

@@ -1504,7 +1504,7 @@
 (footprint "Connector_Phoenix_MSTB:PhoenixContact_MSTBA_2,5_3-G-5,08_1x03_P5.08mm_Horizontal"
 	(layer "F.Cu")
 	(uuid "c0bdbe20-14f3-5b36-9e1d-d0a94896a18f")
-	(at 153.58 127.4 180)
+	(at 153.58 132.4 180)
 (property "Reference" "J1"
 	(at 5.08 -3.2 180)
 	(layer "F.SilkS")
@@ -2124,16 +2124,16 @@
 (footprint "Connector_PinHeader_2.54mm:PinHeader_1x06_P2.54mm_Vertical"
 	(layer "F.Cu")
 	(uuid "2c580359-c7fc-5144-a7c0-4576b5886c31")
-	(at 157.9 146 180)
+	(at 138.5 140 90)
 (property "Reference" "J10"
-	(at 2.5 -1.5 180)
+	(at 2.5 -1.5 90)
 	(layer "F.SilkS")
 			(hide yes)
 	(uuid "7d211d43-9e5b-5d07-99b7-a157cab404d7")
 	(effects (font (size 1 1) (thickness 0.15)))
 )
 (property "Value" "Native-USB recovery (DNP)"
-	(at 2.5 15 180)
+	(at 2.5 15 90)
 	(layer "F.Fab")
 			(hide yes)
 	(uuid "d6b7699c-a874-5244-94a8-afcae9f51e6c")
@@ -2285,7 +2285,7 @@
 			)
 		)
 	(pad "1" thru_hole rect
-			(at 0 0 180)
+			(at 0 0 90)
 			(size 1.7 1.7)
 			(drill 1)
 			(layers "*.Cu" "*.Mask")
@@ -2293,7 +2293,7 @@
 			(net 16 "GND")
 		)
 	(pad "2" thru_hole circle
-			(at 0 2.54 180)
+			(at 0 2.54 90)
 			(size 1.7 1.7)
 			(drill 1)
 			(layers "*.Cu" "*.Mask")
@@ -2301,7 +2301,7 @@
 			(net 1 "+3V3")
 		)
 	(pad "3" thru_hole circle
-			(at 0 5.08 180)
+			(at 0 5.08 90)
 			(size 1.7 1.7)
 			(drill 1)
 			(layers "*.Cu" "*.Mask")
@@ -2309,7 +2309,7 @@
 			(net 8 "/IO/USB_DM")
 		)
 	(pad "4" thru_hole circle
-			(at 0 7.62 180)
+			(at 0 7.62 90)
 			(size 1.7 1.7)
 			(drill 1)
 			(layers "*.Cu" "*.Mask")
@@ -2317,7 +2317,7 @@
 			(net 9 "/IO/USB_DP")
 		)
 	(pad "5" thru_hole circle
-			(at 0 10.16 180)
+			(at 0 10.16 90)
 			(size 1.7 1.7)
 			(drill 1)
 			(layers "*.Cu" "*.Mask")
@@ -2325,7 +2325,7 @@
 			(net 5 "/IO/EN")
 		)
 	(pad "6" thru_hole circle
-			(at 0 12.7 180)
+			(at 0 12.7 90)
 			(size 1.7 1.7)
 			(drill 1)
 			(layers "*.Cu" "*.Mask")
@@ -2627,7 +2627,7 @@
 (footprint "oas:MIKROE-2462_Reference"
 	(layer "F.Cu")
 	(uuid "84effda4-407b-542a-89fc-91cd0bc99e5f")
-	(at 135.74 145.64 180)
+	(at 133.74 145.64 180)
 	(descr "MIKROE-2462 NFC Tag 2 Click (NT3H1101 + onboard PCB NFC antenna). 25.4×57.15×7 mm (mikroBUS size L); mounts on 2×1x8 P2.54 mm female pin sockets. Pin block offset 2.54 mm toward pin-1 short edge; NFC antenna spiral fills the ~36.83 mm strip past pin 8.")
 	(attr board_only exclude_from_pos_files exclude_from_bom)
 	(property "Reference" "MOD2"
@@ -3426,7 +3426,7 @@
 (footprint "Connector_PinSocket_2.54mm:PinSocket_1x08_P2.54mm_Vertical"
 	(layer "F.Cu")
 	(uuid "fb204548-ef88-5ff5-b11c-039eec21351c")
-	(at 134.47 143.1 180)
+	(at 132.47 143.1 180)
 (property "Reference" "J7"
 	(at 0 -1.9 180)
 	(layer "F.SilkS")
@@ -3680,7 +3680,7 @@
 (footprint "Connector_PinSocket_2.54mm:PinSocket_1x08_P2.54mm_Vertical"
 	(layer "F.Cu")
 	(uuid "b50e8556-1aa7-56fd-819a-838645660fbf")
-	(at 111.61 143.1 180)
+	(at 109.61 143.1 180)
 (property "Reference" "J8"
 	(at 0 -1.9 180)
 	(layer "F.SilkS")
@@ -3934,7 +3934,7 @@
         	(footprint "oas:SK6812-SIDE"
         		(layer "F.Cu")
         		(uuid "97c6eb18-6d52-5bbb-b0f9-1b5e3550c425")
-        		(at 159.5 105 270)
+        		(at 161.5 105 270)
         		(descr "SK6812 SIDE-A addressable RGB LED. 4020 side-emit, integrated WS281x controller. Pinout 1=DIN 2=VDD 3=DOUT 4=GND.")
         		(attr smd)
         		(property "Reference" "D11"
@@ -4049,7 +4049,7 @@
 (footprint "Capacitor_SMD:C_0402_1005Metric"
 	(layer "F.Cu")
 	(uuid "dc5af28c-0416-5fea-b2bc-59fbba8bc228")
-	(at 156.1 105 270)
+	(at 158.1 105 270)
 (property "Reference" "C20"
 	(at 0 -1.4 270)
 	(layer "F.SilkS")
@@ -4156,7 +4156,7 @@
         	(footprint "oas:SK6812-SIDE"
         		(layer "F.Cu")
         		(uuid "4ab3fd17-8644-5f1f-bb1c-17e820e9db45")
-        		(at 158.026279 110.5 240)
+        		(at 159.75833 111.5 240)
         		(descr "SK6812 SIDE-A addressable RGB LED. 4020 side-emit, integrated WS281x controller. Pinout 1=DIN 2=VDD 3=DOUT 4=GND.")
         		(attr smd)
         		(property "Reference" "D12"
@@ -4271,7 +4271,7 @@
 (footprint "Capacitor_SMD:C_0402_1005Metric"
 	(layer "F.Cu")
 	(uuid "19c0f170-dacb-5e65-92da-b72998a2ee66")
-	(at 155.081793 108.8 240)
+	(at 156.813844 109.8 240)
 (property "Reference" "C21"
 	(at 0 -1.4 240)
 	(layer "F.SilkS")
@@ -4378,7 +4378,7 @@
         	(footprint "oas:SK6812-SIDE"
         		(layer "F.Cu")
         		(uuid "45411311-e43c-55ba-8924-9264d12a8e5a")
-        		(at 154 114.526279 210)
+        		(at 155 116.25833 210)
         		(descr "SK6812 SIDE-A addressable RGB LED. 4020 side-emit, integrated WS281x controller. Pinout 1=DIN 2=VDD 3=DOUT 4=GND.")
         		(attr smd)
         		(property "Reference" "D13"
@@ -4493,7 +4493,7 @@
 (footprint "Capacitor_SMD:C_0402_1005Metric"
 	(layer "F.Cu")
 	(uuid "39446f6d-d987-5d36-9efb-df62b2ff79fd")
-	(at 152.3 111.581793 210)
+	(at 153.3 113.313844 210)
 (property "Reference" "C22"
 	(at 0 -1.4 210)
 	(layer "F.SilkS")
@@ -4600,7 +4600,7 @@
         	(footprint "oas:SK6812-SIDE"
         		(layer "F.Cu")
         		(uuid "2973902f-74c7-5bfb-a318-57a31e6ef12e")
-        		(at 143 114.526279 150)
+        		(at 142 116.25833 150)
         		(descr "SK6812 SIDE-A addressable RGB LED. 4020 side-emit, integrated WS281x controller. Pinout 1=DIN 2=VDD 3=DOUT 4=GND.")
         		(attr smd)
         		(property "Reference" "D15"
@@ -4715,7 +4715,7 @@
 (footprint "Capacitor_SMD:C_0402_1005Metric"
 	(layer "F.Cu")
 	(uuid "5eb0ba8e-3b21-5ec1-b5d5-57766543bc31")
-	(at 144.7 111.581793 150)
+	(at 143.7 113.313844 150)
 (property "Reference" "C24"
 	(at 0 -1.4 150)
 	(layer "F.SilkS")
@@ -4822,7 +4822,7 @@
         	(footprint "oas:SK6812-SIDE"
         		(layer "F.Cu")
         		(uuid "6a122159-85f8-5c1c-a622-f8b25c897b4a")
-        		(at 138.973721 110.5 120)
+        		(at 137.24167 111.5 120)
         		(descr "SK6812 SIDE-A addressable RGB LED. 4020 side-emit, integrated WS281x controller. Pinout 1=DIN 2=VDD 3=DOUT 4=GND.")
         		(attr smd)
         		(property "Reference" "D16"
@@ -4937,7 +4937,7 @@
 (footprint "Capacitor_SMD:C_0402_1005Metric"
 	(layer "F.Cu")
 	(uuid "7b6cb8a2-86d1-5b8d-aa6e-d914251f7194")
-	(at 141.918207 108.8 120)
+	(at 140.186156 109.8 120)
 (property "Reference" "C25"
 	(at 0 -1.4 120)
 	(layer "F.SilkS")
@@ -5044,7 +5044,7 @@
         	(footprint "oas:SK6812-SIDE"
         		(layer "F.Cu")
         		(uuid "ddb63437-83e6-5f79-8525-972d45ab8ac5")
-        		(at 137.5 105 90)
+        		(at 135.5 105 90)
         		(descr "SK6812 SIDE-A addressable RGB LED. 4020 side-emit, integrated WS281x controller. Pinout 1=DIN 2=VDD 3=DOUT 4=GND.")
         		(attr smd)
         		(property "Reference" "D17"
@@ -5159,7 +5159,7 @@
 (footprint "Capacitor_SMD:C_0402_1005Metric"
 	(layer "F.Cu")
 	(uuid "07128cca-3777-574a-a256-1632b3a11055")
-	(at 140.9 105 90)
+	(at 138.9 105 90)
 (property "Reference" "C26"
 	(at 0 -1.4 90)
 	(layer "F.SilkS")
@@ -5266,7 +5266,7 @@
         	(footprint "oas:SK6812-SIDE"
         		(layer "F.Cu")
         		(uuid "695dff92-eaf6-5357-ba31-821302f65161")
-        		(at 138.973721 99.5 60)
+        		(at 137.24167 98.5 60)
         		(descr "SK6812 SIDE-A addressable RGB LED. 4020 side-emit, integrated WS281x controller. Pinout 1=DIN 2=VDD 3=DOUT 4=GND.")
         		(attr smd)
         		(property "Reference" "D18"
@@ -5381,7 +5381,7 @@
 (footprint "Capacitor_SMD:C_0402_1005Metric"
 	(layer "F.Cu")
 	(uuid "4f2d0e44-3c6a-5384-9c8e-62d1b22d113f")
-	(at 141.918207 101.2 60)
+	(at 140.186156 100.2 60)
 (property "Reference" "C27"
 	(at 0 -1.4 60)
 	(layer "F.SilkS")
@@ -5488,7 +5488,7 @@
         	(footprint "oas:SK6812-SIDE"
         		(layer "F.Cu")
         		(uuid "c5c6e6ac-e6ff-5373-8b85-b93195bcc34c")
-        		(at 143 95.473721 30)
+        		(at 142 93.74167 30)
         		(descr "SK6812 SIDE-A addressable RGB LED. 4020 side-emit, integrated WS281x controller. Pinout 1=DIN 2=VDD 3=DOUT 4=GND.")
         		(attr smd)
         		(property "Reference" "D19"
@@ -5603,7 +5603,7 @@
 (footprint "Capacitor_SMD:C_0402_1005Metric"
 	(layer "F.Cu")
 	(uuid "8fe9497b-4fd4-5a4e-8aad-d38d1b4a6fa9")
-	(at 144.7 98.418207 30)
+	(at 143.7 96.686156 30)
 (property "Reference" "C28"
 	(at 0 -1.4 30)
 	(layer "F.SilkS")
@@ -5710,7 +5710,7 @@
         	(footprint "oas:SK6812-SIDE"
         		(layer "F.Cu")
         		(uuid "fda70503-f31d-57cc-ba2e-97544f3b8c26")
-        		(at 148.5 94 0)
+        		(at 148.5 92 0)
         		(descr "SK6812 SIDE-A addressable RGB LED. 4020 side-emit, integrated WS281x controller. Pinout 1=DIN 2=VDD 3=DOUT 4=GND.")
         		(attr smd)
         		(property "Reference" "D20"
@@ -5825,7 +5825,7 @@
 (footprint "Capacitor_SMD:C_0402_1005Metric"
 	(layer "F.Cu")
 	(uuid "b96aba88-393f-5d26-ace0-569a26ef54ae")
-	(at 148.5 97.4 0)
+	(at 148.5 95.4 0)
 (property "Reference" "C29"
 	(at 0 -1.4 0)
 	(layer "F.SilkS")
@@ -5932,7 +5932,7 @@
         	(footprint "oas:SK6812-SIDE"
         		(layer "F.Cu")
         		(uuid "91cfb705-000c-5531-8fb3-e7298ff1a3ea")
-        		(at 154 95.473721 330)
+        		(at 155 93.74167 330)
         		(descr "SK6812 SIDE-A addressable RGB LED. 4020 side-emit, integrated WS281x controller. Pinout 1=DIN 2=VDD 3=DOUT 4=GND.")
         		(attr smd)
         		(property "Reference" "D21"
@@ -6047,7 +6047,7 @@
 (footprint "Capacitor_SMD:C_0402_1005Metric"
 	(layer "F.Cu")
 	(uuid "37afc73e-5b80-553d-b02c-23a0cb769c01")
-	(at 152.3 98.418207 330)
+	(at 153.3 96.686156 330)
 (property "Reference" "C30"
 	(at 0 -1.4 330)
 	(layer "F.SilkS")
@@ -6154,7 +6154,7 @@
         	(footprint "oas:SK6812-SIDE"
         		(layer "F.Cu")
         		(uuid "ccbc1e03-ae2b-5878-ada9-b82b5559eee1")
-        		(at 158.026279 99.5 300)
+        		(at 159.75833 98.5 300)
         		(descr "SK6812 SIDE-A addressable RGB LED. 4020 side-emit, integrated WS281x controller. Pinout 1=DIN 2=VDD 3=DOUT 4=GND.")
         		(attr smd)
         		(property "Reference" "D22"
@@ -6269,7 +6269,7 @@
 (footprint "Capacitor_SMD:C_0402_1005Metric"
 	(layer "F.Cu")
 	(uuid "1a2bc92b-39cc-5109-848e-85e9035bc076")
-	(at 155.081793 101.2 300)
+	(at 156.813844 100.2 300)
 (property "Reference" "C31"
 	(at 0 -1.4 300)
 	(layer "F.SilkS")
@@ -7223,7 +7223,7 @@
 (footprint "Fuse:Fuse_2920_7451Metric"
 	(layer "F.Cu")
 	(uuid "c4743922-4c9e-5f76-be7b-33a0edb7b266")
-	(at 202.5 114 0)
+	(at 163.5 130 0)
 (property "Reference" "F1"
 	(at 0 -3.5 0)
 	(layer "F.SilkS")
@@ -9077,7 +9077,7 @@
 (footprint "Capacitor_THT:CP_Radial_D8.0mm_P3.50mm"
 	(layer "F.Cu")
 	(uuid "a9bcddd0-4ffb-543b-a9c7-194d49a8a894")
-	(at 112.75 81 0)
+	(at 112.75 83 0)
 (property "Reference" "C3"
 	(at 1.75 -4.6 0)
 	(layer "F.SilkS")
@@ -9106,7 +9106,7 @@
 	(uuid "6102d9a1-1890-56a5-b256-b0dde6ef719d")
 	(effects (font (size 1.27 1.27)))
 )
-(property "Description" "100 µF / 50 V radial electrolytic input bulk for U1 buck. v0.26: relocated from (-20, -41) inside ESP32 shadow to (-34, -24); 1.0 mm gap to ESP32 west edge, sits just south of U1."
+(property "Description" "100 µF / 50 V radial electrolytic input bulk for U1 buck. Pre-routing rework: nudged south +2 mm to (-34, -22) to open routing channel above U1."
 	(at 0 0 0)
 	(layer "F.Fab")
 	(hide yes)
@@ -10610,7 +10610,7 @@
 (footprint "Package_TO_SOT_SMD:TO-263-5_TabPin3"
 	(layer "F.Cu")
 	(uuid "4be6064c-33eb-5059-b8b4-c5951fa6f8c4")
-	(at 114.5 71 0)
+	(at 112.5 71 0)
 (property "Reference" "U1"
 	(at 0 -6.65 0)
 	(layer "F.SilkS")
@@ -10639,7 +10639,7 @@
 	(uuid "f7d3b00f-c6f5-5aec-a7e4-460bb505d022")
 	(effects (font (size 1.27 1.27)))
 )
-(property "Description" "LM2596S-5.0 5 V 3 A asynchronous step-down buck (TI), TO-263-5. v0.26: relocated from (-9, -37) inside ESP32 shadow to (-34, -34) west of ESP32. 4.6 mm package height was only +0.9 mm margin under daughterboard — too tight. New location: 0.94 mm gap to ESP32 west edge, 3.17 mm gap to LD2410 east edge, 1.45 mm gap to C3 south."
+(property "Description" "LM2596S-5.0 5 V 3 A asynchronous step-down buck (TI), TO-263-5. Pre-routing rework: shifted west to (-36, -34) for 2.94 mm gap to ESP32 west edge and 1.17 mm gap to LD2410 east edge."
 	(at 0 0 0)
 	(layer "F.Fab")
 	(hide yes)
@@ -15050,7 +15050,7 @@
 (footprint "Capacitor_SMD:C_0603_1608Metric"
 	(layer "F.Cu")
 	(uuid "489e1d0e-6404-5875-aeec-2ca2e5ba7b49")
-	(at 194.5 137 0)
+	(at 178.5 58 0)
 (property "Reference" "C10"
 	(at 0 -1.45 0)
 	(layer "F.SilkS")
@@ -15079,7 +15079,7 @@
 	(uuid "c16c6c12-c4f2-5db1-af37-f2ae1a38d57c")
 	(effects (font (size 1.27 1.27)))
 )
-(property "Description" "100 nF local decoupling for SEN66 (J3 +3V3 pin 1/6). v0.26: shifted east from (+42, +33) to (+46, +32) to clear C1 relocated to (+40, +36)."
+(property "Description" "100 nF local decoupling for SEN66 (J3 +3V3 pin 1/6). Pre-routing rework: relocated to (+30, -47), east of C4 (+25, -47) in the upper-right corner cluster."
 	(at 0 0 0)
 	(layer "F.Fab")
 	(hide yes)
@@ -15590,7 +15590,7 @@
 )
 (gr_text "Open Ambient Sensor"
 	(at 144.5 135 0)
-	(layer "F.SilkS")
+	(layer "F.Fab")
 	(uuid "89693e9d-adcd-51b2-b738-7c11664ef76f")
 	(effects
 		(font (size 1 1) (thickness 0.15))
@@ -15598,7 +15598,7 @@
 )
 (gr_text "OAS  v0.40"
 	(at 144.5 138 0)
-	(layer "F.SilkS")
+	(layer "F.Fab")
 	(uuid "6b845a78-f7a8-5f0a-947f-d4bc53c6c10f")
 	(effects
 		(font (size 1 1) (thickness 0.15))
@@ -15661,7 +15661,7 @@
 	)
 )
 (gr_text "MIKROE-2462"
-	(at 123.04 117.065 0)
+	(at 121.04 117.065 0)
 	(layer "F.SilkS")
 	(uuid "a4765db0-758e-5348-9262-94cf413c4608")
 	(effects
@@ -15677,15 +15677,15 @@
 	)
 )
 (gr_text "J1 (24V)"
-	(at 163.5 127.4 0)
-	(layer "F.SilkS")
+	(at 163.5 132.4 0)
+	(layer "F.Fab")
 	(uuid "3f7f871d-604c-5fad-908c-b0a261dba5e2")
 	(effects
 		(font (size 1 1) (thickness 0.15))
 	)
 )
 (gr_text "24V"
-	(at 153.58 126.6 0)
+	(at 153.58 131.6 0)
 	(layer "F.Fab")
 	(uuid "833ec11b-c420-570a-8d52-2a57d1917ff1")
 	(effects
@@ -15693,7 +15693,7 @@
 	)
 )
 (gr_text "GND"
-	(at 148.5 126.6 0)
+	(at 148.5 131.6 0)
 	(layer "F.Fab")
 	(uuid "dad83dce-69f7-5c6d-81bc-4b84848db383")
 	(effects
@@ -15701,7 +15701,7 @@
 	)
 )
 (gr_text "PE"
-	(at 143.42 126.6 0)
+	(at 143.42 131.6 0)
 	(layer "F.Fab")
 	(uuid "48f4836c-38c2-567d-b7f0-d5f0ca65998e")
 	(effects
@@ -15717,7 +15717,7 @@
 	)
 )
 (gr_text "GND"
-	(at 160.9 146 0)
+	(at 138.5 137.5 0)
 	(layer "F.Fab")
 	(uuid "91784513-e7aa-5707-a28b-d9d52bb911bb")
 	(effects
@@ -15725,7 +15725,7 @@
 	)
 )
 (gr_text "+3V3"
-	(at 160.9 143.46 0)
+	(at 141.04 137.5 0)
 	(layer "F.Fab")
 	(uuid "bb44f04e-a28a-5d3b-87ba-7ce70ccb09af")
 	(effects
@@ -15733,7 +15733,7 @@
 	)
 )
 (gr_text "USB-"
-	(at 160.9 140.92 0)
+	(at 143.58 137.5 0)
 	(layer "F.Fab")
 	(uuid "7a184b25-3cf4-5bd9-a02e-0317d5cc99f8")
 	(effects
@@ -15741,7 +15741,7 @@
 	)
 )
 (gr_text "USB+"
-	(at 160.9 138.38 0)
+	(at 146.12 137.5 0)
 	(layer "F.Fab")
 	(uuid "daac3ace-05cb-5208-afbb-f19c532da7d3")
 	(effects
@@ -15749,7 +15749,7 @@
 	)
 )
 (gr_text "EN"
-	(at 160.9 135.84 0)
+	(at 148.66 137.5 0)
 	(layer "F.Fab")
 	(uuid "8100abc9-eee7-5338-b1f1-5b08cb04c138")
 	(effects
@@ -15757,15 +15757,15 @@
 	)
 )
 (gr_text "BOOT"
-	(at 160.9 133.3 0)
+	(at 151.2 137.5 0)
 	(layer "F.Fab")
 	(uuid "45f93ed0-3a03-5729-9fba-2cc62da50bdd")
 	(effects
 		(font (size 0.8 0.8) (thickness 0.15))
 	)
 )
-(gr_text "J10 flash"
-	(at 157.9 130.7 0)
+(gr_text "C3 v2"
+	(at 157.9 140.497899 0)
 	(layer "F.SilkS")
 	(uuid "fe5a5194-1815-5739-b8f0-1f26bd30a626")
 	(effects
@@ -16046,7 +16046,7 @@
 )
 (gr_text "C11"
 	(at 106.5 117 0)
-	(layer "F.SilkS")
+	(layer "F.Fab")
 	(uuid "0ed8b8e0-68aa-5a93-a87e-43b9804f1b98")
 	(effects
 		(font (size 1 1) (thickness 0.15))
