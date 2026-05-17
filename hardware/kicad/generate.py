@@ -18167,25 +18167,15 @@ def _apply_schematic_footprints(content: str, ref_to_fp: dict[str, str]) -> str:
 # Final state (v0.28e) routes every chunk.
 ROUTING_CHUNKS: tuple[str, ...] = (
     "gnd",         # Chunk 1 — F.Cu + B.Cu GND copper pour
-    # v0.40 post-order footprint-fix iteration: the autoroute snapshot in
-    # oas_routes.py was extracted against PRE-fix pad geometry for SMD
-    # passives + Q1 SOT-23. After fixing every two-pad SMD footprint to
-    # verbatim KiCad stock geometry (different pad pitches: 1.65 vs 1.70,
-    # 1.90 vs 1.80, etc.) and the SOT-23 to verbatim "E" pattern (was
-    # "⊥" custom), every autoroute segment that terminated at a pad of
-    # a changed footprint now lands inside / next to the pad instead of
-    # on it. The cascade of resulting DRC errors (shorts to wrong nets,
-    # solder-mask bridges, hole-clearance, etc.) is ~100+ violations.
-    # Per the fix-task mandate, the autoroute snapshot must be re-run
-    # against the corrected footprints (separate task #93 routing rework);
-    # in the meantime, this chunk is DISABLED so regenerate.py passes
-    # DRC. The GND pour alone gives every GND pad a connection; all
-    # non-GND nets show as unconnected pads (warning, not error — per
-    # the existing CLAUDE.md "PCB design workflow" convention).
-    # "autoroute",        # Chunk 2 (DISABLED v0.40 post-order)
-    # "io_finalize",      # Chunk 3 (DISABLED — depends on Chunk 2 topology)
-    # "io_finalize_v29",  # Chunk 4 (DISABLED — same)
-    # "io_finalize_v30",  # Chunk 5 (DISABLED — same)
+    "autoroute",   # Chunk 2 — Freerouting v2.2.4 snapshot (re-paved
+                   # against the post-placement-rework PCB on 2026-05-18).
+                   # 413 segments + 20 vias produced from 100 unrouted
+                   # nets in 2m28s (16 effective passes, score 984.65).
+                   # 4 nets remain unrouted: SCL/SDA/+3V3 trio between
+                   # J3 (SEN66 socket) and J9 (Qwiic expansion), plus
+                   # Net-(D1-A1) input-protection segment from D3-1 to
+                   # J1-1. Hand-route those four in a follow-up chunk.
+    # "io_finalize",      # Chunk 3 (legacy v0.28 — superseded; not used)
 )
 
 
