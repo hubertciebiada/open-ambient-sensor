@@ -96,3 +96,12 @@ led-preview*.png
 # Cleanup audit reports (internal working docs, not project documentation)
 _cleanup-reports/
 
+# KiCad netlist exports (temporary, derived from .kicad_sch via kicad-cli)
+*.net
+_tmp_netlist_audit.net
+_audit_*.net
+
+# Freerouting tool (downloaded locally, not redistributable)
+freerouting.jar
+hardware/kicad/freerouting.jar
+
