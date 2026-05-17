@@ -79,9 +79,7 @@
         "solder_mask_to_copper_clearance": 0.0,
         "use_height_for_length_calcs": true
       },
-      "rule_severities": {
-        "lib_footprint_mismatch": "ignore"
-      }
+      "rule_severities": {}
     },
     "ipc2581": {
       "dist": "",

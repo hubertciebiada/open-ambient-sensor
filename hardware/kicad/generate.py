@@ -1988,8 +1988,14 @@ def _emit_pcb_footprint_simple_npth(
             \t\t\t(uuid "{U('fp-silk-label:' + uuid_tag)}")
             \t\t\t(effects (font (size 1 1) (thickness 0.15)))
             \t\t)""")
+    # v0.40 audit-16: emit the full lib-qualified `oas:<lib_id>` name in
+    # the (footprint "...") header AND the (property "Footprint" ...)
+    # clause so KiCad's lib_footprint_mismatch check pairs the placement
+    # against the canonical library entry. Pre-fix the header used the
+    # bare lib_id, which JLCPCB's DFM matcher could read as a custom
+    # in-PCB-only footprint not present in any library.
     return textwrap.dedent(f"""\
-        \t(footprint "{lib_id}"
+        \t(footprint "oas:{lib_id}"
         \t\t(layer "F.Cu")
         \t\t(uuid "{U('fp-inst:' + uuid_tag)}")
         \t\t(at {fx(x)} {fy(y)})
@@ -4701,12 +4707,16 @@ def gen_power_pcb_footprints() -> str:
     # the 38.9V clamp — tight but safe for transient events), Vgs_max = ±12V
     # (same as PMV65XP, so D3 Zener clamp still applies). LCSC C15127, mass
     # stock at JLCPCB Extended Library.
+    # v0.40 audit-16: Q1 schematic pin numbers changed from letter
+    # "D"/"G"/"S" to numeric "1"/"2"/"3" (AO3401A datasheet: 1=G, 2=S,
+    # 3=D). PCB pads stay verbatim stock SOT-23 with names "1"/"2"/"3" —
+    # no remap needed. Removes the previous lib_footprint_mismatch
+    # warning that required `rule_severities` override.
     parts.append(gen_sot23_3pin_pcb_footprint(
         x=+27, y=+25, rotation=0,
         reference="Q1", value="AO3401A",
         uuid_tag="q1-pmos",
         descr="P-MOSFET reverse-polarity protection. SOT-23. AO3401A: Vds=-30 V, Vgs=±12 V, RDS(on)=60 mΩ @ Vgs=-10 V.",
-        pin_names=("G", "S", "D"),
     ))
     # D3 — Q1 gate-source Zener clamp. North of SEN66, west of J3 SEN66
     # socket (west edge +30.02). Stacked column at X=+27/28.
@@ -5795,7 +5805,14 @@ def gen_silk_labels() -> str:
         # C12 anchor (-25, +23) is inside) → F.Fab
         ("C12", 0.0, -2.0, "F.Fab"),
         # J2 DNP recovery — outside shadows
-        ("J2",  0.0, -2.0, "F.SilkS"),
+        # v0.40 audit-16: stock 1x06 P2.54 PinHeader has silk frame top
+        # edge at footprint-local Y=-1.38. Label offset (0, -2) gave text
+        # bottom edge at PCB Y=-9.5, which overlapped the frame top
+        # segment at Y=-9.38 by 0.12 mm. Move label WEST of the frame
+        # entirely (offset -3.5, 0 → PCB X=-57.5, ~2.0 mm west of silk
+        # frame west edge at PCB X=-55.38). Still inside PCB outline
+        # (~Ø60 at Y=-8 → X_edge=-59.46).
+        ("J2",  -3.5, 0.0, "F.SilkS"),
     ]
     # Component anchors mirror the placements in gen_power_pcb_footprints().
     # Keep this dict in lock-step with that function.
@@ -7335,7 +7352,7 @@ POWER_LIB_SYMBOLS = """\
 \t\t\t)
 \t\t\t(embedded_fonts no)
 \t\t)
-\t\t(symbol "Device:Q_PMOS"
+\t\t(symbol "OAS:Q_PMOS_GDS"
 \t\t\t(pin_numbers
 \t\t\t\t(hide yes)
 \t\t\t)
@@ -7414,7 +7431,7 @@ POWER_LIB_SYMBOLS = """\
 \t\t\t\t\t)
 \t\t\t\t)
 \t\t\t)
-\t\t\t(symbol "Q_PMOS_0_1"
+\t\t\t(symbol "Q_PMOS_GDS_0_1"
 \t\t\t\t(polyline
 \t\t\t\t\t(pts
 \t\t\t\t\t\t(xy 0.254 1.905) (xy 0.254 -1.905)
@@ -7581,7 +7598,7 @@ POWER_LIB_SYMBOLS = """\
 \t\t\t\t\t)
 \t\t\t\t)
 \t\t\t)
-\t\t\t(symbol "Q_PMOS_1_1"
+\t\t\t(symbol "Q_PMOS_GDS_1_1"
 \t\t\t\t(pin passive line
 \t\t\t\t\t(at 2.54 5.08 270)
 \t\t\t\t\t(length 2.54)
@@ -7592,7 +7609,7 @@ POWER_LIB_SYMBOLS = """\
 \t\t\t\t\t\t\t)
 \t\t\t\t\t\t)
 \t\t\t\t\t)
-\t\t\t\t\t(number "D"
+\t\t\t\t\t(number "3"
 \t\t\t\t\t\t(effects
 \t\t\t\t\t\t\t(font
 \t\t\t\t\t\t\t\t(size 1.27 1.27)
@@ -7610,7 +7627,7 @@ POWER_LIB_SYMBOLS = """\
 \t\t\t\t\t\t\t)
 \t\t\t\t\t\t)
 \t\t\t\t\t)
-\t\t\t\t\t(number "G"
+\t\t\t\t\t(number "1"
 \t\t\t\t\t\t(effects
 \t\t\t\t\t\t\t(font
 \t\t\t\t\t\t\t\t(size 1.27 1.27)
@@ -7628,7 +7645,7 @@ POWER_LIB_SYMBOLS = """\
 \t\t\t\t\t\t\t)
 \t\t\t\t\t\t)
 \t\t\t\t\t)
-\t\t\t\t\t(number "S"
+\t\t\t\t\t(number "2"
 \t\t\t\t\t\t(effects
 \t\t\t\t\t\t\t(font
 \t\t\t\t\t\t\t\t(size 1.27 1.27)
@@ -9798,7 +9815,7 @@ def _sch_q_pmos(
     sheet_path = f"/{ROOT_SHEET_UUID}/{SHEET_BLOCK_UUIDS['power']}"
     return textwrap.dedent(f"""\
         \t(symbol
-        \t\t(lib_id "Device:Q_PMOS")
+        \t\t(lib_id "OAS:Q_PMOS_GDS")
         \t\t(at {fmt(x)} {fmt(y)} {angle})
         \t\t(unit 1)
         \t\t(exclude_from_sim no)
@@ -9852,13 +9869,13 @@ def _sch_q_pmos(
         \t\t\t\t(hide yes)
         \t\t\t)
         \t\t)
-        \t\t(pin "D"
+        \t\t(pin "3"
         \t\t\t(uuid "{pin_d_uuid}")
         \t\t)
-        \t\t(pin "G"
+        \t\t(pin "1"
         \t\t\t(uuid "{pin_g_uuid}")
         \t\t)
-        \t\t(pin "S"
+        \t\t(pin "2"
         \t\t\t(uuid "{pin_s_uuid}")
         \t\t)
         \t\t(instances
@@ -16608,31 +16625,17 @@ def gen_pro() -> str:
                     "solder_mask_to_copper_clearance": 0.0,
                     "use_height_for_length_calcs": True,
                 },
-                # v0.40 post-order: PCB DRC rule severities.
-                #
-                # `lib_footprint_mismatch` set to "ignore" for one
-                # specific known divergence: Q1 (P-MOSFET) places stock
-                # `Package_TO_SOT_SMD:SOT-23` with the pad NAMES remapped
-                # from canonical "1"/"2"/"3" to "G"/"S"/"D" so that the
-                # `Device:Q_PMOS` schematic symbol (which uses letter pin
-                # numbers) binds correctly through
-                # `sync_pcb_nets_from_schematic`. The pad GEOMETRY is
-                # verbatim KiCad stock; only the pad-name strings (which
-                # are internal connectivity metadata, not gerber-visible)
-                # differ. KiCad's lib_footprint_mismatch check flags this
-                # as a mismatch because it considers pad numbers part of
-                # the footprint's identity, but the manufactured PCB is
-                # 100 % identical to stock. The cleanest alternative
-                # (creating a project-local `OAS:Q_PMOS_GDS` symbol with
-                # numeric pin numbers 1/2/3 and pin NAMES G/S/D) was
-                # rejected as invasive — it would require maintaining a
-                # full schematic-symbol body in generate.py for one
-                # transistor, plus rewiring `_sch_q_pmos`. Demoting the
-                # check is a one-line change that produces the same
-                # outcome at fab.
-                "rule_severities": {
-                    "lib_footprint_mismatch": "ignore",
-                },
+                # v0.40 audit-16: rule_severities removed (was demoting
+                # lib_footprint_mismatch to "ignore" for Q1 pad-name
+                # remap). Audit-16 reverses that compromise — instead
+                # of suppressing the warning, we eliminate the cause by
+                # creating a project-local `OAS:Q_PMOS_GDS` symbol with
+                # NUMERIC pin numbers 1/2/3 that bind to the canonical
+                # stock SOT-23 pads "1"/"2"/"3" with no remap. Pad NAMES
+                # in the manufactured PCB now match stock verbatim, so
+                # KiCad's lib_footprint_mismatch is silent without
+                # severity override.
+                "rule_severities": {},
             },
             "ipc2581": {"dist": "", "distpn": "", "internal_id": "", "mfg": "", "mpn": ""},
             "layer_pairs": [],
@@ -16779,9 +16782,25 @@ def gen_oas_symbol_library() -> str:
 
     v0.16 adds `OAS:SK6812-SIDE` for the AQI status-LED ring (D11..D22).
     """
+    # v0.40 audit-16: extract OAS:Q_PMOS_GDS from POWER_LIB_SYMBOLS so
+    # the standalone libraries/OAS.kicad_sym carries the same Q_PMOS_GDS
+    # definition that's embedded in power.kicad_sch. Required because
+    # the Q1 schematic instance references `OAS:Q_PMOS_GDS` (NOT
+    # Device:Q_PMOS — would trigger lib_symbol_mismatch since our pin
+    # numbers 1/2/3 differ from stock D/G/S).
+    import re as _re
+    m = _re.search(
+        r'(\(symbol "OAS:Q_PMOS_GDS"[\s\S]*?\(embedded_fonts no\)\s*\))',
+        POWER_LIB_SYMBOLS,
+    )
+    assert m is not None, "could not extract OAS:Q_PMOS_GDS from POWER_LIB_SYMBOLS"
+    q_pmos_gds_block = m.group(1)
     bodies = [
         _esp32c6_devkitm1_lib_symbol(),
         _sk6812_side_lib_symbol(),
+        # Wrap in two leading tabs to match the convention expected by
+        # _strip_one_tab below.
+        "\t\t" + q_pmos_gds_block,
     ]
     # The two helpers return content indented with two leading tabs (one
     # tab inside the schematic file, one inside `lib_symbols`). In the

@@ -795,7 +795,7 @@
 			)
 			(embedded_fonts no)
 		)
-		(symbol "Device:Q_PMOS"
+		(symbol "OAS:Q_PMOS_GDS"
 			(pin_numbers
 				(hide yes)
 			)
@@ -874,7 +874,7 @@
 					)
 				)
 			)
-			(symbol "Q_PMOS_0_1"
+			(symbol "Q_PMOS_GDS_0_1"
 				(polyline
 					(pts
 						(xy 0.254 1.905) (xy 0.254 -1.905)
@@ -1041,7 +1041,7 @@
 					)
 				)
 			)
-			(symbol "Q_PMOS_1_1"
+			(symbol "Q_PMOS_GDS_1_1"
 				(pin passive line
 					(at 2.54 5.08 270)
 					(length 2.54)
@@ -1052,7 +1052,7 @@
 							)
 						)
 					)
-					(number "D"
+					(number "3"
 						(effects
 							(font
 								(size 1.27 1.27)
@@ -1070,7 +1070,7 @@
 							)
 						)
 					)
-					(number "G"
+					(number "1"
 						(effects
 							(font
 								(size 1.27 1.27)
@@ -1088,7 +1088,7 @@
 							)
 						)
 					)
-					(number "S"
+					(number "2"
 						(effects
 							(font
 								(size 1.27 1.27)
@@ -3719,7 +3719,7 @@
 	)
 )
 (symbol
-	(lib_id "Device:Q_PMOS")
+	(lib_id "OAS:Q_PMOS_GDS")
 	(at 82.55 78.74 0)
 	(unit 1)
 	(exclude_from_sim no)
@@ -3800,13 +3800,13 @@
 				(hide yes)
 			)
 		)
-	(pin "D"
+	(pin "3"
 		(uuid "2ce3ed2d-ae93-52da-8a7a-7bb308d3afee")
 	)
-	(pin "G"
+	(pin "1"
 		(uuid "1072d06c-d9e6-57b6-910d-2b4861d0ee0c")
 	)
-	(pin "S"
+	(pin "2"
 		(uuid "9300852a-ff0a-53c0-be88-fe49d2a1adb7")
 	)
 	(instances
