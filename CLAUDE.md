@@ -628,6 +628,27 @@ under "My Orders → Continue Order".
 
 ## Changelog
 
+- **v0.40 audit-16** — full canonical-name + ERC-clean sweep. User mandate: "ZERO 'hand-solder friendly' deviations, biblioteka KiCad, no halucynacje wymiarów, ZERO issues including minor/doc/cosmetic". Found and fixed FOUR classes of canonical-name defects that the audit-15 sweep had missed (it focused on pad geometry, not on the `(footprint "Lib:Name"` header).
+  - **F1 — U1 `gen_to263_5_pcb_footprint`**: was emitting `(footprint "TO-263-5_LM2596"` (non-canonical, custom name) in the PCB header. Refactored to verbatim stock parsing of `Package_TO_SOT_SMD:TO-263-5_TabPin3` via `_emit_stock_lib_footprint`. Same root cause as the v0.40 JLCPCB rejection — header name mismatch.
+  - **F2 — U2 `gen_sot583_pcb_footprint`**: was emitting `(footprint "SOT-583_TPS62933"` (non-canonical). Refactored to verbatim `Package_TO_SOT_SMD:SOT-583-8` parsing.
+  - **F3 — J2 `gen_pinheader_6_recovery_pcb_footprint`**: was emitting `(footprint "PinHeader_1x06_P2.54mm_Vertical"` (bare, no lib prefix). Refactored to verbatim parsing of `Connector_PinHeader_2.54mm:PinHeader_1x06_P2.54mm_Vertical` (same stock file J10 uses). DNP attribute layered via `_emit_stock_lib_footprint(dnp=True)`.
+  - **F4 — ZipTie holes `_emit_pcb_footprint_simple_npth`**: was emitting `(footprint "{lib_id}"` (bare) for ZT1..ZT4 zip-tie holes. Fixed to emit `(footprint "oas:{lib_id}"` matching the property value.
+  - **F5 — Q1 clean-up**: pre-fix Q1 used `Device:Q_PMOS` schematic symbol (letter pin numbers D/G/S) paired with `pin_name_map` remapping stock SOT-23 pads "1"/"2"/"3" → "G"/"S"/"D", triggering `lib_footprint_mismatch` which was suppressed via `rule_severities: {"lib_footprint_mismatch": "ignore"}`. Audit-16 eliminates the cause instead of suppressing: created project-local `OAS:Q_PMOS_GDS` schematic symbol with NUMERIC pin numbers 1/2/3 (pin NAMES still G/S/D for readability) so the netlist binds Q1.1/Q1.2/Q1.3 to canonical stock SOT-23 pads "1"/"2"/"3" with NO remap. AO3401A datasheet pinout: 1=Gate, 2=Source, 3=Drain. Sub-symbols renamed `Q_PMOS_GDS_0_1` / `Q_PMOS_GDS_1_1` per KiCad parent+unit_style convention. `OAS:Q_PMOS_GDS` body added to `libraries/OAS.kicad_sym` via regex-extract from `POWER_LIB_SYMBOLS`. `rule_severities` returned to empty dict — NO special-case overrides anywhere.
+  - **F6 — J2 silk_overlap collateral**: stock 1×6 P2.54 silk frame top edge at footprint-local Y=-1.38 (vs pre-fix custom Y=-1.27) caused the J2 designator label at offset (0, -2) to overlap silk by 0.12 mm. Moved label WEST of frame entirely (offset -3.5, 0).
+  - **F7 — Q1 sub-symbol name fix**: changing parent to `OAS:Q_PMOS_GDS` required renaming embedded sub-symbols `Q_PMOS_0_1` → `Q_PMOS_GDS_0_1` and `Q_PMOS_1_1` → `Q_PMOS_GDS_1_1` to match KiCad convention (parent name + `_unit_style`). Without this rename, `lib_symbol_mismatch` ERC warning fires.
+  - **Final state**:
+    - DRC: **0 violations** (100 unconnected pads — expected, routing disabled per task #93)
+    - ERC: **0 violations, 0 errors, 0 warnings**
+    - `rule_severities`: empty dict — NO suppression of any DRC/ERC category
+    - Determinism self-check: PASS (17 files bit-identical)
+    - Z-clearance guardrail: PASS (76 footprints, 0 violations)
+    - DC voltage propagation: PASS (12/12)
+    - Boot-strap + GPIO audit: PASS
+    - export_production.py + tools/preflight_gerbers.py: PASS
+    - **Every placed footprint header uses canonical `<lib>:<name>` from KiCad stock OR `oas:<name>` from project-local lib** — zero bare names, zero custom names.
+  - **Documentation**: full per-finding writeup in `_cleanup-reports/16-ALL-FINDINGS.md` including the canonical footprint name listing for re-swarm verification.
+
+
 - **v0.40 post-order footprint sweep** — Systemic sweep extending the v0.40 post-order U1/U2 fix to EVERY two-pad SMD passive on the OAS PCB, plus Q1 SOT-23. Triggered by the 78-agent paranoid audit (`_cleanup-reports/15-*.md`) finding that the same class-of-defect (custom hand-coded pad geometry deviating from KiCad stock) affected ~24 footprints. User mandate: "ZERO 'hand-solder friendly' deviations from KiCad stock library".
   - **What changed**:
     - **Refactored 9 generators to verbatim stock-lib parsing**: `gen_capacitor_0402/0603/0805_pcb_footprint`, `gen_resistor_0603_pcb_footprint`, `gen_diode_sma/smb/sod323_pcb_footprint`, `gen_inductor_smd_5x5_pcb_footprint`, `gen_polyfuse_smd_pcb_footprint`. All now call `_emit_stock_lib_footprint(...)` with the canonical `Lib:Name` stock library file path. Replaces ~250 lines of hand-coded pad/silk geometry with a 15-line wrapper per family.
