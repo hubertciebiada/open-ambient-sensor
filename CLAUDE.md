@@ -289,14 +289,27 @@ open-ambient-sensor/
 │   │   └── sen66-bracket.stl     # own work — bracket for mounting SEN66 on cover
 │   ├── kicad/
 │   │   ├── generate.py           # SOURCE OF TRUTH — Python that generates all .kicad_* files
-│   │   ├── regenerate.py         # master script: generate + DRC/ERC + re-render + guardrails
+│   │   ├── regenerate.py         # thin orchestrator — runs every pipeline/NN_*.py in order
 │   │   ├── export_production.py  # gerbers + drill + pos + BOM + JLCPCB zip
 │   │   ├── oas_routes.py         # derived — Freerouting snapshot, replayed by generate.py
 │   │   ├── oas.kicad_pro         # generated artefact
 │   │   ├── oas.kicad_sch         # generated artefact
 │   │   ├── oas.kicad_pcb         # generated artefact
 │   │   ├── libraries/            # generated project libraries (OAS.kicad_sym + oas.pretty/)
-│   │   ├── tools/                # one-shot scripts (preflight_gerbers, jlcdfm_upload, etc.)
+│   │   ├── pipeline/             # one stage per file (NN_<name>.py); each is standalone-runnable
+│   │   │   ├── _common.py        # shared helpers + Stage context manager
+│   │   │   ├── 01_generate.py    # invoke generate.py
+│   │   │   ├── 02_determinism.py # bit-identity self-check (re-run + hash diff)
+│   │   │   ├── 03_drc.py         # kicad-cli pcb drc strict
+│   │   │   ├── 04_erc.py         # kicad-cli sch erc strict
+│   │   │   ├── 05_check_dc.py    # DC voltage propagation analytical model
+│   │   │   ├── 06_check_boot.py  # ESP32-C6 strap + signal pin audit
+│   │   │   ├── 07_check_ampacity.py  # IPC-2221 trace width verifier
+│   │   │   ├── 10_render_2d.py   # PCB top/cutouts/bottom SVG
+│   │   │   ├── 11_render_sch.py  # schematic root + 4 sub-sheets SVG
+│   │   │   ├── 12_render_png.py  # cairosvg batch SVG -> PNG
+│   │   │   └── 13_render_3d.py   # 3D top + iso renders
+│   │   ├── tools/                # MANUAL-trigger scripts (preflight_gerbers, jlcdfm_upload, etc.)
 │   │   └── renders/              # generated previews (PNG + SVG + DRC/ERC reports)
 │   ├── bom/
 │   │   ├── lcsc-mapping.csv      # SOURCE OF TRUTH for SMD LCSC SKUs
@@ -368,15 +381,14 @@ The KiCad project in `hardware/kicad/` is **script-driven**. The source of truth
 
 1. The user describes a desired change (geometry tweak, new component, routing fix, etc.).
 2. The assistant edits the appropriate constant / function in `generate.py` (or `oas_routes.py` / `lcsc-mapping.csv` if applicable).
-3. The assistant runs `python regenerate.py`. That command:
-   - calls `generate.py` to rebuild every KiCad source file,
-   - runs `generate.py` a SECOND time and checks 17 source files are bit-identical (determinism guardrail),
-   - runs the Z-clearance guardrail (76 footprints, daughterboard shadow check),
-   - runs `kicad-cli pcb drc` strict (`--severity-error --severity-warning --exit-code-violations`),
-   - runs `kicad-cli sch erc` strict (same flags),
-   - runs DC voltage propagation, boot-strap audit, trace ampacity checks,
-   - re-renders `2d-top.{svg,png}`, `2d-bottom.{svg,png}`, `3d-top.png`, DRC / ERC reports.
-   - **Aborts on any violation or determinism drift.**
+3. The assistant runs `python regenerate.py`. That command is a thin orchestrator that dispatches each `pipeline/NN_<name>.py` script in numeric order. The stages are:
+   - `01_generate` — calls `generate.py` to rebuild every KiCad source file (which internally runs the Z-clearance guardrail on 76 footprints).
+   - `02_determinism` — runs `generate.py` a SECOND time and checks 17 source files are bit-identical.
+   - `03_drc` — `kicad-cli pcb drc` strict (`--severity-error --severity-warning --refill-zones`).
+   - `04_erc` — `kicad-cli sch erc` strict (`--severity-error --severity-warning --exit-code-violations`).
+   - `05_check_dc` / `06_check_boot` / `07_check_ampacity` — DC voltage propagation, boot-strap audit, trace ampacity checks.
+   - `10_render_2d` / `11_render_sch` / `12_render_png` / `13_render_3d` — re-renders SVG + PNG + 3D into `renders/`.
+   Numbers `08`–`09` are intentionally reserved for future verification checks; the gap stays visible in `ls`. **Aborts on any violation or determinism drift** (fail-fast — later stages don't run). Each `pipeline/NN_*.py` is also independently runnable for debug (`python pipeline/03_drc.py`).
 4. The assistant commits the resulting diff (sources + KiCad files + renders together).
 5. For fab orders: `python export_production.py` emits gerbers + drill + pos + BOM + JLCPCB zip. `python tools/preflight_gerbers.py` independently verifies the gerber bundle via pygerber before upload.
 

@@ -1,0 +1,51 @@
+"""Stage 02/11: determinism self-check (v0.23 review Nt2).
+
+Snapshots every generated KiCad source file's SHA-256 hash, runs
+`generate.py` a SECOND time, hashes again, and aborts on any drift.
+
+All UUIDs in generate.py are deterministic v5 (namespaced under the
+OAS project). Two consecutive runs MUST produce bit-identical sources.
+If they don't, there's a real bug to fix (e.g. an accidental dependency
+on Python's hash randomization or dict-iteration order) — flag loudly
+rather than silently committing flapping diffs.
+"""
+from __future__ import annotations
+
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).parent))
+from _common import Stage, run, KICAD_ROOT, kicad_source_files, sha256  # noqa: E402
+
+STAGE_NAME = "determinism"
+
+
+def main() -> int:
+    with Stage(STAGE_NAME) as st:
+        sources = kicad_source_files()
+        st.info(f"computing baseline hashes ({len(sources)} files)")
+        pre_hashes: dict[Path, str] = {p: sha256(p) for p in sources}
+
+        st.info("re-running generate.py")
+        run([sys.executable, str(KICAD_ROOT / "generate.py")])
+
+        st.info("re-computing hashes")
+        post_hashes: dict[Path, str] = {p: sha256(p) for p in kicad_source_files()}
+
+        drifted: list[Path] = []
+        for p, post_h in post_hashes.items():
+            pre_h = pre_hashes.get(p)
+            if pre_h is None or pre_h != post_h:
+                drifted.append(p)
+
+        if drifted:
+            for p in drifted:
+                print(f"[FAIL] DRIFT: {p.relative_to(KICAD_ROOT)}")
+            st.fail("generate.py is not deterministic — see drifted files above")
+
+        st.ok(f"{len(post_hashes)}/{len(post_hashes)} hashes match")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
