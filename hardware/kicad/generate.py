@@ -4880,10 +4880,10 @@ def gen_power_pcb_footprints() -> str:
 
     # ---- v0.26: U1 in west-of-ESP32 strip ----
     parts.append(gen_to263_5_pcb_footprint(
-        x=-36, y=-34, rotation=0,
+        x=-35, y=-34, rotation=0,
         reference="U1", value="LM2596S-5.0",
         uuid_tag="u1-lm2596",
-        descr="LM2596S-5.0 5 V 3 A asynchronous step-down buck (TI), TO-263-5. Pre-routing rework: shifted west to (-36, -34) for 2.94 mm gap to ESP32 west edge and 1.17 mm gap to LD2410 east edge.",
+        descr="LM2596S-5.0 5 V 3 A asynchronous step-down buck (TI), TO-263-5. Rework 5: +1 mm east (was -36 → -35). U1 body half_x=5.3 so body now spans X ∈ [-40.3, -29.7]: 3.17 mm gap to LD2410 east edge (-43.47), 1.94 mm gap to ESP32 west edge (-27.76).",
     ))
     # D2, L1 stay inside ESP32 shadow (both <4 mm tall, comfortably within
     # the 5.5 mm budget). Switch-node trace from U1.OUT (pin 2 at PCB
@@ -5889,7 +5889,7 @@ def gen_silk_labels() -> str:
         "R4":  (+20, +37),
         "C1":  (+33, -42),
         "C3":  (-34, -22),
-        "U1":  (-36, -34),
+        "U1":  (-35, -34),
         "D2":  (+2, -37),
         "L1":  (+9, -37),
         "C4":  (+25, -47),

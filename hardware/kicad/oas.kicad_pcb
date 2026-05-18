@@ -10578,7 +10578,7 @@
 (footprint "Package_TO_SOT_SMD:TO-263-5_TabPin3"
 	(layer "F.Cu")
 	(uuid "4be6064c-33eb-5059-b8b4-c5951fa6f8c4")
-	(at 112.5 71 0)
+	(at 113.5 71 0)
 (property "Reference" "U1"
 	(at 0 -6.65 0)
 	(layer "F.SilkS")
@@ -10607,7 +10607,7 @@
 	(uuid "f7d3b00f-c6f5-5aec-a7e4-460bb505d022")
 	(effects (font (size 1.27 1.27)))
 )
-(property "Description" "LM2596S-5.0 5 V 3 A asynchronous step-down buck (TI), TO-263-5. Pre-routing rework: shifted west to (-36, -34) for 2.94 mm gap to ESP32 west edge and 1.17 mm gap to LD2410 east edge."
+(property "Description" "LM2596S-5.0 5 V 3 A asynchronous step-down buck (TI), TO-263-5. Rework 5: +1 mm east (was -36 → -35). U1 body half_x=5.3 so body now spans X ∈ [-40.3, -29.7]: 3.17 mm gap to LD2410 east edge (-43.47), 1.94 mm gap to ESP32 west edge (-27.76)."
 	(at 0 0 0)
 	(layer "F.Fab")
 	(hide yes)
@@ -15813,7 +15813,7 @@
 	)
 )
 (gr_text "U1"
-	(at 112.5 78 0)
+	(at 113.5 78 0)
 	(layer "F.Fab")
 	(uuid "eaf150c0-d3f0-521a-83de-19d81c4289fa")
 	(effects
