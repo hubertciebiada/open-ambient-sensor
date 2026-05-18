@@ -4822,11 +4822,11 @@ def gen_power_pcb_footprints() -> str:
     # +46, +32) and mounting hole H1 at +47.631 / +27.5 (distance ~13.1 mm).
     # PCB outline corner (+44.25, +40.25): distance 59.82 — 0.18 mm inside.
     parts.append(gen_capacitor_polarized_radial_pcb_footprint(
-        x=+40, y=+36, rotation=0,
+        x=+33, y=-42, rotation=0,
         reference="C1", value="100uF/50V",
         uuid_tag="c1-protected-bulk",
         diameter_mm=8.0, pitch_mm=3.5,
-        descr="100 µF / 50 V radial electrolytic bulk on protected +24V rail. v0.26: relocated from inside ESP32 daughterboard shadow (-20, -32.5) to south-of-SEN66 zone (+40, +36). Body 12 mm tall — exceeded the ~5.5 mm under-daughterboard clearance budget.",
+        descr="100 µF / 50 V radial electrolytic bulk on protected +24V rail. Pre-routing rework 2: relocated from south-east (+40, +36) to north-east next to C4 (+33, -42). Body 8 mm diameter; 1.8 mm gap to C10 north edge, 0.5 mm gap to C4 east silk, 0.96 mm to PCB outline at NE corner.",
     ))
     # C3 (U1.VIN input bulk) — sits directly south of U1 in the same
     # west column to keep U1.VIN trace length minimal.
@@ -5719,7 +5719,11 @@ def gen_silk_labels() -> str:
         # pad. Other directions are similarly tight. Push to F.Fab —
         # the C1 silkscreen body itself identifies the cap to the
         # assembler; F.Fab text gives the designator for documentation.
-        ("C1",  0.0, -6.5, "F.Fab"),
+        # C1 relocated to (+33, -42). North (-46 to -50) is occupied by
+        # C4/C10. South (-38 to -30) is open strip between C1 body and
+        # ESP32 east. Push label south of body silk: offset (0, +6.5)
+        # → PCB (+33, -35.5).
+        ("C1",  0.0, +6.5, "F.SilkS"),
         # C3 — pre-fix C3 label at body anchor offset (0, -2.0) sat INSIDE
         # the body shadow (D8 radius 4 mm). v0.40 post-order: C3 body
         # is at PCB Y_center=-24. North of body Y=-20 there's only the
@@ -5756,7 +5760,11 @@ def gen_silk_labels() -> str:
         # still west of U1 east edge at -27.8. NOT clear of U1.
         # Final approach: put label SOUTH on F.Fab (assembly drawing
         # only, exempt from silk_overlap / silk_over_copper rules).
-        ("C3",  0.0, -2.0, "F.Fab"),
+        # C3 at (-34, -22). Body silk Ø8 mm extends X=[-38, -30]. Open
+        # strip west between C3 west silk (-38) and LD2410 east edge
+        # (-43.47). Offset (-6, 0) → PCB (-40, -22): 1.72 mm to LD2410
+        # west, 0.25 mm clear of C3 body silk east of text right edge.
+        ("C3",  -6.0, 0.0, "F.SilkS"),
         # U1 (TO-263-5): signal pads at X_local=-7.65 (= PCB X=-41.65),
         # tab pad east at X_local=+1.5 to +6.2 (= PCB X=-32.5..-27.8).
         # Label needs to clear the signal pad column (PCB X=-41.65 ±
@@ -5798,14 +5806,12 @@ def gen_silk_labels() -> str:
         # C2 west of ESP32 (X=-46 outside shadow) → F.SilkS
         ("C2",  0.0, -2.0, "F.SilkS"),
         # sensor decoupling caps
-        # C10 near H1 (outside shadows). v0.40 post-order: after radial
-        # cap stock geometry shift, C1 body silk (radius 4 mm) extends
-        # to PCB X=+42.25 and Y=+32..+40 — the previous label offset
-        # (-4, 0) put "C10" text at C10_anchor + (-4, 0) = (+42, +32),
-        # which sat inside C1's body silk extent and triggered 50+
-        # silk_overlap warnings. Moved label SOUTH (offset 0, +2) so it
-        # sits south of C10's body and well clear of C1 (Y=+32 < +36).
-        ("C10", 0.0, +2.0, "F.SilkS"),
+        # C10 0603 in NE corner cluster (C4 west, C1 east) with very
+        # little silk room — C1 8 mm radial body silk sits 0.6 mm north
+        # of C10, C4 6.3 mm radial body silk 1.7 mm west. Any silk
+        # offset bumps the "C10" text into one of the bigger bodies.
+        # Push label to F.Fab — body silk identifies the cap visually.
+        ("C10", 0.0, +2.0, "F.Fab"),
         # C11 west of LD2410 (LD2410 has F.CrtYd but no daughterboard
         # shadow per se — body label gr_text is at center; C11 at
         # X=-42 is INSIDE LD2410 X range -51..-43.47 but C11 sits south
@@ -5837,7 +5843,7 @@ def gen_silk_labels() -> str:
         "D3":  (+27, +28),
         "R1":  (+25, +33),
         "R4":  (+25, +35.5),
-        "C1":  (+40, +36),
+        "C1":  (+33, -42),
         "C3":  (-34, -22),
         "U1":  (-36, -34),
         "D2":  (+2, -37),
