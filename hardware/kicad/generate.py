@@ -125,8 +125,13 @@ CABLE_HOLE_DIAMETER = 12.0
 #     JST SH SMD pads can sit inside the cutout area.
 CUTOUTS = [
     # name, x_min, x_max, y_min, y_max, allow_pads  (PCB-local mm, +Y = toward chord)
-    ("C3",  +4.900, +13.900, +27.498, +Y_CHORD, True),   # 9 × 16.0 mm,  J10 recovery header (6-pin 2.54 mm, DNP). v0.36 I2 fix: north wall moved from +28.998 → +27.498 (1.5 mm further north into PCB interior) so all 6 J10 pads sit fully inside the keepout. Pre-v0.36 pad 6 extended ~0.7 mm past the cutout north wall (audit #9 finding).
-    ("C4", +18.900, +22.900, +34.998, +Y_CHORD, True),   # 4 × 9 mm,     v2 expansion placeholder (v0.28d: relaxed to allow_pads=True so routing of nearby signals isn't forced to detour around an empty placeholder)
+    # C3 (J10 recovery) + C4 (v2 placeholder) removed in pre-routing rework
+    # 2 — both became unused after J10 moved out of the chord and freeing
+    # the copper-keepout zones opens ~178 mm² of routing space south of
+    # J1/F1 + chord-edge corridor, unblocking Net-(D1-A1) (J1.1 → D3.1)
+    # which had to detour around F1 with no south option available.
+    # Case-wall openings in the SZOMK enclosure remain physical regardless;
+    # PCB stops 5 mm below the case wall so there's no mechanical conflict.
     ("C5", +27.900, +35.400, +36.494, +42.494, True),    # 7.5 × 6 mm,   J9 Qwiic / Stemma QT expansion (JST SH 4-pin, fully inside PCB)
 ]
 
@@ -216,7 +221,12 @@ SEN66_ZIPTIE_LOCAL = [
 # also faces PCB -Y so the cable enters straight without a U-turn.
 # Verified clear of mounting hole H1 at (+47.6, +27.5) and clear of
 # cutout C5 at (X 27.9..35.4, Y 36.5..42.5).
-J3_X = 36.0   # v0.9: located below SEN66 body shadow. Centred horizontally
+J3_X = 38.0   # Pre-routing rework 2: shifted +2 mm east (was 36.0). User
+              #   asked for +5mm but H1's custom F.CrtYd radius 2.85 mm
+              #   puts its west boundary at +44.78. J3 JST GH stock
+              #   courtyard extends ~5-6 mm east of anchor. +3 mm
+              #   (J3_X=39) still tripped DRC; +2 mm (J3_X=38) is the
+              #   max safe shift before H1 courtyard collision.
               # on body mid-X = SEN66_ANCHOR_X + SEN66_BODY_Y/2 = 23.5 + 12.8
               # = 36.3 -> rounded to 36.
 J3_Y = 27.0   # v0.9: sits 3 mm south (PCB +Y) of SEN66 body bottom (Y=22).
@@ -729,20 +739,33 @@ J9_PCB_ROTATION = 180        # mouth → +Y (chord side, case-wall opening)
 # Re-anchor: pad 1 at anchor_y = +42.0, pad 6 at anchor_y - 12.7 = +29.3.
 # Pad 6 inside cutout? +29.3 > +28.998 → YES, all pads inside cutout.
 # Pad 1 outer edge at +42.85 → 0.65 mm clear of chord. OK.
-J10_PCB_X = -10.0            # PCB X of pad 1. Pre-routing rework:
-                              # moved out of the C3 chord cutout and laid
-                              # horizontal east of MOD2 (NFC click) body
-                              # shadow which extends to X=-12.76. With
-                              # rot 90 (LIB +Y → PCB +X), pads run east
-                              # from anchor: pad 1 at (-10, +35), pad 6
-                              # at (+2.7, +35). 2.76 mm clear of MOD2
-                              # east edge; 5.10 mm clear of new J1
-                              # south courtyard (+29.9). C3 chord cutout
-                              # temporarily unused (per "olać wycięcie"
-                              # directive — accept loss of external
-                              # case-side accessibility until reroute).
-J10_PCB_Y = +35.0            # PCB Y of pad row (pads horizontal at Y=+35).
+J10_PCB_X = -10.96            # PCB X of pad 1 (west end). Pre-routing
+                              # rework 3: switched to HORIZONTAL on the
+                              # transverse axis 3.5 mm south of J5 row
+                              # (Y=-25.97). Pad row spreads east at
+                              # 2.54 mm pitch: pad 6 at PCB X = -10.96 +
+                              # 5*2.54 = +1.74. Centred roughly on J5
+                              # span (X ∈ [-22.39, +13.17], midpoint
+                              # ≈ -4.61). J5 silk designator label sits
+                              # at PCB X=-17.02 (J5 row anchor + 5.37),
+                              # 4.79 mm west of J10 body silk west edge
+                              # (anchor + (-1.27) = -12.23 at rotation 90)
+                              # → no overlap.
+J10_PCB_Y = -22.0            # PCB Y of pad row. 3.97 mm south of J5 row
+                              # A (Y=-25.97) per user spec "3-4 mm below
+                              # J5 on the transverse axis". J5 socket
+                              # courtyard Y_south = -24.20 (1×15 stock
+                              # 1.77 mm margin). J10 horizontal courtyard
+                              # Y_north at rotation 90 = -22.0 - 1.77 =
+                              # -23.77 → 0.43 mm clear of J5 courtyard.
+                              # MOD1 ESP32 shadow Y_max = -24.70 → 0.93
+                              # mm clear at courtyard north edge.
 J10_PCB_ROTATION = 90        # LIB +Y → PCB +X (horizontal pad row east).
+                              # Rotation 90 swaps the dict half-extent
+                              # tuple (1.5, 7.6) → effective (7.6, 1.5);
+                              # the Z-clearance check handles this via
+                              # the rotation flag captured by
+                              # _parse_footprint_placements.
 
 # -----------------------------------------------------------------------------
 # AQI status LED ring (v0.16) — 12 × SK6812-SIDE side-emit addressable RGB
@@ -4686,8 +4709,15 @@ def gen_power_pcb_footprints() -> str:
     # snapshot would short Net-(D1-A1) into D1 pad 2 = GND. The cathode bar
     # on F.SilkS naturally follows the rotated footprint and ends up on the
     # east side, marking the cathode-on-VIN convention.
+    # Pre-routing rework 3: D1 shifted +3 mm east (was +16 → now +19) to
+    # widen the central north-south routing corridor between J1 (X=+5.08)
+    # and D1. ZT1 at PCB (+20.5, 0) bbox X ∈ [+19, +22] — D1 body at
+    # +19 anchor with half_x=3.0 extends X ∈ [+16, +22], which touches
+    # ZT1 body in X but is Y-disjoint (D1 Y ∈ [+7.7, +11.3] vs ZT1
+    # Y ∈ [-1.5, +1.5]). SEN66 west courtyard at +23.25: D1 east +22 →
+    # 1.25 mm clear.
     parts.append(gen_diode_smb_pcb_footprint(
-        x=+16, y=+9.5, rotation=180,
+        x=+19, y=+9.5, rotation=180,
         reference="D1", value="SMBJ24A",
         uuid_tag="d1-tvs-smbj24a",
         descr="SMBJ24A TVS surge clamp, 24 V standoff, 38.9 V clamp.",
@@ -4727,16 +4757,25 @@ def gen_power_pcb_footprints() -> str:
     # 3=D). PCB pads stay verbatim stock SOT-23 with names "1"/"2"/"3" —
     # no remap needed. Removes the previous lib_footprint_mismatch
     # warning that required `rule_severities` override.
+    # Pre-routing rework 3: Q1 cluster (Q1 / D3 / R1 / R4) relocated to
+    # the column south of F1 (anchor +15, +25). The C3 / C4 chord cutouts
+    # were removed, opening ~178 mm² of routing / placement space south
+    # of F1. New Q1 anchor (+15, +30) sits 5 mm south of F1 along the
+    # +24V_OUT path: F1 east pad → short link → Q1.S. Q1.D returns north
+    # to D1 (+19, +9.5) along a 20 mm diagonal route in open space.
     parts.append(gen_sot23_3pin_pcb_footprint(
-        x=+27, y=+25, rotation=0,
+        x=+15, y=+30, rotation=0,
         reference="Q1", value="AO3401A",
         uuid_tag="q1-pmos",
         descr="P-MOSFET reverse-polarity protection. SOT-23. AO3401A: Vds=-30 V, Vgs=±12 V, RDS(on)=60 mΩ @ Vgs=-10 V.",
     ))
-    # D3 — Q1 gate-source Zener clamp. North of SEN66, west of J3 SEN66
-    # socket (west edge +30.02). Stacked column at X=+27/28.
+    # D3 — Q1 gate-source Zener clamp. Pre-routing rework 3: moved to
+    # the F1-south cluster (was +27, +28 near SEN66). New anchor (+19,
+    # +30): same Y row as Q1 (+15, +30), 4 mm east → Q1.G/S pads can
+    # reach D3 anode without crossing F1 body. SEN66 west courtyard
+    # at +23.25; D3 east body +20 → 3.25 mm clear.
     parts.append(gen_diode_sod323_pcb_footprint(
-        x=+27, y=+28, rotation=0,
+        x=+19, y=+30, rotation=0,
         reference="D3", value="10V Zener 200mW",
         uuid_tag="d3-zener",
         descr="10 V Zener clamp on Q1 gate-source to keep |Vgs| ≤ 10 V (v0.37 — was 18V pre-fix; AO3401A Vgs_max=±12V).",
@@ -4753,14 +4792,17 @@ def gen_power_pcb_footprints() -> str:
         uuid_tag="f1-ptc",
         descr="PTC polyfuse 750 mA hold / 1.5 A trip / 60 V (Bourns MF-RHT075/60-2).",
     ))
+    # Pre-routing rework 3: R1 / R4 moved into the Q1 cluster south of
+    # F1. Row Y=+33 (3 mm south of Q1/D3 row at Y=+30). R1 below Q1,
+    # R4 below D3.
     parts.append(gen_resistor_0603_pcb_footprint(
-        x=+25, y=+33, rotation=0,
+        x=+15, y=+33, rotation=0,
         reference="R1", value="100k 1%",
         uuid_tag="r1-gate-pulldown",
         descr="100 kΩ 1% gate-GND pulldown for Q1 (P-MOSFET reverse-polarity).",
     ))
     parts.append(gen_resistor_0603_pcb_footprint(
-        x=+25, y=+35.5, rotation=0,
+        x=+19, y=+33, rotation=0,
         reference="R4", value="1k",
         uuid_tag="r4-gate-series",
         descr="1 kΩ gate series resistor between Q1.G and Vgs clamp junction.",
@@ -5033,13 +5075,15 @@ def gen_power_pcb_footprints() -> str:
         descr="100 nF local decoupling for SEN66 (J3 +3V3 pin 1/6). Pre-routing rework: relocated to (+30, -47), east of C4 (+25, -47) in the upper-right corner cluster.",
     ))
     # LD2410 J4 pads at PCB X=-44.74, Y=+19.05 (1×5 P1.27 row going south
-    # from anchor). Place C11 NORTH of the pad row (toward LD2410 body).
-    # v0.22 — anchor shifted from (-44, +14) to (-42, +14) so C11's pad 2
-    # (at PCB X=-41.15) is fully east of the LDR1 mech-ref's silk-frame
-    # long-edge-1 line at PCB X=-43.67. The v0.21 placement at X=-44
-    # straddled the silk line and triggered silk_over_copper DRC.
+    # from anchor; pad 1 north Y=+13.97, pad 5 south Y=+19.05). Pre-
+    # routing rework 3: C11 moved SOUTH of J4 row (was north between
+    # J4 row and LD2410 body, at -42, +14). New anchor (-43, +22):
+    # body Y ∈ [+21.1, +22.9] is fully south of LD2410 body shadow
+    # (Y_max=+19.05). J4 stock 1×5 P1.27 courtyard south edge ≈
+    # +20.05 → C11 body north edge +21.1 clears by 1.05 mm. Frees
+    # the LD2410 west strip for routing.
     parts.append(gen_capacitor_0603_pcb_footprint(
-        x=-42, y=+14, rotation=0,
+        x=-43, y=+22, rotation=0,
         reference="C11", value="100nF",
         uuid_tag="c11-ld2410-decoupling-pcb",
         descr="100 nF local decoupling for LD2410 (J4 pin 5 / +5V).",
@@ -5535,20 +5579,30 @@ def gen_silk_labels() -> str:
     # The cutout "J9 Qwiic" label (emitted by the cutout loop above)
     # marks the connector identity from outside the case.
 
-    # J10 — 6-pin 2.54 mm pin header. With rotation 270°, pad 1 at
-    # (J10_PCB_X, J10_PCB_Y) = (-21.35, +35) and pads run EAST at
-    # 2.54 mm pitch. Per-pin function labels on F.Fab placed
-    # immediately NORTH of each pad. F.Fab is silk-overlap-
-    # exempt so positioning right next to the pads is fine, and
-    # F.Fab text isn't subject to the silk_min_text_height rule.
+    # J10 — 6-pin 2.54 mm pin header. Pre-routing rework 3: switched to
+    # rotation 90 (horizontal pad row). With rotation 90 (LIB +Y → PCB
+    # +X), pad 1 at (J10_PCB_X, J10_PCB_Y) and pads 2..6 spread EAST at
+    # 2.54 mm pitch. Per-pin function labels on F.Fab placed SOUTH of
+    # each pad (between J10 body silk south edge ~Y=-21.23 and the LED
+    # ring at Y≈-13). F.Fab is silk-overlap-exempt so positioning right
+    # next to the pads is fine, and F.Fab text isn't subject to the
+    # silk_min_text_height rule.
     j10_pin_labels = ["GND", "+3V3", "USB-", "USB+", "EN", "BOOT"]
     for i, lbl in enumerate(j10_pin_labels):
         px = J10_PCB_X + i * 2.54
         parts.append(_silk(
-            lbl, px, J10_PCB_Y - 2.5,
+            lbl, px, J10_PCB_Y + 2.5,
             f"j10-pin{i+1}-{lbl.lower().replace('+', 'p').replace('-', 'm')}",
             size=0.8, layer="F.Fab",
         ))
+    # Overall connector ID on F.SilkS (south of the per-pin F.Fab labels
+    # so they don't visually stack; F.SilkS and F.Fab are different
+    # layers so silk_overlap won't fire between them either way). Place
+    # at pad-row centre X = J10_PCB_X + 12.7/2 = -4.61.
+    parts.append(_silk(
+        "J10 flash", J10_PCB_X + 6.35, J10_PCB_Y + 4.5, "j10-body-id",
+        size=1.0,
+    ))
     # (No F.SilkS "(DNP)" hint on the PCB — "Do Not Populate" status
     # lives in the schematic (J10 symbol has `(dnp yes)`) and in the
     # BOM exporter output. Adding a board-level "(DNP)" silk near J10
@@ -5586,8 +5640,9 @@ def gen_silk_labels() -> str:
     SILK_TEXT_MIN_HORIZONTAL_FIT = 5.0   # mm — width needed to keep label
                                           # at 1.0 mm horizontal inside the rect
     CUTOUT_LABELS = {
-        "C3": "C3 v2",
-        "C4": "C4 v2",
+        # C3/C4 cutouts removed (pre-routing rework 2) — kept entries
+        # here as historical reference only; not iterated since CUTOUTS
+        # no longer contains them.
         "C5": "J9 Qwiic",
     }
     # Cutouts that host a connector (with its own body silk) — skip the
@@ -5685,31 +5740,22 @@ def gen_silk_labels() -> str:
         # input-protection cluster (NOT under any daughterboard shadow)
         ("D1",  0.0, -3.0, "F.SilkS"),
         ("F1",  0.0, -4.5, "F.SilkS"),
-        # Q1 south offset: body Y=23.6..26.4. SENS1 (SEN66) silk south
-        # edge at Y=+22.0; Q1 north of body conflicts with SENS1 silk.
-        # v0.40 post-order: stock SOT-23 silk frame extends Y_local
-        # ±1.56 (vs custom ±1.4). North-of-body would need offset
-        # < -3 to clear SENS1 (text Y < 22-0.85 = 21.15 → offset <
-        # 21.15-25 = -3.85). Push label SOUTH instead: offset +2.5
-        # puts text at PCB Y=+27.5, between Q1 body silk south edge
-        # (Y=26.56) and D3 silk frame north (D3 at Y=+28, body silk
-        # Y=+27.4..+28.6). Tight but workable.
-        # Actually, D3 silk reaches Y=+28-0.8=+27.2. Text bottom edge
-        # at +27.5+0.7=+28.2 hits D3 north silk. → place on F.Fab.
-        ("Q1",  0.0, -2.5, "F.Fab"),
-        # D3 label SOUTH of body — east-of-body (+3, 0) collided with
-        # J3 (JST GH SEN66 socket) MP mounting pad at PCB (+31.025,
-        # +28.35); north-of-body has only 0.975 mm gap to Q1 (too
-        # tight for 1.0 mm text). South strip between D3 and R1 is
-        # 3.975 mm wide — plenty.
-        ("D3",  0.0,  2.0, "F.SilkS"),
-        ("R1",  3.0,  0.0, "F.SilkS"),
-        # R4 label EAST of body but ROTATED 90° (vertical) so the
-        # narrower 1.0 mm width fits in the 1.0 mm strip between R4
-        # body east (X=25.8) and the J9 Qwiic cutout label west bbox
-        # at X=28.5. Vertical orientation is allowed per CLAUDE.md
-        # (0° or 90°, not 180°/270°).
-        ("R4",  2.5,  0.0, "F.SilkS", 90.0),
+        # Pre-routing rework 3: Q1 / D3 / R1 / R4 cluster relocated to
+        # the F1-south column (Q1 at +15,+30 — D3 at +19,+30 — R1 at
+        # +15,+33 — R4 at +19,+33). Every body is in a tight 7×4 mm
+        # block; F.Fab labels placed in the small gaps between bodies.
+        #   - Q1: vertical text east of Q1 body, between Q1 east silk
+        #     (+16.5) and D3 west body (+18). 1.5 mm strip.
+        #   - D3: horizontal text east of D3 body, between D3 east
+        #     (+20) and SEN66 west courtyard (+23.25). 3.25 mm strip.
+        #   - R1: horizontal text west of R1 body, between J1 east
+        #     courtyard (+9.12) and R1 west body (+14). ~5 mm strip.
+        #   - R4: horizontal text east of R4 body, between R4 east
+        #     (+20) and SEN66 west courtyard (+23.25). 3.25 mm strip.
+        ("Q1",  +2.25, 0.0, "F.Fab", 90.0),
+        ("D3",  +2.5,  0.0, "F.Fab"),
+        ("R1",  -3.0,  0.0, "F.Fab"),
+        ("R4",  +3.0,  0.0, "F.Fab"),
         # Buck1 cluster
         # C1 sits south of SEN66, outside daughterboard shadows.
         # v0.40 post-order: stock CP_Radial_D8.0mm_P3.50mm has many F.SilkS
@@ -5837,12 +5883,12 @@ def gen_silk_labels() -> str:
     # Component anchors mirror the placements in gen_power_pcb_footprints().
     # Keep this dict in lock-step with that function.
     COMPONENT_ANCHORS = {
-        "D1":  (+16, +9.5),
+        "D1":  (+19, +9.5),
         "F1":  (+15, +25),
-        "Q1":  (+27, +25),
-        "D3":  (+27, +28),
-        "R1":  (+25, +33),
-        "R4":  (+25, +35.5),
+        "Q1":  (+15, +30),
+        "D3":  (+19, +30),
+        "R1":  (+15, +33),
+        "R4":  (+19, +33),
         "C1":  (+33, -42),
         "C3":  (-34, -22),
         "U1":  (-36, -34),
@@ -5868,7 +5914,7 @@ def gen_silk_labels() -> str:
         "C8":  (-2, -46),
         "C2":  (-46, -25),
         "C10": (+30, -47),
-        "C11": (-42, +14),
+        "C11": (-43, +22),
         "C12": (-25, +23),
         "J2":  (-54, -8),
     }
@@ -17612,19 +17658,21 @@ def _daughterboard_body_shadows() -> dict[str, tuple[float, float, float, float]
     return shadows
 
 
-def _parse_footprint_placements() -> list[tuple[str, str, float, float]]:
+def _parse_footprint_placements() -> list[tuple[str, str, float, float, float]]:
     """Read oas.kicad_pcb and return (reference, footprint_property,
-    pcb_x, pcb_y) for every placed footprint. The placement (x, y) is
-    the footprint's anchor in PCB-frame mm (note: KiCad stores PCB Y
-    with the +Y-down screen convention, but `fy(y)` in this codebase
-    negates the sign so the value in the file is mirrored — the
-    `_invert_pcb_y` constant below handles that). The footprint
-    property string is canonicalized via `BARE_FOOTPRINT_TO_LIB`.
+    pcb_x, pcb_y, rotation_deg) for every placed footprint. The
+    placement (x, y) is the footprint's anchor in PCB-frame mm
+    (note: KiCad stores PCB Y with the +Y-down screen convention,
+    but `fy(y)` in this codebase negates the sign so the value in
+    the file is mirrored — the `_invert_pcb_y` constant below
+    handles that). The footprint property string is canonicalized
+    via `BARE_FOOTPRINT_TO_LIB`. Rotation is 0 when absent in the
+    `(at x y rot)` clause.
     """
     import re
 
     text = (HERE / "oas.kicad_pcb").read_text(encoding="utf-8")
-    placements: list[tuple[str, str, float, float]] = []
+    placements: list[tuple[str, str, float, float, float]] = []
     fp_starts = [m.start() for m in re.finditer(r'(?m)^\s*\(footprint "([^"]+)"', text)]
     fp_starts.append(len(text))
     for i in range(len(fp_starts) - 1):
@@ -17637,7 +17685,7 @@ def _parse_footprint_placements() -> list[tuple[str, str, float, float]]:
         # floats. The `at` clause is the second-occurring property in
         # the block (after the (layer ...) clause) and IS the placement.
         m_at = re.search(
-            r'\(at\s+(-?\d+(?:\.\d+)?)\s+(-?\d+(?:\.\d+)?)(?:\s+-?\d+(?:\.\d+)?)?\)',
+            r'\(at\s+(-?\d+(?:\.\d+)?)\s+(-?\d+(?:\.\d+)?)(?:\s+(-?\d+(?:\.\d+)?))?\)',
             block,
         )
         if not m_at:
@@ -17648,6 +17696,7 @@ def _parse_footprint_placements() -> list[tuple[str, str, float, float]]:
         # PCB frame the daughterboard shadows live in.
         pcb_x = float(m_at.group(1)) - PAGE_CENTRE_X
         pcb_y = float(m_at.group(2)) - PAGE_CENTRE_Y
+        rotation = float(m_at.group(3)) if m_at.group(3) is not None else 0.0
         m_ref = re.search(r'\(property "Reference" "([^"]+)"', block)
         if not m_ref:
             continue
@@ -17663,7 +17712,7 @@ def _parse_footprint_placements() -> list[tuple[str, str, float, float]]:
                 f"(used by reference {ref!r})."
             )
             canonical = f"{lib}:{raw}"
-        placements.append((ref, canonical, pcb_x, pcb_y))
+        placements.append((ref, canonical, pcb_x, pcb_y, rotation))
     return placements
 
 
@@ -17740,6 +17789,19 @@ _FOOTPRINT_HALF_EXTENT: dict[str, tuple[float, float]] = {
 }
 
 
+# Per-reference half-extent overrides — used when a single footprint
+# entry above is placed at multiple rotations across the OAS PCB and
+# the default (rotation-calibrated) value is wrong for one of the
+# placements. Each entry pins down the SPECIFIC (half_x, half_y) for
+# that reference, overriding the per-footprint lookup.
+_FOOTPRINT_HALF_EXTENT_OVERRIDES: dict[str, tuple[float, float]] = {
+    # J10 — PinHeader_1x06_P2.54mm_Vertical at rotation 90 (horizontal
+    # pad row east). Default dict value (1.5, 7.6) is calibrated for
+    # J2 at rotation 0; J10 needs the swapped (7.6, 1.5).
+    "J10": (7.6, 1.5),
+}
+
+
 def check_z_clearance_violations() -> list[str]:
     """Programmatic invariant check: every footprint placed inside a
     daughterboard's body shadow must have a component height ≤ that
@@ -17765,7 +17827,7 @@ def check_z_clearance_violations() -> list[str]:
     placements = _parse_footprint_placements()
     shadows = _daughterboard_body_shadows()
     violations: list[str] = []
-    for ref, fp_prop, px, py in placements:
+    for ref, fp_prop, px, py, rotation in placements:
         if ref in _DAUGHTERBOARD_REFS:
             # Skip the daughterboard mech-refs themselves and the SEN66
             # body (handled by its own F.CrtYd).
@@ -17776,13 +17838,24 @@ def check_z_clearance_violations() -> list[str]:
             f"(used by reference {ref!r}). Add the appropriate "
             f"datasheet-max height to FOOTPRINT_HEIGHT in generate.py."
         )
-        half = _FOOTPRINT_HALF_EXTENT.get(fp_prop)
+        # Per-reference override takes precedence over the per-footprint
+        # default — used when a single footprint is placed at multiple
+        # rotations across the OAS PCB and the default dict value is
+        # only calibrated for one of them. Currently J10 (PinHeader_1x06
+        # at rotation 90) overrides the J2 default (rotation 0).
+        half = _FOOTPRINT_HALF_EXTENT_OVERRIDES.get(ref)
+        if half is None:
+            half = _FOOTPRINT_HALF_EXTENT.get(fp_prop)
         assert half is not None, (
             f"_FOOTPRINT_HALF_EXTENT missing entry for {fp_prop!r} "
             f"(used by reference {ref!r}). Add a planar half-extent to "
             f"_FOOTPRINT_HALF_EXTENT in generate.py."
         )
         half_x, half_y = half
+        _ = rotation  # captured by parser for future use; current AABB
+                      # check uses calibrated half-extents (per-rotation
+                      # values baked into _FOOTPRINT_HALF_EXTENT and
+                      # _FOOTPRINT_HALF_EXTENT_OVERRIDES).
         # Footprint body AABB (axis-aligned bounding box) on the PCB.
         body_xmin, body_xmax = px - half_x, px + half_x
         body_ymin, body_ymax = py - half_y, py + half_y
@@ -18173,7 +18246,9 @@ def _apply_schematic_footprints(content: str, ref_to_fp: dict[str, str]) -> str:
 # Final state (v0.28e) routes every chunk.
 ROUTING_CHUNKS: tuple[str, ...] = (
     "gnd",         # Chunk 1 — F.Cu + B.Cu GND copper pour
-    "autoroute",   # Chunk 2 — Freerouting v2.2.4 snapshot (re-paved
+    # autoroute disabled — J3/J10 moved, snapshot invalidated; next
+    # iteration will re-run Freerouting against the new placement.
+    # "autoroute",   # Chunk 2 — Freerouting v2.2.4 snapshot (re-paved
                    # against the post-placement-rework PCB on 2026-05-18).
                    # 413 segments + 20 vias produced from 100 unrouted
                    # nets in 2m28s (16 effective passes, score 984.65).
