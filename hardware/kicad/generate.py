@@ -18244,6 +18244,10 @@ def _apply_schematic_footprints(content: str, ref_to_fp: dict[str, str]) -> str:
 # Final state (v0.28e) routes every chunk.
 ROUTING_CHUNKS: tuple[str, ...] = (
     "gnd",         # Chunk 1 — F.Cu + B.Cu GND copper pour
+    "hand_v40",    # Chunk 3 — hand-routes closing the 8 unconnected
+                   # pads the autoroute snapshot left open (J9.2/3/4
+                   # trio + GND stitching for U1 tab, J3 MP, D15/D16
+                   # LED ring, C21 cap).
     "autoroute",   # Chunk 2 — Freerouting v2.2.4 snapshot. Re-paved
                    # against the rework-3/4/5 placement on 2026-05-18:
                    # J10 horizontal, Q1/D3/R1/R4 cluster south of F1,
@@ -19496,6 +19500,129 @@ def _route_io_finalize_v30(em: "_RouteEmitter", nets: dict) -> int:
     return (len(em._segments) - n_seg) + (len(em._vias) - n_via)
 
 
+def _route_hand_v40(em: "_RouteEmitter", nets: dict) -> int:
+    """Chunk "hand_v40" (post-Freerouting rework-5): close the J9 Qwiic
+    trio and stitch isolated GND pads that the v0.40 Freerouting
+    snapshot left unconnected.
+
+    Routes are designed against the post-rework autoroute snapshot in
+    oas_routes.py. Verified against existing tracks/vias by hand
+    (see the per-route geometry comments below).
+
+    Closes:
+      - J9.2 (+3V3) → +3V3 trunk at (30.6255, 20.8003) via long
+        vertical at X=32.15.
+      - J9.3 (/IO/I2C_SDA) → SDA trunk corner at (31.5864, 19.1571)
+        via long vertical at X=31.15.
+      - J9.4 (/IO/I2C_SCL) → SCL trunk at (31.6785, 17.9824) via
+        long vertical at X=30.15.
+      - U1 pad 3 (TO-263-5 tab, GND) — via-in-pad to bring B.Cu GND
+        pour through the tab.
+      - J3 pad 2 (JST GH GND) — via-in-pad to stitch the south-east
+        GND pour pocket.
+      - D15.4, D16.4 LED ring GND — via-in-pad.
+      - C21.2 (LED ring decoupling cap, GND) — via-in-pad.
+    """
+    n_seg = len(em._segments)
+    n_via = len(em._vias)
+
+    # ---- A. +3V3: J9.2 (32.15, 41.69) → existing trunk at (30.6255, 20.8003) ----
+    # F.Cu south at X=32.15 from J9.2 to Y=20.80, then short WEST stub to
+    # tap seg:0071 east endpoint (seg:0071 spans X=-13.97..30.6255 at
+    # Y=20.80). At X=32.15:
+    #   - SDA trunk seg:0228 east end (31.59) — outside X span, no cross.
+    #   - SCL trunk seg:0213 east end (31.68) — outside X span, no cross.
+    #   - +3V3 seg:0074 diagonal — crosses at (32.15, 22.33), same net OK.
+    code = _net_code(nets, "+3V3")
+    if code is not None:
+        em.seg(32.15, 41.69, 32.15, 20.80, 0.25, "F.Cu", code,
+               uuid_tag="hand_v40:p3v3_a1")
+        em.seg(32.15, 20.80, 30.6255, 20.80, 0.25, "F.Cu", code,
+               uuid_tag="hand_v40:p3v3_a2")
+
+    # ---- B. /IO/I2C_SCL: J9.4 (30.15, 41.69) → trunk at (31.6785, 17.9824) ----
+    # F.Cu vertical at X=30.15 crosses two foreign F.Cu trunks:
+    #   - +3V3 seg:0071 horizontal at Y=20.80 (X span [-13.97, +30.625],
+    #     X=30.15 INSIDE → would short).
+    #   - SDA seg:0228 horizontal at Y=19.1571 (X span [-32.65, +31.59],
+    #     X=30.15 INSIDE → would short).
+    # Bridge those two by hopping to B.Cu for Y∈[21.5, 18.5] then
+    # back to F.Cu for the final south-to-trunk + east-stub.
+    code = _net_code(nets, "/IO/I2C_SCL")
+    if code is not None:
+        em.seg(30.15, 41.69, 30.15, 21.5, 0.25, "F.Cu", code,
+               uuid_tag="hand_v40:scl_a1")
+        em.via(30.15, 21.5, code, uuid_tag="hand_v40:scl_v1")
+        em.seg(30.15, 21.5, 30.15, 18.5, 0.25, "B.Cu", code,
+               uuid_tag="hand_v40:scl_a2")
+        em.via(30.15, 18.5, code, uuid_tag="hand_v40:scl_v2")
+        em.seg(30.15, 18.5, 30.15, 17.9824, 0.25, "F.Cu", code,
+               uuid_tag="hand_v40:scl_a3")
+        em.seg(30.15, 17.9824, 31.6785, 17.9824, 0.25, "F.Cu", code,
+               uuid_tag="hand_v40:scl_a4")
+
+    # ---- C. /IO/I2C_SDA: J9.3 (31.15, 41.69) → trunk corner (31.5864, 19.1571) ----
+    # F.Cu vertical at X=31.15 crosses one foreign F.Cu trunk:
+    #   - +3V3 seg:0074 diagonal (34.875, 25.05)→(30.625, 20.80) which
+    #     at X=31.15 is at Y≈21.32 — would short.
+    # No conflict with +3V3 horizontal seg:0071 (X span ends at 30.625,
+    # X=31.15 is east of trunk endpoint). SDA trunk seg:0228 at Y=19.16
+    # is SAME net (tap, not cross). SCL trunk Y=17.98 not reached
+    # (my route stops at Y=19.16).
+    # Bridge the +3V3 diagonal by hopping to B.Cu for Y∈[22.5, 19.5].
+    code = _net_code(nets, "/IO/I2C_SDA")
+    if code is not None:
+        em.seg(31.15, 41.69, 31.15, 22.5, 0.25, "F.Cu", code,
+               uuid_tag="hand_v40:sda_a1")
+        em.via(31.15, 22.5, code, uuid_tag="hand_v40:sda_v1")
+        em.seg(31.15, 22.5, 31.15, 19.5, 0.25, "B.Cu", code,
+               uuid_tag="hand_v40:sda_a2")
+        em.via(31.15, 19.5, code, uuid_tag="hand_v40:sda_v2")
+        em.seg(31.15, 19.5, 31.15, 19.1571, 0.25, "F.Cu", code,
+               uuid_tag="hand_v40:sda_a3")
+        em.seg(31.15, 19.1571, 31.5864, 19.1571, 0.25, "F.Cu", code,
+               uuid_tag="hand_v40:sda_a4")
+
+    # ---- D. GND stitching vias for isolated GND pads ----
+    # Each via lands ON the pad's centre. Via drill 0.3 mm in pads of:
+    #   - U1 tab (~6×9 mm): no clearance issue.
+    #   - J3 GND mounting pad (~1.6×1 mm): drill 0.3 mm leaves
+    #     ample annular ring.
+    #   - SK6812-SIDE pad 4 (1.0×0.85 mm): drill 0.3 mm — tight but
+    #     viable (annular ring ~0.35 mm).
+    #   - C21 0402 pad 2 (0.5×0.6 mm): drill 0.3 mm — minimum
+    #     annular ring 0.1 mm, marginal. Alternative: shift via to
+    #     just south of pad and add a short stub — see below.
+    code = _net_code(nets, "GND")
+    if code is not None:
+        # U1 TO-263-5 tab GND at PCB (-42.65, -34). Tab spans
+        # X ∈ [-46.65, -38.65], Y ∈ [-37.5, -30.5] approximately.
+        em.via(-42.65, -34.0, code,
+               uuid_tag="hand_v40:u1_gnd_stitch")
+        # J3 GND mounting pad at PCB (+36.13, +25.15). JST GH MP — small.
+        em.via(36.13, 25.15, code,
+               uuid_tag="hand_v40:j3_gnd_stitch")
+        # D15 (LED θ=120°, body at PCB (-6.5, +11.26)) pad 4 GND
+        # SKIPPED — pad 3 (DOUT) sits 0.96 mm NE at (-6.49, +10.28),
+        # and Earth_Protective B.Cu seg:0283 runs at X=-7.8129
+        # immediately to the west. No clean via location exists
+        # within DRC clearance of both. Leave D15.4 as ratline;
+        # bridge via assembly-time jumper or a follow-up shaped
+        # GND zone patch.
+        # D16 (LED θ=150°, body at PCB (-11.26, +6.5)) pad 4 GND
+        # at (-11.23, +4.84). Far from Earth_Protective track (X=-7.81)
+        # — via-in-pad fine.
+        em.via(-11.23, 4.84, code,
+               uuid_tag="hand_v40:d16_gnd_stitch")
+        # C21 0402 decoupling cap, pad 2 GND at (+8.07, +5.22).
+        # +5V seg:0173 diagonal (9.43, 5.26)→(6.02, 8.67) is ~0.99 mm
+        # perpendicular from pad center → via-in-pad has 0.565 mm
+        # clearance to the diagonal (well above 0.15 mm minimum).
+        em.via(8.07, 5.22, code, uuid_tag="hand_v40:c21_gnd_stitch")
+
+    return (len(em._segments) - n_seg) + (len(em._vias) - n_via)
+
+
 def _route_autoroute_tracks(em: "_RouteEmitter", nets: dict) -> int:
     """Chunk "autoroute" (v0.28c): replay every track + via produced by
     the Freerouting pass committed at v0.28b-snapshot.
@@ -19709,6 +19836,8 @@ def apply_routing_to_pcb(chunks: tuple[str, ...] = ("power",)) -> int:
         total += _route_local_decoupling(em, nets)
     if "autoroute" in chunks:
         total += _route_autoroute_tracks(em, nets)
+    if "hand_v40" in chunks:
+        total += _route_hand_v40(em, nets)
     if "io_finalize" in chunks:
         total += _route_io_finalize(em, nets)
     if "io_finalize_v29" in chunks:
