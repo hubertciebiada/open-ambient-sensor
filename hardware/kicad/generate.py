@@ -18704,6 +18704,35 @@ def _route_gnd_pour(em: "_RouteEmitter", nets: dict) -> int:
     #     pour, joining J3.2 to the GND network.
     em.gnd_island_keepout("F.Cu", +3.15, -48.80, +5.52, -47.48, tag="fcu-6")
 
+    # v0.40 hand_v40: F.Cu fragments that cannot be stitched cleanly
+    # (every via offset lands on a foreign-net pad/track within DRC
+    # clearance). Suppress each via copperpour keepout matched to
+    # the fragment's bbox so the zone-filler refuses to fill that
+    # rectangle. Deleted copper is electrically irrelevant — the
+    # fragments were isolated islands anyway, and any GND pads
+    # inside the bbox stay connected through the B.Cu pour via
+    # PTH plating (for through-hole pads) or via thermal reliefs
+    # to the main F.Cu pour just outside the keepout (for SMD pads
+    # near the fragment perimeter).
+    # Shrink keepouts to AVOID covering known GND SMD pads inside the
+    # fragment bboxes (otherwise the keepout strands the pad from
+    # the main pour). Pads that need to stay in F.Cu pour:
+    #   - C14 pad 2 GND at (-5.225, -30)  ← inside frag13 bbox
+    #   - C31 pad 2 GND at (+8.55, -4.38) ← inside frag8 bbox
+    #   - D22 pad 4 GND at (+11.23,-4.84) ← inside frag8 bbox
+    #   - U2 pad 1 GND at (-2.74, -44.25) ← inside frag24 bbox
+    # Full-bbox keepouts now safe because pads inside (C14.2, D22.4,
+    # U2.1, C31.2) have been pinned to the GND net via dedicated
+    # via-in-pad stitches earlier in hand_v40.
+    em.gnd_island_keepout("F.Cu", -5.626, -30.468, +0.917, -22.815, tag="v40-frag13-j5w-row")
+    em.gnd_island_keepout("F.Cu", +8.228, -5.813, +11.825, -0.805, tag="v40-frag8-e-of-hole")
+    em.gnd_island_keepout("F.Cu", +0.145, -27.710, +7.961, -23.757, tag="v40-frag14-j5e-row")
+    em.gnd_island_keepout("F.Cu", -6.210, -46.428, -2.314, -44.075, tag="v40-frag24-u2-area")
+    # Tiny J5-area fragments (<1 mm²): no SMD pads inside.
+    em.gnd_island_keepout("F.Cu", +6.098, -27.058, +7.961, -26.099, tag="v40-frag17-j5-tiny")
+    em.gnd_island_keepout("F.Cu", +8.219, -27.098, +9.526, -26.099, tag="v40-frag18-j5-tiny")
+    em.gnd_island_keepout("F.Cu", +8.219, -25.777, +8.795, -25.265, tag="v40-frag16-j5-micro")
+
     # F.Cu#5 — C8.2 GND bridge: via overlapping C8.2 pad on F.Cu.
     #   C8.2 is an 0805 cap with pads sized 0.95×0.95, pitch 0.85 → C8.2
     #   covers PCB X∈[-1.625, -0.675], Y∈[-46.475, -45.525]. A 0.6 ⌀ via
@@ -19628,6 +19657,25 @@ def _route_hand_v40(em: "_RouteEmitter", nets: dict) -> int:
         em.via(-9.5, 4.38, code, uuid_tag="hand_v40:c25_gnd_stitch")
         em.seg(-8.55, 4.38, -9.5, 4.38, 0.25, "F.Cu", code,
                uuid_tag="hand_v40:c25_gnd_a1")
+        # Pads inside about-to-be-keepout fragment bboxes (need their
+        # own via-in-pad so suppressing the surrounding pour doesn't
+        # leave them disconnected):
+        # C14 pad 2 GND at PCB (-5.225, -30). 0402 0.5×0.6 pad; 0.3
+        # via drill fits with ≥0.1 mm annular ring.
+        em.via(-5.225, -30.0, code, uuid_tag="hand_v40:c14_gnd_stitch")
+        # D22 pad 4 GND at PCB (+11.23, -4.84). SK6812-SIDE pad ~1.0×
+        # 0.85; via-in-pad comfortable.
+        em.via(+11.23, -4.84, code, uuid_tag="hand_v40:d22_gnd_stitch")
+        # U2 pad 1 GND at PCB (-2.74, -44.25). SOT-583-8 pad small.
+        # +5V F.Cu seg:0098 horizontal at Y=-43.75 spans X=-17..-3.38;
+        # via at (-4.5, -45) is 1.25 mm south of that track (>0.575 mm
+        # min clearance) and 1.91 mm from U2.1 pad.
+        em.via(-4.5, -45.0, code, uuid_tag="hand_v40:u2_gnd_stitch")
+        em.seg(-2.74, -44.25, -4.5, -45.0, 0.25, "F.Cu", code,
+               uuid_tag="hand_v40:u2_gnd_a1")
+        # C31 0402 cap pad 2 GND at PCB (+8.55, -4.38) — inside frag8
+        # bbox; needs its own stitch before the frag8 keepout is safe.
+        em.via(+8.55, -4.38, code, uuid_tag="hand_v40:c31_gnd_stitch")
 
         # ---- F. GND pour-island stitching for isolated PTH pads ----
         # J5.13 / J7.8 / J1.2 are through-hole pads whose F.Cu pour
@@ -19710,12 +19758,12 @@ def _route_hand_v40(em: "_RouteEmitter", nets: dict) -> int:
             # ( +5.96, -11.50, "fcu_frag9_ne"),     # 112 mm²: skip — merges with +5V
             (+10.34, +20.11, "fcu_frag3_e"),        #  46 mm²: E of hole
             # ( +6.30, -46.13, "fcu_frag22_se"),    #  34 mm²: skip — merges with U2-SW
-            # ( -2.88, -26.93, "fcu_frag13_j5"),    #  24 mm²: skip — too close to J5.9 WS2812_DIN PTH
-            # ( +9.90,  -3.69, "fcu_frag8_e"),      #  12 mm²: skip — clearance to +24V B.Cu
+            # ( -2.88, -29.00, "fcu_frag13_j5_offset"),  # 24 mm²: skip — every offset hits foreign track
+            # (+11.50,  -3.69, "fcu_frag8_e_offset"),    # 12 mm²: skip — too close to nearby vias
             ( -3.69, -10.13, "fcu_frag11_w"),       #  12 mm²: NW of hole
             (+10.22,  +2.80, "fcu_frag7_e"),        #   8 mm²: E of hole
             ( +2.86, -10.24, "fcu_frag12_n"),       #   8 mm²: NE of hole
-            # ( +4.01, -25.71, "fcu_frag14_j5"),    #   8 mm²: skip — too close to J5 SCL pad
+            # ( +4.50, -27.50, "fcu_frag14_j5_offset"),  # 8 mm²: skip — every offset hits BOOT/SCL
             (-21.88, +23.03, "fcu_frag2_mikroe"),   #   8 mm²: MIKROE
             # ( -9.58,  +4.20, "fcu_frag6_w"),      #   7 mm²: skip — conflicts with C25 stitch
             (+14.59, +36.22, "fcu_frag0_south"),    #   7 mm²: S of board
@@ -19723,7 +19771,7 @@ def _route_hand_v40(em: "_RouteEmitter", nets: dict) -> int:
             ( +5.99,  -8.23, "fcu_frag10_e"),       #   6 mm²: E of hole
             ( -6.18,  +8.29, "fcu_frag5_w"),        #   6 mm²: W of hole
             ( -0.73, -45.00, "fcu_frag23_j6"),      #   4 mm²: J6 area
-            # ( -4.61, -45.29, "fcu_frag24_j6w"),   #   4 mm²: skip — merges with U2-BST
+            # ( -5.00, -45.50, "fcu_frag24_j6w_offset"),  # 4 mm²: skip — too close to U2-SW/BST vias
             ( -1.23, -41.81, "fcu_frag21_u2"),      #   3 mm²: U2 area
             # ( +6.83, -26.59, "fcu_frag17_j5"),    # 0.9 mm²: skip — merges with +5V
             # ( +9.21, -26.87, "fcu_frag18_j5"),    # 0.6 mm²: skip — merges with +24V
