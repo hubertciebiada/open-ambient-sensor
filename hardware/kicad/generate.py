@@ -751,15 +751,13 @@ J10_PCB_X = -10.96            # PCB X of pad 1 (west end). Pre-routing
                               # 4.79 mm west of J10 body silk west edge
                               # (anchor + (-1.27) = -12.23 at rotation 90)
                               # → no overlap.
-J10_PCB_Y = -22.0            # PCB Y of pad row. 3.97 mm south of J5 row
-                              # A (Y=-25.97) per user spec "3-4 mm below
-                              # J5 on the transverse axis". J5 socket
-                              # courtyard Y_south = -24.20 (1×15 stock
-                              # 1.77 mm margin). J10 horizontal courtyard
-                              # Y_north at rotation 90 = -22.0 - 1.77 =
-                              # -23.77 → 0.43 mm clear of J5 courtyard.
-                              # MOD1 ESP32 shadow Y_max = -24.70 → 0.93
-                              # mm clear at courtyard north edge.
+J10_PCB_Y = -20.0            # PCB Y of pad row. 5.97 mm south of J5 row
+                              # A (Y=-25.97). Rework 3 placed J10 at
+                              # Y=-22.0 (3.97 mm south); rework 4 added
+                              # 2 mm more so per-pin F.Fab labels and
+                              # the "J10 flash" silk title can sit clear
+                              # of J5 socket's silk frame without
+                              # crowding the J5 designator label.
 J10_PCB_ROTATION = 90        # LIB +Y → PCB +X (horizontal pad row east).
                               # Rotation 90 swaps the dict half-extent
                               # tuple (1.5, 7.6) → effective (7.6, 1.5);
@@ -4764,7 +4762,7 @@ def gen_power_pcb_footprints() -> str:
     # +24V_OUT path: F1 east pad → short link → Q1.S. Q1.D returns north
     # to D1 (+19, +9.5) along a 20 mm diagonal route in open space.
     parts.append(gen_sot23_3pin_pcb_footprint(
-        x=+15, y=+30, rotation=0,
+        x=+14, y=+33, rotation=0,
         reference="Q1", value="AO3401A",
         uuid_tag="q1-pmos",
         descr="P-MOSFET reverse-polarity protection. SOT-23. AO3401A: Vds=-30 V, Vgs=±12 V, RDS(on)=60 mΩ @ Vgs=-10 V.",
@@ -4775,7 +4773,7 @@ def gen_power_pcb_footprints() -> str:
     # reach D3 anode without crossing F1 body. SEN66 west courtyard
     # at +23.25; D3 east body +20 → 3.25 mm clear.
     parts.append(gen_diode_sod323_pcb_footprint(
-        x=+19, y=+30, rotation=0,
+        x=+20, y=+33, rotation=0,
         reference="D3", value="10V Zener 200mW",
         uuid_tag="d3-zener",
         descr="10 V Zener clamp on Q1 gate-source to keep |Vgs| ≤ 10 V (v0.37 — was 18V pre-fix; AO3401A Vgs_max=±12V).",
@@ -4796,13 +4794,13 @@ def gen_power_pcb_footprints() -> str:
     # F1. Row Y=+33 (3 mm south of Q1/D3 row at Y=+30). R1 below Q1,
     # R4 below D3.
     parts.append(gen_resistor_0603_pcb_footprint(
-        x=+15, y=+33, rotation=0,
+        x=+14, y=+37, rotation=0,
         reference="R1", value="100k 1%",
         uuid_tag="r1-gate-pulldown",
         descr="100 kΩ 1% gate-GND pulldown for Q1 (P-MOSFET reverse-polarity).",
     ))
     parts.append(gen_resistor_0603_pcb_footprint(
-        x=+19, y=+33, rotation=0,
+        x=+20, y=+37, rotation=0,
         reference="R4", value="1k",
         uuid_tag="r4-gate-series",
         descr="1 kΩ gate series resistor between Q1.G and Vgs clamp junction.",
@@ -5885,10 +5883,10 @@ def gen_silk_labels() -> str:
     COMPONENT_ANCHORS = {
         "D1":  (+19, +9.5),
         "F1":  (+15, +25),
-        "Q1":  (+15, +30),
-        "D3":  (+19, +30),
-        "R1":  (+15, +33),
-        "R4":  (+19, +33),
+        "Q1":  (+14, +33),
+        "D3":  (+20, +33),
+        "R1":  (+14, +37),
+        "R4":  (+20, +37),
         "C1":  (+33, -42),
         "C3":  (-34, -22),
         "U1":  (-36, -34),

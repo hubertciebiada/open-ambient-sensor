@@ -2092,7 +2092,7 @@
 (footprint "Connector_PinHeader_2.54mm:PinHeader_1x06_P2.54mm_Vertical"
 	(layer "F.Cu")
 	(uuid "2c580359-c7fc-5144-a7c0-4576b5886c31")
-	(at 137.54 83 90)
+	(at 137.54 85 90)
 (property "Reference" "J10"
 	(at 2.5 -1.5 90)
 	(layer "F.SilkS")
@@ -6612,7 +6612,7 @@
 (footprint "Package_TO_SOT_SMD:SOT-23"
 	(layer "F.Cu")
 	(uuid "11285b0b-fd6a-58c0-9ff9-df963c386c25")
-	(at 163.5 135 0)
+	(at 162.5 138 0)
 (property "Reference" "Q1"
 	(at 0 -2.4 0)
 	(layer "F.SilkS")
@@ -6923,7 +6923,7 @@
 (footprint "Diode_SMD:D_SOD-323"
 	(layer "F.Cu")
 	(uuid "39df49f7-0438-57b5-bf7a-9ebfceb8ccf0")
-	(at 167.5 135 0)
+	(at 168.5 138 0)
 (property "Reference" "D3"
 	(at 0 -1.5 0)
 	(layer "F.SilkS")
@@ -7298,7 +7298,7 @@
 (footprint "Resistor_SMD:R_0603_1608Metric"
 	(layer "F.Cu")
 	(uuid "5341af7a-68d5-5410-9781-cb4642bab77e")
-	(at 163.5 138 0)
+	(at 162.5 142 0)
 (property "Reference" "R1"
 	(at 0 -1.45 0)
 	(layer "F.SilkS")
@@ -7405,7 +7405,7 @@
 (footprint "Resistor_SMD:R_0603_1608Metric"
 	(layer "F.Cu")
 	(uuid "5d1af38c-1c28-575f-98ae-5dbf62de8fa0")
-	(at 167.5 138 0)
+	(at 168.5 142 0)
 (property "Reference" "R4"
 	(at 0 -1.45 0)
 	(layer "F.SilkS")
@@ -15685,7 +15685,7 @@
 	)
 )
 (gr_text "GND"
-	(at 137.54 85.5 0)
+	(at 137.54 87.5 0)
 	(layer "F.Fab")
 	(uuid "91784513-e7aa-5707-a28b-d9d52bb911bb")
 	(effects
@@ -15693,7 +15693,7 @@
 	)
 )
 (gr_text "+3V3"
-	(at 140.08 85.5 0)
+	(at 140.08 87.5 0)
 	(layer "F.Fab")
 	(uuid "bb44f04e-a28a-5d3b-87ba-7ce70ccb09af")
 	(effects
@@ -15701,7 +15701,7 @@
 	)
 )
 (gr_text "USB-"
-	(at 142.62 85.5 0)
+	(at 142.62 87.5 0)
 	(layer "F.Fab")
 	(uuid "7a184b25-3cf4-5bd9-a02e-0317d5cc99f8")
 	(effects
@@ -15709,7 +15709,7 @@
 	)
 )
 (gr_text "USB+"
-	(at 145.16 85.5 0)
+	(at 145.16 87.5 0)
 	(layer "F.Fab")
 	(uuid "daac3ace-05cb-5208-afbb-f19c532da7d3")
 	(effects
@@ -15717,7 +15717,7 @@
 	)
 )
 (gr_text "EN"
-	(at 147.7 85.5 0)
+	(at 147.7 87.5 0)
 	(layer "F.Fab")
 	(uuid "8100abc9-eee7-5338-b1f1-5b08cb04c138")
 	(effects
@@ -15725,7 +15725,7 @@
 	)
 )
 (gr_text "BOOT"
-	(at 150.24 85.5 0)
+	(at 150.24 87.5 0)
 	(layer "F.Fab")
 	(uuid "45f93ed0-3a03-5729-9fba-2cc62da50bdd")
 	(effects
@@ -15733,7 +15733,7 @@
 	)
 )
 (gr_text "J10 flash"
-	(at 143.89 87.5 0)
+	(at 143.89 89.5 0)
 	(layer "F.SilkS")
 	(uuid "657e6069-039f-5781-a5c6-bc2203f0d6aa")
 	(effects
@@ -15765,7 +15765,7 @@
 	)
 )
 (gr_text "Q1"
-	(at 165.75 135 90)
+	(at 164.75 138 90)
 	(layer "F.Fab")
 	(uuid "636d0008-4c86-5526-a00e-1407bbfc623d")
 	(effects
@@ -15773,7 +15773,7 @@
 	)
 )
 (gr_text "D3"
-	(at 170 135 0)
+	(at 171 138 0)
 	(layer "F.Fab")
 	(uuid "bb47053a-2ba3-5b69-b06f-6ab75b5aa8a8")
 	(effects
@@ -15781,7 +15781,7 @@
 	)
 )
 (gr_text "R1"
-	(at 160.5 138 0)
+	(at 159.5 142 0)
 	(layer "F.Fab")
 	(uuid "c12143ad-9c35-5c1f-bdfe-37a57af66824")
 	(effects
@@ -15789,7 +15789,7 @@
 	)
 )
 (gr_text "R4"
-	(at 170.5 138 0)
+	(at 171.5 142 0)
 	(layer "F.Fab")
 	(uuid "0d5e6702-ec89-5084-9f59-40436e6d3ea9")
 	(effects
