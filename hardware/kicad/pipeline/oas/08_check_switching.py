@@ -230,17 +230,17 @@ def main() -> None:
 
     ngspice = find_ngspice()
     if ngspice is None:
-        print("[WARN] ngspice not found in cache - skipping switching check")
-        print(f"       To enable, download ngspice-46_64.7z from {NGSPICE_URL}")
+        print("[FAIL] ngspice not found in cache - switching check cannot run")
+        print(f"       Download ngspice-46_64.7z from {NGSPICE_URL}")
         print(f"       and extract to {CACHE_DIR}/Spice64/")
-        sys.exit(0)
+        sys.exit(1)
 
     model = find_lm2596_model()
     if model is None:
-        print("[WARN] LM2596 PSpice model not found in cache - skipping switching check")
-        print(f"       To enable, download {LM2596_MODEL_URL}")
+        print("[FAIL] LM2596 PSpice model not found in cache - switching check cannot run")
+        print(f"       Download {LM2596_MODEL_URL}")
         print(f"       and extract LM2596_5P0_TRANS.LIB to {CACHE_DIR}/lm2596_5p0/")
-        sys.exit(0)
+        sys.exit(1)
 
     print(f"  ngspice: {ngspice}")
     print(f"  LM2596 model: {model}")
