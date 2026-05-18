@@ -51,7 +51,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 HERE = Path(__file__).parent
-KICAD_DIR = HERE.parent
+KICAD_DIR = HERE.parent.parent  # pipeline/oas/ -> pipeline/ -> hardware/kicad
 TOP_SCH = KICAD_DIR / "oas.kicad_sch"
 
 # ---------------------------------------------------------------------------

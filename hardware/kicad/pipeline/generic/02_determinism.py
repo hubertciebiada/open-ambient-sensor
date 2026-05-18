@@ -14,23 +14,33 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).parent))
-from _common import Stage, run, KICAD_ROOT, kicad_source_files, sha256  # noqa: E402
+sys.path.insert(0, str(Path(__file__).parent.parent))
+from _common import Stage, run, KICAD_ROOT, sha256  # noqa: E402
+from _project import GENERATE_SCRIPT, SOURCE_FILES_FIXED, SOURCE_FILES_GLOBS  # noqa: E402
 
 STAGE_NAME = "determinism"
 
 
+def collect_source_files() -> list[Path]:
+    """Resolve _project.SOURCE_FILES_FIXED + SOURCE_FILES_GLOBS against
+    KICAD_ROOT, returning existing files only."""
+    files: list[Path] = [KICAD_ROOT / name for name in SOURCE_FILES_FIXED]
+    for pattern in SOURCE_FILES_GLOBS:
+        files.extend(sorted(KICAD_ROOT.glob(pattern)))
+    return [p for p in files if p.exists()]
+
+
 def main() -> int:
     with Stage(STAGE_NAME) as st:
-        sources = kicad_source_files()
+        sources = collect_source_files()
         st.info(f"computing baseline hashes ({len(sources)} files)")
         pre_hashes: dict[Path, str] = {p: sha256(p) for p in sources}
 
-        st.info("re-running generate.py")
-        run([sys.executable, str(KICAD_ROOT / "generate.py")])
+        st.info(f"re-running {GENERATE_SCRIPT.name}")
+        run([sys.executable, str(GENERATE_SCRIPT)])
 
         st.info("re-computing hashes")
-        post_hashes: dict[Path, str] = {p: sha256(p) for p in kicad_source_files()}
+        post_hashes: dict[Path, str] = {p: sha256(p) for p in collect_source_files()}
 
         drifted: list[Path] = []
         for p, post_h in post_hashes.items():
@@ -41,7 +51,7 @@ def main() -> int:
         if drifted:
             for p in drifted:
                 print(f"[FAIL] DRIFT: {p.relative_to(KICAD_ROOT)}")
-            st.fail("generate.py is not deterministic — see drifted files above")
+            st.fail(f"{GENERATE_SCRIPT.name} is not deterministic — see drifted files above")
 
         st.ok(f"{len(post_hashes)}/{len(post_hashes)} hashes match")
     return 0

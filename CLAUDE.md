@@ -297,18 +297,22 @@ open-ambient-sensor/
 │   │   ├── oas.kicad_pcb         # generated artefact
 │   │   ├── libraries/            # generated project libraries (OAS.kicad_sym + oas.pretty/)
 │   │   ├── pipeline/             # one stage per file (NN_<name>.py); each is standalone-runnable
-│   │   │   ├── _common.py        # shared helpers + Stage context manager
-│   │   │   ├── 01_generate.py    # invoke generate.py
-│   │   │   ├── 02_determinism.py # bit-identity self-check (re-run + hash diff)
-│   │   │   ├── 03_drc.py         # kicad-cli pcb drc strict
-│   │   │   ├── 04_erc.py         # kicad-cli sch erc strict
-│   │   │   ├── 05_check_dc.py    # DC voltage propagation analytical model
-│   │   │   ├── 06_check_boot.py  # ESP32-C6 strap + signal pin audit
-│   │   │   ├── 07_check_ampacity.py  # IPC-2221 trace width verifier
-│   │   │   ├── 10_render_2d.py   # PCB top/cutouts/bottom SVG
-│   │   │   ├── 11_render_sch.py  # schematic root + 4 sub-sheets SVG
-│   │   │   ├── 12_render_png.py  # cairosvg batch SVG -> PNG
-│   │   │   └── 13_render_3d.py   # 3D top + iso renders
+│   │   │   ├── _common.py        # PROJECT-AGNOSTIC helpers: Stage class, find_kicad_cli, run, sha256
+│   │   │   ├── _project.py       # OAS-specific config consumed by generic stages
+│   │   │   │                     # (PCB/SCH paths, source-files list, sub-sheets, render layers)
+│   │   │   ├── generic/          # REUSABLE across KiCad projects (zero OAS references)
+│   │   │   │   ├── 01_generate.py     # invoke project's generate.py
+│   │   │   │   ├── 02_determinism.py  # bit-identity self-check (re-run + hash diff)
+│   │   │   │   ├── 03_drc.py          # kicad-cli pcb drc strict
+│   │   │   │   ├── 04_erc.py          # kicad-cli sch erc strict
+│   │   │   │   ├── 10_render_2d.py    # PCB top/cutouts/bottom SVG
+│   │   │   │   ├── 11_render_sch.py   # schematic root + sub-sheets SVG
+│   │   │   │   ├── 12_render_png.py   # cairosvg batch SVG -> PNG
+│   │   │   │   └── 13_render_3d.py    # 3D top + iso renders
+│   │   │   └── oas/              # OAS-ONLY verification (deeply hardcoded to this circuit)
+│   │   │       ├── 05_check_dc.py     # DC voltage propagation analytical model
+│   │   │       ├── 06_check_boot.py   # ESP32-C6 strap + signal pin audit
+│   │   │       └── 07_check_ampacity.py  # IPC-2221 trace width verifier
 │   │   ├── tools/                # MANUAL-trigger scripts (preflight_gerbers, jlcdfm_upload, etc.)
 │   │   └── renders/              # generated previews (PNG + SVG + DRC/ERC reports)
 │   ├── bom/

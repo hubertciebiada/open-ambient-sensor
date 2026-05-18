@@ -25,8 +25,9 @@ import re
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).parent))
-from _common import Stage, run, find_kicad_cli, RENDERS, PCB  # noqa: E402
+sys.path.insert(0, str(Path(__file__).parent.parent))
+from _common import Stage, run, find_kicad_cli, RENDERS  # noqa: E402
+from _project import PCB_PATH  # noqa: E402
 
 STAGE_NAME = "drc"
 
@@ -43,7 +44,7 @@ def main() -> int:
             "--output", str(drc_report),
             "--severity-error", "--severity-warning",
             "--refill-zones",
-            str(PCB),
+            str(PCB_PATH),
         ])
 
         drc_text = drc_report.read_text(encoding="utf-8", errors="replace")

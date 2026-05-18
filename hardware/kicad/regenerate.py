@@ -37,15 +37,17 @@ PIPELINE = HERE / "pipeline"
 
 
 def discover_stages() -> list[Path]:
-    """Return sorted NN_<name>.py files. Skips _common.py and anything
-    that doesn't match the two-digit-prefix convention."""
-    return sorted(PIPELINE.glob("[0-9][0-9]_*.py"))
+    """Return NN_<name>.py files from `pipeline/<subdir>/`, sorted by
+    basename so numeric prefix order (01..13) is preserved regardless of
+    which subdir (`generic/` or `oas/`) each stage lives in. Skips
+    `_common.py` / `_project.py` (top-level, no NN_ prefix)."""
+    return sorted(PIPELINE.glob("*/[0-9][0-9]_*.py"), key=lambda p: p.name)
 
 
 def run_stage(prefix: str, name: str, stage: Path) -> int:
     """Invoke a single pipeline script as a subprocess.
 
-    Injects OAS_PIPELINE_IDX (the two-digit prefix from the filename) so
+    Injects PIPELINE_IDX (the two-digit prefix from the filename) so
     Stage in `_common.py` shows `=== STAGE NN: name ===`. Numbers stay
     aligned with filenames forever — adding/removing siblings does NOT
     renumber unrelated stages.
@@ -55,14 +57,14 @@ def run_stage(prefix: str, name: str, stage: Path) -> int:
     layout), we emit the banner here BEFORE invoking, since those scripts
     don't import _common.Stage. Newer stages have Stage(...) inside and
     emit the banner themselves; we suppress the duplicate by passing
-    OAS_PIPELINE_BANNER_EMITTED=1 (Stage honours it and skips its own
+    PIPELINE_BANNER_EMITTED=1 (Stage honours it and skips its own
     banner)."""
     env = {
         **os.environ,
-        "OAS_PIPELINE_IDX": prefix,
+        "PIPELINE_IDX": prefix,
     }
     print(f"\n=== STAGE {prefix}: {name} ===")
-    env["OAS_PIPELINE_BANNER_EMITTED"] = "1"
+    env["PIPELINE_BANNER_EMITTED"] = "1"
     r = subprocess.run([sys.executable, str(stage)], env=env)
     return r.returncode
 

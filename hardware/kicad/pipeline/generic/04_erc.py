@@ -13,8 +13,9 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).parent))
-from _common import Stage, run, find_kicad_cli, RENDERS, SCH  # noqa: E402
+sys.path.insert(0, str(Path(__file__).parent.parent))
+from _common import Stage, run, find_kicad_cli, RENDERS  # noqa: E402
+from _project import SCH_PATH  # noqa: E402
 
 STAGE_NAME = "erc"
 
@@ -31,7 +32,7 @@ def main() -> int:
             "--output", str(erc_report),
             "--severity-error", "--severity-warning",
             "--exit-code-violations",
-            str(SCH),
+            str(SCH_PATH),
         ])
         st.ok(f"clean — see {erc_report}")
     return 0

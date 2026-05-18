@@ -12,16 +12,11 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).parent))
-from _common import Stage, run, find_kicad_cli, RENDERS, PCB  # noqa: E402
+sys.path.insert(0, str(Path(__file__).parent.parent))
+from _common import Stage, run, find_kicad_cli, RENDERS  # noqa: E402
+from _project import PCB_PATH, PCB_2D_TARGETS  # noqa: E402
 
 STAGE_NAME = "render_2d"
-
-SVG_TARGETS = [
-    ("2d-top",     "Edge.Cuts,F.Cu,F.Mask,F.SilkS,F.CrtYd,F.Fab"),
-    ("2d-cutouts", "Edge.Cuts,F.Cu,Dwgs.User"),
-    ("2d-bottom",  "Edge.Cuts,B.Cu,B.Mask,B.SilkS,B.CrtYd,B.Fab"),
-]
 
 
 def main() -> int:
@@ -29,7 +24,7 @@ def main() -> int:
         kcli = find_kicad_cli()
         RENDERS.mkdir(exist_ok=True)
 
-        for name, layers in SVG_TARGETS:
+        for name, layers, mirror in PCB_2D_TARGETS:
             out = RENDERS / f"{name}.svg"
             cmd = [
                 kcli, "pcb", "export", "svg",
@@ -40,9 +35,9 @@ def main() -> int:
                 "--fit-page-to-board",
                 "--exclude-drawing-sheet",
                 "--check-zones",
-                str(PCB),
+                str(PCB_PATH),
             ]
-            if name == "2d-bottom":
+            if mirror:
                 cmd.insert(-1, "--mirror")
             st.info(f"rendering {out.name}")
             run(cmd, hide_output=True)

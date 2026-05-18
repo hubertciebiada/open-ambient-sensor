@@ -11,18 +11,11 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).parent))
+sys.path.insert(0, str(Path(__file__).parent.parent))
 from _common import Stage, run, find_kicad_cli, RENDERS, KICAD_ROOT  # noqa: E402
+from _project import SCH_SUB_SHEETS  # noqa: E402
 
 STAGE_NAME = "render_sch"
-
-SCH_TARGETS = [
-    ("sch-root",    KICAD_ROOT / "oas.kicad_sch"),
-    ("sch-power",   KICAD_ROOT / "power.kicad_sch"),
-    ("sch-mcu",     KICAD_ROOT / "mcu.kicad_sch"),
-    ("sch-sensors", KICAD_ROOT / "sensors.kicad_sch"),
-    ("sch-io",      KICAD_ROOT / "io.kicad_sch"),
-]
 
 
 def main() -> int:
@@ -30,7 +23,8 @@ def main() -> int:
         kcli = find_kicad_cli()
         RENDERS.mkdir(exist_ok=True)
 
-        for out_name, src in SCH_TARGETS:
+        for out_name, src_name in SCH_SUB_SHEETS:
+            src = KICAD_ROOT / src_name
             # Render into a temp subdir (prefixed `_` so it stays gitignored
             # along with the DRC/ERC reports), then atomically move the
             # produced file into renders/ under the desired sch-<name>.svg

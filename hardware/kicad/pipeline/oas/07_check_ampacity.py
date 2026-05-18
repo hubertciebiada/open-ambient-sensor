@@ -58,7 +58,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 HERE = Path(__file__).parent
-KICAD_DIR = HERE.parent
+KICAD_DIR = HERE.parent.parent  # pipeline/oas/ -> pipeline/ -> hardware/kicad
 PCB_PATH = KICAD_DIR / "oas.kicad_pcb"
 
 # IPC-2221 formula constants.

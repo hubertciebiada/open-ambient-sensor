@@ -1,14 +1,23 @@
-"""Shared helpers for the OAS regenerate pipeline.
+"""Generic helpers for a KiCad regenerate pipeline.
 
-Every `pipeline/NN_<name>.py` stage imports from this module via
-`sys.path.insert(0, str(Path(__file__).parent)); from _common import ...`.
-The numeric-prefix filenames cannot be `import`-ed directly, so each stage
-runs as its own subprocess (the orchestrator in `regenerate.py` invokes
-them via `subprocess.run`) and `_common` is loaded via the parent-dir
+This module contains ONLY project-agnostic helpers: subprocess wrapper,
+kicad-cli locator, SHA-256 hash, the Stage context manager. NO OAS-
+specific paths or lists — those live in `_project.py`. Together with
+`pipeline/generic/`, this file is portable to any KiCad project that
+provides a matching `_project.py`.
+
+Stages under `pipeline/<subdir>/NN_<name>.py` import from this module via:
+
+    sys.path.insert(0, str(Path(__file__).parent.parent))
+    from _common import Stage, run, find_kicad_cli, ...
+
+The numeric-prefix filenames cannot be `import`-ed directly, so each
+stage runs as its own subprocess (the orchestrator in `regenerate.py`
+invokes them via `subprocess.run`) and `_common` is loaded via the
 sys.path trick.
 
 Format contract (consumed by `regenerate.py`):
-  - Every stage prints `=== STAGE NN/TT: name ===` on entry.
+  - Every stage prints `=== STAGE NN: name ===` on entry.
   - Every stage emits `[INFO] ...`, `[OK] ...`, `[WARN] ...`, `[FAIL] ...`
     log lines (uniform 4-char tag column with a 3-space pad after `OK`).
   - On clean exit a stage prints `[OK]   stage passed in X.Xs` and returns 0.
@@ -32,8 +41,6 @@ from pathlib import Path
 HERE = Path(__file__).parent              # hardware/kicad/pipeline
 KICAD_ROOT = HERE.parent                  # hardware/kicad
 RENDERS = KICAD_ROOT / "renders"
-PCB = KICAD_ROOT / "oas.kicad_pcb"
-SCH = KICAD_ROOT / "oas.kicad_sch"
 
 # kicad-cli locator ---------------------------------------------------------
 KICAD_CLI_CANDIDATES = [
@@ -68,30 +75,6 @@ def run(cmd: list[str], *, hide_output: bool = False) -> None:
         subprocess.run(cmd, check=True)
 
 
-# Source-file enumeration (used by 02_determinism) --------------------------
-def kicad_source_files() -> list[Path]:
-    """Return all generated KiCad source-files whose content must be
-    bit-identical across consecutive regenerations (v0.23 review Nt2 —
-    determinism self-check). Excludes the renders/ directory and the
-    auto-managed .kicad_prl runtime state file."""
-    files: list[Path] = [
-        KICAD_ROOT / "oas.kicad_pcb",
-        KICAD_ROOT / "oas.kicad_sch",
-        KICAD_ROOT / "oas.kicad_pro",
-        KICAD_ROOT / "power.kicad_sch",
-        KICAD_ROOT / "mcu.kicad_sch",
-        KICAD_ROOT / "sensors.kicad_sch",
-        KICAD_ROOT / "io.kicad_sch",
-        KICAD_ROOT / "fp-lib-table",
-        KICAD_ROOT / "sym-lib-table",
-    ]
-    lib_dir = KICAD_ROOT / "libraries"
-    if lib_dir.exists():
-        files.extend(sorted(lib_dir.rglob("*.kicad_mod")))
-        files.extend(sorted(lib_dir.rglob("*.kicad_sym")))
-    return [p for p in files if p.exists()]
-
-
 def sha256(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
@@ -106,7 +89,7 @@ class Stage:
     sub-process exits non-zero.
 
     Position-in-pipeline (`NN/TT`) is picked up from the env vars
-    `OAS_PIPELINE_IDX` and `OAS_PIPELINE_TOTAL` that the orchestrator
+    `PIPELINE_IDX` and `PIPELINE_TOTAL` that the orchestrator
     (`regenerate.py`) injects per subprocess call. When the stage script
     is run standalone for debug, those vars are unset and the banner
     omits the position counter.
@@ -114,10 +97,10 @@ class Stage:
 
     def __init__(self, name: str) -> None:
         self.name = name
-        self.idx = os.environ.get("OAS_PIPELINE_IDX")
+        self.idx = os.environ.get("PIPELINE_IDX")
         # When the orchestrator already printed the banner, skip ours
         # to avoid the duplicate `=== STAGE NN: name ===` line.
-        self._banner_already = os.environ.get("OAS_PIPELINE_BANNER_EMITTED") == "1"
+        self._banner_already = os.environ.get("PIPELINE_BANNER_EMITTED") == "1"
         self._t0: float = 0.0
 
     def __enter__(self) -> "Stage":

@@ -9,15 +9,11 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).parent))
-from _common import Stage, run, find_kicad_cli, RENDERS, PCB  # noqa: E402
+sys.path.insert(0, str(Path(__file__).parent.parent))
+from _common import Stage, run, find_kicad_cli, RENDERS  # noqa: E402
+from _project import PCB_PATH, PCB_3D_TARGETS  # noqa: E402
 
 STAGE_NAME = "render_3d"
-
-RENDER_TARGETS = [
-    ("3d-top.png", []),
-    ("3d-iso.png", ["--rotate", "-45,0,45", "--perspective", "--floor"]),
-]
 
 
 def main() -> int:
@@ -25,7 +21,7 @@ def main() -> int:
         kcli = find_kicad_cli()
         RENDERS.mkdir(exist_ok=True)
 
-        for out_name, extra in RENDER_TARGETS:
+        for out_name, extra in PCB_3D_TARGETS:
             st.info(f"rendering {out_name} (~15s)")
             run([
                 kcli, "pcb", "render",
@@ -35,7 +31,7 @@ def main() -> int:
                 "--background", "opaque",
                 "--quality", "high",
                 *extra,
-                str(PCB),
+                str(PCB_PATH),
             ], hide_output=True)
             st.ok(f"wrote {out_name}")
     return 0
