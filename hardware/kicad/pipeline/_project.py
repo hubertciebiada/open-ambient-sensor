@@ -75,3 +75,56 @@ PCB_3D_TARGETS = [
     ("3d-top.png", []),
     ("3d-iso.png", ["--rotate", "-45,0,45", "--perspective", "--floor"]),
 ]
+
+# ===========================================================================
+# Production export (stages 20-24)
+# ===========================================================================
+
+# Stage 20: gerber + drill output dir -------------------------------------
+GERBER_OUTPUT_DIR = KICAD_ROOT.parent / "gerbers"   # hardware/gerbers/
+
+# Fab deliverable layers. NOT F.Fab / B.Fab / F.CrtYd / B.CrtYd / Dwgs.User
+# — those are internal documentation, not for production.
+FAB_LAYERS = (
+    "F.Cu,B.Cu,"
+    "F.Mask,B.Mask,"
+    "F.Silkscreen,B.Silkscreen,"
+    "F.Paste,B.Paste,"
+    "Edge.Cuts"
+)
+
+# Stage 21: position file outputs -----------------------------------------
+# Each tuple: (kicad-cli --side argument, output filename relative to
+# GERBER_OUTPUT_DIR). JLCPCB CPL upload requires header
+# `Designator, Mid X, Mid Y, Layer, Rotation` — the stage post-processes
+# kicad-cli's default `Ref, Val, Package, PosX, PosY, Rot, Side` to that.
+POS_OUTPUT_FILES = [
+    ("front", "oas-top-pos.csv"),
+    ("back",  "oas-bottom-pos.csv"),
+]
+
+# Stage 22: BOM with LCSC mapping -----------------------------------------
+BOM_OUTPUT_FILE = "oas-bom.csv"
+LCSC_MAPPING_CSV = KICAD_ROOT.parent / "bom" / "lcsc-mapping.csv"
+
+# Reference designators that go through THT hand-solder line (not SMT).
+# A BOM row whose ALL designators belong here gets emitted with blank
+# LCSC + JLCPCB_Library = "THT (hand-solder)". J1 Phoenix terminal,
+# J4 LD2410 1.27 mm header, J5/J6 ESP32 sockets, J7/J8 MIKROE-2462
+# sockets, C1/C3 D8 radial bulk, C4 D6.3 radial bulk.
+THT_REFERENCES = {"J1", "J4", "J5", "J6", "J7", "J8", "C1", "C3", "C4"}
+
+# Stage 23: JLCPCB ZIP bundle ---------------------------------------------
+BUNDLE_NAME = "oas-jlcpcb.zip"
+# Globs relative to GERBER_OUTPUT_DIR. Set as globs so a layer-list change
+# in FAB_LAYERS automatically widens the bundle.
+BUNDLE_GLOBS = ["*.gtl", "*.gbl", "*.gts", "*.gbs",
+                "*.gto", "*.gbo", "*.gtp", "*.gbp",
+                "*.gm1", "*.drl"]
+
+# Stage 24: preflight -----------------------------------------------------
+# Expected drill statistics from generate.py geometry. Update when board
+# mechanicals change (mounting hole count / zip-tie hole count).
+NPTH_EXPECTED_TOOLS = {3.00, 3.80}     # 3.00 = zip-tie pairs, 3.80 = M3 mount
+NPTH_EXPECTED_HOLES = 4 + 3            # 4 zip-tie + 3 M3 mounting
+PTH_MIN_DRILL_MM = 0.30                # JLCPCB std 2-layer minimum

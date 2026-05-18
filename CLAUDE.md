@@ -289,8 +289,7 @@ open-ambient-sensor/
 │   │   └── sen66-bracket.stl     # own work — bracket for mounting SEN66 on cover
 │   ├── kicad/
 │   │   ├── generate.py           # SOURCE OF TRUTH — Python that generates all .kicad_* files
-│   │   ├── regenerate.py         # thin orchestrator — runs every pipeline/NN_*.py in order
-│   │   ├── export_production.py  # gerbers + drill + pos + BOM + JLCPCB zip
+│   │   ├── regenerate.py         # thin orchestrator — runs every pipeline/<subdir>/NN_*.py in order
 │   │   ├── oas_routes.py         # derived — Freerouting snapshot, replayed by generate.py
 │   │   ├── oas.kicad_pro         # generated artefact
 │   │   ├── oas.kicad_sch         # generated artefact
@@ -299,21 +298,27 @@ open-ambient-sensor/
 │   │   ├── pipeline/             # one stage per file (NN_<name>.py); each is standalone-runnable
 │   │   │   ├── _common.py        # PROJECT-AGNOSTIC helpers: Stage class, find_kicad_cli, run, sha256
 │   │   │   ├── _project.py       # OAS-specific config consumed by generic stages
-│   │   │   │                     # (PCB/SCH paths, source-files list, sub-sheets, render layers)
+│   │   │   │                     # (paths, source-files list, sub-sheets, render layers, FAB layers,
+│   │   │   │                     # LCSC mapping path, THT references, ZIP bundle name + globs)
 │   │   │   ├── generic/          # REUSABLE across KiCad projects (zero OAS references)
-│   │   │   │   ├── 01_generate.py     # invoke project's generate.py
-│   │   │   │   ├── 02_determinism.py  # bit-identity self-check (re-run + hash diff)
-│   │   │   │   ├── 03_drc.py          # kicad-cli pcb drc strict
-│   │   │   │   ├── 04_erc.py          # kicad-cli sch erc strict
-│   │   │   │   ├── 10_render_2d.py    # PCB top/cutouts/bottom SVG
-│   │   │   │   ├── 11_render_sch.py   # schematic root + sub-sheets SVG
-│   │   │   │   ├── 12_render_png.py   # cairosvg batch SVG -> PNG
-│   │   │   │   └── 13_render_3d.py    # 3D top + iso renders
+│   │   │   │   ├── 01_generate.py        # invoke project's generate.py
+│   │   │   │   ├── 02_determinism.py     # bit-identity self-check (re-run + hash diff)
+│   │   │   │   ├── 03_drc.py             # kicad-cli pcb drc strict
+│   │   │   │   ├── 04_erc.py             # kicad-cli sch erc strict
+│   │   │   │   ├── 10_render_2d.py       # PCB top/cutouts/bottom SVG
+│   │   │   │   ├── 11_render_sch.py      # schematic root + sub-sheets SVG
+│   │   │   │   ├── 12_render_png.py      # cairosvg batch SVG -> PNG
+│   │   │   │   ├── 13_render_3d.py       # 3D top + iso renders
+│   │   │   │   ├── 20_export_gerbers.py  # Protel gerbers + Excellon drill + drill_map PDF
+│   │   │   │   ├── 21_export_pos.py      # JLCPCB CPL format (Designator/Mid X/Mid Y/Layer/Rotation)
+│   │   │   │   ├── 23_bundle_jlcpcb.py   # ZIP gerbers + drill into <project>-jlcpcb.zip
+│   │   │   │   └── 24_preflight_gerbers.py  # pygerber integrity + drill stats + composite render
 │   │   │   └── oas/              # OAS-ONLY verification (deeply hardcoded to this circuit)
-│   │   │       ├── 05_check_dc.py     # DC voltage propagation analytical model
-│   │   │       ├── 06_check_boot.py   # ESP32-C6 strap + signal pin audit
-│   │   │       └── 07_check_ampacity.py  # IPC-2221 trace width verifier
-│   │   ├── tools/                # MANUAL-trigger scripts (preflight_gerbers, jlcdfm_upload, etc.)
+│   │   │       ├── 05_check_dc.py        # DC voltage propagation analytical model
+│   │   │       ├── 06_check_boot.py      # ESP32-C6 strap + signal pin audit
+│   │   │       ├── 07_check_ampacity.py  # IPC-2221 trace width verifier
+│   │   │       └── 22_export_bom_jlcpcb.py  # BOM + LCSC lookup + range expansion + THT detection
+│   │   ├── tools/                # MANUAL-trigger scripts (extract_routes, jlcdfm_upload, check_switching)
 │   │   └── renders/              # generated previews (PNG + SVG + DRC/ERC reports)
 │   ├── bom/
 │   │   ├── lcsc-mapping.csv      # SOURCE OF TRUTH for SMD LCSC SKUs
@@ -392,9 +397,11 @@ The KiCad project in `hardware/kicad/` is **script-driven**. The source of truth
    - `04_erc` — `kicad-cli sch erc` strict (`--severity-error --severity-warning --exit-code-violations`).
    - `05_check_dc` / `06_check_boot` / `07_check_ampacity` — DC voltage propagation, boot-strap audit, trace ampacity checks.
    - `10_render_2d` / `11_render_sch` / `12_render_png` / `13_render_3d` — re-renders SVG + PNG + 3D into `renders/`.
-   Numbers `08`–`09` are intentionally reserved for future verification checks; the gap stays visible in `ls`. **Aborts on any violation or determinism drift** (fail-fast — later stages don't run). Each `pipeline/NN_*.py` is also independently runnable for debug (`python pipeline/03_drc.py`).
-4. The assistant commits the resulting diff (sources + KiCad files + renders together).
-5. For fab orders: `python export_production.py` emits gerbers + drill + pos + BOM + JLCPCB zip. `python tools/preflight_gerbers.py` independently verifies the gerber bundle via pygerber before upload.
+   - `20_export_gerbers` / `21_export_pos` / `22_export_bom_jlcpcb` / `23_bundle_jlcpcb` — production deliverables in JLCPCB happy-path format (CPL header `Designator, Mid X, Mid Y, Layer, Rotation`; BOM with LCSC mapping + range expansion + THT detection; ZIP bundle).
+   - `24_preflight_gerbers` — pygerber integrity + drill statistics + composite renders (smoke test before fab upload).
+   Numbers `08`–`09` and `14`–`19` are intentionally reserved for future verification checks; the gap stays visible in `ls`. **Aborts on any violation or determinism drift** (fail-fast — later stages don't run). Each `pipeline/<subdir>/NN_*.py` is also independently runnable for debug (`python pipeline/generic/03_drc.py`).
+4. The assistant commits the resulting diff (sources + KiCad files + renders + gerbers together).
+5. JLCPCB upload: `hardware/gerbers/oas-jlcpcb.zip` (bare board) + `oas-top-pos.csv` + `oas-bom.csv` (SMT assembly). Drill review: `oas-PTH-drl_map.pdf` / `oas-NPTH-drl_map.pdf`. All files produced by stages 20-24 on every `regenerate.py` run.
 
 ### Rules
 
