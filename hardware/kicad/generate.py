@@ -19781,6 +19781,13 @@ def _route_hand_v40(em: "_RouteEmitter", nets: dict) -> int:
             ( +3.94, -47.38, "bcu_frag0_south"),    #  12 mm²: south ESP32
             (-53.38,  -4.15, "bcu_frag2_ld_w"),     # 0.9 mm²: LD2410 west tiny
             (-53.31,  -6.53, "bcu_frag3_ld_w"),     # 0.7 mm²: LD2410 west tiny
+            # Frag8 (E of cable hole, area 112) has centroid at
+            # (+5.96, -11.50) but the existing fcu_frag10_e via
+            # there lies outside the polygon shape (donut artifact?).
+            # Add a SECOND via in a different region of the same
+            # fragment — try bbox (+10, -18) which should be inside
+            # the polygon.
+            (+10.5, -18.0, "fcu_frag8_alt"),  # 0.5 mm further east to clear +24V B.Cu seg:0000 at X=9.45
         ]:
             em.via(stitch_x, stitch_y, code,
                    uuid_tag=f"hand_v40:stitch_{tag}")
