@@ -9,17 +9,18 @@ reports a permanent self-test failure code.
 
 Pure-Python wrapper around ngspice 46 CLI. NO PySpice dependency -
 matches the OAS convention of subprocess-only external tools (same as
-check_dc.py / check_boot.py / check_ampacity.py / preflight_gerbers.py).
+05_check_dc / 06_check_boot / 07_check_ampacity / 24_preflight_gerbers).
 
 Run modes
 ---------
-* Standalone:   `python tools/check_switching.py`
-* NOT wired into regenerate.py:
-  - First run downloads ~50 MB of ngspice + ~50 kB of TI PSpice models
-    (one-time cache under .cache/spice/, gitignored). Subsequent runs
-    are ~15 s wall time per test scenario.
-  - regenerate.py runs in ~86 s; gating SPICE behind a manual trigger
-    keeps the inner-loop iteration tight.
+* Pipeline stage:  invoked from regenerate.py as stage 08.
+* Standalone:      `python pipeline/oas/08_check_switching.py`.
+
+Soft-skip: if `ngspice_con.exe` or the LM2596 PSpice model are not
+present in the local cache (one-time ~50 MB download from TI), the stage
+prints a [WARN] and exits 0. Pipeline therefore runs out-of-box on a
+clean machine; SPICE verification kicks in once the user has populated
+the cache.
 
 Datasheet sources
 -----------------
@@ -37,12 +38,13 @@ Limitations
   is a close electrical proxy but not identical to TPS62933 (internal
   fixed SS) used in OAS. Adding it is a future extension.
 * This checks DYNAMICS - rail timing, ramp shape, settling. For
-  steady-state DC operating point, see tools/check_dc.py.
+  steady-state DC operating point, see pipeline/oas/05_check_dc.py.
 * No AC stability analysis (gain/phase margin) - those require AC
   sweep and the TI model's small-signal accuracy under PSpice-compat
   ngspice mode is not characterised by TI.
 
-Exit code 0 if all assertions pass, 1 on any failure.
+Exit code 0 if all assertions pass OR ngspice cache is empty (soft-skip);
+1 on any actual assertion failure or ngspice runtime error.
 """
 from __future__ import annotations
 
@@ -56,7 +58,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 HERE = Path(__file__).parent
-KICAD_DIR = HERE.parent
+KICAD_DIR = HERE.parent.parent  # pipeline/oas/ -> pipeline/ -> hardware/kicad
 CACHE_DIR = KICAD_DIR / ".cache" / "spice"
 CACHE_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -99,37 +101,30 @@ class CheckResult:
         return f"  [{mark}] {self.name:38s} {self.value:30s} (spec: {self.spec})"
 
 
-def find_ngspice() -> Path:
-    """Locate ngspice_con.exe. Tries the OAS cache first, then the
-    research-agent leftover at AppData\\Local\\Temp\\Spice64\\bin\\,
-    then prompts the user to run the download path."""
+def find_ngspice() -> Path | None:
+    """Locate ngspice_con.exe. Tries the project-local cache first, then
+    the system's LOCALAPPDATA/Temp/Spice64 path that some installers use.
+    Returns None if neither found (soft-skip behaviour for pipeline use)."""
     candidates = [
         CACHE_DIR / "Spice64" / "bin" / NGSPICE_BIN_NAME,
         Path(os.environ.get("LOCALAPPDATA", "")) / "Temp" / "Spice64" / "bin" / NGSPICE_BIN_NAME,
-        Path(r"C:\Users\Hubert\AppData\Local\Temp\Spice64\bin") / NGSPICE_BIN_NAME,
     ]
     for c in candidates:
         if c.exists():
             return c
-    sys.exit(
-        "ERROR: ngspice not found. Run with --setup to download (~50 MB to "
-        f"{CACHE_DIR}/Spice64/), or extract ngspice-46_64.7z manually."
-    )
+    return None
 
 
-def find_lm2596_model() -> Path:
-    """Locate LM2596_5P0_TRANS.LIB. Cache first, then research-agent leftover."""
+def find_lm2596_model() -> Path | None:
+    """Locate LM2596_5P0_TRANS.LIB in the project-local cache. Returns
+    None if missing (soft-skip behaviour for pipeline use)."""
     candidates = [
         CACHE_DIR / "lm2596_5p0" / "LM2596_5P0_TRANS.LIB",
-        Path(r"C:\Users\Hubert\AppData\Local\Temp\oas_spice_research\lm2596_5p0") / "LM2596_5P0_TRANS.LIB",
     ]
     for c in candidates:
         if c.exists():
             return c
-    sys.exit(
-        "ERROR: LM2596_5P0_TRANS.LIB not found. Run with --setup to download "
-        f"({LM2596_MODEL_URL}) into {CACHE_DIR}/lm2596_5p0/."
-    )
+    return None
 
 
 def write_spice_init(workdir: Path) -> None:
@@ -234,7 +229,19 @@ def main() -> None:
     print()
 
     ngspice = find_ngspice()
+    if ngspice is None:
+        print("[WARN] ngspice not found in cache - skipping switching check")
+        print(f"       To enable, download ngspice-46_64.7z from {NGSPICE_URL}")
+        print(f"       and extract to {CACHE_DIR}/Spice64/")
+        sys.exit(0)
+
     model = find_lm2596_model()
+    if model is None:
+        print("[WARN] LM2596 PSpice model not found in cache - skipping switching check")
+        print(f"       To enable, download {LM2596_MODEL_URL}")
+        print(f"       and extract LM2596_5P0_TRANS.LIB to {CACHE_DIR}/lm2596_5p0/")
+        sys.exit(0)
+
     print(f"  ngspice: {ngspice}")
     print(f"  LM2596 model: {model}")
     print()

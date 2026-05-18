@@ -317,8 +317,9 @@ open-ambient-sensor/
 │   │   │       ├── 05_check_dc.py        # DC voltage propagation analytical model
 │   │   │       ├── 06_check_boot.py      # ESP32-C6 strap + signal pin audit
 │   │   │       ├── 07_check_ampacity.py  # IPC-2221 trace width verifier
+│   │   │       ├── 08_check_switching.py # ngspice LM2596 soft-start (soft-skip if ngspice not in cache)
 │   │   │       └── 22_export_bom_jlcpcb.py  # BOM + LCSC lookup + range expansion + THT detection
-│   │   ├── tools/                # MANUAL-trigger scripts (extract_routes, jlcdfm_upload, check_switching)
+│   │   ├── tools/                # MANUAL-trigger scripts (extract_routes, jlcdfm_upload)
 │   │   └── renders/              # generated previews (PNG + SVG + DRC/ERC reports)
 │   ├── bom/
 │   │   ├── lcsc-mapping.csv      # SOURCE OF TRUTH for SMD LCSC SKUs
@@ -395,7 +396,7 @@ The KiCad project in `hardware/kicad/` is **script-driven**. The source of truth
    - `02_determinism` — runs `generate.py` a SECOND time and checks 17 source files are bit-identical.
    - `03_drc` — `kicad-cli pcb drc` strict (`--severity-error --severity-warning --refill-zones`).
    - `04_erc` — `kicad-cli sch erc` strict (`--severity-error --severity-warning --exit-code-violations`).
-   - `05_check_dc` / `06_check_boot` / `07_check_ampacity` — DC voltage propagation, boot-strap audit, trace ampacity checks.
+   - `05_check_dc` / `06_check_boot` / `07_check_ampacity` / `08_check_switching` — DC voltage propagation, boot-strap audit, trace ampacity, ngspice transient (soft-skips with [WARN] if ngspice + LM2596 PSpice model not in `.cache/spice/`).
    - `10_render_2d` / `11_render_sch` / `12_render_png` / `13_render_3d` — re-renders SVG + PNG + 3D into `renders/`.
    - `20_export_gerbers` / `21_export_pos` / `22_export_bom_jlcpcb` / `23_bundle_jlcpcb` — production deliverables in JLCPCB happy-path format (CPL header `Designator, Mid X, Mid Y, Layer, Rotation`; BOM with LCSC mapping + range expansion + THT detection; ZIP bundle).
    - `24_preflight_gerbers` — pygerber integrity + drill statistics + composite renders (smoke test before fab upload).
