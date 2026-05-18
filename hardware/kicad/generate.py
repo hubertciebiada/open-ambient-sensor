@@ -18244,16 +18244,16 @@ def _apply_schematic_footprints(content: str, ref_to_fp: dict[str, str]) -> str:
 # Final state (v0.28e) routes every chunk.
 ROUTING_CHUNKS: tuple[str, ...] = (
     "gnd",         # Chunk 1 — F.Cu + B.Cu GND copper pour
-    # autoroute disabled — J3/J10 moved, snapshot invalidated; next
-    # iteration will re-run Freerouting against the new placement.
-    # "autoroute",   # Chunk 2 — Freerouting v2.2.4 snapshot (re-paved
-                   # against the post-placement-rework PCB on 2026-05-18).
-                   # 413 segments + 20 vias produced from 100 unrouted
-                   # nets in 2m28s (16 effective passes, score 984.65).
-                   # 4 nets remain unrouted: SCL/SDA/+3V3 trio between
-                   # J3 (SEN66 socket) and J9 (Qwiic expansion), plus
-                   # Net-(D1-A1) input-protection segment from D3-1 to
-                   # J1-1. Hand-route those four in a follow-up chunk.
+    "autoroute",   # Chunk 2 — Freerouting v2.2.4 snapshot. Re-paved
+                   # against the rework-3/4/5 placement on 2026-05-18:
+                   # J10 horizontal, Q1/D3/R1/R4 cluster south of F1,
+                   # D1 +3 mm east, C11 south of J4, U1 +1 mm east.
+                   # 413 segments + 23 vias produced from 100 unrouted
+                   # nets in 1m26s (7 effective passes, score 987.66).
+                   # 3 nets remain unrouted (best result so far —
+                   # previous runs left 4-7); hand-route those in a
+                   # follow-up chunk once the unrouted nets are
+                   # identified from DRC.
     # "io_finalize",      # Chunk 3 (legacy v0.28 — superseded; not used)
 )
 
