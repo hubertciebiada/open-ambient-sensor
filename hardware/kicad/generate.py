@@ -19619,6 +19619,169 @@ def _route_hand_v40(em: "_RouteEmitter", nets: dict) -> int:
         # perpendicular from pad center → via-in-pad has 0.565 mm
         # clearance to the diagonal (well above 0.15 mm minimum).
         em.via(8.07, 5.22, code, uuid_tag="hand_v40:c21_gnd_stitch")
+        # C25 0402 cap pad 2 GND at PCB (-8.55, +4.38). +3V3 B.Cu
+        # seg:0019 vertical at X=-8.9237 (Y range -8.24..+15.75) is
+        # only 0.37 mm west of the pad → via-in-pad would short.
+        # Shift via WEST to (-9.5, +4.38) where +3V3 B.Cu is 0.576 mm
+        # away, giving 0.151 mm B.Cu clearance (just above 0.15 min).
+        # F.Cu stub bridges pad to via.
+        em.via(-9.5, 4.38, code, uuid_tag="hand_v40:c25_gnd_stitch")
+        em.seg(-8.55, 4.38, -9.5, 4.38, 0.25, "F.Cu", code,
+               uuid_tag="hand_v40:c25_gnd_a1")
+
+        # ---- F. GND pour-island stitching for isolated PTH pads ----
+        # J5.13 / J7.8 / J1.2 are through-hole pads whose F.Cu pour
+        # island is electrically disconnected from the main B.Cu pour
+        # in the autoroute snapshot. Drop a stitch via in a clear
+        # area near each pad to bridge the islands.
+        # J5.15 PTH GND at PCB (+13.17, -25.97) — east-end pad of
+        # ESP32 J5 row. Stitch via at (+13.17, -23) just south of
+        # row (Y=-25.97 is row, Y=-23 is 3 mm south — clear of MOD1
+        # ESP32 shadow Y_max=-24.70 by 1.7 mm). F.Cu stub from pad
+        # to via forces the connection (the autoroute snapshot left
+        # the local F.Cu pour island disconnected from the rest).
+        em.via(13.17, -23.0, code, uuid_tag="hand_v40:j5_15_gnd_stitch")
+        em.seg(13.17, -25.97, 13.17, -23.0, 0.25, "F.Cu", code,
+               uuid_tag="hand_v40:j5_15_gnd_a1")
+        # J7.8 PTH GND at PCB (-14.03, +20.32). Pad is hemmed in by
+        # multiple foreign tracks:
+        #   - +3V3 B.Cu seg:0017 diagonal at (-14.03, +20.86) — 0.54 mm
+        #     south of pad center.
+        #   - SDA F.Cu seg:0228 horizontal at Y=+19.16 — 1.16 mm south.
+        #   - +3V3 F.Cu seg:0071 horizontal at Y=+20.80 — 0.48 mm south.
+        # Route F.Cu diagonal NE from pad to a via at (-12, +19.9):
+        # the via location has 0.9 mm to +3V3 F.Cu, 0.74 mm to SDA
+        # F.Cu, and 1.07 mm to +3V3 B.Cu — all comfortably clear.
+        em.seg(-14.03, 20.32, -12.0, 19.9, 0.25, "F.Cu", code,
+               uuid_tag="hand_v40:j7_8_gnd_a1")
+        em.via(-12.0, 19.9, code, uuid_tag="hand_v40:j7_8_gnd_stitch")
+        # J5.13 PTH GND at PCB (+8.09, -25.97) — same constraint vs
+        # WS2812_DIN F.Cu seg:0273 diagonal crossing at (+8.09, -24.34).
+        # Route B.Cu directly from PTH pad north over the WS2812
+        # crossing on B.Cu, place stitch via at clean F.Cu pour.
+        em.seg(8.09, -25.97, 8.09, -23.0, 0.25, "B.Cu", code,
+               uuid_tag="hand_v40:j5_13_gnd_a1")
+        em.via(8.09, -23.0, code, uuid_tag="hand_v40:j5_13_gnd_stitch")
+        # J1.2 PTH GND at PCB (0, +27.40) — middle pin of 24 V
+        # terminal block. Route SOUTH (toward chord) instead of north
+        # to avoid crossing SCL F.Cu trunk seg:0210 (Y=+23.99,
+        # X=-34.95..+0.31) and +3V3 trunk seg:0071 (Y=+20.80,
+        # X=-13.97..+30.625). J1 pad row pins at X=±5.08 leave the
+        # X=0 column clear inside J1 body. PCB chord at Y=+43.5;
+        # via at Y=+34 is 9.5 mm clear.
+        em.seg(0.0, 27.4, 0.0, 34.0, 0.25, "F.Cu", code,
+               uuid_tag="hand_v40:j1_2_gnd_a1")
+        em.via(0.0, 34.0, code, uuid_tag="hand_v40:j1_2_gnd_stitch")
+        # C24 0402 cap pad 2 GND at PCB (-5.22, +8.07). LED ring
+        # area, far from nearby tracks (D15 at -6.5,+11.26 is 3.44 mm
+        # away; EP B.Cu track at X=-7.81 is 2.59 mm away). Via-in-pad
+        # fine.
+        em.via(-5.22, 8.07, code, uuid_tag="hand_v40:c24_gnd_stitch")
+
+        # ---- H. F.Cu / B.Cu pour-island stitching ----
+        # The autoroute snapshot's dense routing fragments the GND
+        # pour into multiple isolated islands per layer (e.g. v0.40
+        # had 25 F.Cu fragments + 5 B.Cu fragments). Each fragment
+        # that does NOT connect to the main pour generates one
+        # `unconnected_items` DRC entry.
+        #
+        # Bridge each small fragment to the opposite-layer MAIN pour
+        # via a stitch via at the fragment's centroid. The via:
+        #   - F.Cu side lands in the fragment (joining it to GND)
+        #   - B.Cu side lands in the B.Cu main pour (or vice versa)
+        # both ends are on the GND net so no clearance is needed
+        # against the pour copper itself.
+        #
+        # Fragment centroids extracted via tools/parse_zones.py from
+        # the post-MCP-refill kicad_pcb (the only state where KiCad's
+        # fill algorithm produces the full 28 fragments — kicad-cli's
+        # --refill-zones builds a slightly different sub-set, but the
+        # union covers the same areas).
+        for stitch_x, stitch_y, tag in [
+            # F.Cu small fragments — only those whose centroid is in a
+            # clear pour area (no foreign pad/track/via within DRC
+            # clearance). Fragments whose centroid lands on a pad or
+            # track get re-net'd by KiCad's connectivity merger and
+            # become via_dangling — those are SKIPPED here (see the
+            # commented-out lines).
+            (-28.26, -31.88, "fcu_frag15_esp32"),   # 266 mm²: ESP32 shadow
+            (+17.86, -44.21, "fcu_frag20_se"),      # 240 mm²: SE area
+            # ( -0.35,  +3.05, "fcu_frag4_north"),  # 138 mm²: skip — hits LED ring
+            # ( +5.96, -11.50, "fcu_frag9_ne"),     # 112 mm²: skip — merges with +5V
+            (+10.34, +20.11, "fcu_frag3_e"),        #  46 mm²: E of hole
+            # ( +6.30, -46.13, "fcu_frag22_se"),    #  34 mm²: skip — merges with U2-SW
+            # ( -2.88, -26.93, "fcu_frag13_j5"),    #  24 mm²: skip — too close to J5.9 WS2812_DIN PTH
+            # ( +9.90,  -3.69, "fcu_frag8_e"),      #  12 mm²: skip — clearance to +24V B.Cu
+            ( -3.69, -10.13, "fcu_frag11_w"),       #  12 mm²: NW of hole
+            (+10.22,  +2.80, "fcu_frag7_e"),        #   8 mm²: E of hole
+            ( +2.86, -10.24, "fcu_frag12_n"),       #   8 mm²: NE of hole
+            # ( +4.01, -25.71, "fcu_frag14_j5"),    #   8 mm²: skip — too close to J5 SCL pad
+            (-21.88, +23.03, "fcu_frag2_mikroe"),   #   8 mm²: MIKROE
+            # ( -9.58,  +4.20, "fcu_frag6_w"),      #   7 mm²: skip — conflicts with C25 stitch
+            (+14.59, +36.22, "fcu_frag0_south"),    #   7 mm²: S of board
+            ( +5.06, -29.41, "fcu_frag19_j5"),      #   6 mm²: J5 south
+            ( +5.99,  -8.23, "fcu_frag10_e"),       #   6 mm²: E of hole
+            ( -6.18,  +8.29, "fcu_frag5_w"),        #   6 mm²: W of hole
+            ( -0.73, -45.00, "fcu_frag23_j6"),      #   4 mm²: J6 area
+            # ( -4.61, -45.29, "fcu_frag24_j6w"),   #   4 mm²: skip — merges with U2-BST
+            ( -1.23, -41.81, "fcu_frag21_u2"),      #   3 mm²: U2 area
+            # ( +6.83, -26.59, "fcu_frag17_j5"),    # 0.9 mm²: skip — merges with +5V
+            # ( +9.21, -26.87, "fcu_frag18_j5"),    # 0.6 mm²: skip — merges with +24V
+            # ( +8.54, -25.49, "fcu_frag16_j5"),    # 0.2 mm²: skip — too close to J5 PTH
+            # B.Cu small fragments (4 total).
+            (-50.97, +10.94, "bcu_frag1_ld2410"),   #  69 mm²: LD2410 west
+            ( +3.94, -47.38, "bcu_frag0_south"),    #  12 mm²: south ESP32
+            (-53.38,  -4.15, "bcu_frag2_ld_w"),     # 0.9 mm²: LD2410 west tiny
+            (-53.31,  -6.53, "bcu_frag3_ld_w"),     # 0.7 mm²: LD2410 west tiny
+        ]:
+            em.via(stitch_x, stitch_y, code,
+                   uuid_tag=f"hand_v40:stitch_{tag}")
+
+    # ---- G. /IO/I2C_SCL cable-hole bypass (B.Cu arc east of hole) ----
+    # The autoroute snapshot's SCL routing has two disjoint F.Cu trunks
+    # split by the central Ø12 mm cable hole:
+    #   - South trunk: ends at (3.01, -25.97) via seg:0203/0212 (orphan).
+    #   - North trunk: starts at via:0010 (5.87, +17.98) → seg:0213
+    #     east to J3/J9 area.
+    # Bridge via a B.Cu arc on the EAST side of the hole at R=7.0
+    # (1.0 mm clearance to hole edge at R=6, 5.0 mm clearance to LED
+    # ring inner edge at R=12). Approximate the half-circle with 6
+    # straight segments at 30° spacing (θ = 270° south → 90° north).
+    code = _net_code(nets, "/IO/I2C_SCL")
+    if code is not None:
+        # B.Cu south approach: start from J5.11 PTH (SCL pad at PCB
+        # (3.01, -25.97), B.Cu plating implicit via THT plating).
+        # Route east then NW to arc start at (0, -7), clearing J10
+        # row at Y=-20 (J10.6 BOOT PTH at X=+1.74 is 1.73 mm from
+        # the diagonal at Y=-20).
+        em.seg(3.01, -25.97, 4.0, -22.0, 0.25, "B.Cu", code,
+               uuid_tag="hand_v40:scl_b1")
+        em.seg(4.0, -22.0, 0.0, -7.0, 0.25, "B.Cu", code,
+               uuid_tag="hand_v40:scl_b2")
+        # B.Cu arc east of hole at R=7. Segments:
+        #   θ=270° (0, -7) → θ=300° (3.5, -6.06)
+        em.seg(0.0, -7.0, 3.5, -6.06, 0.25, "B.Cu", code,
+               uuid_tag="hand_v40:scl_arc1")
+        #   θ=300° → θ=330° (6.06, -3.5)
+        em.seg(3.5, -6.06, 6.06, -3.5, 0.25, "B.Cu", code,
+               uuid_tag="hand_v40:scl_arc2")
+        #   θ=330° → θ=0° (7, 0)
+        em.seg(6.06, -3.5, 7.0, 0.0, 0.25, "B.Cu", code,
+               uuid_tag="hand_v40:scl_arc3")
+        #   θ=0° → θ=30° (6.06, +3.5)
+        em.seg(7.0, 0.0, 6.06, 3.5, 0.25, "B.Cu", code,
+               uuid_tag="hand_v40:scl_arc4")
+        #   θ=30° → θ=60° (3.5, +6.06)
+        em.seg(6.06, 3.5, 3.5, 6.06, 0.25, "B.Cu", code,
+               uuid_tag="hand_v40:scl_arc5")
+        #   θ=60° → θ=90° (0, +7)
+        em.seg(3.5, 6.06, 0.0, 7.0, 0.25, "B.Cu", code,
+               uuid_tag="hand_v40:scl_arc6")
+        # B.Cu north exit to via:0010 area (5.87, +17.98).
+        em.seg(0.0, 7.0, 5.87, 17.0, 0.25, "B.Cu", code,
+               uuid_tag="hand_v40:scl_b3")
+        em.seg(5.87, 17.0, 5.87, 17.98, 0.25, "B.Cu", code,
+               uuid_tag="hand_v40:scl_b4")
 
     return (len(em._segments) - n_seg) + (len(em._vias) - n_via)
 

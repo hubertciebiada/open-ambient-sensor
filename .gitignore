@@ -104,4 +104,6 @@ _audit_*.net
 # Freerouting tool (downloaded locally, not redistributable)
 freerouting.jar
 hardware/kicad/freerouting.jar
+hardware/kicad/freerouting.json
+hardware/kicad/freerouting.log
 
