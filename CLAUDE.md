@@ -141,6 +141,8 @@ Additional features:
 
 ### Module list (v0.40 final)
 
+> Authoritative metadata (EAN, MPN, datasheet URLs, sourcing notes, derived dimensions) lives in `hardware/kicad/generate.py::EXTERNAL_MODULES`. The table below is a quick-reference summary.
+
 | Function | Component | LCSC / source | Interface |
 |---|---|---|---|
 | MCU | **ESP32-C6-DevKitM-1-N4** (Espressif, EAN 5904422385651) | Botland | USB / GPIO |
@@ -162,6 +164,8 @@ Additional features:
 ESP32-C6-DevKitM-1-N4 is the Espressif official devkit (ESP32-C6-MINI-1 SoM + two USB-C ports + buttons + onboard RGB NeoPixel + power LED). Form factor 48.26 × 25.4 mm. Chosen over generic "SuperMini" clones for deterministic pinout, full Espressif documentation, and verified Polish-distributor availability.
 
 ### ESP32-C6-DevKitM-1-N4 pinout (final)
+
+> Authoritative pin assignment lives in `hardware/kicad/generate.py::GPIO_ASSIGNMENTS` and `GPIO_RESERVED`. The table below is a quick-reference summary. `pipeline/oas/06_check_boot.py` cross-checks the schematic against the dict on every regenerate.
 
 | Pin | Function | Notes |
 |---|---|---|
@@ -283,102 +287,88 @@ Do not propose these again without new information:
 
 ```
 open-ambient-sensor/
-├── hardware/
-│   ├── case/
-│   │   ├── README.md             # how to obtain manufacturer DXF/datasheet (not committed)
-│   │   └── sen66-bracket.stl     # own work — bracket for mounting SEN66 on cover
-│   ├── kicad/
-│   │   ├── generate.py           # SOURCE OF TRUTH — Python that generates all .kicad_* files
-│   │   ├── regenerate.py         # thin orchestrator — runs every pipeline/<subdir>/NN_*.py in order
-│   │   ├── oas_routes.py         # derived — Freerouting snapshot, replayed by generate.py
-│   │   ├── oas.kicad_pro         # generated artefact
-│   │   ├── oas.kicad_sch         # generated artefact
-│   │   ├── oas.kicad_pcb         # generated artefact
-│   │   ├── libraries/            # generated project libraries (OAS.kicad_sym + oas.pretty/)
-│   │   ├── pipeline/             # one stage per file (NN_<name>.py); each is standalone-runnable
-│   │   │   ├── _common.py        # PROJECT-AGNOSTIC helpers: Stage class, find_kicad_cli, run, sha256
-│   │   │   ├── _project.py       # OAS-specific config consumed by generic stages
-│   │   │   │                     # (paths, source-files list, sub-sheets, render layers, FAB layers,
-│   │   │   │                     # LCSC mapping path, THT references, ZIP bundle name + globs)
-│   │   │   ├── generic/          # REUSABLE across KiCad projects (zero OAS references)
-│   │   │   │   ├── 01_generate.py        # invoke project's generate.py
-│   │   │   │   ├── 02_determinism.py     # bit-identity self-check (re-run + hash diff)
-│   │   │   │   ├── 03_drc.py             # kicad-cli pcb drc strict
-│   │   │   │   ├── 04_erc.py             # kicad-cli sch erc strict
-│   │   │   │   ├── 10_render_2d.py       # PCB top/cutouts/bottom SVG
-│   │   │   │   ├── 11_render_sch.py      # schematic root + sub-sheets SVG
-│   │   │   │   ├── 12_render_png.py      # cairosvg batch SVG -> PNG
-│   │   │   │   ├── 13_render_3d.py       # 3D top + iso renders
-│   │   │   │   ├── 20_export_gerbers.py  # Protel gerbers + Excellon drill + drill_map PDF
-│   │   │   │   ├── 21_export_pos.py      # JLCPCB CPL format (Designator/Mid X/Mid Y/Layer/Rotation)
-│   │   │   │   ├── 23_bundle_jlcpcb.py   # ZIP gerbers + drill into <project>-jlcpcb.zip
-│   │   │   │   └── 24_preflight_gerbers.py  # pygerber integrity + drill stats + composite render
-│   │   │   └── oas/              # OAS-ONLY verification (deeply hardcoded to this circuit)
-│   │   │       ├── 05_check_dc.py        # DC voltage propagation analytical model
-│   │   │       ├── 06_check_boot.py      # ESP32-C6 strap + signal pin audit
-│   │   │       ├── 07_check_ampacity.py  # IPC-2221 trace width verifier
-│   │   │       ├── 08_check_switching.py # ngspice LM2596 soft-start (soft-skip if ngspice not in cache)
-│   │   │       └── 22_export_bom_jlcpcb.py  # BOM + LCSC lookup + range expansion + THT detection
-│   │   ├── tools/                # MANUAL-trigger scripts (extract_routes, jlcdfm_upload)
-│   │   └── renders/              # generated previews (PNG + SVG + DRC/ERC reports)
-│   ├── bom/
-│   │   ├── lcsc-mapping.csv      # SOURCE OF TRUTH for SMD LCSC SKUs
-│   │   └── bom-misc.md           # locally-sourced items + THT hand-solder notes
-│   └── gerbers/                  # production output (gitignored; regenerable)
-├── firmware/
-│   ├── esphome/
-│   │   ├── oas.yaml              # top-level config
-│   │   ├── packages/             # core / leds / air-quality / presence / nfc / bt-proxy
-│   │   └── README.md
-│   └── secrets.yaml.example
-├── docs/
-│   ├── README.md
-│   ├── ARCHITECTURE.md
-│   ├── BOM.md
-│   ├── ASSEMBLY.md
-│   ├── FLASHING.md
-│   ├── HA-INTEGRATION.md
-│   ├── CASE-VERIFICATION-CHECKLIST.md
-│   └── CHANGELOG-archive.md      # historical v0.1..v0.40 changelog detail
-├── _cleanup-reports/             # paranoid audit artefacts (read-only)
+├── README.md
+├── CLAUDE.md                       # this file
+├── GPLv3-LICENSE.md
 ├── .gitignore
-├── LICENSE
-└── CLAUDE.md                     # this file
+├── firmware/
+│   ├── README.md                   # flashing + Home Assistant integration
+│   ├── esphome/
+│   │   ├── oas.yaml                # top-level ESPHome config
+│   │   ├── packages/               # core / leds / air-quality / presence / nfc / bt-proxy
+│   │   └── examples/               # anonymized per-device override examples
+│   └── secrets.yaml.example
+└── hardware/
+    ├── kicad/
+    │   ├── generate.py             # SINGLE SOURCE OF TRUTH — project metadata, geometry,
+    │   │                           #   footprints, schematic, plus ASSEMBLY_INSTRUCTIONS /
+    │   │                           #   CASE_VERIFICATION_CHECKLIST / LOCALLY_SOURCED_PARTS
+    │   ├── regenerate.py           # thin orchestrator — runs every pipeline/<subdir>/NN_*.py
+    │   ├── oas_routes.py           # derived — routing snapshot replayed by generate.py
+    │   ├── lcsc_mapping.py         # SOT for SMD LCSC SKUs — Python dict (Value, Footprint) -> entry
+    │   ├── oas.kicad_pro / .kicad_sch / .kicad_pcb / sub-sheets  # generated artefacts
+    │   ├── libraries/              # generated project libraries (OAS.kicad_sym + oas.pretty/)
+    │   ├── pipeline/               # one stage per file (NN_<name>.py); each standalone-runnable
+    │   │   ├── _common.py          # PROJECT-AGNOSTIC helpers (Stage, find_kicad_cli, run, sha256)
+    │   │   ├── _project.py         # OAS config consumed by generic stages
+    │   │   ├── generic/            # REUSABLE across KiCad projects (zero OAS references)
+    │   │   │   ├── 01_generate.py        # invoke generate.py
+    │   │   │   ├── 02_determinism.py     # bit-identity self-check
+    │   │   │   ├── 03_drc.py             # kicad-cli pcb drc strict
+    │   │   │   ├── 04_erc.py             # kicad-cli sch erc strict
+    │   │   │   ├── 10_render_2d.py       # PCB top/cutouts/bottom SVG
+    │   │   │   ├── 11_render_sch.py      # schematic root + sub-sheets SVG
+    │   │   │   ├── 12_render_png.py      # cairosvg batch SVG -> PNG
+    │   │   │   ├── 13_render_3d.py       # 3D top + iso renders
+    │   │   │   ├── 20_export_gerbers.py  # Protel gerbers + Excellon drill + drill_map PDF
+    │   │   │   ├── 21_export_pos.py      # JLCPCB CPL format
+    │   │   │   ├── 23_bundle_jlcpcb.py   # ZIP gerbers + drill into oas-jlcpcb.zip
+    │   │   │   └── 24_preflight_gerbers.py  # pygerber integrity + drill stats + composite render
+    │   │   └── oas/                # OAS-only verification (hardcoded to this circuit)
+    │   │       ├── 05_check_dc.py        # DC voltage propagation analytical model
+    │   │       ├── 06_check_boot.py      # ESP32-C6 strap + signal pin audit
+    │   │       ├── 07_check_ampacity.py  # IPC-2221 trace width verifier
+    │   │       ├── 08_check_switching.py # ngspice LM2596 soft-start (hard FAIL if cache empty)
+    │   │       └── 22_export_bom_jlcpcb.py  # BOM + LCSC lookup + range expansion + THT detection
+    │   ├── tools/                  # MANUAL-trigger scripts (extract_routes, jlcdfm_upload)
+    │   └── renders/                # generated previews (PNG + SVG)
+    └── output/                     # production deliverables (regenerable from generate.py)
+        ├── oas-jlcpcb.zip          # COMMITTED snapshot for current revision
+        ├── oas-bom.csv             # COMMITTED — JLCPCB happy-path 8-column format
+        ├── oas-top-pos.csv         # COMMITTED — JLCPCB CPL header
+        ├── oas-bottom-pos.csv      # COMMITTED
+        └── oas-*.{gtl,gbl,...}     # gitignored — individual gerbers / drill / drill_map / gbrjob
 ```
 
-`.gitignore` must include at minimum:
+`.gitignore` highlights:
 ```
 # secrets
-secrets.yaml
 **/secrets.yaml
 
-# third-party manufacturer files (kept locally, not redistributable)
-hardware/case/*.dxf
-hardware/case/*-datasheet.pdf
-hardware/case/manufacturer-*.step
+# build artifacts + caches
+**/build/  **/.cache/  **/__pycache__/  *.bak  *-backups/
 
-# production output (regenerable from source-of-truth Python)
-hardware/gerbers/*.gtl
-hardware/gerbers/*.gbl
-hardware/gerbers/*.gts
-hardware/gerbers/*.gbs
-hardware/gerbers/*.gto
-hardware/gerbers/*.gbo
-hardware/gerbers/*.gtp
-hardware/gerbers/*.gbp
-hardware/gerbers/*.gm1
-hardware/gerbers/*.gbrjob
-hardware/gerbers/*.drl
-hardware/gerbers/*-drl_map.pdf
-hardware/gerbers/*-pos.csv
-hardware/gerbers/oas-bom.csv
-hardware/gerbers/oas-jlcpcb.zip
+# auto-downloaded external tools (ngspice + LM2596 PSpice model, etc.)
+/.tmp/
 
-# build artifacts
-**/build/
-**/.cache/
-*.bak
-*-backups/
+# production output — individual gerbers gitignored; ZIP + BOM + pos.csv committed
+hardware/output/*.gtl
+hardware/output/*.gbl
+hardware/output/*.gts
+hardware/output/*.gbs
+hardware/output/*.gto
+hardware/output/*.gbo
+hardware/output/*.gtp
+hardware/output/*.gbp
+hardware/output/*.gm1
+hardware/output/*.gbrjob
+hardware/output/*.drl
+hardware/output/*-drl_map.pdf
+
+# freerouting (manual download by user; not redistributable)
+hardware/kicad/freerouting.jar
+hardware/kicad/freerouting.json
+hardware/kicad/freerouting.log
 ```
 
 ---
@@ -486,10 +476,10 @@ The KiCad project in `hardware/kicad/` is **script-driven**. The source of truth
 
 ## Changelog summary
 
-Full historical detail (v0.1 → v0.40-audit-16, ~70 entries) lives in `docs/CHANGELOG-archive.md`. Highlights of the most recent milestones:
+Full historical detail lives in `git log --tags`. Highlights of the most recent milestones:
 
-- **v0.40-audit-16** (2026-05-17): Full canonical-name + ERC-clean sweep. Audit-16 caught four classes of canonical-name defects the audit-15 swarm had missed (focusing on pad geometry, not on the `(footprint "Lib:Name"` header itself): U1 / U2 non-canonical headers, J2 missing lib prefix, ZT1..ZT4 missing `oas:` prefix. Q1's `lib_footprint_mismatch` workaround (`rule_severities: {"...": "ignore"}` + `pin_name_map` G/S/D remap) eliminated by creating project-local `OAS:Q_PMOS_GDS` schematic symbol with numeric pin numbers 1/2/3 + letter pin NAMES. Final state: DRC 0, ERC 0 / 0 errors / 0 warnings, `rule_severities` empty `{}`, determinism PASS, Z-clearance PASS, every footprint header uses canonical `<lib>:<name>` or `oas:<name>`. Routing remains disabled (separate task).
+- **v0.40-audit-16** (2026-05-17): Full canonical-name + ERC-clean sweep. Audit-16 caught four classes of canonical-name defects the audit-15 swarm had missed (focusing on pad geometry, not on the `(footprint "Lib:Name"` header itself): U1 / U2 non-canonical headers, J2 missing lib prefix, ZT1..ZT4 missing `oas:` prefix. Q1's `lib_footprint_mismatch` workaround (`rule_severities: {"...": "ignore"}` + `pin_name_map` G/S/D remap) eliminated by creating project-local `OAS:Q_PMOS_GDS` schematic symbol with numeric pin numbers 1/2/3 + letter pin NAMES. Final state: DRC 0, ERC 0 / 0 errors / 0 warnings, `rule_severities` empty `{}`, determinism PASS, Z-clearance PASS, every footprint header uses canonical `<lib>:<name>` or `oas:<name>`.
 
-- **v0.40-post-order footprint sweep** (2026-05): 78-agent paranoid audit (`_cleanup-reports/15-*.md`) found ~24 SMD passive footprints sharing the same custom-stub deviation root cause as the v0.40 JLCPCB U1 / U2 rejection. Refactored 9 generators (`gen_capacitor_0402/0603/0805`, `gen_resistor_0603`, `gen_diode_sma/smb/sod323`, `gen_inductor_smd_5x5`, `gen_polyfuse_smd`) + Q1 SOT-23 + radial THT to verbatim stock-library parsing via `_emit_stock_lib_footprint`. L1 / L2 footprint name corrected from `L_APV_ANR5040` to `L_Cenker_CKCS5040` (matching actual LCSC parts). Layout adjustments triggered by larger stock courtyards: ~6 designator labels moved to F.Fab to avoid silk_overlap.
+- **v0.40-post-order footprint sweep** (2026-05): 78-agent paranoid audit found ~24 SMD passive footprints sharing the same custom-stub deviation root cause as the v0.40 JLCPCB U1 / U2 rejection. Refactored 9 generators (`gen_capacitor_0402/0603/0805`, `gen_resistor_0603`, `gen_diode_sma/smb/sod323`, `gen_inductor_smd_5x5`, `gen_polyfuse_smd`) + Q1 SOT-23 + radial THT to verbatim stock-library parsing via `_emit_stock_lib_footprint`. L1 / L2 footprint name corrected from `L_APV_ANR5040` to `L_Cenker_CKCS5040` (matching actual LCSC parts).
 
 - **v0.40-post-order**: Production firmware skeleton added (5-package ESPHome config + web_server dashboard) so the user can flash on day 1 of hardware delivery. JLCPCB rejected the original v0.40 SMT order (5 prototypes, ~712 PLN) due to U1 LM2596S TO-263-5 + U2 TPS62933 SOT-583 footprints emitting non-stock pad geometry; immediate surgical refactor of `gen_to263_5_pcb_footprint` and `gen_sot583_pcb_footprint` to verbatim stock parsing, followed by the wider audit-15 / audit-16 sweep.

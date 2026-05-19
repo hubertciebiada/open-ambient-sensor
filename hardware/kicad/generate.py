@@ -29,6 +29,223 @@ from pathlib import Path
 
 HERE = Path(__file__).parent
 
+# =============================================================================
+# PROJECT METADATA
+# =============================================================================
+# Single source of truth for project identity, external modules, GPIO map,
+# and board revision. Consumed by:
+#   - generate.py itself (could be used in title block / silk text; legacy
+#     constants like OAS_VERSION_LINE still drive existing renders today)
+#   - pipeline/oas/06_check_boot.py (could cross-check GPIO_ASSIGNMENTS)
+#   - downstream documentation (CLAUDE.md references constants by name)
+#
+# Update HERE FIRST when changing identity / revision / pinout / external
+# modules. Other places (CLAUDE.md quick-reference tables, schematic
+# generators) follow this dict.
+
+# Project identity --------------------------------------------------------
+PROJECT_NAME = "Open Ambient Sensor"
+PROJECT_SHORTNAME = "OAS"
+PROJECT_DESCRIPTION = (
+    "DIY multi-sensor environmental monitor for indoor spaces. "
+    "Measures air quality (CO2, PM, VOC, NOx, T, RH via SEN66) and presence "
+    "(LD2410 mmWave). 24 V DC input, ESPHome firmware, Home Assistant "
+    "integration. Mounts on a standard wall-recessed electrical box "
+    "(60 mm screw pitch)."
+)
+PROJECT_REPO = "https://github.com/hubertciebiada/open-ambient-sensor"
+PROJECT_LICENSE_HW = "CERN-OHL-S v2"
+PROJECT_LICENSE_FW = "MIT"
+
+# Board revision (manual update on significant geometry / netlist changes).
+# Also drives existing OAS_VERSION_LINE silk text further down in this file.
+BOARD_REVISION = "v0.40"
+BOARD_RELEASE_DATE = "2026-05-17"
+
+# External modules (manual-source / 3rd-party — NOT in lcsc-mapping.csv
+# because they go through THT hand-solder, separate procurement, or are
+# mechanical). Each entry: full identification metadata for re-procurement.
+EXTERNAL_MODULES = {
+    "ESP32-C6-DevKitM-1-N4": {
+        "manufacturer": "Espressif",
+        "mpn": "ESP32-C6-DevKitM-1-N4",
+        "ean": "5904422385651",
+        "supplier_pl": "Botland",
+        "datasheet": (
+            "https://docs.espressif.com/projects/esp-dev-kits/en/latest/"
+            "esp32c6/esp32-c6-devkitm-1/index.html"
+        ),
+        "note": (
+            "Official Espressif devkit (ESP32-C6-MINI-1 SoM + 2x USB-C). "
+            "NOT compatible with generic 'SuperMini' clones (different pinout)."
+        ),
+    },
+    "SEN66-SIN-T": {
+        "manufacturer": "Sensirion",
+        "material": "3.001.030",
+        "supplier_global": "Sensirion direct",
+        "supplier_eu": "LaskaKit / ThePiHut",
+        "datasheet": "https://sensirion.com/resource/datasheet/SEN66",
+        "accessory": (
+            "JST GH 6-pin cable (50 cm AWG26) - separately ordered; "
+            "Sensirion ships SEN66 without cable."
+        ),
+        "note": (
+            "Combo sensor: NDIR CO2 + laser PM + MOX VOC/NOx + SHT (T/RH) "
+            "in single ~25 x 55 x 21.5 mm module."
+        ),
+    },
+    "HLK-LD2410B": {
+        "manufacturer": "Hi-Link",
+        "mpn": "HLK-LD2410B",
+        "supplier": "HiLink direct / TME / AliExpress",
+        "datasheet": "https://www.hlktech.net (search LD2410B)",
+        "note": (
+            "Specifically -B variant. -C variant has different pin order "
+            "and body dims; NOT interchangeable."
+        ),
+    },
+    "MIKROE-2462": {
+        "manufacturer": "MikroElektronika",
+        "mpn": "MIKROE-2462",
+        "description": "NFC Tag 2 Click (NXP NT3H1101 + onboard PCB antenna)",
+        "supplier": "MikroE direct / TME",
+        "datasheet": "https://www.mikroe.com/nfc-tag-2-click",
+        "form_factor": "mikroBUS L (25.4 x 57.15 x 7 mm)",
+    },
+    "SZOMK AK-N-94": {
+        "manufacturer": "SZOMK",
+        "mpn": "AK-N-94",
+        "description": (
+            "Ø128 mm perforated white ABS enclosure "
+            "(smoke-detector form factor)"
+        ),
+        "supplier": "SZOMK direct (chinaenclosure.com)",
+        "datasheet_note": (
+            "Manufacturer DXF / datasheet are 3rd-party and NOT "
+            "redistributable via this repo (CLAUDE.md Rule 6). Stored "
+            "locally only under hardware/case/, gitignored."
+        ),
+        "derived_dimensions": (
+            "PCB Ø120 D-shape, 3x M3 mounting (Ø3.8 NPTH) on Ø110 pitch, "
+            "Ø12 central cable pass-through, 17 mm front clearance / "
+            "22 mm in SEN66 zone, 5 mm back."
+        ),
+    },
+}
+
+# ESP32-C6-DevKitM-1-N4 GPIO assignments (single source of truth for pinout).
+# Each entry: {net: <name>, desc: <description>}. Update HERE first when
+# re-pinning, then the schematic generators below pick up via the table.
+# Cross-checked by pipeline/oas/06_check_boot.py.
+GPIO_ASSIGNMENTS = {
+    2:  {"net": "LD2410_OUT",  "desc": "LD2410 presence interrupt (safe non-strap input)"},
+    3:  {"net": "NT3H1101_FD", "desc": "NT3H1101 NFC field-detect interrupt (safe non-strap)"},
+    6:  {"net": "I2C_SDA",     "desc": "Shared I2C bus: SEN66 0x6B, NT3H1101 0x55, J9 Qwiic"},
+    7:  {"net": "I2C_SCL",     "desc": "Shared I2C bus, 4.7 kOhm pull-ups on MCU side (220 mm bus)"},
+    8:  {"net": "WS2812_DIN",  "desc": "SK6812-SIDE AQI ring data line. STRAP PIN - R7 10 kOhm pull-up to +3V3 required (DevKitM-1 onboard pull-up runs off VCC_5V which is unpowered in OAS)"},
+    12: {"net": "USB_DM",      "desc": "Native USB-Serial-JTAG D-"},
+    13: {"net": "USB_DP",      "desc": "Native USB-Serial-JTAG D+"},
+    16: {"net": "UART1_TX",    "desc": "UART1 TX -> LD2410 RX at 256000 baud"},
+    17: {"net": "UART1_RX",    "desc": "UART1 RX <- LD2410 TX at 256000 baud"},
+}
+
+GPIO_RESERVED = {
+    4:  "MTMS (JTAG mode) - strap pin, avoid for general I/O",
+    5:  "MTDI (VDD_SPI voltage select) - strap pin, avoid for general I/O",
+    9:  "BOOT button on DevKitM-1 - strap pin (NC or /IO/BOOT recovery only)",
+    10: "NOT BONDED on ESP32-C6FH4 (internal SiP flash uses this pad)",
+    11: "NOT BONDED on ESP32-C6FH4 (internal SiP flash uses this pad)",
+    15: "Boot-mode select / JTAG signal source select - strap pin",
+}
+
+# Safe-non-strap spare GPIOs for future expansion.
+GPIO_SPARE = [0, 1, 14, 18, 19, 20, 21, 22, 23]
+
+# Assembly + post-fab procedures (assembler-facing SOP) ------------------
+ASSEMBLY_INSTRUCTIONS = """\
+High-level assembly order:
+  1. Receive PCB (JLCPCB SMT-assembled with Basic + Extended Library parts).
+  2. Hand-solder THT parts that JLCPCB cannot stock — Phoenix terminal J1,
+     pin sockets J4..J8, radial bulk capacitors C1/C3/C4. See
+     LOCALLY_SOURCED_PARTS below.
+  3. Connect SEN66 module to PCB via JST GH 6-pin cable (~50 cm; ordered
+     separately, Sensirion ships SEN66 without cable).
+  4. Snap PCB into SZOMK AK-N-94 enclosure (PCB rests on cover screws / posts,
+     M3 with 2 mm washers under each screw).
+  5. Wire 24 V DC SELV to input terminal J1; mount the unit on a standard
+     wall-recessed electrical box (60 mm screw pitch).
+  6. Power on; flash via either DevKitM-1 USB-C port (see firmware/README.md).
+
+Tools: soldering iron (THT), Phillips M3 screwdriver, USB-C cable for first flash.
+
+Safety:
+  - 24 V DC SELV only — never connect mains directly to J1.
+  - TVS (D1 SMBJ24A) + PTC (F1 2920L075/60MR) on the input protect against
+    transients and reverse polarity; do NOT bypass.
+"""
+
+CASE_VERIFICATION_CHECKLIST = """\
+Verified at v0.40 against the physical AK-N-94 sample (SZOMK).
+
+Mechanical envelope:
+  - Front-side component height: 17 mm default, 22 mm allowed in the SEN66
+    zone (per physical-sample measurement).
+  - Back-side height: 5 mm max (with 2 mm washers under each M3 mounting screw
+    lifting the PCB off the bosses).
+  - PCB outline: Ø120 mm D-shape (arc R = 60 mm, flat chord 82.6545 mm at
+    the bottom edge).
+  - Mounting holes: 3 x M3 (Ø3.8 mm NPTH) on Ø110 mm pitch circle at
+    +/-47.631, +27.500 and 0, -55.000 (PCB-local coords, +Y = down).
+  - Central cable pass-through: Ø12 mm.
+
+When the enclosure DXF / manufacturer documentation evolves, re-verify each
+constant above against a fresh physical sample before locking the next
+board revision.
+"""
+
+# Locally-sourced parts (NOT in lcsc_mapping.py; not JLCPCB-assemblable) ---
+LOCALLY_SOURCED_PARTS = {
+    "SZOMK AK-N-94 enclosure": {
+        "qty_per_unit": 1,
+        "source": "https://www.chinaenclosure.com",
+        "notes": "Ø128 mm perforated white ABS, smoke-detector form factor.",
+    },
+    "Sensirion SEN66-SIN-T module": {
+        "qty_per_unit": 1,
+        "source": "Sensirion direct / Mouser / Digi-Key",
+        "notes": (
+            "Combo air-quality sensor (CO2, PM, VOC, NOx, T, RH). See "
+            "EXTERNAL_MODULES['SEN66-SIN-T'] for material code + accessory note."
+        ),
+    },
+    "Hi-Link HLK-LD2410B module": {
+        "qty_per_unit": 1,
+        "source": "AliExpress / HiLink direct / TME",
+        "notes": (
+            "mmWave presence radar. Specifically -B variant. See "
+            "EXTERNAL_MODULES['HLK-LD2410B']."
+        ),
+    },
+    "JST GH 6-pin cable (50 cm AWG26)": {
+        "qty_per_unit": 1,
+        "source": "Sensirion accessory or generic AWG26 JST GH",
+        "notes": (
+            "Connects SEN66 module to PCB J3 socket. Reference length 50 cm; "
+            "actual run length inside AK-N-94 is <100 mm."
+        ),
+    },
+    "24 V DC PSU": {
+        "qty_per_unit": "1 shared across deployment",
+        "source": "generic",
+        "notes": "Bus power for multi-unit deployments.",
+    },
+}
+
+# =============================================================================
+# (geometry / footprints / schematic generators follow)
+# =============================================================================
+
 # -----------------------------------------------------------------------------
 # Geometry (mm)
 # -----------------------------------------------------------------------------
@@ -17962,35 +18179,30 @@ def _build_pcb_ref_to_footprint() -> dict[str, str]:
 
 
 def _build_lcsc_metadata_map() -> dict[tuple[str, str], tuple[str, str, str]]:
-    """Read hardware/bom/lcsc-mapping.csv and return a mapping of
-    `(Value, Footprint)` → `(Manufacturer, MPN, LCSC)`.
+    """Return `(Value, Footprint)` -> `(Manufacturer, MPN, LCSC)` from the
+    canonical Python dict in `lcsc_mapping.py`.
 
-    Used by `_apply_schematic_lcsc_metadata` to inject supply-chain
-    sourcing metadata into every schematic symbol instance, so the
-    same data that drives the BOM is visible inside the schematic
-    editor (and exportable via `kicad-cli sch export bom --fields`).
+    Used by `_apply_schematic_lcsc_metadata` to inject supply-chain sourcing
+    metadata into every schematic symbol instance, so the same data that
+    drives the BOM is visible inside the schematic editor (and exportable
+    via `kicad-cli sch export bom --fields`).
 
-    Skips DEPRECATED rows (LCSC starts with "DEPRECATED-") because
-    those are sentinel entries kept only to detect pre-v0.36
-    regenerated schematics — they have no matching schematic symbol.
+    Skips DEPRECATED rows (LCSC starts with "DEPRECATED-") — those are
+    sentinel entries kept only to detect pre-v0.36 regenerated schematics
+    and have no matching schematic symbol.
     """
-    import csv
+    import sys as _sys
+    _sys.path.insert(0, str(HERE))
+    from lcsc_mapping import LCSC_MAPPING  # noqa: E402
 
-    mapping_path = HERE.parent / "bom" / "lcsc-mapping.csv"
     result: dict[tuple[str, str], tuple[str, str, str]] = {}
-    with mapping_path.open("r", encoding="utf-8") as fh:
-        reader = csv.DictReader(fh)
-        for row in reader:
-            value = (row.get("Value") or "").strip()
-            footprint = (row.get("Footprint") or "").strip()
-            lcsc = (row.get("LCSC") or "").strip()
-            mfr = (row.get("Manufacturer") or "").strip()
-            mpn = (row.get("MPN") or "").strip()
-            if not value or not footprint:
-                continue
-            if lcsc.startswith("DEPRECATED-"):
-                continue
-            result[(value, footprint)] = (mfr, mpn, lcsc)
+    for (value, footprint), entry in LCSC_MAPPING.items():
+        lcsc = entry.get("lcsc", "").strip()
+        if lcsc.startswith("DEPRECATED-"):
+            continue
+        mfr = entry.get("manufacturer", "").strip()
+        mpn = entry.get("mpn", "").strip()
+        result[(value, footprint)] = (mfr, mpn, lcsc)
     return result
 
 

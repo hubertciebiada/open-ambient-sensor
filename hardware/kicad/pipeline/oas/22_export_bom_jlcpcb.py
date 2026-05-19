@@ -40,36 +40,28 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
-from _common import Stage, run, find_kicad_cli  # noqa: E402
+from _common import Stage, run, find_kicad_cli, KICAD_ROOT  # noqa: E402
 from _project import (  # noqa: E402
     SCH_PATH,
     GERBER_OUTPUT_DIR,
     BOM_OUTPUT_FILE,
-    LCSC_MAPPING_CSV,
     THT_REFERENCES,
 )
+
+# Import the canonical Python dict (hardware/kicad/lcsc_mapping.py).
+sys.path.insert(0, str(KICAD_ROOT))
+from lcsc_mapping import LCSC_MAPPING  # noqa: E402
 
 STAGE_NAME = "export_bom_jlcpcb"
 
 
 def load_lcsc_mapping() -> dict[tuple[str, str], tuple[str, str]]:
-    """Read LCSC_MAPPING_CSV and return:
-        (Value, Footprint) -> (LCSC, JLCPCB_Library)
-    """
-    if not LCSC_MAPPING_CSV.exists():
-        sys.exit(
-            f"[FAIL] LCSC mapping file missing at {LCSC_MAPPING_CSV}. "
-            "Cannot post-process BOM."
-        )
-    mapping: dict[tuple[str, str], tuple[str, str]] = {}
-    with LCSC_MAPPING_CSV.open(encoding="utf-8", newline="") as f:
-        reader = csv.DictReader(f)
-        for row in reader:
-            key = (row["Value"].strip(), row["Footprint"].strip())
-            lcsc = row["LCSC"].strip()
-            lib = row["JLCPCB_Library"].strip()
-            mapping[key] = (lcsc, lib)
-    return mapping
+    """Return (Value, Footprint) -> (LCSC, JLCPCB_Library) from the
+    canonical Python dict in hardware/kicad/lcsc_mapping.py."""
+    return {
+        key: (entry["lcsc"], entry["library"])
+        for key, entry in LCSC_MAPPING.items()
+    }
 
 
 def expand_designator_ranges(s: str) -> str:
@@ -158,7 +150,7 @@ def postprocess_bom_with_lcsc_mapping(bom_path: Path, st: Stage) -> None:
         for e in errors:
             print(e)
         st.fail(
-            f"BOM contains {len(errors)} row(s) not in {LCSC_MAPPING_CSV.name}; "
+            f"BOM contains {len(errors)} row(s) not in lcsc_mapping.py; "
             "update mapping to cover every SMD (Value, Footprint)"
         )
 

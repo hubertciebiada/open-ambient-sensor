@@ -59,7 +59,8 @@ from pathlib import Path
 
 HERE = Path(__file__).parent
 KICAD_DIR = HERE.parent.parent  # pipeline/oas/ -> pipeline/ -> hardware/kicad
-CACHE_DIR = KICAD_DIR / ".cache" / "spice"
+REPO_ROOT = KICAD_DIR.parent.parent  # hardware/kicad -> hardware -> repo root
+CACHE_DIR = REPO_ROOT / ".tmp" / "spice"
 CACHE_DIR.mkdir(parents=True, exist_ok=True)
 
 # Download URLs (verified by SPICE research agent against current TI hosting).
@@ -103,8 +104,7 @@ class CheckResult:
 
 def find_ngspice() -> Path | None:
     """Locate ngspice_con.exe. Tries the project-local cache first, then
-    the system's LOCALAPPDATA/Temp/Spice64 path that some installers use.
-    Returns None if neither found (soft-skip behaviour for pipeline use)."""
+    the system's LOCALAPPDATA/Temp/Spice64 path that some installers use."""
     candidates = [
         CACHE_DIR / "Spice64" / "bin" / NGSPICE_BIN_NAME,
         Path(os.environ.get("LOCALAPPDATA", "")) / "Temp" / "Spice64" / "bin" / NGSPICE_BIN_NAME,
@@ -116,8 +116,7 @@ def find_ngspice() -> Path | None:
 
 
 def find_lm2596_model() -> Path | None:
-    """Locate LM2596_5P0_TRANS.LIB in the project-local cache. Returns
-    None if missing (soft-skip behaviour for pipeline use)."""
+    """Locate LM2596_5P0_TRANS.LIB in the project-local cache."""
     candidates = [
         CACHE_DIR / "lm2596_5p0" / "LM2596_5P0_TRANS.LIB",
     ]
@@ -125,6 +124,88 @@ def find_lm2596_model() -> Path | None:
         if c.exists():
             return c
     return None
+
+
+def _download(url: str, target: Path) -> None:
+    """urllib download with redirects + minimal progress print."""
+    target.parent.mkdir(parents=True, exist_ok=True)
+    print(f"  downloading {url}")
+    with urllib.request.urlopen(url, timeout=120) as resp:
+        size = int(resp.headers.get("Content-Length") or 0)
+        target.write_bytes(resp.read())
+    actual = target.stat().st_size
+    if size and actual != size:
+        sys.exit(f"  download size mismatch: expected {size} B, got {actual} B")
+    print(f"  wrote {target.name} ({actual / 1024:.1f} kB)")
+
+
+def ensure_lm2596_model() -> Path:
+    """Idempotent download + extract of LM2596_5P0_TRANS.LIB from TI's
+    snvma62.zip into CACHE_DIR/lm2596_5p0/. Returns the .LIB path. Already-
+    cached files short-circuit."""
+    out_dir = CACHE_DIR / "lm2596_5p0"
+    lib_path = out_dir / "LM2596_5P0_TRANS.LIB"
+    if lib_path.exists():
+        return lib_path
+
+    print("  LM2596 PSpice model not in cache — auto-downloading from TI")
+    out_dir.mkdir(parents=True, exist_ok=True)
+    zip_path = out_dir / "snvma62.zip"
+    _download(LM2596_MODEL_URL, zip_path)
+
+    with zipfile.ZipFile(zip_path) as zf:
+        # Find the LM2596_5P0_TRANS.LIB inside the ZIP (path varies by
+        # how TI bundled it; we match by basename, case-insensitive).
+        names = zf.namelist()
+        matches = [n for n in names if n.lower().endswith("lm2596_5p0_trans.lib")]
+        if not matches:
+            sys.exit(
+                f"  LM2596_5P0_TRANS.LIB not found inside {zip_path.name} "
+                f"(ZIP contains: {names})"
+            )
+        # Extract first match, flatten to target path.
+        with zf.open(matches[0]) as src, lib_path.open("wb") as dst:
+            dst.write(src.read())
+    zip_path.unlink()
+    print(f"  extracted {lib_path.name} ({lib_path.stat().st_size / 1024:.1f} kB)")
+    return lib_path
+
+
+def ensure_ngspice() -> Path:
+    """Idempotent download + extract of ngspice-46_64.7z into CACHE_DIR/
+    Spice64/. Returns the ngspice_con.exe path. Already-cached binary
+    short-circuits. Requires `py7zr` for .7z extraction; raises a clear
+    error if not installed."""
+    cached = find_ngspice()
+    if cached:
+        return cached
+
+    print("  ngspice not in cache — auto-downloading from SourceForge")
+    try:
+        import py7zr  # type: ignore[import-not-found]
+    except ImportError:
+        sys.exit(
+            "[FAIL] py7zr not installed — needed to extract ngspice-46_64.7z.\n"
+            "       Install with: pip install py7zr\n"
+            f"       Or manually extract ngspice-46_64.7z to {CACHE_DIR}/Spice64/."
+        )
+
+    archive = CACHE_DIR / "ngspice-46_64.7z"
+    _download(NGSPICE_URL, archive)
+
+    print(f"  extracting {archive.name} (~50 MB)")
+    with py7zr.SevenZipFile(archive, mode="r") as z:
+        z.extractall(path=CACHE_DIR)
+    archive.unlink()
+
+    found = find_ngspice()
+    if not found:
+        sys.exit(
+            f"[FAIL] {NGSPICE_BIN_NAME} not present after extracting "
+            f"ngspice-46_64.7z to {CACHE_DIR}. Archive layout may have changed."
+        )
+    print(f"  ngspice ready at {found}")
+    return found
 
 
 def write_spice_init(workdir: Path) -> None:
@@ -228,19 +309,8 @@ def main() -> None:
     print("=" * 60)
     print()
 
-    ngspice = find_ngspice()
-    if ngspice is None:
-        print("[FAIL] ngspice not found in cache - switching check cannot run")
-        print(f"       Download ngspice-46_64.7z from {NGSPICE_URL}")
-        print(f"       and extract to {CACHE_DIR}/Spice64/")
-        sys.exit(1)
-
-    model = find_lm2596_model()
-    if model is None:
-        print("[FAIL] LM2596 PSpice model not found in cache - switching check cannot run")
-        print(f"       Download {LM2596_MODEL_URL}")
-        print(f"       and extract LM2596_5P0_TRANS.LIB to {CACHE_DIR}/lm2596_5p0/")
-        sys.exit(1)
+    ngspice = ensure_ngspice()
+    model = ensure_lm2596_model()
 
     print(f"  ngspice: {ngspice}")
     print(f"  LM2596 model: {model}")

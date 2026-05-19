@@ -157,3 +157,118 @@ Alternatively, the **AP fallback** (`OAS-<device_id>-Setup` SSID, gated by `ap_p
 ## Status
 
 **Preliminary.** The base infrastructure (`oas.yaml` + `core.yaml`) is complete and validates clean against `esphome config`. Sensor packages (`air-quality.yaml`, `presence.yaml`, `nfc.yaml`, `bt-proxy.yaml`, `leds.yaml`) are being landed in parallel — see CLAUDE.md for the firmware TODO list. First end-to-end validation will follow once the v0.40 boards arrive from JLCPCB.
+
+---
+
+## Home Assistant integration
+
+### Exposed entities
+
+#### Sensors (`sensor.*`)
+
+| Entity (suffix) | Unit | Source |
+|---|---|---|
+| `co2` | ppm | SEN66 (NDIR, 400-40 000 ppm) |
+| `pm1` / `pm2_5` / `pm4` / `pm10` | µg/m³ | SEN66 (laser scatter) |
+| `voc_index` | (1-500) | SEN66 MOX (Sensirion VOC index, 100 = baseline) |
+| `nox_index` | (1-500) | SEN66 MOX (1 = baseline) |
+| `temperature` | °C | SEN66 SHT4x (STAR-Engine compensated) |
+| `humidity` | %RH | SEN66 SHT4x |
+| `presence_distance` | cm | LD2410 (0-600 cm, ~100 ms cadence) |
+| `moving_target_energy` / `still_target_energy` | (0-100) | LD2410 radar return amplitude |
+| `wifi_rssi` | dBm | ESPHome built-in |
+| `uptime` | s | ESPHome built-in |
+
+#### Binary sensors (`binary_sensor.*`)
+
+| Entity (suffix) | Source |
+|---|---|
+| `presence` | LD2410 OUT pin (GPIO 2) — hardware-level flag, fastest path |
+| `moving_target` / `still_target` | LD2410 protocol |
+| `api_connected` | ESPHome (true when API paired with HA) |
+
+#### Light, numbers, selects, text, buttons, switches
+
+- `light.led_ring` — RGB addressable (11 LEDs); brightness / colour / effect controllable from HA
+- `number.temperature_offset` (-10..+10 °C), `number.humidity_offset` (-20..+20 %RH), `number.co2_offset` (-500..+500 ppm) — persistent calibration trims
+- `number.ld2410_max_distance` (1-8 gates × 0.75 m), `number.ld2410_presence_timeout` (0-65535 s), `number.ld2410_gate_*_sensitivity` (0-100 per gate)
+- `number.led_brightness_day` (0-255), `number.led_brightness_night` (0-15)
+- `select.led_mode` — Auto-AQI / Manual / Off / Test-Rainbow
+- `select.led_effect` — 8+ effects (active when `led_mode = Manual`)
+- `text.dashboard_url` — URL the NFC tag redirects to when tapped (editable at runtime)
+- `button.restart` / `button.sen66_force_clean` / `button.ld2410_factory_reset`
+- `switch.bluetooth_proxy` (default on) / `switch.prevent_sleep`
+
+### Dashboard idea (starter Lovelace card)
+
+```yaml
+type: vertical-stack
+title: Living Room
+cards:
+  - type: glance
+    entities:
+      - { entity: sensor.oas_livingroom_co2, name: CO₂ }
+      - { entity: sensor.oas_livingroom_pm2_5, name: PM2.5 }
+      - { entity: sensor.oas_livingroom_temperature, name: Temp }
+      - { entity: sensor.oas_livingroom_humidity, name: RH }
+      - { entity: binary_sensor.oas_livingroom_presence, name: Presence }
+  - type: gauge
+    entity: sensor.oas_livingroom_co2
+    min: 400
+    max: 2500
+    severity: { green: 400, yellow: 900, red: 1400 }
+    name: CO₂ (ppm)
+  - type: history-graph
+    title: Air quality (24 h)
+    entities:
+      - sensor.oas_livingroom_co2
+      - sensor.oas_livingroom_voc_index
+      - sensor.oas_livingroom_pm2_5
+    hours_to_show: 24
+```
+
+### Sample automation: ventilate on high CO₂
+
+```yaml
+trigger:
+  - platform: numeric_state
+    entity_id: sensor.oas_livingroom_co2
+    above: 1200
+    for: "00:05:00"
+action:
+  - service: switch.turn_on
+    target: { entity_id: switch.bedroom_ventilator }
+```
+
+The 5-minute `for:` debounces brief CO₂ spikes (someone exhaling on the device).
+
+### LED ring AQI alert
+
+The ring runs in **Auto-AQI** mode by default — colour reflects current AQI without any HA wiring. For stronger alerts, drop into Manual mode and apply an effect:
+
+```yaml
+trigger:
+  - platform: numeric_state
+    entity_id: sensor.oas_livingroom_co2
+    above: 1500
+action:
+  - service: select.select_option
+    target: { entity_id: select.oas_livingroom_led_mode }
+    data: { option: Manual }
+  - service: select.select_option
+    target: { entity_id: select.oas_livingroom_led_effect }
+    data: { option: Pulse }
+  - service: light.turn_on
+    target: { entity_id: light.oas_livingroom_led_ring }
+    data: { rgb_color: [255, 0, 0], brightness: 255 }
+```
+
+Pair with a recovery automation that switches back to Auto-AQI when CO₂ drops below 1000 ppm.
+
+### NFC tap → dashboard
+
+Each OAS unit ships with a dynamic NFC tag (NXP NT3H1101 + onboard antenna on the MIKROE-2462 daughterboard). Tapping a phone opens the URL from the on-board NDEF record in the phone's default browser. The firmware re-writes the NDEF record every 60 s to keep the URL fresh. The URL is set by the `text.oas_<device>_dashboard_url` entity, initialised from the `dashboard_url` substitution in `oas.yaml` but editable at runtime via the on-device web dashboard or Home Assistant.
+
+### Bluetooth proxy
+
+`bluetooth_proxy:` is enabled in firmware. In a multi-unit deployment, this gives near-whole-home BLE coverage for HA's BLE integrations (xiaomi_ble plant sensors, govee BLE thermometers, presence beacons) without dedicated proxies. Home Assistant auto-discovers the proxy. Runtime control via `switch.oas_<device>_bluetooth_proxy`.

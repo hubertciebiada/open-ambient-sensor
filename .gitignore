@@ -6,18 +6,24 @@ desktop.ini
 # secrets ########
 **/secrets.yaml
 
-# third-party manufacturer files (kept locally, not redistributable) ########
-hardware/case/*.dxf
-hardware/case/*-datasheet.pdf
-hardware/case/manufacturer-*.step
-hardware/case/manufacturer-*.stp
-hardware/case/manufacturer-*.pdf
-
 # build artifacts ########
 **/build/
 **/.cache/
 **/__pycache__/
 *.bak
+
+# Temp / scratch directories (auto-downloaded models, cached binaries:
+# .tmp/spice/ for ngspice + LM2596 PSpice model, .tmp/freerouting/ for
+# Freerouting JAR when a routing rework is needed).
+/.tmp/
+
+# Audit netlist exports (temporary; regenerable via kicad-cli sch export netlist)
+hardware/kicad/_tmp_audit.net
+hardware/kicad/_audit_*.net
+
+# Stale agent / autorouter cleanup artefacts (historic local-only files)
+hardware/kicad/renders/_freerouting_*.log
+hardware/kicad/renders/_sch-*-tmp/
 
 # KiCad ########
 *-backups/
@@ -47,24 +53,23 @@ hardware/kicad/oas_drc_violations.json
 hardware/kicad/renders/_*
 hardware/kicad/renders/*.log
 
-# Production gerber export (regenerable from generate.py via export_production.py;
-# never source-of-truth — a specific snapshot may be committed manually when
-# sending to fab, but day-to-day regenerations should not appear in git diff)
-hardware/gerbers/*.gtl
-hardware/gerbers/*.gbl
-hardware/gerbers/*.gts
-hardware/gerbers/*.gbs
-hardware/gerbers/*.gto
-hardware/gerbers/*.gbo
-hardware/gerbers/*.gtp
-hardware/gerbers/*.gbp
-hardware/gerbers/*.gm1
-hardware/gerbers/*.gbrjob
-hardware/gerbers/*.drl
-hardware/gerbers/*-drl_map.pdf
-hardware/gerbers/*-pos.csv
-hardware/gerbers/oas-bom.csv
-hardware/gerbers/oas-jlcpcb.zip
+# Production deliverables (hardware/output/) — regenerable from generate.py
+# via `python regenerate.py`. Individual gerbers / drill / drill_map / gbrjob
+# are gitignored (day-to-day regenerations should not flood git diff). The
+# JLCPCB-ready ZIP + BOM CSV + pos CSVs are COMMITTED as a snapshot of the
+# current revision (visible to reviewers).
+hardware/output/*.gtl
+hardware/output/*.gbl
+hardware/output/*.gts
+hardware/output/*.gbs
+hardware/output/*.gto
+hardware/output/*.gbo
+hardware/output/*.gtp
+hardware/output/*.gbp
+hardware/output/*.gm1
+hardware/output/*.gbrjob
+hardware/output/*.drl
+hardware/output/*-drl_map.pdf
 
 # ESPHome ########
 .esphome/
@@ -93,15 +98,12 @@ led-preview*.png
 *-preview*.png
 *.scratch
 
-# Cleanup audit reports (internal working docs, not project documentation)
-_cleanup-reports/
-
 # KiCad netlist exports (temporary, derived from .kicad_sch via kicad-cli)
 *.net
 _tmp_netlist_audit.net
 _audit_*.net
 
-# Freerouting tool (downloaded locally, not redistributable)
+# Freerouting tool (downloaded locally by user, not redistributable)
 freerouting.jar
 hardware/kicad/freerouting.jar
 hardware/kicad/freerouting.json

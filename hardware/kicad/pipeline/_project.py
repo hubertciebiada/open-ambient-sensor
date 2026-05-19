@@ -81,7 +81,7 @@ PCB_3D_TARGETS = [
 # ===========================================================================
 
 # Stage 20: gerber + drill output dir -------------------------------------
-GERBER_OUTPUT_DIR = KICAD_ROOT.parent / "gerbers"   # hardware/gerbers/
+GERBER_OUTPUT_DIR = KICAD_ROOT.parent / "output"   # hardware/output/
 
 # Fab deliverable layers. NOT F.Fab / B.Fab / F.CrtYd / B.CrtYd / Dwgs.User
 # — those are internal documentation, not for production.
@@ -104,8 +104,9 @@ POS_OUTPUT_FILES = [
 ]
 
 # Stage 22: BOM with LCSC mapping -----------------------------------------
+# LCSC mapping lives as a Python dict in `hardware/kicad/lcsc_mapping.py`
+# (single source of truth, imported by stage 22 + generate.py).
 BOM_OUTPUT_FILE = "oas-bom.csv"
-LCSC_MAPPING_CSV = KICAD_ROOT.parent / "bom" / "lcsc-mapping.csv"
 
 # Reference designators that go through THT hand-solder line (not SMT).
 # A BOM row whose ALL designators belong here gets emitted with blank
