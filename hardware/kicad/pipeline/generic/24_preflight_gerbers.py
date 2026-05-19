@@ -33,6 +33,7 @@ from _project import (  # noqa: E402
     NPTH_EXPECTED_TOOLS,
     NPTH_EXPECTED_HOLES,
     PTH_MIN_DRILL_MM,
+    PREFLIGHT_SUBDIR,
 )
 
 STAGE_NAME = "preflight_gerbers"
@@ -97,6 +98,8 @@ def main() -> int:
             return 0
 
         RENDERS.mkdir(exist_ok=True)
+        preflight_dir = RENDERS / PREFLIGHT_SUBDIR
+        preflight_dir.mkdir(parents=True, exist_ok=True)
 
         # 1) File integrity
         st.info(f"checking integrity of {len(EXPECTED_GERBERS) + len(EXPECTED_DRILLS)} files")
@@ -162,9 +165,9 @@ def main() -> int:
             try:
                 gerber_files = [GerberFile.from_file(p, file_type=ft) for p, ft in files]
                 proj = Project(gerber_files).parse(on_parser_error=OnParserErrorEnum.Ignore)
-                out_path = RENDERS / out_name
+                out_path = preflight_dir / out_name
                 proj.render_raster(out_path, dpmm=20)
-                st.ok(f"wrote {out_name} ({out_path.stat().st_size / 1024:.1f} kB)")
+                st.ok(f"wrote {PREFLIGHT_SUBDIR}/{out_name} ({out_path.stat().st_size / 1024:.1f} kB)")
             except Exception as e:
                 st.fail(f"{side} composite render: {type(e).__name__}: {e}")
     return 0

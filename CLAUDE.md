@@ -332,6 +332,8 @@ open-ambient-sensor/
     │   │       └── 22_export_bom_jlcpcb.py  # BOM + LCSC lookup + range expansion + THT detection
     │   └── tools/                  # MANUAL-trigger scripts (extract_routes, jlcdfm_upload)
     ├── renders/                    # generated previews (PNG + SVG, sibling of kicad/)
+    │   ├── pcb/                    # 2D / 3D / pygerber preflight
+    │   └── sch/                    # schematic root + 4 sub-sheets
     └── output/                     # production deliverables (regenerable from generate.py)
         ├── oas-jlcpcb.zip          # COMMITTED snapshot for current revision
         ├── oas-bom.csv             # COMMITTED — JLCPCB happy-path 8-column format

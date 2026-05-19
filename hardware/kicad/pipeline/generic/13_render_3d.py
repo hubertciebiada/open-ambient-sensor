@@ -21,11 +21,13 @@ def main() -> int:
         kcli = find_kicad_cli()
         RENDERS.mkdir(exist_ok=True)
 
-        for out_name, extra in PCB_3D_TARGETS:
-            st.info(f"rendering {out_name} (~15s)")
+        for subdir, out_name, extra in PCB_3D_TARGETS:
+            out_dir = RENDERS / subdir
+            out_dir.mkdir(parents=True, exist_ok=True)
+            st.info(f"rendering {subdir}/{out_name} (~15s)")
             run([
                 kcli, "pcb", "render",
-                "--output", str(RENDERS / out_name),
+                "--output", str(out_dir / out_name),
                 "--side", "top",
                 "--width", "1600", "--height", "1600",
                 "--background", "opaque",
@@ -33,7 +35,7 @@ def main() -> int:
                 *extra,
                 str(PCB_PATH),
             ], hide_output=True)
-            st.ok(f"wrote {out_name}")
+            st.ok(f"wrote {subdir}/{out_name}")
     return 0
 
 

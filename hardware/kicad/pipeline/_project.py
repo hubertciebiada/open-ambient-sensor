@@ -52,29 +52,32 @@ SOURCE_FILES_GLOBS = [
 ]
 
 # Stage 10: PCB 2D render targets -----------------------------------------
-# Each tuple: (output prefix, comma-separated KiCad layers, mirror?)
+# Each tuple: (renders/ subdir, output prefix, comma-separated KiCad layers, mirror?)
 PCB_2D_TARGETS = [
-    ("2d-top",     "Edge.Cuts,F.Cu,F.Mask,F.SilkS,F.CrtYd,F.Fab", False),
-    ("2d-cutouts", "Edge.Cuts,F.Cu,Dwgs.User",                    False),
-    ("2d-bottom",  "Edge.Cuts,B.Cu,B.Mask,B.SilkS,B.CrtYd,B.Fab", True),
+    ("pcb", "2d-top",     "Edge.Cuts,F.Cu,F.Mask,F.SilkS,F.CrtYd,F.Fab", False),
+    ("pcb", "2d-cutouts", "Edge.Cuts,F.Cu,Dwgs.User",                    False),
+    ("pcb", "2d-bottom",  "Edge.Cuts,B.Cu,B.Mask,B.SilkS,B.CrtYd,B.Fab", True),
 ]
 
 # Stage 11: schematic SVG renders -----------------------------------------
-# Each tuple: (output prefix, schematic filename relative to KICAD_ROOT)
+# Each tuple: (renders/ subdir, output prefix, schematic filename relative to KICAD_ROOT)
 SCH_SUB_SHEETS = [
-    ("sch-root",    "oas.kicad_sch"),
-    ("sch-power",   "power.kicad_sch"),
-    ("sch-mcu",     "mcu.kicad_sch"),
-    ("sch-sensors", "sensors.kicad_sch"),
-    ("sch-io",      "io.kicad_sch"),
+    ("sch", "sch-root",    "oas.kicad_sch"),
+    ("sch", "sch-power",   "power.kicad_sch"),
+    ("sch", "sch-mcu",     "mcu.kicad_sch"),
+    ("sch", "sch-sensors", "sensors.kicad_sch"),
+    ("sch", "sch-io",      "io.kicad_sch"),
 ]
 
 # Stage 13: 3D render targets ---------------------------------------------
-# Each tuple: (output filename, extra kicad-cli render flags)
+# Each tuple: (renders/ subdir, output filename, extra kicad-cli render flags)
 PCB_3D_TARGETS = [
-    ("3d-top.png", []),
-    ("3d-iso.png", ["--rotate", "-45,0,45", "--perspective", "--floor"]),
+    ("pcb", "3d-top.png", []),
+    ("pcb", "3d-iso.png", ["--rotate", "-45,0,45", "--perspective", "--floor"]),
 ]
+
+# Stage 24: pygerber preflight composite render destination subdir.
+PREFLIGHT_SUBDIR = "pcb"
 
 # ===========================================================================
 # Production export (stages 20-24)

@@ -27,6 +27,7 @@ Usage:  python regenerate.py
 from __future__ import annotations
 
 import os
+import shutil
 import subprocess
 import sys
 import time
@@ -69,6 +70,30 @@ def run_stage(prefix: str, name: str, stage: Path) -> int:
     return r.returncode
 
 
+def cleanup_temp(renders_dir: Path) -> int:
+    """Delete every `_*` entry in renders_dir (files + dirs). Pipeline temp
+    artifacts — DRC/ERC reports, schematic-export scratch sub-dirs — live
+    there with `_` prefix; on a clean run they are disposable and only
+    clutter the explorer view. Returns the number of entries removed.
+
+    Called by main() ONLY after all stages PASS — on FAIL the temp files
+    carry the failure context (full DRC report, ERC violations) and stay
+    on disk for inspection."""
+    count = 0
+    if not renders_dir.exists():
+        return 0
+    for entry in renders_dir.glob("_*"):
+        if entry.is_dir():
+            shutil.rmtree(entry, ignore_errors=True)
+        else:
+            try:
+                entry.unlink()
+            except OSError:
+                continue
+        count += 1
+    return count
+
+
 def print_summary(results: list[tuple[str, str, str, float]], total_elapsed: float) -> None:
     print("\n=== SUMMARY ===")
     for prefix, name, status, dur in results:
@@ -101,7 +126,15 @@ def main() -> int:
             break  # fail-fast
 
     print_summary(results, time.time() - t_start)
-    return 0 if all(s == "PASS" for _, _, s, _ in results) else 1
+
+    all_pass = all(s == "PASS" for _, _, s, _ in results)
+    if all_pass:
+        sys.path.insert(0, str(PIPELINE))
+        from _common import RENDERS  # noqa: E402
+        removed = cleanup_temp(RENDERS)
+        if removed:
+            print(f"[OK]   cleanup: removed {removed} temp artefact(s) from {RENDERS}")
+    return 0 if all_pass else 1
 
 
 if __name__ == "__main__":

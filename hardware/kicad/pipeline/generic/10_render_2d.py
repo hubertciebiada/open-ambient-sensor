@@ -24,8 +24,10 @@ def main() -> int:
         kcli = find_kicad_cli()
         RENDERS.mkdir(exist_ok=True)
 
-        for name, layers, mirror in PCB_2D_TARGETS:
-            out = RENDERS / f"{name}.svg"
+        for subdir, name, layers, mirror in PCB_2D_TARGETS:
+            out_dir = RENDERS / subdir
+            out_dir.mkdir(parents=True, exist_ok=True)
+            out = out_dir / f"{name}.svg"
             cmd = [
                 kcli, "pcb", "export", "svg",
                 "--output", str(out),

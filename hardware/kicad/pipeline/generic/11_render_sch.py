@@ -8,6 +8,7 @@ consistent and gitignore-friendly output set.
 """
 from __future__ import annotations
 
+import shutil
 import sys
 from pathlib import Path
 
@@ -23,13 +24,16 @@ def main() -> int:
         kcli = find_kicad_cli()
         RENDERS.mkdir(exist_ok=True)
 
-        for out_name, src_name in SCH_SUB_SHEETS:
+        for subdir, out_name, src_name in SCH_SUB_SHEETS:
+            out_dir = RENDERS / subdir
+            out_dir.mkdir(parents=True, exist_ok=True)
             src = KICAD_ROOT / src_name
             # Render into a temp subdir (prefixed `_` so it stays gitignored
             # along with the DRC/ERC reports), then atomically move the
-            # produced file into renders/ under the desired sch-<name>.svg
-            # filename. .replace() overwrites on Windows even when a viewer
-            # has the destination open.
+            # produced file into renders/<subdir>/ under the desired
+            # sch-<name>.svg filename. shutil.rmtree() handles the case
+            # where kicad-cli on the hierarchical root dumps every sub-sheet
+            # into tmp_dir (we keep just the one we asked for).
             tmp_dir = RENDERS / f"_{out_name}-tmp"
             tmp_dir.mkdir(exist_ok=True)
             run([
@@ -40,13 +44,10 @@ def main() -> int:
                 str(src),
             ], hide_output=True)
             produced = tmp_dir / f"{src.stem}.svg"
-            final = RENDERS / f"{out_name}.svg"
+            final = out_dir / f"{out_name}.svg"
             produced.replace(final)
-            try:
-                tmp_dir.rmdir()
-            except OSError:
-                pass
-            st.ok(f"wrote {final.name}")
+            shutil.rmtree(tmp_dir, ignore_errors=True)
+            st.ok(f"wrote {subdir}/{final.name}")
     return 0
 
 

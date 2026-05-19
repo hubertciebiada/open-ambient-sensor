@@ -24,11 +24,14 @@ def main() -> int:
             st.warn("cairosvg not installed — pip install cairosvg to enable PNG conversion")
             return 0
 
-        svgs = sorted(RENDERS.glob("*.svg"))
+        # rglob picks up SVGs from every subdir under renders/ (pcb/, sch/,
+        # plus any future grouping). PNG lands in the same dir as its SVG.
+        svgs = sorted(RENDERS.rglob("*.svg"))
         for svg in svgs:
             png = svg.with_suffix(".png")
             cairosvg.svg2png(url=str(svg), write_to=str(png), output_width=1600)
-            st.ok(f"{svg.name} -> {png.name}")
+            rel = svg.relative_to(RENDERS)
+            st.ok(f"{rel} -> {rel.with_suffix('.png')}")
     return 0
 
 
