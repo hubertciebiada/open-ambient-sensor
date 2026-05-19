@@ -2780,9 +2780,10 @@ def gen_j3_jst_gh_pcb_footprint(x: float, y: float, rotation: int) -> str:
       - Replace inline `${REFERENCE}` reference token with literal "J3"
       - Replace inline KiCad layer prefixes (already 7-bit ASCII, just
         passed through)
-      - Drop the 3D model block (path uses an env-var that isn't
-        guaranteed to be defined on every machine; KiCad just shows a
-        missing-model warning, which is purely visual and not a DRC).
+      - Keep the 3D model block (audit-19, 2026-05-19): path uses
+        ${KICAD10_3DMODEL_DIR} which KiCad 10 resolves at render time.
+        The local 3D render in stage 13 picks up the JST_GH SMD socket
+        body mesh from the stock library.
     """
     src = _J3_LIB_FOOTPRINT_PATH.read_text(encoding="utf-8")
     uuid_tag = "j3-jst-gh"
@@ -2797,8 +2798,8 @@ def gen_j3_jst_gh_pcb_footprint(x: float, y: float, rotation: int) -> str:
     # We want to keep everything from `(attr smd)` onward, but DROP the
     # (property "Reference" ...), (property "Value" ...) and
     # (property "KiLib_Generator" ...) so we can re-emit them with OAS
-    # values. Also drop the final `(embedded_fonts no)` and `(model ...)`
-    # blocks at the bottom; we replace with our own and skip the 3D model.
+    # values. Also drop the final `(embedded_fonts no)` block at the
+    # bottom; we replace with our own. (model ...) is KEPT.
 
     # The easiest parse: split on top-level S-expression bounds. KiCad
     # footprint files are well-formatted; each (key ...) at the indent
@@ -2862,14 +2863,15 @@ def gen_j3_jst_gh_pcb_footprint(x: float, y: float, rotation: int) -> str:
 
     # Filter out the items we want to REPLACE (version, generator,
     # property Reference, property Value, property KiLib_Generator,
-    # embedded_fonts, model).
+    # embedded_fonts). (model ...) is KEPT — audit-19 (2026-05-19) —
+    # so the local 3D render shows the JST_GH SMD socket body. Paths
+    # use ${KICAD10_3DMODEL_DIR} which KiCad 10 resolves at render time.
     SKIP_PREFIXES = (
         "(version", "(generator", "(generator_version",
         "(property \"Reference\"",
         "(property \"Value\"",
         "(property \"KiLib_Generator\"",
         "(embedded_fonts",
-        "(model ",
     )
     body_children = []
     for child in children:
@@ -3148,7 +3150,9 @@ def gen_j4_pinheader_pcb_footprint(x: float, y: float, rotation: int) -> str:
         "(property \"Value\"",
         "(property \"KiLib_Generator\"",
         "(embedded_fonts",
-        "(model ",
+        # (model ...) kept — audit-19 (2026-05-19): local 3D render
+        # picks up stock library chip body meshes via KiCad's
+        # ${KICAD10_3DMODEL_DIR} env var resolution at render time.
     )
     body_children = []
     for child in children:
@@ -3295,7 +3299,9 @@ def gen_j1_terminal_block_pcb_footprint(x: float, y: float, rotation: int) -> st
         "(property \"Value\"",
         "(property \"KiLib_Generator\"",
         "(embedded_fonts",
-        "(model ",
+        # (model ...) kept — audit-19 (2026-05-19): local 3D render
+        # picks up stock library chip body meshes via KiCad's
+        # ${KICAD10_3DMODEL_DIR} env var resolution at render time.
     )
     body_children = []
     for child in children:
@@ -3745,7 +3751,9 @@ def gen_pinsocket_pcb_footprint(
         "(property \"Value\"",
         "(property \"KiLib_Generator\"",
         "(embedded_fonts",
-        "(model ",
+        # (model ...) kept — audit-19 (2026-05-19): local 3D render
+        # picks up stock library chip body meshes via KiCad's
+        # ${KICAD10_3DMODEL_DIR} env var resolution at render time.
     )
     body_children = []
     for child in children:
