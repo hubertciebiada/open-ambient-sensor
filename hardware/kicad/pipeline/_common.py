@@ -40,7 +40,7 @@ from pathlib import Path
 # Paths ---------------------------------------------------------------------
 HERE = Path(__file__).parent              # hardware/kicad/pipeline
 KICAD_ROOT = HERE.parent                  # hardware/kicad
-RENDERS = KICAD_ROOT / "renders"
+RENDERS = KICAD_ROOT.parent / "renders"   # hardware/renders/ (sibling of kicad/)
 
 # kicad-cli locator ---------------------------------------------------------
 KICAD_CLI_CANDIDATES = [

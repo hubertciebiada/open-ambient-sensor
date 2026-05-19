@@ -53,7 +53,7 @@ Plan defensively: verbatim stock library is the only way to be safe at BOTH chec
 - **D3 (10 V Zener BZT52C10S, SOD-323)**: `lcsc-mapping.csv` had `C8492` but JLCPCB returned LRC `LBSS84LT1G` P-Channel MOSFET in SOT-23 (wrong device class AND wrong footprint). Correct LCSC is `C19334`.
 - **C2 (Y2 safety cap, 0805)**: Walsin part went out of stock between mapping and order; JLCPCB auto-substituted to Murata GRM21BR72A103KA01L (100 V instead of 250 V — still safe for 24 V SELV but a different part).
 
-**Workflow**: always set Parts Selection = "By Customer" (not "By JLCPCB"). Download Assembly Order XLS preview AFTER matching, BEFORE submitting payment. Diff the Description column row-by-row against `hardware/bom/lcsc-mapping.csv`. Verify part class (Zener vs MOSFET, capacitor vs resistor) AND numeric value parses cleanly (`30.9 kΩ` not `806 Ω`). LCSC# alone is not sufficient evidence.
+**Workflow**: always set Parts Selection = "By Customer" (not "By JLCPCB"). Download Assembly Order XLS preview AFTER matching, BEFORE submitting payment. Diff the Description column row-by-row against `hardware/kicad/lcsc_mapping.py`. Verify part class (Zener vs MOSFET, capacitor vs resistor) AND numeric value parses cleanly (`30.9 kΩ` not `806 Ω`). LCSC# alone is not sufficient evidence.
 
 ### 6. Don't hallucinate datasheet pinouts from memory
 
@@ -132,7 +132,7 @@ Additional features:
 
 ### Enclosure
 - **SZOMK AK-N-94** — Ø128 mm perforated white ABS, smoke-detector form factor.
-- Manufacturer DXF / datasheet are third-party files and **not committed to this repo** (Rule 6). Keep locally under `hardware/case/` (gitignored).
+- Manufacturer DXF / datasheet are third-party files and **not committed to this repo** (Rule 6). Keep locally; everything outside `hardware/kicad/` / `hardware/output/` / `hardware/renders/` is gitignored.
 - Derived dimensions (own work, used in KiCad):
   - PCB: **Ø120 mm D-shape** (arc R = 60 mm), flat chord 82.6545 mm.
   - 3 × M3 mounting holes (Ø3.8 mm, **NPTH**) on Ø110 mm pitch circle: positions (±47.631, +27.500) and (0, −55.000).
@@ -228,7 +228,7 @@ Current firmware skeleton (added v0.40-post-order):
 - NT3H1101 NFC dynamic tag: live sensor JSON written to NTAG memory every 60 s; dashboard URL configurable via web_server text entity.
 - Bluetooth proxy enabled.
 
-Documentation: `docs/FLASHING.md`, `docs/HA-INTEGRATION.md`, `firmware/esphome/README.md`.
+Documentation: `firmware/README.md`.
 
 ---
 
@@ -330,8 +330,8 @@ open-ambient-sensor/
     │   │       ├── 07_check_ampacity.py  # IPC-2221 trace width verifier
     │   │       ├── 08_check_switching.py # ngspice LM2596 soft-start (hard FAIL if cache empty)
     │   │       └── 22_export_bom_jlcpcb.py  # BOM + LCSC lookup + range expansion + THT detection
-    │   ├── tools/                  # MANUAL-trigger scripts (extract_routes, jlcdfm_upload)
-    │   └── renders/                # generated previews (PNG + SVG)
+    │   └── tools/                  # MANUAL-trigger scripts (extract_routes, jlcdfm_upload)
+    ├── renders/                    # generated previews (PNG + SVG, sibling of kicad/)
     └── output/                     # production deliverables (regenerable from generate.py)
         ├── oas-jlcpcb.zip          # COMMITTED snapshot for current revision
         ├── oas-bom.csv             # COMMITTED — JLCPCB happy-path 8-column format
@@ -375,12 +375,12 @@ hardware/kicad/freerouting.log
 
 ## PCB design workflow
 
-The KiCad project in `hardware/kicad/` is **script-driven**. The source of truth is the Python in `generate.py` plus the canonical SKU mapping in `hardware/bom/lcsc-mapping.csv` and the routing snapshot in `oas_routes.py`. The `oas.kicad_pcb` / `oas.kicad_sch` / `oas.kicad_pro` / `libraries/*` files are **derived artefacts** — regenerated bit-identically from the Python.
+The KiCad project in `hardware/kicad/` is **script-driven**. The source of truth is the Python in `generate.py` plus the canonical SKU mapping in `hardware/kicad/lcsc_mapping.py` and the routing snapshot in `oas_routes.py`. The `oas.kicad_pcb` / `oas.kicad_sch` / `oas.kicad_pro` / `libraries/*` files are **derived artefacts** — regenerated bit-identically from the Python.
 
 ### How we work
 
 1. The user describes a desired change (geometry tweak, new component, routing fix, etc.).
-2. The assistant edits the appropriate constant / function in `generate.py` (or `oas_routes.py` / `lcsc-mapping.csv` if applicable).
+2. The assistant edits the appropriate constant / function in `generate.py` (or `oas_routes.py` / `lcsc_mapping.py` if applicable).
 3. The assistant runs `python regenerate.py`. That command is a thin orchestrator that dispatches each `pipeline/NN_<name>.py` script in numeric order. The stages are:
    - `01_generate` — calls `generate.py` to rebuild every KiCad source file (which internally runs the Z-clearance guardrail on 76 footprints).
    - `02_determinism` — runs `generate.py` a SECOND time and checks 17 source files are bit-identical.
@@ -392,7 +392,7 @@ The KiCad project in `hardware/kicad/` is **script-driven**. The source of truth
    - `24_preflight_gerbers` — pygerber integrity + drill statistics + composite renders (smoke test before fab upload).
    Numbers `08`–`09` and `14`–`19` are intentionally reserved for future verification checks; the gap stays visible in `ls`. **Aborts on any violation or determinism drift** (fail-fast — later stages don't run). Each `pipeline/<subdir>/NN_*.py` is also independently runnable for debug (`python pipeline/generic/03_drc.py`).
 4. The assistant commits the resulting diff (sources + KiCad files + renders + gerbers together).
-5. JLCPCB upload: `hardware/gerbers/oas-jlcpcb.zip` (bare board) + `oas-top-pos.csv` + `oas-bom.csv` (SMT assembly). Drill review: `oas-PTH-drl_map.pdf` / `oas-NPTH-drl_map.pdf`. All files produced by stages 20-24 on every `regenerate.py` run.
+5. JLCPCB upload: `hardware/output/oas-jlcpcb.zip` (bare board) + `oas-top-pos.csv` + `oas-bom.csv` (SMT assembly). Drill review: `oas-PTH-drl_map.pdf` / `oas-NPTH-drl_map.pdf`. All files produced by stages 20-24 on every `regenerate.py` run.
 
 ### Rules
 
@@ -439,9 +439,9 @@ The KiCad project in `hardware/kicad/` is **script-driven**. The source of truth
 - Footprint property string MUST be canonical `Lib:Name`. Bare names trip `lib_footprint_mismatch` ERC.
 
 ### JLCPCB ordering (workflow distilled from v0.40 saga)
-1. Parts Selection = **By Customer** (NOT By JLCPCB) so `lcsc-mapping.csv` choices stick.
+1. Parts Selection = **By Customer** (NOT By JLCPCB) so `lcsc_mapping.py` choices stick.
 2. Download Assembly Order XLS preview AFTER matching, BEFORE submitting payment.
-3. Diff Description column row-by-row against `lcsc-mapping.csv`. Verify part class (Zener vs MOSFET) AND numeric value (`30.9 kΩ` not `806 Ω`). LCSC# alone is not sufficient evidence.
+3. Diff Description column row-by-row against `lcsc_mapping.py`. Verify part class (Zener vs MOSFET) AND numeric value (`30.9 kΩ` not `806 Ω`). LCSC# alone is not sufficient evidence.
 4. Iterate: any wrong row → "Replace Part" in UI → re-download XLS → re-diff. Loop until zero discrepancies.
 5. Verify stock count per part is ≥ `qty × board_count × 2` (live JLCPCB stock can be consumed by parallel orders).
 6. PCBA Standard tier (required for Extended Library parts). Confirm Parts Placement = YES ($1, strongly recommended for first-prototype). Photo Confirmation = YES.
@@ -449,7 +449,7 @@ The KiCad project in `hardware/kicad/` is **script-driven**. The source of truth
 ### Validation
 - Schematic: ERC zero, no warnings.
 - PCB: DRC zero at production rules; verify 3D view against the 22 mm SEN66-zone / 17 mm default height.
-- BOM: cross-check `lcsc-mapping.csv` against current JLCPCB stock on the day of ordering.
+- BOM: cross-check `lcsc_mapping.py` against current JLCPCB stock on the day of ordering.
 - Firmware: ESPHome config compiles cleanly before tagging.
 
 ---

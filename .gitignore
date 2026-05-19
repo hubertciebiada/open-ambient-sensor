@@ -22,8 +22,8 @@ hardware/kicad/_tmp_audit.net
 hardware/kicad/_audit_*.net
 
 # Stale agent / autorouter cleanup artefacts (historic local-only files)
-hardware/kicad/renders/_freerouting_*.log
-hardware/kicad/renders/_sch-*-tmp/
+hardware/renders/_freerouting_*.log
+hardware/renders/_sch-*-tmp/
 
 # KiCad ########
 *-backups/
@@ -50,8 +50,8 @@ hardware/kicad/*.ses
 hardware/kicad/oas_drc_violations.json
 # Inside renders/: PNGs and SVGs are committed as visual changelog,
 # but DRC/ERC text reports (prefixed `_`) are not.
-hardware/kicad/renders/_*
-hardware/kicad/renders/*.log
+hardware/renders/_*
+hardware/renders/*.log
 
 # Production deliverables (hardware/output/) — regenerable from generate.py
 # via `python regenerate.py`. Individual gerbers / drill / drill_map / gbrjob

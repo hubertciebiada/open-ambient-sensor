@@ -6,9 +6,9 @@
 # MikroElektronika MIKROE-2462 "NFC Tag 2 Click" daughterboard. Plugs into
 # the OAS PCB via the mikroBUS-style sockets J7 (left col) + J8 (right col).
 #
-# See hardware/components/mikroe-2462.md for the verified chip ID
-# (NT3H1101 per the MikroE datasheet PDF and TME catalog — the MikroE
-# product page's "NT3H2111" mention is a marketing artifact).
+# See EXTERNAL_MODULES['MIKROE-2462'] in hardware/kicad/generate.py for the
+# verified chip ID (NT3H1101 per the MikroE datasheet PDF and TME catalog —
+# the MikroE product page's "NT3H2111" mention is a marketing artifact).
 #
 # Datasheets:
 #   - NXP NT3H1101 / NT3H1201:  https://www.nxp.com/docs/en/data-sheet/NT3H1101_1201.pdf

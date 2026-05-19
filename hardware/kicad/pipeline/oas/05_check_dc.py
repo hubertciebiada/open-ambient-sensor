@@ -91,7 +91,10 @@ RAIL_5V_WINDOW = (4.85, 5.15)     # LM2596 +/-3% line+load
 RAIL_3V3_WINDOW = (3.15, 3.60)    # SEN66 absolute spec window per datasheet section3
 V24_PROT_WINDOW = (23.5, 24.05)   # After Q1 (45 mΩ * ~0.5A = 22.5 mV drop) + F1
 
-# CLAUDE.md per-component current budgets (typical operating, not peak).
+# Per-component current budgets derived from datasheets (typical operating,
+# not peak). Sources: SEN66 datasheet §4 (~130 mA), Espressif ESP32-C6 §4
+# active+RF (~80 mA), HLK-LD2410B datasheet (~80 mA), SK6812-SIDE x11
+# at 50% brightness (~80 mA avg).
 LOAD_5V_TYPICAL_A = 0.16    # LED ring avg 80 mA + LD2410 80 mA
 LOAD_3V3_TYPICAL_A = 0.22   # ESP32 80 mA + SEN66 130 mA + NFC 5 mA + misc
 TOTAL_INPUT_TYPICAL_A = 0.5  # rough total after buck efficiency losses

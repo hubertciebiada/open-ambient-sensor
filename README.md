@@ -3,27 +3,27 @@
 **DIY multi-sensor environmental monitor for indoor spaces.** Measures air quality and presence; mounts on a standard wall-recessed electrical box; runs ESPHome and integrates natively with Home Assistant.
 
 [![License: GPLv3](https://img.shields.io/badge/License-GPLv3-blue.svg?style=flat-square)](./GPLv3-LICENSE.md)
-[![Status: Draft](https://img.shields.io/badge/Status-Preliminary%20Draft-orange?style=flat-square)](#status)
-[![MCU: ESP32-C6](https://img.shields.io/badge/MCU-ESP32--C6-green?style=flat-square)](#hardware)
+[![Status: v0.40 prototype](https://img.shields.io/badge/Status-v0.40%20prototype-orange?style=flat-square)](#status)
+[![MCU: ESP32-C6](https://img.shields.io/badge/MCU-ESP32--C6-green?style=flat-square)](#hardware-overview)
 [![Framework: ESPHome](https://img.shields.io/badge/Framework-ESPHome-orange?style=flat-square)](https://esphome.io)
 
 ---
 
 ## Status
 
-**Preliminary draft.** Components, layout, IC selections and pinouts are subject to change. Each decision in this repository is a working hypothesis to be validated. See [`CLAUDE.md`](./CLAUDE.md) for the current design rationale and constraints.
+**v0.40 prototype.** First SMT-assembled boards (5 units) are in flight at JLCPCB. Firmware skeleton (5-package ESPHome config + web_server dashboard) is ready for first flash on delivery. See [`CLAUDE.md`](./CLAUDE.md) for the current design rationale, hard constraints, and the v0.40 saga (audit-15 → audit-16 → final order).
 
 ---
 
 ## What it measures
 
 - **Air quality** — CO₂, PM1 / PM2.5 / PM4 / PM10, VOC index, NOx index, temperature, relative humidity (Sensirion SEN66)
-- **Occupancy / presence** — mmWave radar with stillness detection (HiLink LD2410)
+- **Occupancy / presence** — mmWave radar with stillness detection (HiLink HLK-LD2410B)
 
 ## Additional features
 
-- RGB status LED with breathing effect; colour reflects an aggregated air-quality index
-- Dynamic NFC tag — a phone tap reads live data and serves a dashboard URL
+- 11× SK6812-SIDE RGB AQI ring with breathing effect; colour reflects an aggregated air-quality index
+- Dynamic NFC tag (NXP NT3H1101 on MIKROE-2462) — a phone tap reads live data and serves a dashboard URL
 - **Bluetooth proxy** — extends BLE range across the deployment for Home Assistant BLE integrations
 - Qwiic / STEMMA QT expansion port — future sensors without a PCB respin
 
@@ -45,15 +45,15 @@ Both compromises (cheap-but-inaccurate, accurate-but-ugly) are rejected. See [`C
 | Function | Component | Interface |
 |---|---|---|
 | MCU | ESP32-C6-DevKitM-1-N4 (EAN 5904422385651) | 2× USB-C on module |
-| Air quality combo | Sensirion SEN66 | I²C (JST GH cable, mounts on cover) |
-| Presence | HiLink LD2410B/C | UART @ 256000 baud |
-| Visual indicator | onboard RGB NeoPixel on DevKitM-1 (GPIO 8) | 1-wire RMT |
-| NFC dynamic tag | NXP NT3H2211 + PCB trace antenna | I²C + NFC |
-| Power input | 24 V DC terminal block + TVS + PTC | — |
+| Air quality combo | Sensirion SEN66-SIN-T | I²C (JST GH 6-pin cable) |
+| Presence | HiLink HLK-LD2410B | UART @ 256000 baud |
+| Visual indicator | 11× SK6812-SIDE side-emit ring (Ø22 mm pitch) | 1-wire WS281x on GPIO 8 |
+| NFC dynamic tag | NXP NT3H1101 on MIKROE-2462 NFC Tag 2 Click | I²C 0x55 + NFC |
+| Power input | 24 V DC terminal block + TVS + PTC + reverse-polarity P-FET | — |
 
-**Enclosure:** SZOMK AK-N-94 (Ø128 mm perforated white ABS). PCB is a **Ø120 mm D-shape** with a flat chord along the bottom edge so the sensor zone sits below the electronics — natural convection lifts heat away from the SEN66 intake.
+**Enclosure:** SZOMK AK-N-94 (Ø128 mm perforated white ABS). PCB is a **Ø120 mm D-shape** with a flat chord along the bottom edge. Mounts on a standard wall-recessed electrical box (60 mm screw pitch).
 
-For the full module list, pinout and architectural decisions, see [`docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md) and [`docs/BOM.md`](./docs/BOM.md).
+Authoritative module metadata (EAN, MPN, datasheet URLs, derived dimensions) lives in [`hardware/kicad/generate.py::EXTERNAL_MODULES`](./hardware/kicad/generate.py). Pinout is in [`generate.py::GPIO_ASSIGNMENTS`](./hardware/kicad/generate.py). Full design rationale and hard constraints: [`CLAUDE.md`](./CLAUDE.md).
 
 ---
 
@@ -61,36 +61,33 @@ For the full module list, pinout and architectural decisions, see [`docs/ARCHITE
 
 ```
 open-ambient-sensor/
-├── hardware/
-│   ├── case/                     # 3D bracket for SEN66 (own work); manufacturer DXF kept local
-│   ├── kicad/                    # schematic, PCB, project libraries
-│   ├── bom/                      # production BOMs (JLCPCB, Mouser, misc)
-│   └── gerbers/                  # production output
-├── firmware/
-│   ├── esphome/                  # ESPHome YAML — base config, packages, examples
-│   ├── secrets.yaml.example
-│   └── README.md
-├── docs/
-│   ├── ARCHITECTURE.md
-│   ├── BOM.md
-│   ├── ASSEMBLY.md
-│   ├── FLASHING.md
-│   └── HA-INTEGRATION.md
-├── CLAUDE.md                     # design rationale, hard constraints, working conventions
+├── README.md                       # this file
+├── CLAUDE.md                       # design rationale, hard constraints, working conventions
 ├── GPLv3-LICENSE.md
-└── README.md
+├── .gitignore
+├── firmware/
+│   ├── README.md                   # flashing + Home Assistant integration
+│   ├── esphome/
+│   │   ├── oas.yaml                # top-level ESPHome config
+│   │   ├── packages/               # core / leds / air-quality / presence / nfc / bt-proxy
+│   │   └── examples/               # anonymized per-device override examples
+│   └── secrets.yaml.example
+└── hardware/
+    ├── kicad/                      # generate.py (SOT) + pipeline + generated KiCad sources
+    ├── renders/                    # generated previews (PNG + SVG, visual changelog)
+    └── output/                     # production deliverables (gerbers ZIP + BOM + pos CSV)
 ```
 
 ---
 
 ## Getting started
 
-The project is in **preliminary draft** — no prototype has been built yet. Once hardware is validated, this section will document:
+The board is at the v0.40 prototype stage. Once hardware lands and ESPHome flashes cleanly, this section will document:
 
-- Ordering the PCB (gerbers + JLCPCB assembly)
+- Ordering the PCB (gerbers in [`hardware/output/oas-jlcpcb.zip`](./hardware/output/), JLCPCB SMT assembly with [`hardware/output/oas-bom.csv`](./hardware/output/) + [`oas-top-pos.csv`](./hardware/output/))
 - Sourcing the SZOMK AK-N-94 enclosure
-- Flashing the ESP32-C6 with ESPHome
-- Adding the device to Home Assistant
+- Flashing the ESP32-C6 — see [`firmware/README.md`](./firmware/README.md)
+- Adding the device to Home Assistant — see [`firmware/README.md`](./firmware/README.md)
 
 In the meantime, follow the [open work / TODO](./CLAUDE.md#open-work--todo) list in `CLAUDE.md`.
 
@@ -100,7 +97,7 @@ In the meantime, follow the [open work / TODO](./CLAUDE.md#open-work--todo) list
 
 Contributions are welcome once the design stabilises. Any change must clear both design pillars (measurement quality, aesthetic acceptability) and the hard constraints listed in [`CLAUDE.md`](./CLAUDE.md#hard-constraints-do-not-violate-without-an-explicit-documented-decision).
 
-**This is a public repository** — see the [public-repository rules](./CLAUDE.md#-critical-public-repository-rules) for the anonymisation and third-party-IP requirements that apply to every committed file.
+**This is a public repository** — see the [public-repository rules](./CLAUDE.md#-public-repository-rules) for the anonymisation and third-party-IP requirements that apply to every committed file.
 
 ---
 
@@ -115,6 +112,6 @@ GNU General Public License v3.0 — see [`GPLv3-LICENSE.md`](./GPLv3-LICENSE.md)
 - AirGradient ONE (open-source inspiration): <https://github.com/airgradienthq/arduino>
 - Sensirion SEN66 product page: <https://sensirion.com/products/catalog/SEN66>
 - HiLink LD2410 documentation: <https://www.hlktech.net>
-- NXP NT3H2x11 antenna design AN11203: <https://www.nxp.com>
+- NXP NT3H1101 datasheet: <https://www.nxp.com>
 - ESPHome documentation: <https://esphome.io>
 - JLCPCB component library: <https://jlcpcb.com/parts>

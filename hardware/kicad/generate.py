@@ -123,8 +123,8 @@ EXTERNAL_MODULES = {
         "supplier": "SZOMK direct (chinaenclosure.com)",
         "datasheet_note": (
             "Manufacturer DXF / datasheet are 3rd-party and NOT "
-            "redistributable via this repo (CLAUDE.md Rule 6). Stored "
-            "locally only under hardware/case/, gitignored."
+            "redistributable via this repo (CLAUDE.md Rule 6). Keep "
+            "locally; gitignored."
         ),
         "derived_dimensions": (
             "PCB Ø120 D-shape, 3x M3 mounting (Ø3.8 NPTH) on Ø110 pitch, "
@@ -139,15 +139,15 @@ EXTERNAL_MODULES = {
 # re-pinning, then the schematic generators below pick up via the table.
 # Cross-checked by pipeline/oas/06_check_boot.py.
 GPIO_ASSIGNMENTS = {
-    2:  {"net": "LD2410_OUT",  "desc": "LD2410 presence interrupt (safe non-strap input)"},
-    3:  {"net": "NT3H1101_FD", "desc": "NT3H1101 NFC field-detect interrupt (safe non-strap)"},
-    6:  {"net": "I2C_SDA",     "desc": "Shared I2C bus: SEN66 0x6B, NT3H1101 0x55, J9 Qwiic"},
-    7:  {"net": "I2C_SCL",     "desc": "Shared I2C bus, 4.7 kOhm pull-ups on MCU side (220 mm bus)"},
-    8:  {"net": "WS2812_DIN",  "desc": "SK6812-SIDE AQI ring data line. STRAP PIN - R7 10 kOhm pull-up to +3V3 required (DevKitM-1 onboard pull-up runs off VCC_5V which is unpowered in OAS)"},
-    12: {"net": "USB_DM",      "desc": "Native USB-Serial-JTAG D-"},
-    13: {"net": "USB_DP",      "desc": "Native USB-Serial-JTAG D+"},
-    16: {"net": "UART1_TX",    "desc": "UART1 TX -> LD2410 RX at 256000 baud"},
-    17: {"net": "UART1_RX",    "desc": "UART1 RX <- LD2410 TX at 256000 baud"},
+    2:  {"net": "LD2410_OUT", "sheet": "/MCU/", "desc": "LD2410 presence interrupt (safe non-strap input)"},
+    3:  {"net": "NFC_FD",     "sheet": "/MCU/", "desc": "NT3H1101 NFC field-detect interrupt (safe non-strap)"},
+    6:  {"net": "I2C_SDA",    "sheet": "/IO/",  "desc": "Shared I2C bus: SEN66 0x6B, NT3H1101 0x55, J9 Qwiic"},
+    7:  {"net": "I2C_SCL",    "sheet": "/IO/",  "desc": "Shared I2C bus, 4.7 kOhm pull-ups on MCU side (220 mm bus)"},
+    8:  {"net": "WS2812_DIN", "sheet": "/MCU/", "desc": "SK6812-SIDE AQI ring data line. STRAP PIN - R7 10 kOhm pull-up to +3V3 required (DevKitM-1 onboard pull-up runs off VCC_5V which is unpowered in OAS)"},
+    12: {"net": "USB_DM",     "sheet": "/IO/",  "desc": "Native USB-Serial-JTAG D-"},
+    13: {"net": "USB_DP",     "sheet": "/IO/",  "desc": "Native USB-Serial-JTAG D+"},
+    16: {"net": "UART_TX",    "sheet": "/MCU/", "desc": "UART1 TX -> LD2410 RX at 256000 baud"},
+    17: {"net": "UART_RX",    "sheet": "/MCU/", "desc": "UART1 RX <- LD2410 TX at 256000 baud"},
 }
 
 GPIO_RESERVED = {
@@ -989,12 +989,12 @@ J10_PCB_ROTATION = 90        # LIB +Y → PCB +X (horizontal pad row east).
 # Ø12 mm cable hole. Each LED radiates LIGHT RADIALLY OUTWARD into the
 # AK-N-94 perforated cover where it scatters and reads as a soft glowing
 # halo (no per-perforation hot-spot dotting). Side-emit geometry chosen
-# over top-emit per `hardware/components/_research-led-diffuse-ring.md`.
+# over top-emit after a research pass on the diffuse-ring options.
 #
 # LED chip: SK6812 SIDE-A (Shenzhen Normand / OPSCO Optoelectronics).
 # Package 4.0 × 2.0 × 1.6 mm. Pinout 1=DIN, 2=VDD, 3=DOUT, 4=GND
 # (verified against Normand 2018 rev 01 datasheet and OPSCO 2021 rev A/1).
-# See `hardware/components/sk6812-side.md` for the verified part spec.
+# See EXTERNAL_MODULES['SK6812-SIDE'] entry above for the verified part spec.
 #
 # Geometry:
 #   - 12 LEDs at θ = 0°, 30°, 60°, …, 330° (KiCad-screen +Y is down, so
@@ -2125,7 +2125,8 @@ def gen_cutouts() -> tuple[str, str]:
         # `items_not_allowed` on any segment that crosses the cutout
         # polygon — making the pads unroutable. The physical
         # case-wall opening is defined by the AK-N-94 cover geometry
-        # (in `hardware/case/`), not by the OAS PCB; copper inside
+        # (third-party DXF kept locally; not in this repo), not by
+        # the OAS PCB; copper inside
         # the connector access cutout is harmless because the case-
         # wall opening is wider than the connector body envelope.
         # When pads are NOT allowed (e.g. C4 "v2 expansion
@@ -15443,7 +15444,7 @@ def _sk6812_side_lib_symbol() -> str:
     Models the SK6812 SIDE-A LED with pin numbering matching the Normand /
     OPSCO datasheet (1=DIN, 2=VDD, 3=DOUT, 4=GND) — DIFFERENT from KiCad's
     stock `SK6812` symbol (which is the 5050 PLCC4 variant with a different
-    numbering). Per `hardware/components/sk6812-side.md`.
+    numbering). Part spec lives in EXTERNAL_MODULES['SK6812-SIDE'].
 
     Geometry: square body 5.08 × 5.08 mm centered at the symbol anchor.
     Pin tips on each of the 4 sides:
@@ -16018,7 +16019,8 @@ def gen_sensors_sch() -> str:
     # Pin order per HiLink HLK-LD2410B Datasheet V1.04 (2022-06-29, FCC-filed),
     # Table 1 page 7. Pin 1 is nearest the silk "1" marker on the module's
     # short edge opposite the 1T2R antenna patches. (NOTE: the HLK-LD2410C
-    # variant has a DIFFERENT pin order — see hardware/components/hlk-ld2410b.md.)
+    # variant has a DIFFERENT pin order — see datasheet revisions for the
+    # -C variant; OAS is wired strictly for -B.)
     #
     #   Pin 1: OUT   — digital presence output (HIGH = target detected,
     #                  3.3 V CMOS). Wires to MCU GPIO 2 via the LD2410_OUT
@@ -16377,8 +16379,8 @@ def gen_sensors_sch() -> str:
     # a Ø22 mm pitch circle around the cable hole; the schematic lays
     # them out as a tidy vertical column for legibility.
     #
-    # Pin layout per Normand SK6812 SIDE-A datasheet (verified in
-    # hardware/components/sk6812-side.md): 1=DIN, 2=VDD, 3=DOUT, 4=GND.
+    # Pin layout per Normand SK6812 SIDE-A datasheet (1=DIN, 2=VDD,
+    # 3=DOUT, 4=GND); cross-checked against OPSCO 2021 rev A/1.
     # Each LED's DOUT (pin 3, RIGHT edge of symbol) → next LED's DIN
     # (pin 1, LEFT edge of symbol). VDD (pin 2, TOP edge) → local +5V
     # flag. GND (pin 4, BOTTOM edge) → local GND flag. The decoupling
@@ -17662,7 +17664,8 @@ BARE_FOOTPRINT_TO_LIB: dict[str, str] = {
 # through DRC + ERC + visual review even when it would physically
 # prevent the daughterboard from seating into its sockets.
 #
-# v0.25 audit (`hardware/components/_clearance-audit-v0.25.md`) found 3
+# v0.25 clearance audit (kept inline below as the Z-clearance budget
+# constants) found 3
 # radial THT electrolytic caps (C1, C3, C4, all 11-12 mm tall) and one
 # TO-263-5 buck (U1, 4.6 mm) under the ESP32 shadow that exceeded the
 # ~5.5 mm under-daughterboard budget. v0.26 relocated them; this
@@ -17695,8 +17698,8 @@ BARE_FOOTPRINT_TO_LIB: dict[str, str] = {
 # Footprint-property string → maximum component height above OAS PCB
 # (mm, datasheet typical-max, conservative when a range exists).
 #
-# Sources (per `hardware/components/_clearance-audit-v0.25.md` §C and
-# datasheet citations):
+# Sources (datasheet citations, originally gathered during the v0.25
+# clearance audit):
 #   - Chip resistors / capacitors 0402 / 0603 / 0805: Murata GRM /
 #     Vishay CRCW datasheets — 0.5 / 0.95 / 1.25 mm respectively.
 #   - SOT-23: Onsemi / Vishay generic — 1.1 mm.
@@ -17786,8 +17789,8 @@ FOOTPRINT_HEIGHT: dict[str, float] = {
 # Component-clearance budget under each daughterboard, in mm. The budget
 # is the worst-case-realistic vertical distance between the OAS PCB top
 # surface and the daughterboard's PCB bottom surface (after the mating
-# pin tails bottom out inside the socket throat). Per
-# `hardware/components/_clearance-audit-v0.25.md` §B:
+# pin tails bottom out inside the socket throat). Per the v0.25
+# clearance audit (rationale captured inline):
 #   - ESP32 daughterboard on 2× PinSocket_1x15_P2.54mm_Vertical (8.5 mm
 #     plastic body): conservative 5.5 mm budget. Top of the socket plastic
 #     less ~3 mm of male pin tail protrusion from the DevKitM-1.

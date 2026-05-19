@@ -54,6 +54,11 @@ HERE = Path(__file__).parent
 KICAD_DIR = HERE.parent.parent  # pipeline/oas/ -> pipeline/ -> hardware/kicad
 TOP_SCH = KICAD_DIR / "oas.kicad_sch"
 
+# Pull GPIO_ASSIGNMENTS straight from generate.py — single source of truth for
+# the OAS pinout. Each entry: {net: <bare label>, sheet: </PATH/>, desc: ...}.
+sys.path.insert(0, str(KICAD_DIR))
+from generate import GPIO_ASSIGNMENTS  # noqa: E402
+
 # ---------------------------------------------------------------------------
 # DevKitM-1-N4 socket pin -> ESP32-C6 chip GPIO mapping.
 # Sourced from Espressif ESP32-C6-DevKitM-1 dimensions PDF (rev 1.0).
@@ -96,18 +101,11 @@ STRAP_PINS = [
      "must be NC (module sets internal state)"),
 ]
 
-# Signal pin assignments per CLAUDE.md "ESP32-C6-DevKitM-1-N4 pinout (v0.4 final)".
+# Signal pin assignments derived from generate.py::GPIO_ASSIGNMENTS (SOT).
 # Each entry: (gpio_name, expected_net_name, semantic_description).
 SIGNAL_PINS = [
-    ("GPIO2",  "/MCU/LD2410_OUT", "LD2410 presence interrupt"),
-    ("GPIO3",  "/MCU/NFC_FD",     "NT3H1101 field-detect interrupt"),
-    ("GPIO6",  "/IO/I2C_SDA",     "shared I2C bus SDA"),
-    ("GPIO7",  "/IO/I2C_SCL",     "shared I2C bus SCL"),
-    ("GPIO8",  "/MCU/WS2812_DIN", "SK6812-SIDE AQI ring data line"),
-    ("GPIO12", "/IO/USB_DM",      "Native USB D- (recovery header)"),
-    ("GPIO13", "/IO/USB_DP",      "Native USB D+ (recovery header)"),
-    ("GPIO16", "/MCU/UART_TX",    "UART1 TX -> LD2410 RX"),
-    ("GPIO17", "/MCU/UART_RX",    "UART1 RX <- LD2410 TX"),
+    (f"GPIO{gpio}", f"{entry['sheet']}{entry['net']}", entry["desc"])
+    for gpio, entry in sorted(GPIO_ASSIGNMENTS.items())
 ]
 
 # Net name pattern for unconnected pins as emitted by KiCad's netlist exporter.

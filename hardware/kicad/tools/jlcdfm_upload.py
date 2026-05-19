@@ -1,7 +1,7 @@
 """
 OAS - JLCPCB DFM upload + report download (MANUAL TRIGGER ONLY).
 
-Uploads `hardware/gerbers/oas-jlcpcb.zip` to https://jlcdfm.com, waits
+Uploads `hardware/output/oas-jlcpcb.zip` to https://jlcdfm.com, waits
 for the analysis to complete, screenshots the result page, and saves
 the JLCPCB DFM PDF report locally.
 
@@ -25,8 +25,9 @@ Prerequisites
   pip install --user playwright
   python -m playwright install chromium
 
-  Then run export_production.py to refresh hardware/gerbers/oas-jlcpcb.zip
-  (the upload always uses whatever file is currently at that path).
+  Then run `python regenerate.py` (stage 23 bundles the ZIP into
+  hardware/output/oas-jlcpcb.zip — the upload always uses whatever
+  file is currently at that path).
 
 ------------------------------------------------------------
 First-time auth setup (the upload requires a JLCPCB account)
@@ -80,7 +81,7 @@ def banner() -> None:
     print("=" * 64)
     print("  OAS JLCPCB DFM upload - LIVE EXTERNAL SERVICE")
     print("=" * 64)
-    print("  This script uploads hardware/gerbers/oas-jlcpcb.zip to")
+    print("  This script uploads hardware/output/oas-jlcpcb.zip to")
     print("  jlcdfm.com. Do not run from automated pipelines.")
     print(f"  Manual-trigger-only rule: see CLAUDE.md")
     print("=" * 64)
