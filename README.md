@@ -84,7 +84,7 @@ open-ambient-sensor/
 
 The board is at the v0.40 prototype stage. Once hardware lands and ESPHome flashes cleanly, this section will document:
 
-- Ordering the PCB (gerbers in [`hardware/output/oas-jlcpcb.zip`](./hardware/output/), JLCPCB SMT assembly with [`hardware/output/oas-bom.csv`](./hardware/output/) + [`oas-top-pos.csv`](./hardware/output/))
+- Ordering the PCB (gerbers in [`hardware/output/jlcpcb/oas-jlcpcb.zip`](./hardware/output/jlcpcb/), JLCPCB SMT assembly with [`hardware/output/jlcpcb/oas-bom.csv`](./hardware/output/jlcpcb/) + [`oas-top-CPL.csv`](./hardware/output/jlcpcb/))
 - Sourcing the SZOMK AK-N-94 enclosure
 - Flashing the ESP32-C6 — see [`firmware/README.md`](./firmware/README.md)
 - Adding the device to Home Assistant — see [`firmware/README.md`](./firmware/README.md)

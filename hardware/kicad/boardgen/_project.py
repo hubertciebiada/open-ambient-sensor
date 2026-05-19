@@ -1098,7 +1098,7 @@ def _led_ring_position(index: int) -> tuple[float, float, float]:
     # — without compensation, JLCPCB would place the chip 180° off
     # the pads (pin 1 DIN landing on pad 4 GND → reverse polarity).
     # The +180° SK6812-SIDE entry in JLCPCB_ROTATIONS_OAS in
-    # jlcpcb_rotations.py applies that compensation at pos.csv emit
+    # pipeline/jlcpcb/_rotations.py applies that compensation at pos.csv emit
     # time. Validated empirically: without the entry, user saw JLCPCB
     # DFM rendering LEDs emitting inward (= chip 180° off pads).
     rot = int(round((270.0 - theta_deg) % 360.0))

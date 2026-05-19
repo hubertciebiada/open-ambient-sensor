@@ -57,23 +57,12 @@ hardware/kicad/oas_drc_violations.json
 hardware/renders/_*
 hardware/renders/*.log
 
-# Production deliverables (hardware/output/) — regenerable from generate.py
-# via `python regenerate.py`. Individual gerbers / drill / drill_map / gbrjob
-# are gitignored (day-to-day regenerations should not flood git diff). The
-# JLCPCB-ready ZIP + BOM CSV + pos CSVs are COMMITTED as a snapshot of the
-# current revision (visible to reviewers).
-hardware/output/*.gtl
-hardware/output/*.gbl
-hardware/output/*.gts
-hardware/output/*.gbs
-hardware/output/*.gto
-hardware/output/*.gbo
-hardware/output/*.gtp
-hardware/output/*.gbp
-hardware/output/*.gm1
-hardware/output/*.gbrjob
-hardware/output/*.drl
-hardware/output/*-drl_map.pdf
+# Intermediate fab data (raw gerbers + drill + drill_map PDFs) lives in
+# hardware/build/gerbers/. Already covered by the generic **/build/ rule
+# above; this line is for explicitness — production output for a given
+# vendor lives under hardware/output/<vendor>/ (committed: ZIP + BOM +
+# CPL top + CPL bottom — exactly 4 files per vendor).
+hardware/build/
 
 # ESPHome ########
 .esphome/

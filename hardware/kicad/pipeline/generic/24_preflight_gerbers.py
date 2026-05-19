@@ -1,10 +1,9 @@
 """Stage 24: pre-flight gerber sanity check.
 
-Programmatic verification that the gerbers in GERBER_OUTPUT_DIR are sane
-before uploading to JLCPCB:
+Programmatic verification that the raw gerbers in hardware/build/gerbers/
+are sane before any vendor packages them:
 
-  1. **Integrity** — every expected file present, non-zero size, ZIP
-     bundle readable, member count matches.
+  1. **Integrity** — every expected file present, non-zero size.
   2. **Drill statistics** — parse Excellon files (PTH + NPTH), count
      tool sizes + hole positions, sanity-check against expected values
      from generate.py geometry (NPTH_EXPECTED_TOOLS / NPTH_EXPECTED_HOLES
@@ -14,6 +13,10 @@ before uploading to JLCPCB:
      renders/preflight-bottom.png. Side-by-side they should match the
      stage 10 KiCad-side renders' geometry; mismatch = gerber export bug.
 
+This stage is vendor-neutral — it reads the raw gerbers in
+GERBERS_BUILD_DIR, not any vendor ZIP. Per-vendor ZIP integrity is each
+vendor stage's own responsibility (stage 32 testzip in pipeline/jlcpcb/).
+
 pygerber is an optional dependency (analogous to stage 12 cairosvg) — if
 not installed, the stage emits a WARN and exits 0 so the pipeline runs
 out-of-box.
@@ -22,14 +25,12 @@ from __future__ import annotations
 
 import re
 import sys
-import zipfile
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 from _common import Stage, RENDERS  # noqa: E402
 from _project import (  # noqa: E402
-    GERBER_OUTPUT_DIR,
-    BUNDLE_NAME,
+    GERBERS_BUILD_DIR,
     NPTH_EXPECTED_TOOLS,
     NPTH_EXPECTED_HOLES,
     PTH_MIN_DRILL_MM,
@@ -53,7 +54,6 @@ EXPECTED_DRILLS = [
     ("oas-PTH.drl",  "Plated through-holes"),
     ("oas-NPTH.drl", "Non-plated holes"),
 ]
-ZIP_EXPECTED_MEMBERS = 11  # 9 gerbers + 2 drills
 
 
 def parse_drill_tools(drl_path: Path) -> tuple[dict[int, float], int]:
@@ -101,32 +101,19 @@ def main() -> int:
         preflight_dir = RENDERS / PREFLIGHT_SUBDIR
         preflight_dir.mkdir(parents=True, exist_ok=True)
 
-        # 1) File integrity
+        # 1) File integrity (raw fab data only; vendor ZIPs are each
+        # vendor stage's own concern — stage 32 in pipeline/jlcpcb/ runs
+        # zipfile.testzip() on its own output).
         st.info(f"checking integrity of {len(EXPECTED_GERBERS) + len(EXPECTED_DRILLS)} files")
         for fname, desc in EXPECTED_GERBERS + EXPECTED_DRILLS:
-            p = GERBER_OUTPUT_DIR / fname
+            p = GERBERS_BUILD_DIR / fname
             if not p.exists() or p.stat().st_size == 0:
                 st.fail(f"{fname} missing or empty ({desc})")
             st.ok(f"{fname:30s} {desc} ({p.stat().st_size} B)")
 
-        zip_path = GERBER_OUTPUT_DIR / BUNDLE_NAME
-        if not zip_path.exists():
-            st.fail(f"{BUNDLE_NAME} missing")
-        try:
-            with zipfile.ZipFile(zip_path) as zf:
-                bad = zf.testzip()
-                count = len(zf.namelist())
-        except zipfile.BadZipFile:
-            st.fail(f"{BUNDLE_NAME} is not a valid ZIP")
-        if bad is not None:
-            st.fail(f"{BUNDLE_NAME} corrupted: {bad}")
-        if count != ZIP_EXPECTED_MEMBERS:
-            st.fail(f"{BUNDLE_NAME} has {count} members, expected {ZIP_EXPECTED_MEMBERS}")
-        st.ok(f"{BUNDLE_NAME} integrity OK ({count} members)")
-
         # 2) Drill statistics
         st.info("drill statistics")
-        pth_tools, pth_holes = parse_drill_tools(GERBER_OUTPUT_DIR / "oas-PTH.drl")
+        pth_tools, pth_holes = parse_drill_tools(GERBERS_BUILD_DIR / "oas-PTH.drl")
         st.ok(f"PTH: {len(pth_tools)} tool sizes, {pth_holes} holes total")
         for tn, dia in sorted(pth_tools.items(), key=lambda kv: kv[1]):
             st.info(f"  T{tn} = {dia:.3f} mm")
@@ -135,7 +122,7 @@ def main() -> int:
             st.fail(f"PTH min drill {min_pth:.3f} mm < {PTH_MIN_DRILL_MM} mm")
         st.ok(f"PTH min drill {min_pth:.3f} mm >= {PTH_MIN_DRILL_MM} mm (JLCPCB std-2-layer)")
 
-        npth_tools, npth_holes = parse_drill_tools(GERBER_OUTPUT_DIR / "oas-NPTH.drl")
+        npth_tools, npth_holes = parse_drill_tools(GERBERS_BUILD_DIR / "oas-NPTH.drl")
         st.ok(f"NPTH: {len(npth_tools)} tool sizes, {npth_holes} holes total")
         for tn, dia in sorted(npth_tools.items(), key=lambda kv: kv[1]):
             st.info(f"  T{tn} = {dia:.3f} mm")
@@ -150,16 +137,16 @@ def main() -> int:
         st.info("rendering composite top + bottom (pygerber)")
         for side, files, out_name in [
             ("top", [
-                (GERBER_OUTPUT_DIR / "oas-F_Cu.gtl",         FileTypeEnum.COPPER),
-                (GERBER_OUTPUT_DIR / "oas-F_Mask.gts",       FileTypeEnum.MASK),
-                (GERBER_OUTPUT_DIR / "oas-F_Silkscreen.gto", FileTypeEnum.SILK),
-                (GERBER_OUTPUT_DIR / "oas-Edge_Cuts.gm1",    FileTypeEnum.EDGE),
+                (GERBERS_BUILD_DIR / "oas-F_Cu.gtl",         FileTypeEnum.COPPER),
+                (GERBERS_BUILD_DIR / "oas-F_Mask.gts",       FileTypeEnum.MASK),
+                (GERBERS_BUILD_DIR / "oas-F_Silkscreen.gto", FileTypeEnum.SILK),
+                (GERBERS_BUILD_DIR / "oas-Edge_Cuts.gm1",    FileTypeEnum.EDGE),
             ], "preflight-top.png"),
             ("bottom", [
-                (GERBER_OUTPUT_DIR / "oas-B_Cu.gbl",         FileTypeEnum.COPPER),
-                (GERBER_OUTPUT_DIR / "oas-B_Mask.gbs",       FileTypeEnum.MASK),
-                (GERBER_OUTPUT_DIR / "oas-B_Silkscreen.gbo", FileTypeEnum.SILK),
-                (GERBER_OUTPUT_DIR / "oas-Edge_Cuts.gm1",    FileTypeEnum.EDGE),
+                (GERBERS_BUILD_DIR / "oas-B_Cu.gbl",         FileTypeEnum.COPPER),
+                (GERBERS_BUILD_DIR / "oas-B_Mask.gbs",       FileTypeEnum.MASK),
+                (GERBERS_BUILD_DIR / "oas-B_Silkscreen.gbo", FileTypeEnum.SILK),
+                (GERBERS_BUILD_DIR / "oas-Edge_Cuts.gm1",    FileTypeEnum.EDGE),
             ], "preflight-bottom.png"),
         ]:
             try:

@@ -1,13 +1,13 @@
 """JLCPCB rotation corrections for OAS pos.csv export — single source of truth.
 
 ARCHITECTURE (audit-19, 2026-05-19): JLCPCB tape-feeder rotation offsets
-apply ONLY at stage 21_export_pos.py against the kicad-cli-emitted
+apply ONLY at stage 30_export_pos.py against the kicad-cli-emitted
 pos.csv. They NEVER touch `oas.kicad_pcb`, the schematic, or any
 2D / 3D / preflight render. This separation is intentional:
 
   - `oas.kicad_pcb`             = KiCad ground truth (natural rotation)
   - `hardware/renders/pcb/*`    = visual verification of KiCad placement
-  - `hardware/output/oas-top-pos.csv` = JLCPCB tape-feeder-correct
+  - `hardware/output/jlcpcb/oas-top-pos.csv` = JLCPCB tape-feeder-correct
 
 Consequence: visual sanity-checking in renders reflects placement
 INTENT (what KiCad believes the chip body sits like on the PCB),
@@ -48,7 +48,7 @@ To add an OAS-specific entry:
      The rationale MUST cite the observation (which board version, which
      designator, what was wrong) — future developers need to understand
      why the offset exists.
-  4. Re-run pipeline. Stage 21 log shows the offset applied.
+  4. Re-run pipeline. Stage 30 log shows the offset applied.
   5. Re-upload to JLCPCB DFM, verify the fix worked.
 """
 from __future__ import annotations
@@ -58,15 +58,16 @@ import re
 import sys
 from pathlib import Path
 
-HERE = Path(__file__).parent
-UPSTREAM_CSV = HERE / "third_party" / "JLCKicadTools" / "jlc_kicad_tools" / "cpl_rotations_db.csv"
+HERE = Path(__file__).parent                  # hardware/kicad/pipeline/jlcpcb
+KICAD_ROOT = HERE.parent.parent               # hardware/kicad (sibling: third_party/)
+UPSTREAM_CSV = KICAD_ROOT / "third_party" / "JLCKicadTools" / "jlc_kicad_tools" / "cpl_rotations_db.csv"
 
 
 # ---------------------------------------------------------------------------
 # OAS-specific entries — gap-fillers for footprints upstream does not match.
 # ---------------------------------------------------------------------------
 # Each tuple: (compiled_regex, offset_deg, rationale_string).
-# Rationale is mandatory and shown in stage 21 log.
+# Rationale is mandatory and shown in stage 30 log.
 #
 # Audit-19 (2026-05-19): TO-263 and SOT-583 entries removed. Those were
 # empirical without JLCPCB DFM re-upload validation. KiCad's stock
@@ -112,7 +113,7 @@ def _parse_upstream_csv() -> list[tuple[re.Pattern, float, str]]:
     if not UPSTREAM_CSV.exists():
         sys.exit(
             "[FAIL] rotation correction CSV missing at "
-            f"{UPSTREAM_CSV.relative_to(HERE.parent.parent)} — "
+            f"{UPSTREAM_CSV.relative_to(KICAD_ROOT.parent)} — "
             "run: git submodule update --init --recursive"
         )
     out: list[tuple[re.Pattern, float, str]] = []
@@ -134,7 +135,7 @@ def _parse_upstream_csv() -> list[tuple[re.Pattern, float, str]]:
 def load_combined() -> list[tuple[re.Pattern, float, str]]:
     """Return upstream entries + OAS-specific entries as one list.
 
-    Order matters: upstream FIRST, OAS SECOND. Stage 21 takes the first
+    Order matters: upstream FIRST, OAS SECOND. Stage 30 takes the first
     regex match per footprint, so OAS entries only fire when upstream
     doesn't match — gap-filler semantics, not override.
     """
@@ -147,5 +148,5 @@ def load_combined() -> list[tuple[re.Pattern, float, str]]:
 
 
 def stats() -> tuple[int, int]:
-    """Return (n_upstream, n_oas_specific) for stage 21 banner."""
+    """Return (n_upstream, n_oas_specific) for stage 30 banner."""
     return len(_parse_upstream_csv()), len(JLCPCB_ROTATIONS_OAS)

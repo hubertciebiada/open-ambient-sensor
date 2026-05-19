@@ -1,4 +1,4 @@
-"""Stage 22: BOM CSV in JLCPCB Standard Template format.
+"""Stage 31: BOM CSV in JLCPCB Standard Template format.
 
 JLCPCB auto-detects this exact column layout on upload:
 
@@ -29,8 +29,10 @@ to `C10,C11,...,C17` here.
 Footprint stripping: KiCad emits `Capacitor_SMD:C_0805` (library:name).
 JLCPCB wants the bare `C_0805` — strip the library prefix.
 
-This stage is project-specific (OAS) because the LCSC mapping CSV schema
-and THT_REFERENCES set are bound to this project's BOM conventions.
+This stage is vendor-specific (JLCPCB) because the LCSC mapping and the
+JLCPCB Standard Template header are JLCPCB-specific. THT_REFERENCES is
+OAS-specific but lives in `_project.py` since it shapes the JLCPCB BOM
+output (which is the only consumer of the THT vs SMD distinction today).
 """
 from __future__ import annotations
 
@@ -39,11 +41,11 @@ import re
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).parent.parent))
+sys.path.insert(0, str(Path(__file__).parent.parent))   # pipeline/
 from _common import Stage, run, find_kicad_cli, KICAD_ROOT  # noqa: E402
 from _project import (  # noqa: E402
     SCH_PATH,
-    GERBER_OUTPUT_DIR,
+    JLCPCB_OUTPUT_DIR,
     BOM_OUTPUT_FILE,
     THT_REFERENCES,
 )
@@ -52,7 +54,7 @@ from _project import (  # noqa: E402
 sys.path.insert(0, str(KICAD_ROOT))
 from lcsc_mapping import LCSC_MAPPING  # noqa: E402
 
-STAGE_NAME = "export_bom_jlcpcb"
+STAGE_NAME = "export_bom"
 
 
 def load_lcsc_mapping() -> dict[tuple[str, str], tuple[str, str]]:
@@ -177,8 +179,8 @@ def postprocess_bom_with_lcsc_mapping(bom_path: Path, st: Stage) -> None:
 def main() -> int:
     with Stage(STAGE_NAME) as st:
         kcli = find_kicad_cli()
-        GERBER_OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
-        bom_path = GERBER_OUTPUT_DIR / BOM_OUTPUT_FILE
+        JLCPCB_OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+        bom_path = JLCPCB_OUTPUT_DIR / BOM_OUTPUT_FILE
 
         st.info(f"kicad-cli sch export bom -> {bom_path.name}")
         run([

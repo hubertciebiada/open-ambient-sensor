@@ -320,8 +320,8 @@ open-ambient-sensor/
     │   ├── libraries/              # generated project libraries (OAS.kicad_sym + oas.pretty/)
     │   ├── pipeline/               # one stage per file (NN_<name>.py); each standalone-runnable
     │   │   ├── _common.py          # PROJECT-AGNOSTIC helpers (Stage, find_kicad_cli, run, sha256)
-    │   │   ├── _project.py         # OAS config consumed by generic stages
-    │   │   ├── generic/            # REUSABLE across KiCad projects (zero OAS references)
+    │   │   ├── _project.py         # OAS config + vendor-agnostic + per-vendor output paths
+    │   │   ├── generic/            # VENDOR-AGNOSTIC + REUSABLE across KiCad projects
     │   │   │   ├── 01_generate.py        # invoke generate.py
     │   │   │   ├── 02_determinism.py     # bit-identity self-check
     │   │   │   ├── 03_drc.py             # kicad-cli pcb drc strict
@@ -330,26 +330,33 @@ open-ambient-sensor/
     │   │   │   ├── 11_render_sch.py      # schematic root + sub-sheets SVG
     │   │   │   ├── 12_render_png.py      # cairosvg batch SVG -> PNG
     │   │   │   ├── 13_render_3d.py       # 3D top + iso renders
-    │   │   │   ├── 20_export_gerbers.py  # Protel gerbers + Excellon drill + drill_map PDF
-    │   │   │   ├── 21_export_pos.py      # JLCPCB CPL format
-    │   │   │   ├── 23_bundle_jlcpcb.py   # ZIP gerbers + drill into oas-jlcpcb.zip
+    │   │   │   ├── 20_export_gerbers.py  # Protel gerbers + Excellon drill -> hardware/build/gerbers/
     │   │   │   └── 24_preflight_gerbers.py  # pygerber integrity + drill stats + composite render
-    │   │   └── oas/                # OAS-only verification (hardcoded to this circuit)
-    │   │       ├── 05_check_dc.py        # DC voltage propagation analytical model
-    │   │       ├── 06_check_boot.py      # ESP32-C6 strap + signal pin audit
-    │   │       ├── 07_check_ampacity.py  # IPC-2221 trace width verifier
-    │   │       ├── 08_check_switching.py # ngspice LM2596 soft-start (hard FAIL if cache empty)
-    │   │       └── 22_export_bom_jlcpcb.py  # BOM + LCSC lookup + range expansion + THT detection
+    │   │   ├── oas/                # OAS-only verification (hardcoded to this circuit)
+    │   │   │   ├── 05_check_dc.py        # DC voltage propagation analytical model
+    │   │   │   ├── 06_check_boot.py      # ESP32-C6 strap + signal pin audit
+    │   │   │   ├── 07_check_ampacity.py  # IPC-2221 trace width verifier
+    │   │   │   ├── 08_check_switching.py # ngspice LM2596 soft-start (hard FAIL if cache empty)
+    │   │   │   └── 14_check_refdes_unique.py  # designator uniqueness across schematic
+    │   │   └── jlcpcb/             # VENDOR — JLCPCB-specific stages; deliverables -> hardware/output/jlcpcb/
+    │   │       ├── _rotations.py             # tape-feeder rotation offsets (upstream + OAS gap-fillers)
+    │   │       ├── 29_check_bom_consistency.py  # LCSC# bijection check
+    │   │       ├── 30_export_pos.py          # CPL header + rotation corrections
+    │   │       ├── 31_export_bom.py          # BOM template + LCSC + library tier + THT detection
+    │   │       ├── 32_bundle.py              # ZIP gerbers + drill -> oas-jlcpcb.zip
+    │   │       └── 33_check_dnp_consistency.py  # DNP refdes leak audit (BOM + CPL)
     │   └── tools/                  # MANUAL-trigger scripts (extract_routes, jlcdfm_upload)
+    ├── build/                      # INTERMEDIATE artifacts (gitignored)
+    │   └── gerbers/                # raw Protel gerbers + Excellon drill + drill_map PDF
     ├── renders/                    # generated previews (PNG + SVG, sibling of kicad/)
     │   ├── pcb/                    # 2D / 3D / pygerber preflight
     │   └── sch/                    # schematic root + 4 sub-sheets
-    └── output/                     # production deliverables (regenerable from generate.py)
-        ├── oas-jlcpcb.zip          # COMMITTED snapshot for current revision
-        ├── oas-bom.csv             # COMMITTED — JLCPCB happy-path 8-column format
-        ├── oas-top-pos.csv         # COMMITTED — JLCPCB CPL header
-        ├── oas-bottom-pos.csv      # COMMITTED
-        └── oas-*.{gtl,gbl,...}     # gitignored — individual gerbers / drill / drill_map / gbrjob
+    └── output/                     # production deliverables (one folder per vendor)
+        └── jlcpcb/                 # EXACTLY 4 files, all committed
+            ├── oas-jlcpcb.zip      # gerbers + drill bundle for JLCPCB upload
+            ├── oas-bom.csv         # BOM (JLCPCB template + LCSC + library tier)
+            ├── oas-top-CPL.csv     # CPL top (JLCPCB header + rotation offsets)
+            └── oas-bottom-CPL.csv  # CPL bottom
 ```
 
 `.gitignore` highlights:
@@ -363,19 +370,10 @@ open-ambient-sensor/
 # auto-downloaded external tools (ngspice + LM2596 PSpice model, etc.)
 /.tmp/
 
-# production output — individual gerbers gitignored; ZIP + BOM + pos.csv committed
-hardware/output/*.gtl
-hardware/output/*.gbl
-hardware/output/*.gts
-hardware/output/*.gbs
-hardware/output/*.gto
-hardware/output/*.gbo
-hardware/output/*.gtp
-hardware/output/*.gbp
-hardware/output/*.gm1
-hardware/output/*.gbrjob
-hardware/output/*.drl
-hardware/output/*-drl_map.pdf
+# vendor-specific production output lives under hardware/output/<vendor>/
+# — committed per vendor: exactly 4 files (ZIP + BOM + 2× CPL). The
+# intermediate raw fab data (gerbers + drill + drill_map) lives under
+# hardware/build/gerbers/ and is gitignored via **/build/.
 
 # freerouting (manual download by user; not redistributable)
 hardware/kicad/freerouting.jar
@@ -402,11 +400,14 @@ The KiCad project in `hardware/kicad/` is **script-driven**. The source of truth
    - `04_erc` — `kicad-cli sch erc` strict (`--severity-error --severity-warning --exit-code-violations`).
    - `05_check_dc` / `06_check_boot` / `07_check_ampacity` / `08_check_switching` — DC voltage propagation, boot-strap audit, trace ampacity, ngspice transient (soft-skips with [WARN] if ngspice + LM2596 PSpice model not in `.cache/spice/`).
    - `10_render_2d` / `11_render_sch` / `12_render_png` / `13_render_3d` — re-renders SVG + PNG + 3D into `renders/`.
-   - `20_export_gerbers` / `21_export_pos` / `22_export_bom_jlcpcb` / `23_bundle_jlcpcb` — production deliverables in JLCPCB happy-path format (CPL header `Designator, Mid X, Mid Y, Layer, Rotation`; BOM with LCSC mapping + range expansion + THT detection; ZIP bundle).
-   - `24_preflight_gerbers` — pygerber integrity + drill statistics + composite renders (smoke test before fab upload).
-   Numbers `08`–`09` and `14`–`19` are intentionally reserved for future verification checks; the gap stays visible in `ls`. **Aborts on any violation or determinism drift** (fail-fast — later stages don't run). Each `pipeline/<subdir>/NN_*.py` is also independently runnable for debug (`python pipeline/generic/03_drc.py`).
-4. The assistant commits the resulting diff (sources + KiCad files + renders + gerbers together).
-5. JLCPCB upload: `hardware/output/oas-jlcpcb.zip` (bare board) + `oas-top-pos.csv` + `oas-bom.csv` (SMT assembly). Drill review: `oas-PTH-drl_map.pdf` / `oas-NPTH-drl_map.pdf`. All files produced by stages 20-24 on every `regenerate.py` run.
+   - `20_export_gerbers` — vendor-neutral raw fab data (Protel gerbers + Excellon drill + drill_map PDFs) written to `hardware/build/gerbers/` (gitignored, intermediate).
+   - `24_preflight_gerbers` — pygerber integrity + drill statistics + composite renders (smoke test on the raw fab data, vendor-neutral).
+   - `29_check_bom_consistency` — LCSC# bijection check across `lcsc_mapping.py` (catches copy-paste bugs before any vendor export).
+   - `30_export_pos` / `31_export_bom` / `32_bundle` (in `pipeline/jlcpcb/`) — JLCPCB-specific deliverables: CPL header `Designator, Mid X, Mid Y, Layer, Rotation` + rotation offsets; BOM with LCSC mapping + range expansion + THT detection; ZIP bundle. All four output files land in `hardware/output/jlcpcb/`.
+   - `33_check_dnp_consistency` — DNP attribute audit: PCB attrs `dnp` + `exclude_from_bom` + `exclude_from_pos_files` must travel together; DNP refdes must not leak into BOM or CPL files.
+   Numbers in the range gaps (`09`, `15`–`19`, `21`–`28`, `34`–`39`) are reserved: 09/15–19 for future generic / oas checks, 21–28 for future generic export stages, 34–39 for future JLCPCB stages. Each vendor gets a 10-number range (jlcpcb 29–39; future oshpark would take 40–49). **Aborts on any violation or determinism drift** (fail-fast — later stages don't run). Each `pipeline/<subdir>/NN_*.py` is also independently runnable for debug (`python pipeline/generic/03_drc.py`).
+4. The assistant commits the resulting diff (sources + KiCad files + renders + vendor deliverables together).
+5. JLCPCB upload: `hardware/output/jlcpcb/oas-jlcpcb.zip` (bare board) + `oas-top-CPL.csv` + `oas-bom.csv` (SMT assembly). Drill review: `hardware/build/gerbers/oas-PTH-drl_map.pdf` / `oas-NPTH-drl_map.pdf` (regenerable, gitignored). All files produced by stages 20-33 on every `regenerate.py` run.
 
 ### Rules
 
@@ -415,7 +416,8 @@ The KiCad project in `hardware/kicad/` is **script-driven**. The source of truth
 - **All UUIDs are deterministic v5** (namespaced under the OAS project). Two consecutive runs with no source changes produce a bit-identical PCB → empty `git diff`.
 - **`renders/` is committed** as a visual changelog. Reviewers can see geometry changes in PRs without launching KiCad.
 - **External services run MANUALLY only.** `tools/jlcdfm_upload.py` and any future TI-WEBENCH / LCSC-stock-check / OSHPark-upload tool must be invoked by explicit user request — never from `regenerate.py` or any CI loop. JLCPCB's `/checkIp` endpoint tracks upload volume per IP; running on every regenerate would risk rate-limiting.
-- **JLCPCB-specific tape-feeder rotation offsets live in `jlcpcb_rotations.py` and apply only in stage `21_export_pos`.** `oas.kicad_pcb` and every 3D / 2D / preflight render show KiCad's natural rotation — visual verification reflects placement intent, not JLCPCB's tape geometry. Only `hardware/output/oas-top-pos.csv` (the file uploaded to JLCPCB) carries the compensated rotations. Same separation applies to gerbers (which don't encode component rotation at all).
+- **JLCPCB-specific tape-feeder rotation offsets live in `pipeline/jlcpcb/_rotations.py` and apply only in stage `30_export_pos`.** `oas.kicad_pcb` and every 3D / 2D / preflight render show KiCad's natural rotation — visual verification reflects placement intent, not JLCPCB's tape geometry. Only `hardware/output/jlcpcb/oas-top-CPL.csv` (the file uploaded to JLCPCB) carries the compensated rotations. Same separation applies to gerbers (which don't encode component rotation at all).
+- **Vendor isolation.** The KiCad project is vendor-neutral. JLCPCB-specific tweaks (rotation offsets, CPL header reformat, BOM template with LCSC + library tier, ZIP bundle naming) live ONLY under `pipeline/jlcpcb/` and ONLY write into `hardware/output/jlcpcb/`. The vendor folder under `hardware/output/<vendor>/` carries EXACTLY 4 files: ZIP + BOM + 2× CPL — nothing else. Adding a new fabricator = create `pipeline/<vendor>/` sibling to `generic/`, `oas/`, `jlcpcb/` + a new `hardware/output/<vendor>/` folder. Zero edits to `generic/` or `oas/` stages. NEVER compensate for a fabricator quirk by deforming `oas.kicad_pcb` or any schematic — the project's KiCad ground truth must match the datasheet, and the per-vendor stage compensates at export emit time.
 
 ---
 
@@ -493,6 +495,8 @@ The KiCad project in `hardware/kicad/` is **script-driven**. The source of truth
 ## Changelog summary
 
 Full historical detail lives in `git log --tags`. Highlights of the most recent milestones:
+
+- **v0.40-vendor-split** (2026-05-19): Reorganized production pipeline around vendor isolation. New `pipeline/jlcpcb/` sibling to `generic/` and `oas/` holds every JLCPCB-specific stage (29 BOM consistency, 30 CPL export with rotation offsets, 31 BOM with LCSC + library tier, 32 ZIP bundle, 33 DNP consistency) plus `_rotations.py` (moved from `hardware/kicad/jlcpcb_rotations.py`). Stage 20 now emits raw vendor-neutral gerbers + drill to `hardware/build/gerbers/` (gitignored intermediate), and stage 24 preflight verifies that raw data without touching any vendor ZIP. Output reorganized: `hardware/output/jlcpcb/` carries EXACTLY 4 committed deliverables (ZIP + BOM + 2× CPL). Position files renamed `oas-{top,bottom}-pos.csv` → `oas-{top,bottom}-CPL.csv` to match JLCPCB's own terminology. Adding a second fabricator now reduces to creating a sibling `pipeline/<vendor>/` + `hardware/output/<vendor>/` with zero edits to existing `generic/` or `oas/` stages. boardgen output (`oas.kicad_pcb`, `oas.kicad_sch`, 4 sub-sheets, `OAS.kicad_sym`, 7 `.kicad_mod`, lib tables) byte-identical pre vs post; 20/20 PASS in ~115 s.
 
 - **v0.40-audit-16** (2026-05-17): Full canonical-name + ERC-clean sweep. Audit-16 caught four classes of canonical-name defects the audit-15 swarm had missed (focusing on pad geometry, not on the `(footprint "Lib:Name"` header itself): U1 / U2 non-canonical headers, J2 missing lib prefix, ZT1..ZT4 missing `oas:` prefix. Q1's `lib_footprint_mismatch` workaround (`rule_severities: {"...": "ignore"}` + `pin_name_map` G/S/D remap) eliminated by creating project-local `OAS:Q_PMOS_GDS` schematic symbol with numeric pin numbers 1/2/3 + letter pin NAMES. Final state: DRC 0, ERC 0 / 0 errors / 0 warnings, `rule_severities` empty `{}`, determinism PASS, Z-clearance PASS, every footprint header uses canonical `<lib>:<name>` or `oas:<name>`.
 

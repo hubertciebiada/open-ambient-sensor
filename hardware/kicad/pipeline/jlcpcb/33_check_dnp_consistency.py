@@ -1,4 +1,4 @@
-"""Stage 25: DNP attribute consistency across PCB, BOM, and pos.csv.
+"""Stage 33: DNP attribute consistency across PCB, BOM, and pos.csv.
 
 OAS marks J2 (UART recovery header) and J10 (native-USB recovery header) as
 DNP ("Do Not Place") — JLCPCB skips assembly, the user solders the headers
@@ -18,7 +18,8 @@ one of the three flags, and JLCPCB silently places a part the user didn't
 want (or skips one the user expected). The first signal is a wrong board
 delivered weeks later — too late.
 
-Runs AFTER export stages 21+22 so it can verify the actual emitted CSVs.
+Runs AFTER vendor export stages (30+31) so it can verify the actual
+emitted CSVs in hardware/output/jlcpcb/.
 
 Pure-Python, deterministic, no deps. Parses PCB with a state-machine over
 parenthesized blocks (multi-line footprints handled).
@@ -31,10 +32,10 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
-from _common import Stage, KICAD_ROOT  # noqa: E402
+from _common import Stage  # noqa: E402
 from _project import (  # noqa: E402
     PCB_PATH,
-    GERBER_OUTPUT_DIR,
+    JLCPCB_OUTPUT_DIR,
     BOM_OUTPUT_FILE,
     POS_OUTPUT_FILES,
 )
@@ -172,7 +173,7 @@ def main() -> int:
         st.ok(f"PCB DNP flags consistent: {len(dnp)} part(s) carry all three flags together")
 
         # ─── Rule 2: DNP refdes must NOT appear in emitted BOM ───
-        bom_path = GERBER_OUTPUT_DIR / BOM_OUTPUT_FILE
+        bom_path = JLCPCB_OUTPUT_DIR / BOM_OUTPUT_FILE
         bom_refdes = load_csv_designators(bom_path, designator_col=1)
         leaked_into_bom = sorted(dnp & bom_refdes)
         if leaked_into_bom:
@@ -183,7 +184,7 @@ def main() -> int:
 
         # ─── Rule 3: DNP refdes must NOT appear in emitted pos.csv ───
         for _side, fname in POS_OUTPUT_FILES:
-            pos_path = GERBER_OUTPUT_DIR / fname
+            pos_path = JLCPCB_OUTPUT_DIR / fname
             pos_refdes = load_csv_designators(pos_path, designator_col=0)
             leaked_into_pos = sorted(dnp & pos_refdes)
             if leaked_into_pos:

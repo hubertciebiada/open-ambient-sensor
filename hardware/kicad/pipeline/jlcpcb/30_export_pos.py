@@ -1,4 +1,4 @@
-"""Stage 21: SMT pick-and-place position files in JLCPCB CPL format.
+"""Stage 30: SMT pick-and-place position files in JLCPCB CPL format.
 
 JLCPCB CPL upload REQUIRES exact column header (per the 2026-05-15 first-
 order learning the hard way — "Failed processing the CPL file" error
@@ -14,7 +14,7 @@ precision (more is rejected, less is fine), drop Val/Package columns
 
 ROTATION CORRECTIONS — KiCad footprint "0 deg rotation" reference differs
 from JLCPCB tape-feeder reference for many packages. We load a combined
-list of corrections from `jlcpcb_rotations.load_combined()` (upstream
+list of corrections from `_rotations.load_combined()` (upstream
 JLCKicadTools CSV + OAS-specific gap-fillers) and apply per-row.
 
 Excludes DNP footprints (J2 recovery header, J10 native-USB recovery) and
@@ -26,12 +26,11 @@ import csv
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).parent.parent))
-from _common import Stage, run, find_kicad_cli, KICAD_ROOT  # noqa: E402
-from _project import PCB_PATH, GERBER_OUTPUT_DIR, POS_OUTPUT_FILES  # noqa: E402
-
-sys.path.insert(0, str(KICAD_ROOT))
-from jlcpcb_rotations import load_combined, stats  # noqa: E402
+sys.path.insert(0, str(Path(__file__).parent.parent))   # pipeline/
+sys.path.insert(0, str(Path(__file__).parent))          # pipeline/jlcpcb/
+from _common import Stage, run, find_kicad_cli  # noqa: E402
+from _project import PCB_PATH, JLCPCB_OUTPUT_DIR, POS_OUTPUT_FILES  # noqa: E402
+from _rotations import load_combined, stats  # noqa: E402, F401
 
 STAGE_NAME = "export_pos"
 
@@ -118,10 +117,10 @@ def postprocess_cpl_for_jlcpcb(path: Path, st: Stage) -> tuple[int, int, int, in
 def main() -> int:
     with Stage(STAGE_NAME) as st:
         kcli = find_kicad_cli()
-        GERBER_OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+        JLCPCB_OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
         for side, fname in POS_OUTPUT_FILES:
-            out = GERBER_OUTPUT_DIR / fname
+            out = JLCPCB_OUTPUT_DIR / fname
             run([
                 kcli, "pcb", "export", "pos",
                 "--output", str(out),

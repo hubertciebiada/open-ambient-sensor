@@ -80,12 +80,26 @@ PCB_3D_TARGETS = [
 PREFLIGHT_SUBDIR = "pcb"
 
 # ===========================================================================
-# Production export (stages 20-24)
+# Production export — vendor-isolated layout
 # ===========================================================================
+#
+# Architecture (audit-19, 2026-05-19): the project itself is vendor-neutral.
+# Stage 20 emits raw gerbers + drill to hardware/build/gerbers/ (intermediate,
+# gitignored). Each manufacturing vendor gets its own pipeline subdirectory
+# (`pipeline/<vendor>/`) writing exactly 4 deliverables — ZIP + BOM + CPL top
+# + CPL bottom — into hardware/output/<vendor>/. Adding a new fabricator
+# means creating a new sibling to `pipeline/jlcpcb/` and a new vendor folder
+# under hardware/output/. Zero edits to `generic/` or `oas/` stages.
 
-# Stage 20: gerber + drill output dir -------------------------------------
-GERBER_OUTPUT_DIR = KICAD_ROOT.parent / "output"   # hardware/output/
+# Intermediate vendor-neutral raw fab data (gerbers + drill + drill_map PDFs).
+# Gitignored via the generic `**/build/` rule in .gitignore.
+GERBERS_BUILD_DIR = KICAD_ROOT.parent / "build" / "gerbers"
 
+# Vendor-specific deliverables parent. Each vendor lives under its own
+# subdirectory carrying EXACTLY 4 files.
+OUTPUT_ROOT = KICAD_ROOT.parent / "output"
+
+# Stage 20: gerber + drill ------------------------------------------------
 # Fab deliverable layers. NOT F.Fab / B.Fab / F.CrtYd / B.CrtYd / Dwgs.User
 # — those are internal documentation, not for production.
 FAB_LAYERS = (
@@ -96,19 +110,33 @@ FAB_LAYERS = (
     "Edge.Cuts"
 )
 
-# Stage 21: position file outputs -----------------------------------------
+# Stage 24: preflight -----------------------------------------------------
+# Expected drill statistics from generate.py geometry. Update when board
+# mechanicals change (mounting hole count / zip-tie hole count).
+NPTH_EXPECTED_TOOLS = {3.00, 3.80}     # 3.00 = zip-tie pairs, 3.80 = M3 mount
+NPTH_EXPECTED_HOLES = 4 + 3            # 4 zip-tie + 3 M3 mounting
+PTH_MIN_DRILL_MM = 0.30                # JLCPCB std 2-layer minimum
+
+# ===========================================================================
+# Vendor: JLCPCB (pipeline/jlcpcb/ stages 29-32)
+# ===========================================================================
+
+JLCPCB_OUTPUT_DIR = OUTPUT_ROOT / "jlcpcb"
+
+# Stage 30: position file outputs.
 # Each tuple: (kicad-cli --side argument, output filename relative to
-# GERBER_OUTPUT_DIR). JLCPCB CPL upload requires header
+# JLCPCB_OUTPUT_DIR). JLCPCB CPL upload requires header
 # `Designator, Mid X, Mid Y, Layer, Rotation` — the stage post-processes
 # kicad-cli's default `Ref, Val, Package, PosX, PosY, Rot, Side` to that.
 POS_OUTPUT_FILES = [
-    ("front", "oas-top-pos.csv"),
-    ("back",  "oas-bottom-pos.csv"),
+    ("front", "oas-top-CPL.csv"),
+    ("back",  "oas-bottom-CPL.csv"),
 ]
 
-# Stage 22: BOM with LCSC mapping -----------------------------------------
+# Stage 31: BOM with LCSC mapping.
 # LCSC mapping lives as a Python dict in `hardware/kicad/lcsc_mapping.py`
-# (single source of truth, imported by stage 22 + generate.py).
+# (single source of truth, imported by stage 31 + boardgen/_postprocess.py
+# for informational schematic-field injection).
 BOM_OUTPUT_FILE = "oas-bom.csv"
 
 # Reference designators that go through THT hand-solder line (not SMT).
@@ -118,17 +146,10 @@ BOM_OUTPUT_FILE = "oas-bom.csv"
 # sockets, C1/C3 D8 radial bulk, C4 D6.3 radial bulk.
 THT_REFERENCES = {"J1", "J4", "J5", "J6", "J7", "J8", "C1", "C3", "C4"}
 
-# Stage 23: JLCPCB ZIP bundle ---------------------------------------------
+# Stage 32: ZIP bundle.
 BUNDLE_NAME = "oas-jlcpcb.zip"
-# Globs relative to GERBER_OUTPUT_DIR. Set as globs so a layer-list change
+# Globs relative to GERBERS_BUILD_DIR. Set as globs so a layer-list change
 # in FAB_LAYERS automatically widens the bundle.
 BUNDLE_GLOBS = ["*.gtl", "*.gbl", "*.gts", "*.gbs",
                 "*.gto", "*.gbo", "*.gtp", "*.gbp",
                 "*.gm1", "*.drl"]
-
-# Stage 24: preflight -----------------------------------------------------
-# Expected drill statistics from generate.py geometry. Update when board
-# mechanicals change (mounting hole count / zip-tie hole count).
-NPTH_EXPECTED_TOOLS = {3.00, 3.80}     # 3.00 = zip-tie pairs, 3.80 = M3 mount
-NPTH_EXPECTED_HOLES = 4 + 3            # 4 zip-tie + 3 M3 mounting
-PTH_MIN_DRILL_MM = 0.30                # JLCPCB std 2-layer minimum

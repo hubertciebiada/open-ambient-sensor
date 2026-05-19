@@ -1,4 +1,4 @@
-"""Stage 09: BOM consistency — LCSC# vs (Value, Footprint) must be bijective.
+"""Stage 29: BOM consistency — LCSC# vs (Value, Footprint) must be bijective.
 
 Catches the typical "copy-paste bug" in `lcsc_mapping.py` where two different
 (Value, Footprint) entries point to the same LCSC# — meaning JLCPCB will pull
