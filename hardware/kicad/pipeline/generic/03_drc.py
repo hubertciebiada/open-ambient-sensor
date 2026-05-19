@@ -57,10 +57,24 @@ def main() -> int:
             st.fail(f"{n_viol} DRC violation(s) — see {drc_report}")
         st.ok(f"{n_viol} violations")
 
-        if n_unc > 0:
-            st.warn(f"{n_unc} unconnected pads (routing in progress; not gating)")
-        else:
-            st.ok(f"{n_unc} unconnected pads")
+        # Unconnected-pad baseline: with the routing rework still pending
+        # (CLAUDE.md TODO; ROUTING_CHUNKS = ("gnd",) only), the design
+        # carries exactly EXPECTED_UNCONNECTED non-GND pads that the GND
+        # pour cannot resolve. Hard-fail on ANY deviation — drop (routing
+        # progresses) or rise (regression) — so the harness notices the
+        # second a chunk gets added or removed from ROUTING_CHUNKS.
+        #
+        # When the routing rework lands, set EXPECTED_UNCONNECTED = 0 and
+        # delete this comment.
+        EXPECTED_UNCONNECTED = 89
+        if n_unc != EXPECTED_UNCONNECTED:
+            st.fail(
+                f"{n_unc} unconnected pads — expected exactly "
+                f"{EXPECTED_UNCONNECTED} pre-routing-rework. "
+                f"If routing has progressed, update EXPECTED_UNCONNECTED "
+                f"in pipeline/generic/03_drc.py."
+            )
+        st.ok(f"{n_unc} unconnected pads (matches pre-routing baseline)")
     return 0
 
 
