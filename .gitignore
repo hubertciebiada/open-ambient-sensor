@@ -12,6 +12,10 @@ desktop.ini
 **/__pycache__/
 *.bak
 
+# third-party submodule build/cache (rotation corrections, etc.)
+hardware/kicad/third_party/*/__pycache__/
+hardware/kicad/third_party/*/**/__pycache__/
+
 # Temp / scratch directories (auto-downloaded models, cached binaries:
 # .tmp/spice/ for ngspice + LM2596 PSpice model, .tmp/freerouting/ for
 # Freerouting JAR when a routing rework is needed).

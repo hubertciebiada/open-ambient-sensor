@@ -1,0 +1,3 @@
+[submodule "hardware/kicad/third_party/JLCKicadTools"]
+	path = hardware/kicad/third_party/JLCKicadTools
+	url = https://github.com/matthewlai/JLCKicadTools.git
