@@ -677,6 +677,9 @@ FOOTPRINT_HEIGHT: dict[str, float] = {
     # v0.40 post-order: CENKER CKCS5040 is 5.0 × 5.0 × 4.0 mm.
     "Inductor_SMD:L_Cenker_CKCS5040": 4.0,
     "Fuse:Fuse_2920_7451Metric": 3.0,
+    # 1812 polyfuse — Littelfuse 1812L075THDR datasheet max height 1.0 mm,
+    # Bourns MF-MSMF075/60-2 max height 0.95 mm. Round to 1.0 with margin.
+    "Fuse:Fuse_1812_4532Metric": 1.0,
     # ---- Radial THT electrolytics (the v0.26 audit-driven entries) ----
     "Capacitor_THT:CP_Radial_D6.3mm_P2.50mm": 11.2,
     "Capacitor_THT:CP_Radial_D8.0mm_P3.50mm": 12.5,
@@ -891,6 +894,10 @@ _FOOTPRINT_HALF_EXTENT: dict[str, tuple[float, float]] = {
     # for end-terminals = 2.8).
     "Inductor_SMD:L_Cenker_CKCS5040": (2.8, 2.6),
     "Fuse:Fuse_2920_7451Metric": (3.7, 2.6),
+    # Fuse_1812_4532Metric: pad pitch 4.40 mm + pad 1.30 mm wide -> outer pad
+    # edge at +/- 2.85 mm X; pad height 3.40 mm -> +/- 1.70 mm Y. Add 0.15 mm
+    # courtyard margin for safe placement clearance audits.
+    "Fuse:Fuse_1812_4532Metric": (3.0, 1.85),
     # Radial caps — cylindrical body, radius = half-extent both axes
     "Capacitor_THT:CP_Radial_D6.3mm_P2.50mm": (3.2, 3.2),
     "Capacitor_THT:CP_Radial_D8.0mm_P3.50mm": (4.0, 4.0),

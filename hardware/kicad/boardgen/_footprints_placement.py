@@ -426,17 +426,18 @@ def gen_power_pcb_footprints() -> str:
         uuid_tag="d3-zener",
         descr="10 V Zener clamp on Q1 gate-source to keep |Vgs| ≤ 10 V (v0.37 — was 18V pre-fix; AO3401A Vgs_max=±12V).",
     ))
-    # F1 — polyfuse. Pre-routing rework: relocated to (+15, +25) close to
-    # J1's east pin (J1 pin 1 +24V at PCB X=+5.08, Y=+27.4 after the +5 mm
-    # J1 shift). Gives short upstream path J1 → F1 → C3 / U1. F1 bbox at
-    # (+15, +25) rotation 0: X∈[+11.05, +18.95], Y∈[+22.20, +27.80] —
-    # clears new J1 courtyard east edge (+9.12) by 1.93 mm and SEN66 west
-    # courtyard (+23.50) by 4.55 mm.
+    # F1 — polyfuse. v0.41 downsized 2920 -> 1812 (Littelfuse 1812L075THDR)
+    # so the 3D model can be sourced from KiCad stock under permissive
+    # CC-BY-SA + Design Exception (see gen_polyfuse_smd_pcb_footprint
+    # docstring). 1812 body 4.5 x 3.2 mm with pad pitch 4.40 mm vs old
+    # 2920 body 7.4 x 5.1 mm with pad pitch 6.775 mm — new courtyard
+    # ~6.0 x 4.0 mm centered at (+15, +25) leaves comfortable clearance
+    # vs both J1 east edge (+9.12) and SEN66 west courtyard (+23.50).
     parts.append(gen_polyfuse_smd_pcb_footprint(
         x=+15, y=+25, rotation=0,
-        reference="F1", value="MF-RHT075/60-2",
+        reference="F1", value="1812L075THDR",
         uuid_tag="f1-ptc",
-        descr="PTC polyfuse 750 mA hold / 1.5 A trip / 60 V (Bourns MF-RHT075/60-2).",
+        descr="PTC polyfuse 750 mA hold / 1.5 A trip / 75 V (Littelfuse 1812L075THDR, 1812 SMD).",
     ))
     # Pre-routing rework 3: R1 / R4 moved into the Q1 cluster south of
     # F1. Row Y=+33 (3 mm south of Q1/D3 row at Y=+30). R1 below Q1,
@@ -977,6 +978,7 @@ def gen_sensors_pcb_footprints() -> str:
             x=led_x, y=led_y, rotation=led_rot,
             reference=led_ref,
             uuid_tag=f"led-ring-{led_ref}",
+            show_pin_labels=(i == 0),  # D11 = visual reference for orientation verification
         ))
         cap_x, cap_y, cap_rot = _led_cap_position(i)
         cap_ref = f"C{20 + i}"      # C20..C27
@@ -1137,21 +1139,63 @@ def gen_silk_labels() -> str:
     parts.append(_silk("MIKROE-2462", mikroe_body_cx, mikroe_body_cy,
                        "mikroe-body", size=1.0))
 
-    # ---- v0.16: AQI status LED ring label ----
-    # Single board-level label identifying the SK6812-SIDE ring as the
-    # AQI status indicator. Placed just OUTSIDE the LED ring (radius
-    # 11 mm + ~4 mm offset = 15 mm) at angle 315° (top-right of the
-    # ring, in a quadrant that's empty of existing components). The
-    # label sits at PCB (15·cos 315°, 15·sin 315°) ≈ (+10.6, -10.6).
-    # Note: at angle 315° the LED ring has its D22 LED (last in
-    # chain, θ=330°), and there's empty PCB space around it.
-    aqi_label_r = 15.5
-    aqi_label_theta = math.radians(315.0)
+    # v0.41 2026-05-19: "AQI ring" silk text removed. After LED rotation
+    # fix (emission outward → pads moved inward radially), the pads of
+    # D18 collided with this label's bbox @ R=15.5 mm theta=315°.
+    # User confirmed the label is not essential ("nie jest potrzebny
+    # totalnie") — the LED ring's visual function is self-evident.
+
+    # ---- v0.41-followup-2 (2026-05-19): J1 mating-plug NO-GO zone silk ----
+    # Visible silk rectangle marking the area between J1's mating face
+    # (north edge of J1 body) and the central Ø12 cable hole's south
+    # edge, bounded west/east by J1 body left/right edges. No LED body
+    # or cap may sit inside — the cable-terminal plug needs this clear
+    # space. The rectangle is inset 0.4 mm from the exact no-go bounds
+    # so the silk lines meet DRC silk_clearance (0.15 mm min) vs J1
+    # silk + edge.cuts.
+    #   J1 silk geometry (Phoenix MSTBA 2,5/3-G-5,08): the silk body rectangle
+    #   LIB X range is [-3.65, +13.81] (slightly wider than the F.Fab body
+    #   outline [-3.54, +13.7] by 0.11 mm each side). After rotation 180°
+    #   around pin-1 LIB origin: PCB X = J1_PCB_X - LIB_X = +5.08 - LIB_X.
+    #   So LIB -3.65 → PCB +8.73, LIB +13.81 → PCB -8.73. Silk X range is
+    #   thus the symmetric [-8.73, +8.73] — and this is exactly the visible
+    #   J1 silk extent which the plug-clearance no-go zone should cover.
+    #
+    #   No-go silk rect: vertical edges aligned with J1 silk vertical edges
+    #   (X = ±8.73). Y bounds: cable hole south edge (+6.0) + 0.4 mm
+    #   silk_clearance offset → top at +6.40; J1 silk mating face north
+    #   edge (+22.29 in PCB Y after rotation; the closest J1 silk line
+    #   north of J1 body) - 0.4 mm offset → bottom at +21.50.
+    nogo_x_w = -8.73
+    nogo_x_e = +8.73
+    nogo_y_n = +6.40
+    nogo_y_s = +21.50
+    nogo_stroke = 0.12
+    nogo_edges = [
+        # (start_x, start_y, end_x, end_y, tag)
+        (nogo_x_w, nogo_y_n, nogo_x_e, nogo_y_n, "nogo-n"),  # top
+        (nogo_x_w, nogo_y_s, nogo_x_e, nogo_y_s, "nogo-s"),  # bottom
+        (nogo_x_w, nogo_y_n, nogo_x_w, nogo_y_s, "nogo-w"),  # left
+        (nogo_x_e, nogo_y_n, nogo_x_e, nogo_y_s, "nogo-e"),  # right
+    ]
+    for (sx, sy, ex, ey, tag) in nogo_edges:
+        parts.append(textwrap.dedent(f"""\
+            \t(gr_line
+            \t\t(start {fx(sx)} {fy(sy)})
+            \t\t(end {fx(ex)} {fy(ey)})
+            \t\t(stroke (width {fmt(nogo_stroke)}) (type solid))
+            \t\t(layer "F.SilkS")
+            \t\t(uuid "{U('silk-' + tag)}")
+            \t)"""))
+    # Centred label inside the rect: identifies the no-go zone as reserved
+    # for the J1 mating plug (the female Phoenix MSTB terminal block plug
+    # that mates with J1).
     parts.append(_silk(
-        "AQI ring",
-        aqi_label_r * math.cos(aqi_label_theta),
-        aqi_label_r * math.sin(aqi_label_theta),
-        "aqi-ring", size=1.0,
+        "J1 PLUG",
+        (nogo_x_w + nogo_x_e) / 2.0,
+        (nogo_y_n + nogo_y_s) / 2.0,
+        "nogo-label",
+        size=1.0,
     ))
 
     # ---- v0.18: J1 24 V terminal block board-level labels (south flip) ----
@@ -1247,8 +1291,14 @@ def gen_silk_labels() -> str:
     # so they don't visually stack; F.SilkS and F.Fab are different
     # layers so silk_overlap won't fire between them either way). Place
     # at pad-row centre X = J10_PCB_X + 12.7/2 = -4.61.
+    # v0.41 2026-05-19: silk Y offset increased 4.5 → 7.5 mm because LED
+    # ring radius bumped from 13 to 14.7 (LED emission outward fix) — D17
+    # body now spans Y=[-15.7..-13.7], its pads Y=[-16.05..-15.05]. Old
+    # silk Y=-15.5 collided with D17 pads. New silk Y = J10_PCB_Y + 7.5
+    # = -12.5, in the gap between D17 (south edge -13.7) and D18 body
+    # (north edge -11.4).
     parts.append(_silk(
-        "J10 flash", J10_PCB_X + 6.35, J10_PCB_Y + 4.5, "j10-body-id",
+        "J10 flash", J10_PCB_X + 6.35, J10_PCB_Y + 7.5, "j10-body-id",
         size=1.0,
     ))
     # (No F.SilkS "(DNP)" hint on the PCB — "Do Not Populate" status

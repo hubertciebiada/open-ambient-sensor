@@ -344,6 +344,10 @@ _FUSE_2920_LIB_FOOTPRINT_PATH = (
     _kicad_install_path() / "footprints" / "Fuse.pretty"
     / "Fuse_2920_7451Metric.kicad_mod"
 )
+_FUSE_1812_LIB_FOOTPRINT_PATH = (
+    _kicad_install_path() / "footprints" / "Fuse.pretty"
+    / "Fuse_1812_4532Metric.kicad_mod"
+)
 # v0.40 post-order: SOT-23 for Q1 P-MOSFET. Stock layout has pads in an
 # "E" pattern (pads 1, 2 on -X column at Y=±0.95; pad 3 on +X at Y=0),
 # size 1.475 × 0.6 mm. The previous custom geometry rotated the pattern
@@ -1123,6 +1127,7 @@ def _emit_stock_lib_footprint(
     pin_name_map: dict[str, str] | None = None,
     polarity_mark: str = "none",
     polarity_uuid_tag: str | None = None,
+    model_override: str | None = None,
 ) -> str:
     """Generic helper to embed a KiCad stock-library footprint into the PCB.
 
@@ -1268,6 +1273,20 @@ def _emit_stock_lib_footprint(
 
     if rotation != 0:
         body_text = _annotate_pad_rotations(body_text, rotation)
+
+    # Optional override of the stock `(model "...")` path. Use when the stock
+    # `.kicad_mod` references a STEP file that does NOT exist in the KiCad
+    # install (e.g. `Fuse:Fuse_2920_7451Metric.kicad_mod` points at
+    # `Fuse.3dshapes/Fuse_2920_7451Metric.step` — file absent in KiCad 10).
+    # The replacement keeps any (offset)/(scale)/(rotate) subclauses intact,
+    # only swapping the path string.
+    if model_override is not None:
+        import re as _re
+        body_text = _re.sub(
+            r'\(model\s+"[^"]+"',
+            f'(model "{model_override}"',
+            body_text,
+        )
 
     # v0.40 post-order: optional cathode-bar marker on F.SilkS for diodes
     # (D1 SMBJ24A / D2 SS14 / D3 Zener). KLC convention: pad 1 = cathode
@@ -1555,6 +1574,7 @@ def gen_pinsocket_pcb_footprint(
 def gen_sk6812_side_pcb_footprint(
     *, x: float, y: float, rotation: int, reference: str, uuid_tag: str,
     hide_ref: bool = True,
+    show_pin_labels: bool = False,
 ) -> str:
     """Emit a placed SK6812-SIDE footprint instance at PCB (x, y).
 
@@ -1567,6 +1587,12 @@ def gen_sk6812_side_pcb_footprint(
     around the ring), so per-LED designators are emitted as board-level
     `gr_text` outside the ring instead (see `gen_silk_labels`), keeping
     them horizontal and avoiding silk_overlap with the cap ring inside.
+
+    `show_pin_labels` (default False) — when True, emit 4 small vertical
+    `fp_text` labels on F.SilkS above the pad row identifying each pin
+    function (Di / Vd / Do / Gd). v0.41 (2026-05-19): used for the
+    reference LED D11 so the assembled board can be visually verified
+    for correct LED orientation (DIN side faces inward on the ring).
     """
     body_hw = SK6812SIDE_BODY_W / 2.0
     body_hh = SK6812SIDE_BODY_H / 2.0
@@ -1593,6 +1619,33 @@ def gen_sk6812_side_pcb_footprint(
             \t\t)"""))
     pads = "\n".join(pad_blocks)
     ref_hide_line = "\n\t\t\t(hide yes)" if hide_ref else ""
+    # Optional silk pin labels (v0.41 2026-05-19): 2 vertical 2-char labels
+    # ("Di" at pad 1, "Gd" at pad 4) on F.SilkS — used on the reference LED
+    # D11 so the assembled board can be visually verified for orientation.
+    # Why only the two edge pins? At 0.95 mm pad pitch a 1.0×1.0 mm label
+    # (= design rule min text size) per pad would overlap neighbors. Two
+    # edge labels still uniquely identify orientation: knowing where DIN
+    # (pad 1) and GND (pad 4) sit, VDD/DOUT are unambiguously the two
+    # middle pads from datasheet. Vertical orientation (text rotation +90
+    # relative to footprint) because horizontal 2-char @ 1.0 mm wouldn't
+    # fit even between two pads at the edge spacing.
+    if show_pin_labels:
+        label_y = SK6812SIDE_PAD_Y + SK6812SIDE_PAD_HEIGHT / 2 + 1.30  # 0.26 mm clearance vs pin1 dot (radius 0.15 + stroke 0.04 = bbox top Y=+1.89; label bbox bottom = +2.15)
+        label_text_rot = (rotation + 90) % 360
+        edge_pins = ((1, "Di", SK6812SIDE_PAD_X_OFFSETS[0]),   # pad 1 = DIN
+                     (4, "Gd", SK6812SIDE_PAD_X_OFFSETS[3]))   # pad 4 = GND
+        pin_label_blocks = []
+        for idx, label, lx in edge_pins:
+            pin_label_blocks.append(textwrap.dedent(f"""\
+                \t\t(fp_text user "{label}"
+                \t\t\t(at {fmt(lx)} {fmt(label_y)} {label_text_rot})
+                \t\t\t(layer "F.SilkS")
+                \t\t\t(uuid "{U(f'fp-silk-pinlabel-{idx}:' + uuid_tag)}")
+                \t\t\t(effects (font (size 1.0 1.0) (thickness 0.15)))
+                \t\t)"""))
+        pin_labels_block = "\n" + "\n".join(pin_label_blocks)
+    else:
+        pin_labels_block = ""
     return textwrap.dedent(f"""\
         \t(footprint "oas:SK6812-SIDE"
         \t\t(layer "F.Cu")
@@ -1679,7 +1732,12 @@ def gen_sk6812_side_pcb_footprint(
         \t\t\t(layer "F.Fab")
         \t\t\t(uuid "{U('fp-arrow-wing-r:' + uuid_tag)}")
         \t\t)
-        """) + pads + "\n\t)"
+        """) + pads + pin_labels_block + "\n" + textwrap.dedent("""\
+        \t\t(model "${KIPRJMOD}/libraries/oas.3dshapes/SK6812-SIDE-A.step"
+        \t\t\t(offset (xyz 0 0 0))
+        \t\t\t(scale (xyz 1 1 1))
+        \t\t\t(rotate (xyz 0 0 0))
+        \t\t)""") + "\n\t)"
 
 
 def gen_capacitor_0402_pcb_footprint(
@@ -2060,26 +2118,37 @@ def gen_inductor_smd_5x5_pcb_footprint(*, x: float, y: float, rotation: int,
 
 def gen_polyfuse_smd_pcb_footprint(*, x: float, y: float, rotation: int,
                                     reference: str, value: str, uuid_tag: str,
-                                    descr: str = "Polyfuse SMD 2920",
+                                    descr: str = "Polyfuse SMD 1812",
                                     hide_ref: bool = True) -> str:
-    """SMD PTC polyfuse — 2920 size for MF-RHT075/60-2-class parts
-    (60 V / 750 mA).
+    """SMD PTC polyfuse — 1812 size for 60-75 V / 750 mA hold parts.
 
-    v0.40 post-order: pad geometry transcribed VERBATIM from KiCad stock
-    `Fuse:Fuse_2920_7451Metric.kicad_mod` (pitch 6.775 mm, pad 1.925 ×
-    5.45 mm). Previous inline geometry used pitch 5.7 mm with narrower
-    pad 2.0 × 5.4 mm — the Littelfuse 2920L body terminals would have
-    extended ~0.14 mm beyond the OAS pad outer edges."""
+    v0.41 (2026-05-19): downsized from 2920 to 1812 to use a 3D STEP model
+    permissively-licensed (CC-BY-SA 4.0 + Design Exception) and bundled
+    with KiCad. KiCad 10 ships `Fuse:Fuse_1812_4532Metric.kicad_mod`
+    (pitch 4.40 mm, pad 1.30 × 3.40 mm), but the matching STEP
+    `Fuse.3dshapes/Fuse_1812_4532Metric.step` is ABSENT from the install.
+    Workaround: override the model path to `Resistor_SMD.3dshapes/
+    R_1812_4532Metric.step` — the 1812 polyfuse body has identical
+    physical dimensions (4.5 x 3.2 x 0.6 mm) to a 1812 chip resistor,
+    so the resistor STEP is a 1:1 visual surrogate, and it ships in
+    every KiCad install under the same CC-BY-SA 4.0 + Design Exception
+    license that makes it commitable to public open-source repositories
+    (this OAS repo). No external STEP download / license check needed.
+
+    Candidate parts: Littelfuse 1812L075THDR (75 V / 0.75 A hold), Bourns
+    MF-MSMF075/60-2 (60 V / 0.75 A hold). Both 1812 SMD, both
+    electrically interchangeable with the previous 2920L075/60MR."""
     return _emit_stock_lib_footprint(
-        src_path=_FUSE_2920_LIB_FOOTPRINT_PATH,
+        src_path=_FUSE_1812_LIB_FOOTPRINT_PATH,
         lib_nickname="Fuse",
         reference=reference, value=value,
         datasheet="", description=descr,
         x=x, y=y, rotation=rotation,
         uuid_tag=uuid_tag,
-        ref_offset_x=0.0, ref_offset_y=-3.5,
-        val_offset_x=0.0, val_offset_y=3.5,
+        ref_offset_x=0.0, ref_offset_y=-2.5,
+        val_offset_x=0.0, val_offset_y=2.5,
         hide_ref=hide_ref, hide_value=True,
+        model_override="${KICAD10_3DMODEL_DIR}/Resistor_SMD.3dshapes/R_1812_4532Metric.step",
     )
 
 

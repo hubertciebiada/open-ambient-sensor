@@ -3846,7 +3846,7 @@
 			(justify left)
 		)
 	)
-	(property "Footprint" "Fuse:Fuse_2920_7451Metric"
+	(property "Footprint" "Fuse:Fuse_1812_4532Metric"
 		(at 85.09 66.04 0)
 		(effects
 			(font
@@ -3882,7 +3882,7 @@
 				(hide yes)
 			)
 		)
-		(property "MPN" "2920L075/60MR"
+		(property "MPN" "1812L075THDR"
 			(at 0 0 0)
 			(effects
 				(font
@@ -3891,7 +3891,7 @@
 				(hide yes)
 			)
 		)
-		(property "LCSC" "C207083"
+		(property "LCSC" "C262023"
 			(at 0 0 0)
 			(effects
 				(font

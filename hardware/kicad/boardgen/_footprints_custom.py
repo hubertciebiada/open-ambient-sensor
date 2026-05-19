@@ -885,6 +885,11 @@ def gen_sk6812_side_footprint() -> str:
         \t\t(uuid "{U('sk6812-side:fp:arrow-wing-r')}")
         \t)
         """) + pads + textwrap.dedent("""
+        \t(model "${KIPRJMOD}/libraries/oas.3dshapes/SK6812-SIDE-A.step"
+        \t\t(offset (xyz 0 0 0))
+        \t\t(scale (xyz 1 1 1))
+        \t\t(rotate (xyz 0 0 0))
+        \t)
         )
         """)
 

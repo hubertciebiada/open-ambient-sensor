@@ -260,14 +260,24 @@ LCSC_MAPPING = {
             "Pin order 1=G, 2=S, 3=D (same as PMV65XP — drop-in)."
         ),
     },
-    ("PTC 750mA / 60V", "Fuse:Fuse_2920_7451Metric"): {
-        "lcsc": "C207083",
+    ("PTC 750mA / 60V", "Fuse:Fuse_1812_4532Metric"): {
+        "lcsc": "C262023",
         "manufacturer": "Littelfuse",
-        "mpn": "2920L075/60MR",
+        "mpn": "1812L075THDR",
         "library": "Extended",
-        "stock": "~5k",
-        "datasheet": "https://www.lcsc.com/datasheet/C207083.pdf",
-        "notes": "F1 polyfuse 60V SMD 2920. Direct equivalent to MF-RHT075/60-2 in 2920 SMD form factor. 750mA hold current 1.5A trip per spec.",
+        "stock": "VERIFY-LCSC",
+        "datasheet": "https://www.lcsc.com/datasheet/C262023.pdf",
+        "notes": (
+            "F1 polyfuse 75V SMD 1812. Downsized from 2920L075/60MR (C207083) to "
+            "1812 in v0.41 so the 3D model can use KiCad stock "
+            "`Resistor_SMD.3dshapes/R_1812_4532Metric.step` (CC-BY-SA 4.0 + Design "
+            "Exception, bundled with KiCad, commitable to public repo). 1812 body "
+            "(4.5 x 3.2 x 0.6 mm) is dimensionally identical to a 1812 chip "
+            "resistor, so the resistor STEP renders correctly. Electrically "
+            "equivalent: 0.75A hold / 1.5A trip / 75V max (>= original 60V). "
+            "VERIFY LCSC stock + LCSC# before submitting to JLCPCB Assembly Order; "
+            "alternative: Bourns MF-MSMF075/60-2 (60V/0.75A, also 1812)."
+        ),
     },
     ("SK6812-SIDE", "oas:SK6812-SIDE"): {
         "lcsc": "C5378721",

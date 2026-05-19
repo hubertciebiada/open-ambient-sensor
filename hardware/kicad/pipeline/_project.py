@@ -72,8 +72,13 @@ SCH_SUB_SHEETS = [
 # Stage 13: 3D render targets ---------------------------------------------
 # Each tuple: (renders/ subdir, output filename, extra kicad-cli render flags)
 PCB_3D_TARGETS = [
-    ("pcb", "3d-top.png", []),
-    ("pcb", "3d-iso.png", ["--rotate", "-45,0,45", "--perspective", "--floor"]),
+    ("pcb", "3d-top.png",     []),
+    # Four isometric perspectives spaced 90° around the Z (vertical) axis.
+    # Same camera tilt (X=-45°) for all four — only the azimuth varies.
+    ("pcb", "3d-iso.png",     ["--rotate", "-45,0,45",  "--perspective", "--floor"]),
+    ("pcb", "3d-iso-90.png",  ["--rotate", "-45,0,135", "--perspective", "--floor"]),
+    ("pcb", "3d-iso-180.png", ["--rotate", "-45,0,225", "--perspective", "--floor"]),
+    ("pcb", "3d-iso-270.png", ["--rotate", "-45,0,315", "--perspective", "--floor"]),
 ]
 
 # Stage 24: pygerber preflight composite render destination subdir.

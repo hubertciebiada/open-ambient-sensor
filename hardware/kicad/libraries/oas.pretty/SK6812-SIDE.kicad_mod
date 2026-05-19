@@ -115,4 +115,9 @@
 	(layers "F.Cu" "F.Paste" "F.Mask")
 	(uuid "887e1f42-c23f-5b44-af28-b8e66bd561ad")
 )
+	(model "${KIPRJMOD}/libraries/oas.3dshapes/SK6812-SIDE-A.step"
+		(offset (xyz 0 0 0))
+		(scale (xyz 1 1 1))
+		(rotate (xyz 0 0 0))
+	)
 )

@@ -854,14 +854,16 @@ J1_PCB_X = +5.08             # PCB X of pin 1. With rotation 180°, pin 2
                               # left-to-right order PE, GND, +24V when
                               # looking at the south face (cable insert
                               # side).
-J1_PCB_Y = +27.4             # PCB Y of pin row (footprint-local Y = 0).
-                              # Pre-routing rework: nudged +5 mm south
-                              # (from +22.4) to open routing space north
-                              # of J1 for F1. With rot 180, courtyard
-                              # extends NORTH from the pin row; the body
-                              # bulk (terminal screws) recedes from the
-                              # cable hole. J10 chord cutout C3 may
-                              # intersect — accept temporarily.
+J1_PCB_Y = +32.4             # PCB Y of pin row (footprint-local Y = 0).
+                              # v0.41-followup-2 (2026-05-19): +5 mm south
+                              # to widen the no-go rectangle between J1's
+                              # mating face and the central cable hole, so
+                              # the cable-terminal plug has more clearance.
+                              # Y was +27.4 since the pre-routing rework.
+                              # With rot 180, courtyard extends NORTH from
+                              # pin row; body bulk (terminal screws)
+                              # recedes from cable hole. J10 chord cutout
+                              # C3 may intersect — accept temporarily.
                               # See clearance budget above for derivation.
                               # At pin_y = +22.4 with rot 180:
                               #   J1 courtyard Y = (+11.90, +24.90)
@@ -927,7 +929,7 @@ J1_PCB_ROTATION = 180        # Rotation 180° places the cable-entry face
 # visual, not an actual PCB edge).
 J9_PCB_X = +31.65            # PCB X — centred on C5 (midpoint +31.65)
 J9_PCB_Y = +39.69            # PCB Y — pads at +41.69 (just inside cutout)
-J9_PCB_ROTATION = 180        # mouth → +Y (chord side, case-wall opening)
+J9_PCB_ROTATION = 0          # mouth → -Y (south chord side, case-wall opening)
 
 # -----------------------------------------------------------------------------
 # J10 — Native-USB recovery header (v0.19) — DNP 6-pin 2.54 mm THT
@@ -1038,7 +1040,36 @@ J10_PCB_ROTATION = 90        # LIB +Y → PCB +X (horizontal pad row east).
 # hole edge at R=6. Outer-most LED body edge at R = 14 mm.
 # Chord distance between adjacent 45° LEDs: 2·R·sin(22.5°) = 9.95 mm,
 # giving 2.98 mm gap per side of the 4 mm LED body (was 1.37 mm at 30°).
-LED_RING_RADIUS = 13.0
+LED_RING_RADIUS = 13.0    # v0.41 2026-05-19 (rev 3): back to 13.0 base after
+                            # user request. D12 (i=1, theta=45°) and D14 (i=3,
+                            # theta=135°) get a per-index override to R=15 mm
+                            # (see LED_RING_RADIUS_OVERRIDE below) — these two
+                            # LEDs sit closest to the J1 24 V terminal block
+                            # on the chord side; at R=13 their bodies would
+                            # protrude into the J1 mating-plug clearance zone.
+LED_RING_RADIUS_OVERRIDE = {
+    0: 11.0,    # D11 — mirrored with D15 (also R=11). User wanted radial
+                # symmetry on the east-west axis through the ring centre,
+                # since D15 was forced to R=11 by MOD2 silk constraint and
+                # we don't want the silk-labelled reference LED (D11) to look
+                # bigger than its opposite-axis counterpart.
+    1: 16.5,    # D12 — bumped 15 → 16.5 (v0.41-followup-2). At R=16.5 cap C21
+                # mask west edge at PCB X=+8.745 leaves 0.21 mm clearance for
+                # a silk-no-go vertical line at PCB X=+8.50. R upper bound is
+                # set by D14 pin-1 dot vs MOD2 silk east edge (silk_overlap):
+                # with stroke widths, pin1 dot circle (radius 0.19) west edge
+                # must clear MOD2 silk east edge (X=+134.30 global) by 0.15.
+                # Strict bound: R ≤ 16.48; chose 16.5 as the prior known-good
+                # value (margin 0.32 mm at R=16.5).
+    3: 16.5,    # D14 — bumped 15 → 16.5. Mirror of D12.
+    4: 11.0,    # D15 — unchanged; pulled INWARD to clear MOD2 (MIKROE-2462)
+                # silk east edge. After the LED rotation fix (emission outward
+                # → pad row now on OUTWARD body face), D15 pads at R=13 land
+                # 0.09 mm inside MOD2 silk shadow (silk east edge at PCB X=
+                # -14.26, pad west edge at -14.35). R=11 pulls body inward
+                # enough that pads are at PCB X~-11.85, 2.4 mm clear of
+                # MOD2 silk.
+}
 LED_RING_COUNT = 8
 LED_RING_THETA_START_DEG = 0.0       # first LED (D11) sits on PCB +X axis
 LED_RING_THETA_STEP_DEG = 360.0 / LED_RING_COUNT   # = 45°
@@ -1058,6 +1089,13 @@ LED_RING_SKIP_INDICES = (2,)         # i=2 → D13 (and C22) at θ=90°
 # to the cable hole at R = 6. The cap's "north" pad lands directly under
 # the LED's VDD pad row.
 LED_RING_CAP_RADIAL_OFFSET = 3.4
+# Per-LED override: smaller offset means cap is closer to LED body (further
+# from ring centre). v0.41-followup-2: D12 (i=1) and D14 (i=3) get a smaller
+# offset so their decoupling caps (C21, C23) sit OUTSIDE the J1 mating-plug
+# no-go zone (silk rectangle PCB X ∈ [-8.73, +8.73]). With LED R=16.5 and
+# offset=2.6, cap radius = 13.9 → cap PCB X = ±9.83, comfortably clearing
+# the no-go silk + cap mask + DRC silk_clearance budget.
+LED_RING_CAP_RADIAL_OFFSET_OVERRIDE = {1: 2.6, 3: 2.6}
 
 # SK6812-SIDE package + pad geometry (body-local frame; +X = long-axis,
 # +Y = short-axis pointing toward pad-row face).
@@ -1086,14 +1124,16 @@ def _led_ring_position(index: int) -> tuple[float, float, float]:
     """
     theta_deg = LED_RING_THETA_START_DEG + index * LED_RING_THETA_STEP_DEG
     theta_rad = math.radians(theta_deg)
-    px = LED_RING_RADIUS * math.cos(theta_rad)
-    py = LED_RING_RADIUS * math.sin(theta_rad)
-    # KiCad rotation = (270 - θ) mod 360. KiCad uses CW rotation for
-    # positive R (verified empirically via DRC pad-coords). At θ=0
-    # (D11 on +X axis), rot=270 maps body-local emission (0, -1) CW
-    # to PCB (+1, 0) = OUTWARD. At θ=180 (D15 on -X axis), rot=90
-    # maps (0, -1) CW to (-1, 0) = OUTWARD. KiCad render therefore
-    # shows correct radial emission. JLCPCB tape-feeder reference
+    r = LED_RING_RADIUS_OVERRIDE.get(index, LED_RING_RADIUS)
+    px = r * math.cos(theta_rad)
+    py = r * math.sin(theta_rad)
+    # KiCad rotation = (90 - θ) mod 360. KiCad uses CCW rotation for
+    # positive angles. At θ=0 (D11 on +X axis), rot=90 maps body-local
+    # emission (0, -1) CCW to PCB (+1, 0) = OUTWARD. At θ=180 (D15 on
+    # -X axis), rot=270 maps (0, -1) CCW to (-1, 0) = OUTWARD. (v0.41
+    # 2026-05-19: previous formula was (270 - θ) which produced INWARD
+    # emission — verified visually on 3D render after SK6812-SIDE-A.step
+    # was added.) JLCPCB tape-feeder reference
     # for SK6812-SIDE is offset 180° from KiCad's footprint reference
     # — without compensation, JLCPCB would place the chip 180° off
     # the pads (pin 1 DIN landing on pad 4 GND → reverse polarity).
@@ -1101,7 +1141,11 @@ def _led_ring_position(index: int) -> tuple[float, float, float]:
     # pipeline/jlcpcb/_rotations.py applies that compensation at pos.csv emit
     # time. Validated empirically: without the entry, user saw JLCPCB
     # DFM rendering LEDs emitting inward (= chip 180° off pads).
-    rot = int(round((270.0 - theta_deg) % 360.0))
+    # body-local emission face is at -Y; to point that face RADIALLY OUTWARD
+    # from the ring center for an LED placed at angle theta_deg, we need
+    # rotation = 90deg - theta_deg (mod 360). Earlier formula used
+    # (270 - theta_deg) which pointed emission INWARD (180deg flipped).
+    rot = int(round((90.0 - theta_deg) % 360.0))
     return (px, py, rot)
 
 
@@ -1116,10 +1160,17 @@ def _led_cap_position(index: int) -> tuple[float, float, float]:
     """
     theta_deg = LED_RING_THETA_START_DEG + index * LED_RING_THETA_STEP_DEG
     theta_rad = math.radians(theta_deg)
-    cap_r = LED_RING_RADIUS - LED_RING_CAP_RADIAL_OFFSET
+    led_r = LED_RING_RADIUS_OVERRIDE.get(index, LED_RING_RADIUS)
+    cap_offset = LED_RING_CAP_RADIAL_OFFSET_OVERRIDE.get(
+        index, LED_RING_CAP_RADIAL_OFFSET)
+    cap_r = led_r - cap_offset
     px = cap_r * math.cos(theta_rad)
     py = cap_r * math.sin(theta_rad)
-    rot = int(round((270.0 - theta_deg) % 360.0))
+    # body-local emission face is at -Y; to point that face RADIALLY OUTWARD
+    # from the ring center for an LED placed at angle theta_deg, we need
+    # rotation = 90deg - theta_deg (mod 360). Earlier formula used
+    # (270 - theta_deg) which pointed emission INWARD (180deg flipped).
+    rot = int(round((90.0 - theta_deg) % 360.0))
     return (px, py, rot)
 
 
