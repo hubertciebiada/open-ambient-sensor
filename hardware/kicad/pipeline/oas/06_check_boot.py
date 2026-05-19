@@ -57,7 +57,7 @@ TOP_SCH = KICAD_DIR / "oas.kicad_sch"
 # Pull GPIO_ASSIGNMENTS straight from generate.py — single source of truth for
 # the OAS pinout. Each entry: {net: <bare label>, sheet: </PATH/>, desc: ...}.
 sys.path.insert(0, str(KICAD_DIR))
-from generate import GPIO_ASSIGNMENTS  # noqa: E402
+from boardgen._project import GPIO_ASSIGNMENTS  # noqa: E402
 
 # ---------------------------------------------------------------------------
 # DevKitM-1-N4 socket pin -> ESP32-C6 chip GPIO mapping.
