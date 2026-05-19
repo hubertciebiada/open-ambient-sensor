@@ -18,7 +18,8 @@ hardware/kicad/third_party/*/**/__pycache__/
 
 # Temp / scratch directories (auto-downloaded models, cached binaries:
 # .tmp/spice/ for ngspice + LM2596 PSpice model, .tmp/freerouting/ for
-# Freerouting JAR when a routing rework is needed).
+# Freerouting JAR when a routing rework is needed, .tmp/jlcparts/ for
+# the JLCPCB component SQLite cache rebuilt by stage 34).
 /.tmp/
 
 # Audit netlist exports (temporary; regenerable via kicad-cli sch export netlist)
@@ -74,6 +75,9 @@ firmware/esphome/.esphome/
 .history/
 *.swp
 *~
+
+# Claude Code local settings ########
+.claude/
 
 # Playwright MCP / DFM live-upload temp artifacts ########
 # anchored + global pair (bare `.playwright-mcp/` proved ineffective)

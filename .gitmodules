@@ -1,3 +1,12 @@
 [submodule "hardware/kicad/third_party/JLCKicadTools"]
 	path = hardware/kicad/third_party/JLCKicadTools
 	url = https://github.com/matthewlai/JLCKicadTools.git
+[submodule "hardware/kicad/third_party/kicad-skip"]
+	path = hardware/kicad/third_party/kicad-skip
+	url = https://github.com/psychogenic/kicad-skip.git
+[submodule "hardware/kicad/third_party/InteractiveHtmlBom"]
+	path = hardware/kicad/third_party/InteractiveHtmlBom
+	url = https://github.com/openscopeproject/InteractiveHtmlBom.git
+[submodule "hardware/kicad/third_party/kicad-jlcpcb-dru"]
+	path = hardware/kicad/third_party/kicad-jlcpcb-dru
+	url = https://github.com/tinfever/KiCAD-Custom-DRC-Rules-for-JLCPCB-with-Unit-Tests.git

@@ -41,6 +41,7 @@ SOURCE_FILES_FIXED = [
     "oas.kicad_pro",
     "oas.kicad_sch",
     "oas.kicad_pcb",
+    "oas.kicad_dru",
     "power.kicad_sch",
     "mcu.kicad_sch",
     "sensors.kicad_sch",
