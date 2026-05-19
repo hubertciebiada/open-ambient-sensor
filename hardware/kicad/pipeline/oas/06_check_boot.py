@@ -39,7 +39,7 @@ a future board with a different MCU module will need its own table.
 Trade-off: regression-tightness over generality.
 
 Exit code 0 if all checks pass, 1 on any assertion failure. Run as a
-`regenerate.py` step OR standalone (`python tools/check_boot.py`).
+`build.py` step OR standalone (`python pipeline/oas/06_check_boot.py`).
 """
 from __future__ import annotations
 
@@ -54,7 +54,7 @@ HERE = Path(__file__).parent
 KICAD_DIR = HERE.parent.parent  # pipeline/oas/ -> pipeline/ -> hardware/kicad
 TOP_SCH = KICAD_DIR / "oas.kicad_sch"
 
-# Pull GPIO_ASSIGNMENTS straight from generate.py — single source of truth for
+# Pull GPIO_ASSIGNMENTS straight from boardgen/_project.py — single source of truth for
 # the OAS pinout. Each entry: {net: <bare label>, sheet: </PATH/>, desc: ...}.
 sys.path.insert(0, str(KICAD_DIR))
 from boardgen._project import GPIO_ASSIGNMENTS  # noqa: E402
@@ -101,7 +101,7 @@ STRAP_PINS = [
      "must be NC (module sets internal state)"),
 ]
 
-# Signal pin assignments derived from generate.py::GPIO_ASSIGNMENTS (SOT).
+# Signal pin assignments derived from boardgen._project.GPIO_ASSIGNMENTS (SOT).
 # Each entry: (gpio_name, expected_net_name, semantic_description).
 SIGNAL_PINS = [
     (f"GPIO{gpio}", f"{entry['sheet']}{entry['net']}", entry["desc"])

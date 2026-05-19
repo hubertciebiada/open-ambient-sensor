@@ -6,7 +6,7 @@ are sane before any vendor packages them:
   1. **Integrity** — every expected file present, non-zero size.
   2. **Drill statistics** — parse Excellon files (PTH + NPTH), count
      tool sizes + hole positions, sanity-check against expected values
-     from generate.py geometry (NPTH_EXPECTED_TOOLS / NPTH_EXPECTED_HOLES
+     from boardgen geometry (NPTH_EXPECTED_TOOLS / NPTH_EXPECTED_HOLES
      / PTH_MIN_DRILL_MM in _project).
   3. **Composite renders** — render (Edge.Cuts + Cu + Mask + Silk) via
      pygerber for both sides, save to renders/preflight-top.png and

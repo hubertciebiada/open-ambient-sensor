@@ -92,7 +92,7 @@ JLCPCB_ROTATIONS_OAS: list[tuple[re.Pattern, float, str]] = [
     # reference for this part is 180 deg off KiCad's footprint frame.
     # +180 deg in pos.csv brings the chip onto the pads correctly so
     # pin 1 (DIN) on pad 1 (DIN trace) etc. Combined with the
-    # (270 - theta) placement formula in generate.py, each placed LED
+    # (270 - theta) placement formula in boardgen, each placed LED
     # emits radially outward through the AK-N-94 perforated cover.
     (
         re.compile(r"^SK6812-SIDE$"),

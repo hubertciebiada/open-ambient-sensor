@@ -53,7 +53,7 @@ Both compromises (cheap-but-inaccurate, accurate-but-ugly) are rejected. See [`C
 
 **Enclosure:** SZOMK AK-N-94 (Ø128 mm perforated white ABS). PCB is a **Ø120 mm D-shape** with a flat chord along the bottom edge. Mounts on a standard wall-recessed electrical box (60 mm screw pitch).
 
-Authoritative module metadata (EAN, MPN, datasheet URLs, derived dimensions) lives in [`hardware/kicad/generate.py::EXTERNAL_MODULES`](./hardware/kicad/generate.py). Pinout is in [`generate.py::GPIO_ASSIGNMENTS`](./hardware/kicad/generate.py). Full design rationale and hard constraints: [`CLAUDE.md`](./CLAUDE.md).
+Authoritative module metadata (EAN, MPN, datasheet URLs, derived dimensions) lives in [`hardware/kicad/boardgen/_project.py::EXTERNAL_MODULES`](./hardware/kicad/boardgen/_project.py). Pinout is in [`boardgen/_project.py::GPIO_ASSIGNMENTS`](./hardware/kicad/boardgen/_project.py). Full design rationale and hard constraints: [`CLAUDE.md`](./CLAUDE.md).
 
 ---
 
@@ -73,7 +73,7 @@ open-ambient-sensor/
 │   │   └── examples/               # anonymized per-device override examples
 │   └── secrets.yaml.example
 └── hardware/
-    ├── kicad/                      # generate.py (SOT) + pipeline + generated KiCad sources
+    ├── kicad/                      # build.py + boardgen/ (SOT) + pipeline + generated KiCad sources
     ├── renders/                    # generated previews (PNG + SVG, visual changelog)
     └── output/                     # production deliverables (gerbers ZIP + BOM + pos CSV)
 ```
@@ -84,7 +84,7 @@ open-ambient-sensor/
 
 The board is at the v0.40 prototype stage. Once hardware lands and ESPHome flashes cleanly, this section will document:
 
-- Ordering the PCB (gerbers in [`hardware/output/jlcpcb/oas-jlcpcb.zip`](./hardware/output/jlcpcb/), JLCPCB SMT assembly with [`hardware/output/jlcpcb/oas-bom.csv`](./hardware/output/jlcpcb/) + [`oas-top-CPL.csv`](./hardware/output/jlcpcb/))
+- Ordering the PCB (gerbers in [`hardware/output/jlcpcb/oas-jlcpcb.zip`](./hardware/output/jlcpcb/), JLCPCB SMT assembly with [`hardware/output/jlcpcb/oas-BOM.csv`](./hardware/output/jlcpcb/) + [`oas-top-CPL.csv`](./hardware/output/jlcpcb/))
 - Sourcing the SZOMK AK-N-94 enclosure
 - Flashing the ESP32-C6 — see [`firmware/README.md`](./firmware/README.md)
 - Adding the device to Home Assistant — see [`firmware/README.md`](./firmware/README.md)

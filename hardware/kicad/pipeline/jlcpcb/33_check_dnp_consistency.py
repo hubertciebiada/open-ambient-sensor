@@ -10,8 +10,8 @@ The three flags must travel TOGETHER and the exports must reflect them:
 
   PCB.attr.dnp                   ⇔  PCB.attr.exclude_from_bom
                                  ⇔  PCB.attr.exclude_from_pos_files
-  PCB.attr.exclude_from_bom      ⇒  refdes NOT in oas-bom.csv
-  PCB.attr.exclude_from_pos_files ⇒ refdes NOT in oas-top-pos.csv / -bottom-pos.csv
+  PCB.attr.exclude_from_bom      ⇒  refdes NOT in oas-BOM.csv
+  PCB.attr.exclude_from_pos_files ⇒ refdes NOT in oas-top-CPL.csv / -bottom-CPL.csv
 
 The class of bug we catch: a developer adds a new DNP part but flips only
 one of the three flags, and JLCPCB silently places a part the user didn't
@@ -91,7 +91,7 @@ def load_csv_designators(path: Path, designator_col: int = 0) -> set[str]:
     """Read a CSV, skip header, return the set of values in column 0.
 
     For pos.csv with header `Designator,Mid X,...` the designator is col 0.
-    For oas-bom.csv with header `Comment,Designator,Footprint,...` the
+    For oas-BOM.csv with header `Comment,Designator,Footprint,...` the
     designator is col 1 — but multiple designators may be packed into one
     row (e.g. "C10,C11,C12") so we split on comma+whitespace.
     """

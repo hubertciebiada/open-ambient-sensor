@@ -13,7 +13,7 @@ matches the OAS convention of subprocess-only external tools (same as
 
 Run modes
 ---------
-* Pipeline stage:  invoked from regenerate.py as stage 08.
+* Pipeline stage:  invoked from build.py as stage 08.
 * Standalone:      `python pipeline/oas/08_check_switching.py`.
 
 Soft-skip: if `ngspice_con.exe` or the LM2596 PSpice model are not

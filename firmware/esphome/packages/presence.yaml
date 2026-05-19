@@ -6,7 +6,7 @@
 # mounted vertically on the OAS PCB via J4 (1x5 P1.27 mm pin header).
 #
 # Datasheet: HLK-LD2410B V1.04 (FCC-filed). See EXTERNAL_MODULES['HLK-LD2410B']
-# in hardware/kicad/generate.py for the part metadata.
+# in hardware/kicad/boardgen/_project.py for the part metadata.
 #
 # ---------------------------------------------------------------------------
 # Pin order on the LD2410 module (datasheet Table 1; verified in v0.15.8 after

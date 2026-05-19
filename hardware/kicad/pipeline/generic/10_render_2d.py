@@ -3,7 +3,7 @@
 Renders three production-style SVG views: top, edge-cuts overlay, bottom
 (mirrored). Edge.Cuts always included. `--check-zones` refills the GND
 pour before plotting so the rendered SVG shows filled copper, not just
-the zone outline (generate.py doesn't emit pre-computed `filled_polygon`
+the zone outline (boardgen doesn't emit pre-computed `filled_polygon`
 data because that's KiCad's job and its output carries non-deterministic
 UUIDs we don't want to commit).
 """

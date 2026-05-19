@@ -9,7 +9,7 @@ module. To port the pipeline to a different KiCad project:
      schematic structure / render-layer preferences.
   3. Optionally create `pipeline/<project>/` for project-specific
      verification stages (analog to OAS's `pipeline/oas/`).
-  4. The orchestrator (`regenerate.py`) auto-discovers stages from
+  4. The orchestrator (`build.py`) auto-discovers stages from
      every immediate subdirectory of `pipeline/`, sorted by basename.
 
 NOTE: `pipeline/oas/05_check_dc.py`, `06_check_boot.py`, and
@@ -29,8 +29,10 @@ KICAD_ROOT = Path(__file__).parent.parent  # hardware/kicad
 PCB_PATH = KICAD_ROOT / "oas.kicad_pcb"
 SCH_PATH = KICAD_ROOT / "oas.kicad_sch"
 
-# Stage 01: generate.py command -------------------------------------------
-GENERATE_SCRIPT = KICAD_ROOT / "generate.py"
+# Stage 01 / 02: boardgen walker (used by the determinism stage to re-run
+# source emission in a fresh subprocess). Stage 01 itself just executes
+# this file directly; stage 02 re-runs it once more and diffs the output.
+EMIT_SOURCES_SCRIPT = KICAD_ROOT / "pipeline" / "generic" / "01_emit_sources.py"
 
 # Stage 02: determinism source-files list ---------------------------------
 # Mix of fixed filenames (joined with KICAD_ROOT at use site) and rglob
@@ -116,7 +118,7 @@ FAB_LAYERS = (
 )
 
 # Stage 24: preflight -----------------------------------------------------
-# Expected drill statistics from generate.py geometry. Update when board
+# Expected drill statistics from boardgen geometry. Update when board
 # mechanicals change (mounting hole count / zip-tie hole count).
 NPTH_EXPECTED_TOOLS = {3.00, 3.80}     # 3.00 = zip-tie pairs, 3.80 = M3 mount
 NPTH_EXPECTED_HOLES = 4 + 3            # 4 zip-tie + 3 M3 mounting
@@ -142,7 +144,7 @@ POS_OUTPUT_FILES = [
 # LCSC mapping lives as a Python dict in `hardware/kicad/lcsc_mapping.py`
 # (single source of truth, imported by stage 31 + boardgen/_postprocess.py
 # for informational schematic-field injection).
-BOM_OUTPUT_FILE = "oas-bom.csv"
+BOM_OUTPUT_FILE = "oas-BOM.csv"
 
 # Reference designators that go through THT hand-solder line (not SMT).
 # A BOM row whose ALL designators belong here gets emitted with blank

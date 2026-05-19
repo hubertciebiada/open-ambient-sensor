@@ -1,13 +1,18 @@
 """Stage 02/11: determinism self-check (v0.23 review Nt2).
 
-Snapshots every generated KiCad source file's SHA-256 hash, runs
-`generate.py` a SECOND time, hashes again, and aborts on any drift.
+Snapshots every generated KiCad source file's SHA-256 hash, runs the
+boardgen walker (stage 01 `01_emit_sources.py`) a SECOND time in a fresh
+subprocess, hashes again, and aborts on any drift.
 
-All UUIDs in generate.py are deterministic v5 (namespaced under the
-OAS project). Two consecutive runs MUST produce bit-identical sources.
-If they don't, there's a real bug to fix (e.g. an accidental dependency
-on Python's hash randomization or dict-iteration order) — flag loudly
+All UUIDs in boardgen/ are deterministic v5 (namespaced under the OAS
+project). Two consecutive runs MUST produce bit-identical sources. If
+they don't, there's a real bug to fix (e.g. an accidental dependency on
+Python's hash randomization or dict-iteration order) — flag loudly
 rather than silently committing flapping diffs.
+
+Subprocess (not in-process re-import) is intentional: the fresh
+interpreter randomizes its `PYTHONHASHSEED` so any leaked dependency on
+dict insertion order surfaces here instead of in a teammate's diff.
 """
 from __future__ import annotations
 
@@ -16,7 +21,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 from _common import Stage, run, KICAD_ROOT, sha256  # noqa: E402
-from _project import GENERATE_SCRIPT, SOURCE_FILES_FIXED, SOURCE_FILES_GLOBS  # noqa: E402
+from _project import EMIT_SOURCES_SCRIPT, SOURCE_FILES_FIXED, SOURCE_FILES_GLOBS  # noqa: E402
 
 STAGE_NAME = "determinism"
 
@@ -36,8 +41,8 @@ def main() -> int:
         st.info(f"computing baseline hashes ({len(sources)} files)")
         pre_hashes: dict[Path, str] = {p: sha256(p) for p in sources}
 
-        st.info(f"re-running {GENERATE_SCRIPT.name}")
-        run([sys.executable, str(GENERATE_SCRIPT)])
+        st.info(f"re-running {EMIT_SOURCES_SCRIPT.name}")
+        run([sys.executable, str(EMIT_SOURCES_SCRIPT)], hide_output=True)
 
         st.info("re-computing hashes")
         post_hashes: dict[Path, str] = {p: sha256(p) for p in collect_source_files()}
@@ -51,7 +56,7 @@ def main() -> int:
         if drifted:
             for p in drifted:
                 print(f"[FAIL] DRIFT: {p.relative_to(KICAD_ROOT)}")
-            st.fail(f"{GENERATE_SCRIPT.name} is not deterministic — see drifted files above")
+            st.fail(f"{EMIT_SOURCES_SCRIPT.name} is not deterministic — see drifted files above")
 
         st.ok(f"{len(post_hashes)}/{len(post_hashes)} hashes match")
     return 0

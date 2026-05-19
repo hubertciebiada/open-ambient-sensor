@@ -73,7 +73,7 @@ Right pattern (audit-16): project-local `OAS:Q_PMOS_GDS` lib_symbol with numeric
 
 ### 9. Determinism guardrail must always pass
 
-`generate.py` output must be bit-identical across consecutive runs (17 source files: `oas.kicad_pro`, `oas.kicad_sch`, 4 sub-sheets, `oas.kicad_pcb`, the two project libraries `OAS.kicad_sym` + `oas.pretty/*.kicad_mod`, etc.). Hash-randomized dict iteration, time-based content, etc. all break this. `regenerate.py` runs `generate.py` twice and aborts on any drift — step 1b is non-negotiable.
+Boardgen output must be bit-identical across consecutive runs (17 source files: `oas.kicad_pro`, `oas.kicad_sch`, 4 sub-sheets, `oas.kicad_pcb`, the two project libraries `OAS.kicad_sym` + `oas.pretty/*.kicad_mod`, etc.). Hash-randomized dict iteration, time-based content, etc. all break this. `build.py` runs the boardgen walker (`pipeline/generic/01_emit_sources.py`) twice in fresh subprocesses and aborts on any drift — step 1b is non-negotiable.
 
 ### 10. Module identification (mandatory rule for ANY board / module / dev-kit)
 
@@ -141,7 +141,7 @@ Additional features:
 
 ### Module list (v0.40 final)
 
-> Authoritative metadata (EAN, MPN, datasheet URLs, sourcing notes, derived dimensions) lives in `hardware/kicad/generate.py::EXTERNAL_MODULES`. The table below is a quick-reference summary.
+> Authoritative metadata (EAN, MPN, datasheet URLs, sourcing notes, derived dimensions) lives in `hardware/kicad/boardgen/_project.py::EXTERNAL_MODULES`. The table below is a quick-reference summary.
 
 | Function | Component | LCSC / source | Interface |
 |---|---|---|---|
@@ -165,7 +165,7 @@ ESP32-C6-DevKitM-1-N4 is the Espressif official devkit (ESP32-C6-MINI-1 SoM + tw
 
 ### ESP32-C6-DevKitM-1-N4 pinout (final)
 
-> Authoritative pin assignment lives in `hardware/kicad/generate.py::GPIO_ASSIGNMENTS` and `GPIO_RESERVED`. The table below is a quick-reference summary. `pipeline/oas/06_check_boot.py` cross-checks the schematic against the dict on every regenerate.
+> Authoritative pin assignment lives in `hardware/kicad/boardgen/_project.py::GPIO_ASSIGNMENTS` and `GPIO_RESERVED`. The table below is a quick-reference summary. `pipeline/oas/06_check_boot.py` cross-checks the schematic against the dict on every build.
 
 | Pin | Function | Notes |
 |---|---|---|
@@ -300,7 +300,7 @@ open-ambient-sensor/
 │   └── secrets.yaml.example
 └── hardware/
     ├── kicad/
-    │   ├── generate.py             # thin importlib walker over boardgen/[0-9][0-9]_*.py (~70 lines)
+    │   ├── build.py                # THE ONLY top-level entrypoint — runs every pipeline/<subdir>/NN_*.py in order (AI-agent harness)
     │   ├── boardgen/               # KiCad source-file generators — one numbered stage per output
     │   │   ├── _common.py          # UUID system (U, sheet_context), fmt, Context dataclass, sub-sheet IDs
     │   │   ├── _project.py         # OAS-specific: EXTERNAL_MODULES, GPIO_*, geometry, daughterboard placement
@@ -313,7 +313,6 @@ open-ambient-sensor/
     │   │   ├── _postprocess.py     # netlist sync + Z-clearance audit + LCSC metadata injection
     │   │   ├── _project_files.py   # gen_pro + gen_fp_lib_table + gen_sym_lib_table + gen_oas_symbol_library
     │   │   ├── 01_custom_footprints.py … 13_apply_routing.py   # numbered stages, each ~15-30 lines
-    │   ├── regenerate.py           # thin orchestrator — runs every pipeline/<subdir>/NN_*.py
     │   ├── oas_routes.py           # derived — routing snapshot replayed by boardgen/_routing.py
     │   ├── lcsc_mapping.py         # SOT for SMD LCSC SKUs — Python dict (Value, Footprint) -> entry
     │   ├── oas.kicad_pro / .kicad_sch / .kicad_pcb / sub-sheets  # generated artefacts
@@ -322,8 +321,8 @@ open-ambient-sensor/
     │   │   ├── _common.py          # PROJECT-AGNOSTIC helpers (Stage, find_kicad_cli, run, sha256)
     │   │   ├── _project.py         # OAS config + vendor-agnostic + per-vendor output paths
     │   │   ├── generic/            # VENDOR-AGNOSTIC + REUSABLE across KiCad projects
-    │   │   │   ├── 01_generate.py        # invoke generate.py
-    │   │   │   ├── 02_determinism.py     # bit-identity self-check
+    │   │   │   ├── 01_emit_sources.py    # walk boardgen/[0-9][0-9]_*.py — emit every KiCad source file
+    │   │   │   ├── 02_determinism.py     # bit-identity self-check (re-runs stage 01 in fresh subprocess)
     │   │   │   ├── 03_drc.py             # kicad-cli pcb drc strict
     │   │   │   ├── 04_erc.py             # kicad-cli sch erc strict
     │   │   │   ├── 10_render_2d.py       # PCB top/cutouts/bottom SVG
@@ -354,7 +353,7 @@ open-ambient-sensor/
     └── output/                     # production deliverables (one folder per vendor)
         └── jlcpcb/                 # EXACTLY 4 files, all committed
             ├── oas-jlcpcb.zip      # gerbers + drill bundle for JLCPCB upload
-            ├── oas-bom.csv         # BOM (JLCPCB template + LCSC + library tier)
+            ├── oas-BOM.csv         # BOM (JLCPCB template + LCSC + library tier)
             ├── oas-top-CPL.csv     # CPL top (JLCPCB header + rotation offsets)
             └── oas-bottom-CPL.csv  # CPL bottom
 ```
@@ -387,15 +386,17 @@ hardware/kicad/freerouting.log
 
 The KiCad project in `hardware/kicad/` is **script-driven**. The source of truth lives across `boardgen/` (the per-stage Python modules that emit every `.kicad_*` file), `lcsc_mapping.py` (SMD LCSC SKUs), and `oas_routes.py` (routing snapshot). The `oas.kicad_pcb` / `oas.kicad_sch` / `oas.kicad_pro` / `libraries/*` files are **derived artefacts** — regenerated bit-identically from `boardgen/`.
 
-`generate.py` itself is a 68-line `importlib` walker over `boardgen/[0-9][0-9]_*.py` — same pattern as `regenerate.py` walks `pipeline/`. The 13 numbered stages (`01_custom_footprints` … `13_apply_routing`) share in-memory state via a `Context` dataclass and each runs standalone for debug (`python boardgen/02_pcb_board.py`).
+The boardgen walker lives at `pipeline/generic/01_emit_sources.py` (stage 01 of `build.py`). It iterates `boardgen/[0-9][0-9]_*.py` via importlib, instantiates a shared `Context` dataclass, and runs each stage's `run(ctx)`. The 13 numbered boardgen stages (`01_custom_footprints` … `13_apply_routing`) each run standalone for debug (`python boardgen/02_pcb_board.py`).
+
+**There is no `generate.py` at the repo root.** `build.py` is the ONLY top-level entrypoint — that is the AI-agent harness. An autonomous agent cannot "just rebuild the sources" while skipping DRC / ERC / determinism / DC / ampacity / boot-strap / preflight / vendor-export checks, because the only way to invoke the walker is through `build.py` (which always runs every later stage too). Individual pipeline files remain debug-runnable in isolation (`python pipeline/generic/03_drc.py`), but that is for diagnosing a specific stage in flight, not for skipping verification on a commit.
 
 ### How we work
 
 1. The user describes a desired change (geometry tweak, new component, routing fix, etc.).
 2. The assistant edits the appropriate constant / function inside `boardgen/_project.py` (geometry, placements, GPIO map), `boardgen/_footprints.py` (any footprint), `boardgen/_sch_*.py` (per-sheet schematic), or one of the other helper modules. `oas_routes.py` / `lcsc_mapping.py` for routing / BOM tweaks.
-3. The assistant runs `python regenerate.py`. That command is a thin orchestrator that dispatches each `pipeline/NN_<name>.py` script in numeric order. The stages are:
-   - `01_generate` — calls `generate.py` to rebuild every KiCad source file (which internally runs the Z-clearance guardrail on 76 footprints).
-   - `02_determinism` — runs `generate.py` a SECOND time and checks 17 source files are bit-identical.
+3. The assistant runs `python build.py`. That command is a thin orchestrator that dispatches each `pipeline/<subdir>/NN_*.py` script in numeric order. The stages are:
+   - `01_emit_sources` — walks `boardgen/[0-9][0-9]_*.py` to rebuild every KiCad source file (which internally runs the Z-clearance guardrail on 76 footprints).
+   - `02_determinism` — re-runs `01_emit_sources.py` in a fresh subprocess and checks 17 source files are bit-identical (fresh interpreter so `PYTHONHASHSEED` randomization exposes any dict-order leak).
    - `03_drc` — `kicad-cli pcb drc` strict (`--severity-error --severity-warning --refill-zones`).
    - `04_erc` — `kicad-cli sch erc` strict (`--severity-error --severity-warning --exit-code-violations`).
    - `05_check_dc` / `06_check_boot` / `07_check_ampacity` / `08_check_switching` — DC voltage propagation, boot-strap audit, trace ampacity, ngspice transient (soft-skips with [WARN] if ngspice + LM2596 PSpice model not in `.cache/spice/`).
@@ -407,15 +408,15 @@ The KiCad project in `hardware/kicad/` is **script-driven**. The source of truth
    - `33_check_dnp_consistency` — DNP attribute audit: PCB attrs `dnp` + `exclude_from_bom` + `exclude_from_pos_files` must travel together; DNP refdes must not leak into BOM or CPL files.
    Numbers in the range gaps (`09`, `15`–`19`, `21`–`28`, `34`–`39`) are reserved: 09/15–19 for future generic / oas checks, 21–28 for future generic export stages, 34–39 for future JLCPCB stages. Each vendor gets a 10-number range (jlcpcb 29–39; future oshpark would take 40–49). **Aborts on any violation or determinism drift** (fail-fast — later stages don't run). Each `pipeline/<subdir>/NN_*.py` is also independently runnable for debug (`python pipeline/generic/03_drc.py`).
 4. The assistant commits the resulting diff (sources + KiCad files + renders + vendor deliverables together).
-5. JLCPCB upload: `hardware/output/jlcpcb/oas-jlcpcb.zip` (bare board) + `oas-top-CPL.csv` + `oas-bom.csv` (SMT assembly). Drill review: `hardware/build/gerbers/oas-PTH-drl_map.pdf` / `oas-NPTH-drl_map.pdf` (regenerable, gitignored). All files produced by stages 20-33 on every `regenerate.py` run.
+5. JLCPCB upload: `hardware/output/jlcpcb/oas-jlcpcb.zip` (bare board) + `oas-top-CPL.csv` + `oas-BOM.csv` (SMT assembly). Drill review: `hardware/build/gerbers/oas-PTH-drl_map.pdf` / `oas-NPTH-drl_map.pdf` (regenerable, gitignored). All files produced by stages 20-33 on every `build.py` run.
 
 ### Rules
 
-- **Never edit `.kicad_pcb`, `.kicad_sch`, `.kicad_pro`, or `*.kicad_mod` directly.** The next `regenerate.py` will overwrite the edit. If you find yourself wanting to hand-edit one of those, add a new constant / function to the appropriate `boardgen/_*.py` module instead.
-- **`boardgen/` is the source-of-truth package; `generate.py` is just the walker.** Each output file maps to exactly one `boardgen/NN_*.py` stage. Helper modules (`_common.py`, `_project.py`, `_footprints.py`, `_pcb.py`, `_lib_symbols.py`, `_routing.py`, `_postprocess.py`, `_project_files.py`, `_sch_helpers.py`, `_sch_root.py` / `_power` / `_mcu` / `_sensors` / `_io`) form an acyclic dependency DAG — never import from a stage file into a helper. Each numbered stage is independently runnable for debug (`python boardgen/02_pcb_board.py`).
+- **Never edit `.kicad_pcb`, `.kicad_sch`, `.kicad_pro`, or `*.kicad_mod` directly.** The next `build.py` run will overwrite the edit. If you find yourself wanting to hand-edit one of those, add a new constant / function to the appropriate `boardgen/_*.py` module instead.
+- **`boardgen/` is the source-of-truth package; the walker (`pipeline/generic/01_emit_sources.py`) is just glue.** Each output file maps to exactly one `boardgen/NN_*.py` stage. Helper modules (`_common.py`, `_project.py`, `_footprints.py`, `_pcb.py`, `_lib_symbols.py`, `_routing.py`, `_postprocess.py`, `_project_files.py`, `_sch_helpers.py`, `_sch_root.py` / `_power` / `_mcu` / `_sensors` / `_io`) form an acyclic dependency DAG — never import from a stage file into a helper. Each numbered stage is independently runnable for debug (`python boardgen/02_pcb_board.py`).
 - **All UUIDs are deterministic v5** (namespaced under the OAS project). Two consecutive runs with no source changes produce a bit-identical PCB → empty `git diff`.
 - **`renders/` is committed** as a visual changelog. Reviewers can see geometry changes in PRs without launching KiCad.
-- **External services run MANUALLY only.** `tools/jlcdfm_upload.py` and any future TI-WEBENCH / LCSC-stock-check / OSHPark-upload tool must be invoked by explicit user request — never from `regenerate.py` or any CI loop. JLCPCB's `/checkIp` endpoint tracks upload volume per IP; running on every regenerate would risk rate-limiting.
+- **External services run MANUALLY only.** `tools/jlcdfm_upload.py` and any future TI-WEBENCH / LCSC-stock-check / OSHPark-upload tool must be invoked by explicit user request — never from `build.py` or any CI loop. JLCPCB's `/checkIp` endpoint tracks upload volume per IP; running on every build would risk rate-limiting.
 - **JLCPCB-specific tape-feeder rotation offsets live in `pipeline/jlcpcb/_rotations.py` and apply only in stage `30_export_pos`.** `oas.kicad_pcb` and every 3D / 2D / preflight render show KiCad's natural rotation — visual verification reflects placement intent, not JLCPCB's tape geometry. Only `hardware/output/jlcpcb/oas-top-CPL.csv` (the file uploaded to JLCPCB) carries the compensated rotations. Same separation applies to gerbers (which don't encode component rotation at all).
 - **Vendor isolation.** The KiCad project is vendor-neutral. JLCPCB-specific tweaks (rotation offsets, CPL header reformat, BOM template with LCSC + library tier, ZIP bundle naming) live ONLY under `pipeline/jlcpcb/` and ONLY write into `hardware/output/jlcpcb/`. The vendor folder under `hardware/output/<vendor>/` carries EXACTLY 4 files: ZIP + BOM + 2× CPL — nothing else. Adding a new fabricator = create `pipeline/<vendor>/` sibling to `generic/`, `oas/`, `jlcpcb/` + a new `hardware/output/<vendor>/` folder. Zero edits to `generic/` or `oas/` stages. NEVER compensate for a fabricator quirk by deforming `oas.kicad_pcb` or any schematic — the project's KiCad ground truth must match the datasheet, and the per-vendor stage compensates at export emit time.
 
@@ -495,6 +496,8 @@ The KiCad project in `hardware/kicad/` is **script-driven**. The source of truth
 ## Changelog summary
 
 Full historical detail lives in `git log --tags`. Highlights of the most recent milestones:
+
+- **v0.40-build-harness** (2026-05-19): Renamed the top-level orchestrator `regenerate.py` → `build.py` and removed the `generate.py` shortcut at the repo root. The boardgen walker now lives at `pipeline/generic/01_emit_sources.py` (stage 01 of `build.py`); the former `pipeline/generic/01_generate.py` subprocess wrapper is gone. Motivation: AI-agent harness — when there were two top-level entrypoints (the fast-but-incomplete `generate.py` and the comprehensive `regenerate.py`), an autonomous agent could rationalize "I'll just rebuild the sources" and silently commit a board state that had never seen DRC / ERC / determinism / DC / ampacity / boot-strap / preflight / vendor-export checks. With a single entrypoint, the harness always runs the full pipeline. Also renamed `hardware/output/jlcpcb/oas-bom.csv` → `oas-BOM.csv` for consistency with the already-uppercased `oas-{top,bottom}-CPL.csv` (manufacturer acronyms uppercase). 20/20 PASS post-refactor; boardgen output bit-identical pre vs post.
 
 - **v0.40-vendor-split** (2026-05-19): Reorganized production pipeline around vendor isolation. New `pipeline/jlcpcb/` sibling to `generic/` and `oas/` holds every JLCPCB-specific stage (29 BOM consistency, 30 CPL export with rotation offsets, 31 BOM with LCSC + library tier, 32 ZIP bundle, 33 DNP consistency) plus `_rotations.py` (moved from `hardware/kicad/jlcpcb_rotations.py`). Stage 20 now emits raw vendor-neutral gerbers + drill to `hardware/build/gerbers/` (gitignored intermediate), and stage 24 preflight verifies that raw data without touching any vendor ZIP. Output reorganized: `hardware/output/jlcpcb/` carries EXACTLY 4 committed deliverables (ZIP + BOM + 2× CPL). Position files renamed `oas-{top,bottom}-pos.csv` → `oas-{top,bottom}-CPL.csv` to match JLCPCB's own terminology. Adding a second fabricator now reduces to creating a sibling `pipeline/<vendor>/` + `hardware/output/<vendor>/` with zero edits to existing `generic/` or `oas/` stages. boardgen output (`oas.kicad_pcb`, `oas.kicad_sch`, 4 sub-sheets, `OAS.kicad_sym`, 7 `.kicad_mod`, lib tables) byte-identical pre vs post; 20/20 PASS in ~115 s.
 

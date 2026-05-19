@@ -5,7 +5,7 @@ Without this, GND pads inside the F.Cu / B.Cu GND pour would still appear
 as "unconnected_items" because the connectivity check looks only at routed
 tracks + filled zone polygons. We deliberately DO NOT pass `--save-board`:
 KiCad's save would (a) re-write the PCB file in its compact native format
-losing the (net N "name") integer codes that generate.py emits, and
+losing the (net N "name") integer codes that boardgen emits, and
 (b) inject fresh random UUIDs on every save, breaking the determinism
 guarantee.
 

@@ -433,10 +433,10 @@ def sync_pcb_nets_from_schematic(kicad_cli: str | None = None) -> int:
 
     Returns the count of pads that received a net assignment.
 
-    Skips silently if kicad-cli is not available (so generate.py still runs
-    under bare CI without a KiCad install). regenerate.py finds kicad-cli
-    on its own; when calling generate.py standalone, set the
-    OAS_KICAD_CLI env var or pass `kicad_cli`.
+    Skips silently if kicad-cli is not available (so the walker still runs
+    under bare CI without a KiCad install). build.py finds kicad-cli on
+    its own; when calling pipeline/generic/01_emit_sources.py standalone,
+    set the OAS_KICAD_CLI env var or pass `kicad_cli`.
     """
     import os
     import shutil
@@ -592,7 +592,7 @@ BARE_FOOTPRINT_TO_LIB: dict[str, str] = {
 #
 # How it works:
 #   1. FOOTPRINT_HEIGHT — declares the maximum Z-extent (above PCB top
-#      surface, mm) of every footprint emitted by generate.py. Keys are
+#      surface, mm) of every footprint emitted by boardgen. Keys are
 #      the fully-qualified `(property "Footprint" "...")` strings as
 #      written into oas.kicad_pcb. Missing entries -> hard assertion in
 #      check_z_clearance_violations() (catches new generators that
@@ -655,7 +655,7 @@ BARE_FOOTPRINT_TO_LIB: dict[str, str] = {
 # UPDATE WHEN ADDING A NEW GENERATOR: add the new footprint's
 # `(property "Footprint" "...")` string here with its datasheet-max
 # height. If you forget, `check_z_clearance_violations()` asserts at
-# regenerate time with a clear error message.
+# build time with a clear error message.
 FOOTPRINT_HEIGHT: dict[str, float] = {
     # ---- Chip passives ----
     "Capacitor_SMD:C_0402_1005Metric": 0.5,
@@ -978,7 +978,7 @@ def check_z_clearance_violations() -> list[str]:
         assert height is not None, (
             f"FOOTPRINT_HEIGHT missing entry for {fp_prop!r} "
             f"(used by reference {ref!r}). Add the appropriate "
-            f"datasheet-max height to FOOTPRINT_HEIGHT in generate.py."
+            f"datasheet-max height to FOOTPRINT_HEIGHT in boardgen/_postprocess.py."
         )
         # Per-reference override takes precedence over the per-footprint
         # default — used when a single footprint is placed at multiple
@@ -991,7 +991,7 @@ def check_z_clearance_violations() -> list[str]:
         assert half is not None, (
             f"_FOOTPRINT_HALF_EXTENT missing entry for {fp_prop!r} "
             f"(used by reference {ref!r}). Add a planar half-extent to "
-            f"_FOOTPRINT_HALF_EXTENT in generate.py."
+            f"_FOOTPRINT_HALF_EXTENT in boardgen/_postprocess.py."
         )
         half_x, half_y = half
         _ = rotation  # captured by parser for future use; current AABB
@@ -1092,7 +1092,7 @@ def _build_pcb_ref_to_footprint() -> dict[str, str]:
             assert lib is not None, (
                 f"BARE_FOOTPRINT_TO_LIB missing entry for {raw!r} "
                 f"(used by footprint reference {ref!r}). Add the appropriate "
-                f"library nickname to BARE_FOOTPRINT_TO_LIB in generate.py."
+                f"library nickname to BARE_FOOTPRINT_TO_LIB in boardgen/_postprocess.py."
             )
             canonical = f"{lib}:{raw}"
         mapping[ref] = canonical

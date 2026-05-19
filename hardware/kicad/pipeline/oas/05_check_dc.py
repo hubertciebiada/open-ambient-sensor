@@ -46,7 +46,7 @@ Scenarios tested
   4. Brown-out (Vin = +6 V, below LM2596 minimum): rails collapse cleanly.
 
 Exit code 0 if all checks pass, 1 on any assertion failure. Designed to
-be run as a `regenerate.py` post-check OR standalone (`python tools/check_dc.py`).
+be run as a `build.py` post-check OR standalone (`python pipeline/oas/05_check_dc.py`).
 
 Limitations
 -----------
@@ -143,7 +143,7 @@ def parse_zener_voltage(value_string: str) -> float | None:
 def read_schematic_property(sch_text: str, reference: str, prop: str) -> str | None:
     """Find the value of a named property on the first symbol whose Reference
     matches `reference`. Uses the same depth-counting parse as
-    `generate.py:_apply_schematic_footprints` to handle nested blocks correctly."""
+    `boardgen/_postprocess.py:_apply_schematic_footprints` to handle nested blocks correctly."""
     i = 0
     n = len(sch_text)
     while True:

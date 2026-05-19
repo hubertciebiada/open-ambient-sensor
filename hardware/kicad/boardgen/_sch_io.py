@@ -257,7 +257,7 @@ from boardgen._project_files import (
 # Netlist post-processor (Option A from pre-routing-review v0.19 / C1)
 # -----------------------------------------------------------------------------
 #
-# After generate.py emits oas.kicad_pcb (with every pad on net 0), we re-run
+# After boardgen emits oas.kicad_pcb (with every pad on net 0), we re-run
 # `kicad-cli sch export netlist` to produce a KiCad-flavoured S-expression
 # netlist describing every electrical net in the just-written schematic.
 # We then parse that netlist and rewrite oas.kicad_pcb in-place so that

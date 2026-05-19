@@ -20,7 +20,7 @@
 # is the heaviest user. The NFC (NT3H1101 @ 0x55) and Qwiic expansion packages
 # reference `bus_a` rather than declaring their own.
 #
-# Datasheet refs (see EXTERNAL_MODULES['SEN66-SIN-T'] in hardware/kicad/generate.py):
+# Datasheet refs (see EXTERNAL_MODULES['SEN66-SIN-T'] in hardware/kicad/boardgen/_project.py):
 #   - Sensirion SEN6x datasheet v0.92, Dec 2025
 #   - Sensirion SEN6x mechanical / assembly guidelines v0.92, Jan 2026
 #   - Sensirion SEN6x temperature-compensation app note v1.1, Jan 2026

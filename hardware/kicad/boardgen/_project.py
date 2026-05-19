@@ -34,7 +34,7 @@ from boardgen._common import fmt
 # =============================================================================
 # Single source of truth for project identity, external modules, GPIO map,
 # and board revision. Consumed by:
-#   - generate.py itself (could be used in title block / silk text; legacy
+#   - boardgen stages themselves (title block / silk text; legacy
 #     constants like OAS_VERSION_LINE still drive existing renders today)
 #   - pipeline/oas/06_check_boot.py (could cross-check GPIO_ASSIGNMENTS)
 #   - downstream documentation (CLAUDE.md references constants by name)

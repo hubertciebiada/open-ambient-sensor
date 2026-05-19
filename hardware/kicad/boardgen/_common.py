@@ -12,9 +12,10 @@ Stage files under `boardgen/NN_<name>.py` import from this module via:
 
     from boardgen._common import U, sheet_context, Context, HERE, ...
 
-`generate.py` (the thin orchestrator) walks `boardgen/[0-9][0-9]_*.py`
-via importlib, instantiates a single `Context`, and threads it through
-each stage's `run(ctx)` entry point.
+`pipeline/generic/01_emit_sources.py` (the thin walker, run as stage 01
+of `build.py`) iterates `boardgen/[0-9][0-9]_*.py` via importlib,
+instantiates a single `Context`, and threads it through each stage's
+`run(ctx)` entry point.
 """
 from __future__ import annotations
 
@@ -23,9 +24,9 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 # Paths -------------------------------------------------------------------
-# `HERE` points at hardware/kicad/ (the directory that holds generate.py,
-# regenerate.py, the .kicad_* output files, libraries/, pipeline/, etc.).
-# Stages write produced files relative to this path.
+# `HERE` points at hardware/kicad/ (the directory that holds build.py,
+# the .kicad_* output files, libraries/, pipeline/, etc.). Stages write
+# produced files relative to this path.
 HERE = Path(__file__).parent.parent
 
 # KiCad file format versions ---------------------------------------------
@@ -152,8 +153,9 @@ SUBSHEET_SIZE = (38.1, 17.78)  # v0.19: bumped 12.7 -> 17.78 mm tall so MCU
 @dataclass
 class Context:
     """In-memory state threaded through boardgen/NN_*.py stages by the
-    generate.py orchestrator. Each stage's `run(ctx)` may read and mutate
-    these fields; downstream stages see the updated values.
+    stage-01 walker (`pipeline/generic/01_emit_sources.py`). Each stage's
+    `run(ctx)` may read and mutate these fields; downstream stages see the
+    updated values.
 
     Fields:
       pcb_text          last-written oas.kicad_pcb body (filled by stage 02,

@@ -1,7 +1,7 @@
 """LCSC parts mapping for OAS — single source of truth for BOM lookup.
 
 Imported by:
-  - hardware/kicad/generate.py
+  - hardware/kicad/boardgen/_postprocess.py
     (can be used for schematic symbol metadata injection)
   - hardware/kicad/pipeline/oas/22_export_bom_jlcpcb.py
     (for JLCPCB happy-path BOM post-process: fills LCSC Part #,
@@ -20,14 +20,14 @@ Schema:
 
 `Footprint` uses the canonical KiCad library prefix
 (e.g. "Capacitor_SMD:C_0603_1608Metric" or "oas:SK6812-SIDE") matching what
-generate.py emits into each schematic symbol's "Footprint" property. Stage
+boardgen emits into each schematic symbol's "Footprint" property. Stage
 22 reads that property out of `kicad-cli sch export bom` and does the
 lookup against this dict.
 
 Editing: when the BOM changes (component swap, supplier swap, value tweak),
-update the dict ENTRY here, then re-run `python regenerate.py`. Stage 22
-post-processes BOM in-place and writes hardware/output/oas-bom.csv in
-JLCPCB happy-path format. Any unmapped (Value, Footprint) SMD row triggers
+update the dict ENTRY here, then re-run `python build.py`. Stage 31
+(`pipeline/jlcpcb/31_export_bom.py`) writes hardware/output/jlcpcb/oas-BOM.csv
+in JLCPCB happy-path format. Any unmapped (Value, Footprint) SMD row triggers
 HARD ERROR — catch missing coverage before submitting the JLCPCB quote.
 """
 

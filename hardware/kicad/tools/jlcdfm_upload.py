@@ -9,7 +9,7 @@ the JLCPCB DFM PDF report locally.
 WARNING - this script makes a LIVE upload to JLCPCB servers.
 ------------------------------------------------------------
 
-* Do NOT run on every regenerate. JLCPCB tracks upload volume via
+* Do NOT run on every build. JLCPCB tracks upload volume via
   /api/overseas-dfm-service/checkIp; abusive use triggers IP blocks
   and captcha-gating.
 * Do NOT run from CI loops or automated wakers.
@@ -25,8 +25,8 @@ Prerequisites
   pip install --user playwright
   python -m playwright install chromium
 
-  Then run `python regenerate.py` (stage 23 bundles the ZIP into
-  hardware/output/oas-jlcpcb.zip — the upload always uses whatever
+  Then run `python build.py` (stage 32 bundles the ZIP into
+  hardware/output/jlcpcb/oas-jlcpcb.zip — the upload always uses whatever
   file is currently at that path).
 
 ------------------------------------------------------------

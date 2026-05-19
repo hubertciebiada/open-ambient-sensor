@@ -1,28 +1,45 @@
 """
-OAS — master regeneration orchestrator.
+OAS — master build orchestrator (the only top-level entrypoint).
 
-This is a thin dispatcher. The actual work is in `pipeline/NN_<name>.py`
-sub-scripts (one stage per file). Each pipeline file is independently
-runnable for debugging (`python pipeline/03_drc.py`); this orchestrator
-runs them in numeric order, aggregates exit codes, and prints a final
-SUMMARY table.
+This is the AI-agent harness for the KiCad project: `python build.py` is
+the ONLY way to (re-)emit the KiCad source files. There is no
+`generate.py` shortcut at the repo root — the boardgen walker lives
+inside `pipeline/generic/01_emit_sources.py` and is reached exclusively
+through this orchestrator. That keeps an autonomous agent from "just
+rebuilding the sources" while skipping DRC / ERC / determinism / DC /
+ampacity / boot-strap / preflight / vendor-export checks.
 
-Stage layout (numbered for visible ordering — note the 08–09 gap reserved
-for future verification checks):
+`build.py` is a thin dispatcher. The actual work is in
+`pipeline/<subdir>/NN_<name>.py` sub-scripts (one stage per file). Each
+pipeline file is also independently runnable for debugging
+(`python pipeline/generic/03_drc.py`); this orchestrator runs them in
+numeric order, aggregates exit codes, and prints a final SUMMARY table.
 
-  01 generate          rebuild every KiCad source file from generate.py
-  02 determinism       hash + re-run + diff (bit-identity guardrail)
-  03 drc               kicad-cli pcb drc strict (errors + warnings)
-  04 erc               kicad-cli sch erc strict (errors + warnings)
-  05 check_dc          DC voltage propagation analytical model
-  06 check_boot        ESP32-C6 strap + signal pin audit
-  07 check_ampacity    IPC-2221 trace width verifier
-  10 render_2d         PCB top / cutouts / bottom SVG
-  11 render_sch        Schematic root + 4 sub-sheets SVG
-  12 render_png        cairosvg batch SVG → PNG
-  13 render_3d         3D top + iso renders via kicad-cli
+Stage layout (numbered for visible ordering — gaps reserved for future
+checks per the per-subdir number budget in CLAUDE.md):
 
-Usage:  python regenerate.py
+  01 emit_sources       rebuild every KiCad source file via boardgen/
+  02 determinism        hash + re-run + diff (bit-identity guardrail)
+  03 drc                kicad-cli pcb drc strict (errors + warnings)
+  04 erc                kicad-cli sch erc strict (errors + warnings)
+  05 check_dc           DC voltage propagation analytical model
+  06 check_boot         ESP32-C6 strap + signal pin audit
+  07 check_ampacity     IPC-2221 trace width verifier
+  08 check_switching    ngspice LM2596 soft-start transient
+  10 render_2d          PCB top / cutouts / bottom SVG
+  11 render_sch         Schematic root + 4 sub-sheets SVG
+  12 render_png         cairosvg batch SVG → PNG
+  13 render_3d          3D top + iso renders via kicad-cli
+  14 check_refdes       designator uniqueness across schematic
+  20 export_gerbers     Protel gerbers + Excellon drill (raw fab data)
+  24 preflight_gerbers  pygerber integrity + drill stats
+  29 check_bom_consistency  LCSC# bijection
+  30 export_pos         JLCPCB CPL header + rotation offsets
+  31 export_bom         BOM with LCSC mapping + library tier
+  32 bundle             ZIP gerbers + drill -> oas-jlcpcb.zip
+  33 check_dnp_consistency  DNP refdes leak audit
+
+Usage:  python build.py
 """
 from __future__ import annotations
 

@@ -6,7 +6,7 @@ v0.24 fix (review iteration 2 Mj2): make ERC strict on warnings.
 violation (error OR warning) exists. Without both flags, the v0.23
 Mn3 regression (15 `footprint_link_issues` warnings) silently passed
 CI because the subprocess returned 0. Every ERC issue now aborts the
-regenerate run.
+build run.
 """
 from __future__ import annotations
 

@@ -378,7 +378,7 @@ _SOT583_8_LIB_FOOTPRINT_PATH = (
 # via a different generator. Consolidating to verbatim stock parsing.
 _J2_LIB_FOOTPRINT_PATH = _J10_LIB_FOOTPRINT_PATH
 # v0.40 post-order: radial THT bulk caps. Origin in stock = pin 1 (NOT
-# body center). XY placement in generate.py call sites uses the body
+# body center). XY placement in boardgen call sites uses the body
 # center convention, so callers must subtract pitch/2 from x when
 # rotation=0 to keep the body center at the requested coordinate. See
 # gen_capacitor_polarized_radial_pcb_footprint for the wrapper that does

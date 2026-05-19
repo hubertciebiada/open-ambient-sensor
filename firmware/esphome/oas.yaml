@@ -67,7 +67,7 @@ substitutions:
   # web page that shows the live readings for this device.
   dashboard_url: "https://homeassistant.local/"
 
-  # Project metadata — keep these in sync with CLAUDE.md / generate.py.
+  # Project metadata — keep these in sync with CLAUDE.md / boardgen/_project.py.
   project_name: "HubertCiebiada.open-ambient-sensor"
   project_version: "v0.40"
 

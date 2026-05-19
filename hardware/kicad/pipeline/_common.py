@@ -1,4 +1,4 @@
-"""Generic helpers for a KiCad regenerate pipeline.
+"""Generic helpers for a KiCad build pipeline.
 
 This module contains ONLY project-agnostic helpers: subprocess wrapper,
 kicad-cli locator, SHA-256 hash, the Stage context manager. NO OAS-
@@ -12,11 +12,11 @@ Stages under `pipeline/<subdir>/NN_<name>.py` import from this module via:
     from _common import Stage, run, find_kicad_cli, ...
 
 The numeric-prefix filenames cannot be `import`-ed directly, so each
-stage runs as its own subprocess (the orchestrator in `regenerate.py`
+stage runs as its own subprocess (the orchestrator in `build.py`
 invokes them via `subprocess.run`) and `_common` is loaded via the
 sys.path trick.
 
-Format contract (consumed by `regenerate.py`):
+Format contract (consumed by `build.py`):
   - Every stage prints `=== STAGE NN: name ===` on entry.
   - Every stage emits `[INFO] ...`, `[OK] ...`, `[WARN] ...`, `[FAIL] ...`
     log lines (uniform 4-char tag column with a 3-space pad after `OK`).
@@ -90,7 +90,7 @@ class Stage:
 
     Position-in-pipeline (`NN/TT`) is picked up from the env vars
     `PIPELINE_IDX` and `PIPELINE_TOTAL` that the orchestrator
-    (`regenerate.py`) injects per subprocess call. When the stage script
+    (`build.py`) injects per subprocess call. When the stage script
     is run standalone for debug, those vars are unset and the banner
     omits the position counter.
     """

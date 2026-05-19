@@ -186,7 +186,7 @@ def main() -> None:
     print()
 
     if not PCB_PATH.exists():
-        sys.exit(f"ERROR: {PCB_PATH} not found - run regenerate.py first.")
+        sys.exit(f"ERROR: {PCB_PATH} not found - run build.py first.")
 
     pcb_text = PCB_PATH.read_text(encoding="utf-8")
     nets_by_code = parse_nets(pcb_text)
@@ -199,12 +199,12 @@ def main() -> None:
     # routing chunk(s) disabled while iterating on footprint corrections),
     # there's nothing to check. Skip cleanly rather than failing per-net
     # — the unrouted state is documented in ROUTING_CHUNKS comments in
-    # generate.py and is expected during the v0.40 post-order footprint
+    # boardgen and is expected during the v0.40 post-order footprint
     # iteration before the routing rework (separate task #93).
     if len(segments) == 0:
         print("SKIP: no routed signal track segments found.")
         print(
-            "       routing snapshot is disabled in generate.py "
+            "       routing snapshot is disabled in boardgen "
             "ROUTING_CHUNKS — ampacity check deferred until routing rework "
             "(task #93). The GND copper pour gives every GND pad a "
             "connection; non-GND nets currently show as unconnected pads."
