@@ -300,11 +300,21 @@ open-ambient-sensor/
 │   └── secrets.yaml.example
 └── hardware/
     ├── kicad/
-    │   ├── generate.py             # SINGLE SOURCE OF TRUTH — project metadata, geometry,
-    │   │                           #   footprints, schematic, plus ASSEMBLY_INSTRUCTIONS /
-    │   │                           #   CASE_VERIFICATION_CHECKLIST / LOCALLY_SOURCED_PARTS
+    │   ├── generate.py             # thin importlib walker over boardgen/[0-9][0-9]_*.py (~70 lines)
+    │   ├── boardgen/               # KiCad source-file generators — one numbered stage per output
+    │   │   ├── _common.py          # UUID system (U, sheet_context), fmt, Context dataclass, sub-sheet IDs
+    │   │   ├── _project.py         # OAS-specific: EXTERNAL_MODULES, GPIO_*, geometry, daughterboard placement
+    │   │   ├── _footprints.py      # all gen_*_footprint + gen_*_pcb_footprint + placement orchestrators
+    │   │   ├── _pcb.py             # gen_pcb (oas.kicad_pcb assembler)
+    │   │   ├── _schematic-related: _sch_helpers (shared primitives), _sch_root / _sch_power /
+    │   │   │                       _sch_mcu / _sch_sensors / _sch_io (per-sheet generators)
+    │   │   ├── _lib_symbols.py     # POWER_LIB_SYMBOLS + MCU_LIB_SYMBOLS + SENSORS_LIB_SYMBOLS + IO_LIB_SYMBOLS
+    │   │   ├── _routing.py         # _RouteEmitter + ROUTING_CHUNKS + apply_routing_to_pcb
+    │   │   ├── _postprocess.py     # netlist sync + Z-clearance audit + LCSC metadata injection
+    │   │   ├── _project_files.py   # gen_pro + gen_fp_lib_table + gen_sym_lib_table + gen_oas_symbol_library
+    │   │   ├── 01_custom_footprints.py … 13_apply_routing.py   # numbered stages, each ~15-30 lines
     │   ├── regenerate.py           # thin orchestrator — runs every pipeline/<subdir>/NN_*.py
-    │   ├── oas_routes.py           # derived — routing snapshot replayed by generate.py
+    │   ├── oas_routes.py           # derived — routing snapshot replayed by boardgen/_routing.py
     │   ├── lcsc_mapping.py         # SOT for SMD LCSC SKUs — Python dict (Value, Footprint) -> entry
     │   ├── oas.kicad_pro / .kicad_sch / .kicad_pcb / sub-sheets  # generated artefacts
     │   ├── libraries/              # generated project libraries (OAS.kicad_sym + oas.pretty/)
@@ -377,12 +387,14 @@ hardware/kicad/freerouting.log
 
 ## PCB design workflow
 
-The KiCad project in `hardware/kicad/` is **script-driven**. The source of truth is the Python in `generate.py` plus the canonical SKU mapping in `hardware/kicad/lcsc_mapping.py` and the routing snapshot in `oas_routes.py`. The `oas.kicad_pcb` / `oas.kicad_sch` / `oas.kicad_pro` / `libraries/*` files are **derived artefacts** — regenerated bit-identically from the Python.
+The KiCad project in `hardware/kicad/` is **script-driven**. The source of truth lives across `boardgen/` (the per-stage Python modules that emit every `.kicad_*` file), `lcsc_mapping.py` (SMD LCSC SKUs), and `oas_routes.py` (routing snapshot). The `oas.kicad_pcb` / `oas.kicad_sch` / `oas.kicad_pro` / `libraries/*` files are **derived artefacts** — regenerated bit-identically from `boardgen/`.
+
+`generate.py` itself is a 68-line `importlib` walker over `boardgen/[0-9][0-9]_*.py` — same pattern as `regenerate.py` walks `pipeline/`. The 13 numbered stages (`01_custom_footprints` … `13_apply_routing`) share in-memory state via a `Context` dataclass and each runs standalone for debug (`python boardgen/02_pcb_board.py`).
 
 ### How we work
 
 1. The user describes a desired change (geometry tweak, new component, routing fix, etc.).
-2. The assistant edits the appropriate constant / function in `generate.py` (or `oas_routes.py` / `lcsc_mapping.py` if applicable).
+2. The assistant edits the appropriate constant / function inside `boardgen/_project.py` (geometry, placements, GPIO map), `boardgen/_footprints.py` (any footprint), `boardgen/_sch_*.py` (per-sheet schematic), or one of the other helper modules. `oas_routes.py` / `lcsc_mapping.py` for routing / BOM tweaks.
 3. The assistant runs `python regenerate.py`. That command is a thin orchestrator that dispatches each `pipeline/NN_<name>.py` script in numeric order. The stages are:
    - `01_generate` — calls `generate.py` to rebuild every KiCad source file (which internally runs the Z-clearance guardrail on 76 footprints).
    - `02_determinism` — runs `generate.py` a SECOND time and checks 17 source files are bit-identical.
@@ -398,7 +410,8 @@ The KiCad project in `hardware/kicad/` is **script-driven**. The source of truth
 
 ### Rules
 
-- **Never edit `.kicad_pcb`, `.kicad_sch`, `.kicad_pro`, or `*.kicad_mod` directly.** The next `regenerate.py` will overwrite the edit. If you find yourself wanting to hand-edit one of those, add a new constant / function to `generate.py` instead.
+- **Never edit `.kicad_pcb`, `.kicad_sch`, `.kicad_pro`, or `*.kicad_mod` directly.** The next `regenerate.py` will overwrite the edit. If you find yourself wanting to hand-edit one of those, add a new constant / function to the appropriate `boardgen/_*.py` module instead.
+- **`boardgen/` is the source-of-truth package; `generate.py` is just the walker.** Each output file maps to exactly one `boardgen/NN_*.py` stage. Helper modules (`_common.py`, `_project.py`, `_footprints.py`, `_pcb.py`, `_lib_symbols.py`, `_routing.py`, `_postprocess.py`, `_project_files.py`, `_sch_helpers.py`, `_sch_root.py` / `_power` / `_mcu` / `_sensors` / `_io`) form an acyclic dependency DAG — never import from a stage file into a helper. Each numbered stage is independently runnable for debug (`python boardgen/02_pcb_board.py`).
 - **All UUIDs are deterministic v5** (namespaced under the OAS project). Two consecutive runs with no source changes produce a bit-identical PCB → empty `git diff`.
 - **`renders/` is committed** as a visual changelog. Reviewers can see geometry changes in PRs without launching KiCad.
 - **External services run MANUALLY only.** `tools/jlcdfm_upload.py` and any future TI-WEBENCH / LCSC-stock-check / OSHPark-upload tool must be invoked by explicit user request — never from `regenerate.py` or any CI loop. JLCPCB's `/checkIp` endpoint tracks upload volume per IP; running on every regenerate would risk rate-limiting.
