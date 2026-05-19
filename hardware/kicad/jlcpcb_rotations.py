@@ -52,35 +52,36 @@ UPSTREAM_CSV = HERE / "third_party" / "JLCKicadTools" / "jlc_kicad_tools" / "cpl
 # ---------------------------------------------------------------------------
 # Each tuple: (compiled_regex, offset_deg, rationale_string).
 # Rationale is mandatory and shown in stage 21 log.
+#
+# Audit-19 (2026-05-19): TO-263 and SOT-583 entries removed. Those were
+# empirical without JLCPCB DFM re-upload validation. KiCad's stock
+# footprint pad geometry for U1 / U2 is verbatim correct (audit-15/16
+# refactor) so absent confirmed JLCPCB tape-feeder offset, no
+# compensation is needed. If DFM upload of a future revision shows
+# U1 or U2 mis-oriented, re-add the entry with the screenshot path
+# in the rationale.
+#
+# The SK6812-SIDE entry stays — it is empirically validated: without
+# it, JLCPCB DFM renders the LEDs emitting inward, meaning JLCPCB's
+# tape-feeder reference for the OPSCO/Normand SK6812 SIDE-A part is
+# 180 deg offset from KiCad's footprint reference. Without the +180
+# compensation, each LED would land 180 deg off the pads — chip pin 1
+# (DIN) on PCB pad 4 (GND trace), reverse-polarity destruction at
+# first power-up.
 JLCPCB_ROTATIONS_OAS: list[tuple[re.Pattern, float, str]] = [
-    # U1 LM2596S-5.0 — DPAK family. v0.40 JLCPCB DFM render: chip body
-    # rotated 180° relative to pads, leads landing off-pad. Empirical fix
-    # +180° flips body so leads sit on lead pads, TAB sits on tab pad.
-    (
-        re.compile(r"^TO-263"),
-        180,
-        "v0.40 DFM: U1 LM2596S body 180 deg vs pads. Empirical fix.",
-    ),
-
-    # U2 TPS62933 SOT-583-8. v0.40 JLCPCB DFM render: package mirrored.
-    # Conservative +180° (matches SOT-89/SOT-223 family convention in
-    # upstream CSV). Verify via DFM re-upload before order.
-    (
-        re.compile(r"^SOT-583"),
-        180,
-        "v0.40 DFM: U2 TPS62933 body flipped. Empirical fix (SOT-8x family convention).",
-    ),
-
-    # D11..D22 SK6812-SIDE (oas:SK6812-SIDE custom footprint). v0.40
-    # JLCPCB DFM render: LEDs on Ø22 mm ring emitting INWARD (toward
-    # central cable hole) instead of OUTWARD (toward perforated cover).
-    # +180° flip per LED inverts the emission direction. Combined with
-    # the (270 - theta) ring placement formula, each LED's die ends up
-    # pointing radially outward as intended.
+    # D11..D18 SK6812-SIDE (oas:SK6812-SIDE custom footprint). v0.40
+    # JLCPCB DFM render WITHOUT this entry: LEDs on the AQI ring
+    # emitting INWARD (toward central cable hole) instead of OUTWARD
+    # (toward perforated cover). Root cause: JLCPCB's tape feeder
+    # reference for this part is 180 deg off KiCad's footprint frame.
+    # +180 deg in pos.csv brings the chip onto the pads correctly so
+    # pin 1 (DIN) on pad 1 (DIN trace) etc. Combined with the
+    # (270 - theta) placement formula in generate.py, each placed LED
+    # emits radially outward through the AK-N-94 perforated cover.
     (
         re.compile(r"^SK6812-SIDE$"),
         180,
-        "v0.40 DFM: LED ring emitting inward. +180 flips die to outward radial.",
+        "v0.40 DFM (2026-05): LED ring emitting inward without compensation -> JLCPCB feeder is 180 deg off KiCad reference. +180 in pos.csv aligns chip with PCB pads.",
     ),
 ]
 

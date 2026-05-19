@@ -834,7 +834,8 @@ J1_PCB_X = +5.08             # PCB X of pin 1. With rotation 180°, pin 2
                               # 5.08 = 0. Pin row spans PCB X = +5.08
                               # (pin 1, +24V) .. −5.08 (pin 3, PE),
                               # centred on the PCB X axis and aligned
-                              # with the D14 LED slot now vacated.
+                              # with the LED slot at θ=90° now vacated
+                              # (D13 at 8x45° ring; was D14 at 12x30° ring).
                               # Note: pin 1 (+24V) lands on PCB +X (east
                               # side); compare to v0.17 where pin 1 sat
                               # on -X (west). The user sees pins in
@@ -983,9 +984,10 @@ J10_PCB_ROTATION = 90        # LIB +Y → PCB +X (horizontal pad row east).
                               # _parse_footprint_placements.
 
 # -----------------------------------------------------------------------------
-# AQI status LED ring (v0.16) — 12 × SK6812-SIDE side-emit addressable RGB
+# AQI status LED ring — 8 x SK6812-SIDE side-emit addressable RGB (45 deg pitch)
 # -----------------------------------------------------------------------------
-# Twelve side-emit RGB LEDs on a Ø22 mm pitch circle around the central
+# Eight side-emit RGB LEDs (one skipped at the J1 cable-area position
+# leaves seven placed) on a Ø26 mm pitch circle around the central
 # Ø12 mm cable hole. Each LED radiates LIGHT RADIALLY OUTWARD into the
 # AK-N-94 perforated cover where it scatters and reads as a soft glowing
 # halo (no per-perforation hot-spot dotting). Side-emit geometry chosen
@@ -997,44 +999,46 @@ J10_PCB_ROTATION = 90        # LIB +Y → PCB +X (horizontal pad row east).
 # See EXTERNAL_MODULES['SK6812-SIDE'] entry above for the verified part spec.
 #
 # Geometry:
-#   - 12 LEDs at θ = 0°, 30°, 60°, …, 330° (KiCad-screen +Y is down, so
-#     θ=0 is at PCB +X, θ=90 is at PCB +Y / SOUTH, θ=180 at PCB -X, etc.)
+#   - 8 LEDs at θ = 0°, 45°, 90°, 135°, 180°, 225°, 270°, 315° (KiCad-screen
+#     +Y is down, so θ=0 is at PCB +X, θ=90 is at PCB +Y / SOUTH, etc.)
 #   - LED center at (R·cos θ, R·sin θ) with R = LED_RING_RADIUS.
 #   - Body local frame: +X = long axis (pad row); +Y = short axis pointing
 #     toward the pad-row face (away from emission). The emission face is
 #     at body-local -Y. To make each LED's emission face point radially
-#     OUTWARD, we set its KiCad rotation R = (270 - θ) mod 360 so that
+#     OUTWARD, we set its KiCad rotation R = (90 - θ) mod 360 so that
 #     body-local (0, -1) maps to PCB (cos θ, sin θ).
-#   - Daisy-chain order: D11 at θ=0, D12 at θ=30, … D22 at θ=330.
-#     D22 DOUT terminates open (NeoPixel chains do not loop back).
-#   - One 100 nF 0402 decoupling cap (C20…C31) per LED, placed adjacent
+#   - Daisy-chain order: D11 at θ=0, D12 at θ=45, … D18 at θ=315.
+#     D18 DOUT terminates open (NeoPixel chains do not loop back).
+#   - One 100 nF 0402 decoupling cap (C20…C27) per LED, placed adjacent
 #     to the LED's VDD pad on the PCB-interior side of the ring.
 #
+# Why 45° pitch and not 30°: SMT assembly machines orient parts in
+# standard multiples (0/45/90/135 deg); non-standard angles (30/60/etc.)
+# can add per-part placement overhead at JLCPCB. Going from 12 LEDs
+# at 30° to 8 LEDs at 45° trades 4 LEDs (negligible AQI-halo visual
+# difference at this radius) for assembly simplicity. Audit-19
+# (2026-05-19).
+#
 # LED_RING_RADIUS = 13.0 mm (pre-routing rework: bumped from 11.0 → 13.0
-# to free up the cable-hole / centre routing channel). LED centres now on
+# to free up the cable-hole / centre routing channel). LED centres on
 # a Ø26 mm pitch circle. Inner-most LED body edge at R = 12 mm (body
 # half-width 1 mm radially); 6 mm radial clearance to the Ø12 mm cable
-# hole edge at R=6. Outer-most LED body edge at R = 14 mm. Note the
-# MIKROE-2462 silk rect previously at PCB X = -12.26 mm (180°) is now
-# touched by D17's outer edge (X = -14) — F.SilkS suppression on the LED
-# body keeps DRC silk_overlap green; if NFC click footprint complains,
-# MOD2 anchor must also shift radially outward in a follow-up step.
+# hole edge at R=6. Outer-most LED body edge at R = 14 mm.
+# Chord distance between adjacent 45° LEDs: 2·R·sin(22.5°) = 9.95 mm,
+# giving 2.98 mm gap per side of the 4 mm LED body (was 1.37 mm at 30°).
 LED_RING_RADIUS = 13.0
-LED_RING_COUNT = 12
+LED_RING_COUNT = 8
 LED_RING_THETA_START_DEG = 0.0       # first LED (D11) sits on PCB +X axis
-LED_RING_THETA_STEP_DEG = 360.0 / LED_RING_COUNT   # = 30°
+LED_RING_THETA_STEP_DEG = 360.0 / LED_RING_COUNT   # = 45°
 
-# v0.17 originally removed D20 (north of cable hole) to make room for J1.
-# v0.18 flipped J1 to the SOUTH side of the cable hole instead (more open
-# space: ESP32 occupies the north corridor; the south corridor between
-# cable hole and chord is largely empty). Consequently the skipped LED
-# moved from D20 (index 9, θ=270°) to D14 (index 3, θ=90°, PCB (0, +11))
-# — the LED slot directly toward the chord. Removing D14 also drops its
-# decoupling cap C23; the daisy-chain wire is rerouted D13.DOUT →
-# D15.DIN, skipping the now-empty D14 position. D20 + C29 are restored
-# (back to the v0.16 placement on the north side). The final ring still
-# has 11 LEDs (D11..D13, D15..D22).
-LED_RING_SKIP_INDICES = (3,)         # i=3 → D14 (and C23) at θ=90°
+# J1 (24 V terminal block) sits on the SOUTH side of the cable hole
+# with courtyard Y ∈ [+11.9, +24.9] mm — directly colliding with the
+# LED slot at θ=90° (PCB (0, +13)). At 45° pitch that slot is index
+# i=2, so we skip i=2 (was i=3 at 30° pitch). Skipped designator
+# becomes D13 (and its decoupling cap C22). Daisy-chain wires the
+# schematic generator emits already skip routing across this gap.
+# Final ring: 7 LEDs (D11, D12, D14..D18) + 7 caps (C20, C21, C23..C27).
+LED_RING_SKIP_INDICES = (2,)         # i=2 → D13 (and C22) at θ=90°
 
 # Decoupling cap radial offset from LED centre: cap sits ~3.4 mm radially
 # INWARD from the LED centre (so total radius = LED_RING_RADIUS - 3.4 =
@@ -1072,10 +1076,19 @@ def _led_ring_position(index: int) -> tuple[float, float, float]:
     theta_rad = math.radians(theta_deg)
     px = LED_RING_RADIUS * math.cos(theta_rad)
     py = LED_RING_RADIUS * math.sin(theta_rad)
-    # KiCad rotation = (270 - θ) mod 360 — derived in CLAUDE.md v0.16
-    # changelog. Verifies: at θ=0, rotation 270° maps body-local (0, -1)
-    # to PCB (+1, 0) = +X = outward. At θ=180, rotation 90° maps (0, -1)
-    # to (-1, 0) = -X = outward. Etc.
+    # KiCad rotation = (270 - θ) mod 360. KiCad uses CW rotation for
+    # positive R (verified empirically via DRC pad-coords). At θ=0
+    # (D11 on +X axis), rot=270 maps body-local emission (0, -1) CW
+    # to PCB (+1, 0) = OUTWARD. At θ=180 (D15 on -X axis), rot=90
+    # maps (0, -1) CW to (-1, 0) = OUTWARD. KiCad render therefore
+    # shows correct radial emission. JLCPCB tape-feeder reference
+    # for SK6812-SIDE is offset 180° from KiCad's footprint reference
+    # — without compensation, JLCPCB would place the chip 180° off
+    # the pads (pin 1 DIN landing on pad 4 GND → reverse polarity).
+    # The +180° SK6812-SIDE entry in JLCPCB_ROTATIONS_OAS in
+    # jlcpcb_rotations.py applies that compensation at pos.csv emit
+    # time. Validated empirically: without the entry, user saw JLCPCB
+    # DFM rendering LEDs emitting inward (= chip 180° off pads).
     rot = int(round((270.0 - theta_deg) % 360.0))
     return (px, py, rot)
 
@@ -5524,30 +5537,32 @@ def gen_sensors_pcb_footprints() -> str:
         uuid_tag="j8-mikroe-row-b",
     ))
 
-    # AQI status LED ring (v0.16; v0.18 removed D14) — 11 × SK6812-SIDE on
-    # a Ø22 mm pitch circle around the central cable hole, each LED
-    # radiating outward into the AK-N-94 perforated cover. Plus one 100 nF
-    # 0402 decoupling cap per LED, sited radially inward from each LED so
-    # the cap pads are positioned near the corresponding VDD pad.
+    # AQI status LED ring — 7 x SK6812-SIDE on a Ø26 mm pitch circle (8
+    # slots at 45 deg pitch, one skipped at θ=90 deg for the J1 cable
+    # area), each LED radiating outward into the AK-N-94 perforated
+    # cover. Plus one 100 nF 0402 decoupling cap per LED, sited radially
+    # inward from each LED so the cap pads are positioned near the
+    # corresponding VDD pad.
     #
-    # v0.18 skips the LED slot at index 3 (D14, θ=90°, PCB (0, +11)) and
-    # its decoupling cap (C23). The freed-up corridor lets the 24 V supply
-    # cable from the central Ø12 mm hole reach the J1 terminal block which
-    # now sits SOUTH of the LED ring, between the ring and the chord-edge
-    # cutouts. (v0.17 had this same skip applied to D20 with J1 on the
-    # north side; v0.18 flipped to the south for more open clearance.)
+    # Skip at index 2 (D13, θ=90 deg, PCB (0, +13)) and its decoupling
+    # cap (C22). The freed-up corridor lets the 24 V supply cable from
+    # the central Ø12 mm hole reach the J1 terminal block which sits
+    # SOUTH of the LED ring, between the ring and the chord-edge
+    # cutouts. (Audit-19, 2026-05-19: was D14 skipped at i=3 in the
+    # prior 12x30 deg ring; reduced to 8x45 deg for cheaper SMT
+    # placement on standard-multiple angles.)
     for i in range(LED_RING_COUNT):
         if i in LED_RING_SKIP_INDICES:
             continue
         led_x, led_y, led_rot = _led_ring_position(i)
-        led_ref = f"D{11 + i}"      # D11..D22 (D1..D5 used by power section)
+        led_ref = f"D{11 + i}"      # D11..D18 (D1..D5 used by power section)
         parts.append(gen_sk6812_side_pcb_footprint(
             x=led_x, y=led_y, rotation=led_rot,
             reference=led_ref,
             uuid_tag=f"led-ring-{led_ref}",
         ))
         cap_x, cap_y, cap_rot = _led_cap_position(i)
-        cap_ref = f"C{20 + i}"      # C20..C31
+        cap_ref = f"C{20 + i}"      # C20..C27
         parts.append(gen_capacitor_0402_pcb_footprint(
             x=cap_x, y=cap_y, rotation=cap_rot,
             reference=cap_ref, value="100nF",
@@ -6194,7 +6209,7 @@ def gen_silk_labels() -> str:
     # silk north edge (both > 0.15 mm DRC rule).
     parts.append(_silk("H3", 0.0, -51.85, "desig:H3", size=1.0))
 
-    # ---- 4) LED ring caps C20..C31 + LEDs D11..D22 ----
+    # ---- 4) LED ring caps C20..C27 + LEDs D11..D18 ----
     # The LED ring + decoupling cap ring is the densest copper zone on
     # the PCB. LEDs at R=11, caps at R=7.6, cable hole at R=6. The only
     # silk-free annular bands are R<6 (cable hole — no PCB) and
@@ -16370,13 +16385,14 @@ def gen_sensors_sch() -> str:
     ))
 
     # =========================================================================
-    # chunk #5d (v0.16) — AQI status-LED ring (12 × SK6812-SIDE + 12 × 100 nF)
+    # chunk #5d — AQI status-LED ring (8 x SK6812-SIDE slots, 7 placed, +caps)
     # =========================================================================
-    # 12 SK6812 SIDE-A LEDs (D11..D22) form a ring around the central
-    # cable hole on the PCB, all driven from MCU GPIO 8 (WS2812_DIN net)
-    # in a daisy chain. Each LED has a 100 nF 0402 decoupling cap
-    # (C20..C31) bridging its VDD ↔ GND locally. The PCB places them on
-    # a Ø22 mm pitch circle around the cable hole; the schematic lays
+    # 7 SK6812 SIDE-A LEDs (D11, D12, D14..D18; D13 skipped at J1 cable
+    # area) form a ring around the central cable hole on the PCB, all
+    # driven from MCU GPIO 8 (WS2812_DIN net) in a daisy chain. Each LED
+    # has a 100 nF 0402 decoupling cap (C20, C21, C23..C27) bridging
+    # its VDD <-> GND locally. The PCB places them on a Ø26 mm pitch
+    # circle around the cable hole at 45 deg pitch; the schematic lays
     # them out as a tidy vertical column for legibility.
     #
     # Pin layout per Normand SK6812 SIDE-A datasheet (1=DIN, 2=VDD,
@@ -16389,7 +16405,7 @@ def gen_sensors_sch() -> str:
     # the LED) and pin 2 on GND (below the cap, tying to the local GND
     # flag). Cap bridges the LED's supply locally.
     #
-    # Layout: D11 at the TOP, D22 at the BOTTOM, vertically stacked at
+    # Layout: D11 at the TOP, D18 at the BOTTOM, vertically stacked at
     # X=40.64 with LED_RING_SCH_ROW_PITCH per-LED row pitch (enough for
     # the LED symbol's ±5.08 mm body + ±3.81 mm cap + power flag clearance).
     LED_RING_SCH_X = 40.64
@@ -16539,7 +16555,7 @@ def gen_sensors_sch() -> str:
         # Save DOUT for the next iteration's chain wire.
         prev_dout_x, prev_dout_y = dout_x, dout_y
 
-    # D22 DOUT is intentionally unconnected (last link in the chain).
+    # D18 DOUT is intentionally unconnected (last link in the chain).
     # KiCad's SK6812-SIDE symbol pin 3 is `output` shape so KiCad will
     # warn "pin not driven" if we don't place a no_connect marker. Add
     # one matching the last LED's DOUT tip.
@@ -18458,22 +18474,25 @@ def _apply_schematic_footprints(content: str, ref_to_fp: dict[str, str]) -> str:
 # (v0.28a → v0.28e) so DRC and visual review can catch issues per chunk.
 # Final state (v0.28e) routes every chunk.
 ROUTING_CHUNKS: tuple[str, ...] = (
-    "gnd",         # Chunk 1 — F.Cu + B.Cu GND copper pour
-    "hand_v40",    # Chunk 3 — hand-routes closing the 8 unconnected
-                   # pads the autoroute snapshot left open (J9.2/3/4
-                   # trio + GND stitching for U1 tab, J3 MP, D15/D16
-                   # LED ring, C21 cap).
-    "autoroute",   # Chunk 2 — Freerouting v2.2.4 snapshot. Re-paved
-                   # against the rework-3/4/5 placement on 2026-05-18:
-                   # J10 horizontal, Q1/D3/R1/R4 cluster south of F1,
-                   # D1 +3 mm east, C11 south of J4, U1 +1 mm east.
-                   # 413 segments + 23 vias produced from 100 unrouted
-                   # nets in 1m26s (7 effective passes, score 987.66).
-                   # 3 nets remain unrouted (best result so far —
-                   # previous runs left 4-7); hand-route those in a
-                   # follow-up chunk once the unrouted nets are
-                   # identified from DRC.
-    # "io_finalize",      # Chunk 3 (legacy v0.28 — superseded; not used)
+    "gnd",         # Chunk 1 — F.Cu + B.Cu GND copper pour. ALWAYS on.
+    # Audit-19 (2026-05-19): "hand_v40" and "autoroute" temporarily
+    # DISABLED. The LED ring rework (12 LEDs at 30 deg -> 8 LEDs at
+    # 45 deg with skip moved from i=3 to i=2) and the placement-formula
+    # fix (LED rotation 270-theta -> 90-theta) collectively moved
+    # every LED pad to a new PCB position. The previously-captured
+    # autoroute snapshot in oas_routes.py references segment endpoints
+    # at the OLD pad positions -- replaying it would emit traces in
+    # mid-air. Same applies to "hand_v40" which stitches GND to the
+    # old D15/D16/C21 pad coords.
+    # TODO: after running Freerouting externally on the new layout and
+    # re-running tools/extract_routes.py, restore the full tuple:
+    #   ROUTING_CHUNKS = ("gnd", "hand_v40", "autoroute")
+    # The GND copper pour reconnects every GND pad automatically;
+    # non-GND signal nets show as WARN-level unconnected pads until
+    # the reroute completes (DRC tolerates -- warning not error).
+    # "hand_v40",
+    # "autoroute",
+    # "io_finalize",      # legacy v0.28 chunk — superseded; not used
 )
 
 

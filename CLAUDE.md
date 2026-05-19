@@ -148,7 +148,7 @@ Additional features:
 | MCU | **ESP32-C6-DevKitM-1-N4** (Espressif, EAN 5904422385651) | Botland | USB / GPIO |
 | Air quality combo | Sensirion **SEN66-SIN-T** (material 3.001.030) + JST GH 6-pin cable accessory (50 cm AWG26, separately ordered — Sensirion ships SEN66 without cable) | Sensirion / LaskaKit / ThePiHut | I²C 0x6B |
 | Presence | **HiLink HLK-LD2410B** (-B variant specifically — NOT -C; pin order and body dims differ per HLK datasheet) | HiLink / TME / AliExpress | UART 256000 baud |
-| Visual indicator | **11 × SK6812-SIDE** (OPSCO SK6812SIDE-A, 4020 side-emit) on Ø22 mm pitch ring | LCSC C5378721 | 1-wire WS281x |
+| Visual indicator | **7 × SK6812-SIDE** (OPSCO SK6812SIDE-A, 4020 side-emit) on Ø26 mm pitch ring, 8 slots at 45° pitch with D13 skipped for J1 cable area | LCSC C5378721 | 1-wire WS281x |
 | NFC dynamic tag | **MIKROE-2462 NFC Tag 2 Click** (NXP NT3H1101 + onboard PCB antenna, mikroBUS L) | MikroE / TME | I²C 0x55 + NFC |
 | Power input | Phoenix Contact MSTBA 2,5/3-G-5,08 3-pos terminal | THT hand-solder | 24 V DC |
 | Reverse-polarity | **AO3401A** P-MOSFET (SOT-23) + BZT52C10S Zener clamp (SOD-323) + 100 k pull-down + 1 k gate series | LCSC C15127 / C19334 / C25803 / C21190 | — |
