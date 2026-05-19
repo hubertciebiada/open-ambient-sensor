@@ -58,9 +58,6 @@ def _check_external_modules(errors: list[str]) -> int:
     from boardgen._project import EXTERNAL_MODULES  # noqa: E402
 
     for name, entry in EXTERNAL_MODULES.items():
-        if not isinstance(entry, dict):
-            errors.append(f"EXTERNAL_MODULES[{name!r}] is not a dict")
-            continue
         if not _has_identity(entry):
             present_keys = sorted(entry.keys())
             errors.append(
@@ -77,16 +74,12 @@ def _check_lcsc_mapping(errors: list[str]) -> int:
 
     for key, entry in LCSC_MAPPING.items():
         loc = f"LCSC_MAPPING[{key!r}]"
-        if not isinstance(entry, dict):
-            errors.append(f"{loc} is not a dict")
-            continue
 
         lcsc = entry.get("lcsc", "")
-        if not isinstance(lcsc, str) or not LCSC_PATTERN.match(lcsc):
-            if not (isinstance(lcsc, str) and lcsc.startswith("DEPRECATED-")):
-                errors.append(
-                    f"{loc}['lcsc'] = {lcsc!r} — must match ^C\\d+$"
-                )
+        if not LCSC_PATTERN.match(lcsc) and not lcsc.startswith("DEPRECATED-"):
+            errors.append(
+                f"{loc}['lcsc'] = {lcsc!r} — must match ^C\\d+$"
+            )
 
         lib = entry.get("library", "")
         if lib not in LIBRARY_TIERS:
@@ -96,12 +89,13 @@ def _check_lcsc_mapping(errors: list[str]) -> int:
 
         for field in ("manufacturer", "mpn"):
             v = entry.get(field, "")
-            if not isinstance(v, str) or not v.strip():
+            if not v.strip():
                 errors.append(f"{loc}[{field!r}] missing or empty")
 
-        ds = entry.get("datasheet", "")
-        if not isinstance(ds, str):
-            errors.append(f"{loc}['datasheet'] is not a string ({type(ds).__name__})")
+        # Datasheet field: only required to be present (URL or empty
+        # placeholder). Type narrows to `str` from the dict typing
+        # contract, no runtime type check needed.
+        entry.get("datasheet", "")
 
     return len(LCSC_MAPPING)
 

@@ -312,46 +312,63 @@ open-ambient-sensor/
     │   │   ├── _routing.py         # _RouteEmitter + ROUTING_CHUNKS + apply_routing_to_pcb
     │   │   ├── _postprocess.py     # netlist sync + Z-clearance audit + LCSC metadata injection
     │   │   ├── _project_files.py   # gen_pro + gen_fp_lib_table + gen_sym_lib_table + gen_oas_symbol_library
-    │   │   ├── 01_custom_footprints.py … 13_apply_routing.py   # numbered stages, each ~15-30 lines
+    │   │   ├── 01_custom_footprints.py … 14_design_rules.py   # numbered stages, each ~15-30 lines
+    │   │   └── _design_rules.py    # generates oas.kicad_dru (JLCPCB-tuned custom DRC rules)
     │   ├── oas_routes.py           # derived — routing snapshot replayed by boardgen/_routing.py
     │   ├── lcsc_mapping.py         # SOT for SMD LCSC SKUs — Python dict (Value, Footprint) -> entry
-    │   ├── oas.kicad_pro / .kicad_sch / .kicad_pcb / sub-sheets  # generated artefacts
+    │   ├── oas.kicad_pro / .kicad_sch / .kicad_pcb / .kicad_dru / sub-sheets  # generated artefacts
     │   ├── libraries/              # generated project libraries (OAS.kicad_sym + oas.pretty/)
+    │   ├── third_party/            # git submodules (manual-trigger tools NOT auto-invoked by build.py)
+    │   │   ├── JLCKicadTools/         # CPL rotations DB (legacy reference)
+    │   │   ├── kicad-skip/            # schematic semantic API (stage 09)
+    │   │   ├── InteractiveHtmlBom/    # HTML BOM generator (stage 22)
+    │   │   ├── kicad-jlcpcb-dru/      # rules template adapted into _design_rules.py
+    │   │   └── jlcparts/              # offline JLCPCB catalogue (stage 34 cache source)
     │   ├── pipeline/               # one stage per file (NN_<name>.py); each standalone-runnable
     │   │   ├── _common.py          # PROJECT-AGNOSTIC helpers (Stage, find_kicad_cli, run, sha256)
     │   │   ├── _project.py         # OAS config + vendor-agnostic + per-vendor output paths
     │   │   ├── generic/            # VENDOR-AGNOSTIC + REUSABLE across KiCad projects
     │   │   │   ├── 01_emit_sources.py    # walk boardgen/[0-9][0-9]_*.py — emit every KiCad source file
     │   │   │   ├── 02_determinism.py     # bit-identity self-check (re-runs stage 01 in fresh subprocess)
-    │   │   │   ├── 03_drc.py             # kicad-cli pcb drc strict
+    │   │   │   ├── 03_drc.py             # kicad-cli pcb drc strict (+ .kicad_dru auto-loaded)
     │   │   │   ├── 04_erc.py             # kicad-cli sch erc strict
     │   │   │   ├── 10_render_2d.py       # PCB top/cutouts/bottom SVG
     │   │   │   ├── 11_render_sch.py      # schematic root + sub-sheets SVG
     │   │   │   ├── 12_render_png.py      # cairosvg batch SVG -> PNG
     │   │   │   ├── 13_render_3d.py       # 3D top + iso renders
+    │   │   │   ├── 15_lint_typecheck.py  # mypy on pipeline/ (real-bug flags)
+    │   │   │   ├── 16_lint_compileall.py # python -m compileall sanity check
+    │   │   │   ├── 17_lint_kicad_pro.py  # rule_severities=={} enforcement (Lesson 3)
     │   │   │   ├── 20_export_gerbers.py  # Protel gerbers + Excellon drill -> hardware/build/gerbers/
+    │   │   │   ├── 22_export_ibom.py     # InteractiveHtmlBom -> hardware/output/oas-ibom.html
     │   │   │   └── 24_preflight_gerbers.py  # pygerber integrity + drill stats + composite render
     │   │   ├── oas/                # OAS-only verification (hardcoded to this circuit)
     │   │   │   ├── 05_check_dc.py        # DC voltage propagation analytical model
     │   │   │   ├── 06_check_boot.py      # ESP32-C6 strap + signal pin audit
     │   │   │   ├── 07_check_ampacity.py  # IPC-2221 trace width verifier
     │   │   │   ├── 08_check_switching.py # ngspice LM2596 soft-start (hard FAIL if cache empty)
-    │   │   │   └── 14_check_refdes_unique.py  # designator uniqueness across schematic
+    │   │   │   ├── 09_check_semantic.py  # I2C pull-ups, GPIO 8 pull-up, no_connect coverage (kicad-skip)
+    │   │   │   ├── 14_check_refdes_unique.py  # designator uniqueness across schematic
+    │   │   │   ├── 18_lint_no_hand_pads.py    # forbid hand-coded pad geometry (Lesson 1)
+    │   │   │   └── 19_check_oas_metadata.py   # EXTERNAL_MODULES + lcsc_mapping schema lint
     │   │   └── jlcpcb/             # VENDOR — JLCPCB-specific stages; deliverables -> hardware/output/jlcpcb/
     │   │       ├── _rotations.py             # tape-feeder rotation offsets (upstream + OAS gap-fillers)
     │   │       ├── 29_check_bom_consistency.py  # LCSC# bijection check
     │   │       ├── 30_export_pos.py          # CPL header + rotation corrections
     │   │       ├── 31_export_bom.py          # BOM template + LCSC + library tier + THT detection
     │   │       ├── 32_bundle.py              # ZIP gerbers + drill -> oas-jlcpcb.zip
-    │   │       └── 33_check_dnp_consistency.py  # DNP refdes leak audit (BOM + CPL)
-    │   └── tools/                  # MANUAL-trigger scripts (extract_routes, jlcdfm_upload)
+    │   │       ├── 33_check_dnp_consistency.py  # DNP refdes leak audit (BOM + CPL)
+    │   │       ├── 34_check_lcsc_offline.py  # LCSC# class/value match vs jlcparts SQLite (Lesson 5)
+    │   │       └── 35_audit_zip_content.py   # oas-jlcpcb.zip inventory + non-empty assert
+    │   └── tools/                  # MANUAL-trigger scripts (extract_routes, jlcdfm_upload, setup_jlcparts_cache)
     ├── build/                      # INTERMEDIATE artifacts (gitignored)
     │   └── gerbers/                # raw Protel gerbers + Excellon drill + drill_map PDF
     ├── renders/                    # generated previews (PNG + SVG, sibling of kicad/)
     │   ├── pcb/                    # 2D / 3D / pygerber preflight
     │   └── sch/                    # schematic root + 4 sub-sheets
-    └── output/                     # production deliverables (one folder per vendor)
-        └── jlcpcb/                 # EXACTLY 4 files, all committed
+    └── output/                     # production deliverables (vendor-neutral + per-vendor)
+        ├── oas-ibom.html              # vendor-neutral InteractiveHtmlBom artefact
+        └── jlcpcb/                    # EXACTLY 4 files, all committed
             ├── oas-jlcpcb.zip      # gerbers + drill bundle for JLCPCB upload
             ├── oas-BOM.csv         # BOM (JLCPCB template + LCSC + library tier)
             ├── oas-top-CPL.csv     # CPL top (JLCPCB header + rotation offsets)
@@ -396,17 +413,27 @@ The boardgen walker lives at `pipeline/generic/01_emit_sources.py` (stage 01 of 
 2. The assistant edits the appropriate constant / function inside `boardgen/_project.py` (geometry, placements, GPIO map), `boardgen/_footprints.py` (any footprint), `boardgen/_sch_*.py` (per-sheet schematic), or one of the other helper modules. `oas_routes.py` / `lcsc_mapping.py` for routing / BOM tweaks.
 3. The assistant runs `python build.py`. That command is a thin orchestrator that dispatches each `pipeline/<subdir>/NN_*.py` script in numeric order. The stages are:
    - `01_emit_sources` — walks `boardgen/[0-9][0-9]_*.py` to rebuild every KiCad source file (which internally runs the Z-clearance guardrail on 76 footprints).
-   - `02_determinism` — re-runs `01_emit_sources.py` in a fresh subprocess and checks 17 source files are bit-identical (fresh interpreter so `PYTHONHASHSEED` randomization exposes any dict-order leak).
-   - `03_drc` — `kicad-cli pcb drc` strict (`--severity-error --severity-warning --refill-zones`).
+   - `02_determinism` — re-runs `01_emit_sources.py` in a fresh subprocess and checks 18 source files are bit-identical (fresh interpreter so `PYTHONHASHSEED` randomization exposes any dict-order leak).
+   - `03_drc` — `kicad-cli pcb drc` strict (`--severity-error --severity-warning --refill-zones`). Auto-loads `oas.kicad_dru` (custom JLCPCB-tuned rules emitted by boardgen stage 14).
    - `04_erc` — `kicad-cli sch erc` strict (`--severity-error --severity-warning --exit-code-violations`).
-   - `05_check_dc` / `06_check_boot` / `07_check_ampacity` / `08_check_switching` — DC voltage propagation, boot-strap audit, trace ampacity, ngspice transient (soft-skips with [WARN] if ngspice + LM2596 PSpice model not in `.cache/spice/`).
+   - `05_check_dc` / `06_check_boot` / `07_check_ampacity` / `08_check_switching` — DC voltage propagation, boot-strap audit, trace ampacity, ngspice transient (soft-skips with [WARN] if ngspice + LM2596 PSpice model not in `.tmp/spice/`).
+   - `09_check_semantic` — schematic semantic invariants via `kicad-skip` (I²C pull-ups R5/R6 = 4.7 kΩ, GPIO 8 pull-up R7 = 10 kΩ, no_connect coverage). Hard-fails if the kicad-skip submodule isn't initialized.
    - `10_render_2d` / `11_render_sch` / `12_render_png` / `13_render_3d` — re-renders SVG + PNG + 3D into `renders/`.
+   - `14_check_refdes_unique` — designator uniqueness across the schematic.
+   - `15_lint_typecheck` — `mypy` on `pipeline/` (real-bug flags: `--check-untyped-defs --warn-unused-ignores --warn-redundant-casts --warn-unreachable --no-implicit-optional`). Hard-fails if mypy missing.
+   - `16_lint_compileall` — `python -m compileall` over `boardgen/` + `pipeline/` + `tools/` (catches syntax errors in modules not on the happy path).
+   - `17_lint_kicad_pro` — Lesson 3 enforcement: `board.design_settings.rule_severities` and `erc.rule_severities` MUST be empty in `oas.kicad_pro`. Hard-fails on any suppression entry.
+   - `18_lint_no_hand_pads` — Lesson 1 enforcement: every `gen_*_pcb_footprint` delegates to `_emit_stock_lib_footprint` or parses a `_*_lib_footprint_path` file. Whitelist: 9 documented OAS custom footprints in CLAUDE.md "Deviation budget".
+   - `19_check_oas_metadata` — Lesson 10 + Gap H: every `EXTERNAL_MODULES` entry has at least one identifier (`mpn` / `ean` / `material` / `supplier_*`); every `lcsc_mapping` entry matches the expected schema (LCSC# `^C\d+$`, library tier ∈ {Basic, Extended, N/A}, manufacturer + MPN non-empty).
    - `20_export_gerbers` — vendor-neutral raw fab data (Protel gerbers + Excellon drill + drill_map PDFs) written to `hardware/build/gerbers/` (gitignored, intermediate).
+   - `22_export_ibom` — InteractiveHtmlBom HTML artefact `hardware/output/oas-ibom.html`. Vendor-neutral; primary use is the JLCPCB Assembly XLS pre-payment cross-check (Lesson 5). Hard-fails if InteractiveHtmlBom submodule or KiCad-bundled python missing.
    - `24_preflight_gerbers` — pygerber integrity + drill statistics + composite renders (smoke test on the raw fab data, vendor-neutral).
    - `29_check_bom_consistency` — LCSC# bijection check across `lcsc_mapping.py` (catches copy-paste bugs before any vendor export).
    - `30_export_pos` / `31_export_bom` / `32_bundle` (in `pipeline/jlcpcb/`) — JLCPCB-specific deliverables: CPL header `Designator, Mid X, Mid Y, Layer, Rotation` + rotation offsets; BOM with LCSC mapping + range expansion + THT detection; ZIP bundle. All four output files land in `hardware/output/jlcpcb/`.
    - `33_check_dnp_consistency` — DNP attribute audit: PCB attrs `dnp` + `exclude_from_bom` + `exclude_from_pos_files` must travel together; DNP refdes must not leak into BOM or CPL files.
-   Numbers in the range gaps (`09`, `15`–`19`, `21`–`28`, `34`–`39`) are reserved: 09/15–19 for future generic / oas checks, 21–28 for future generic export stages, 34–39 for future JLCPCB stages. Each vendor gets a 10-number range (jlcpcb 29–39; future oshpark would take 40–49). **Aborts on any violation or determinism drift** (fail-fast — later stages don't run). Each `pipeline/<subdir>/NN_*.py` is also independently runnable for debug (`python pipeline/generic/03_drc.py`).
+   - `34_check_lcsc_offline` — Lesson 5 enforcement: every LCSC# in `lcsc_mapping.py` is queried against the offline jlcparts SQLite cache and verified for category match (Resistor vs Capacitor vs MOSFET — would have caught the v0.40 R3 C23116 = 806 Ω near-miss). Hard-fails if the cache is missing — run `python hardware/kicad/tools/setup_jlcparts_cache.py` once to populate it (~2 GiB compressed download, ~250 MiB SQLite).
+   - `35_audit_zip_content` — verifies `oas-jlcpcb.zip` contains exactly the 11 expected files (9 gerber + 2 drill), every file > 0 bytes, no unexpected leftovers.
+   Numbers in the range gaps (`21`, `23`, `25`–`28`, `36`–`39`) remain reserved for future generic / OAS / JLCPCB extensions. Each vendor gets a 10-number range (jlcpcb 29–39; future oshpark would take 40–49). **Aborts on any violation or determinism drift** (fail-fast — later stages don't run). Each `pipeline/<subdir>/NN_*.py` is also independently runnable for debug (`python pipeline/generic/03_drc.py`).
 4. The assistant commits the resulting diff (sources + KiCad files + renders + vendor deliverables together).
 5. JLCPCB upload: `hardware/output/jlcpcb/oas-jlcpcb.zip` (bare board) + `oas-top-CPL.csv` + `oas-BOM.csv` (SMT assembly). Drill review: `hardware/build/gerbers/oas-PTH-drl_map.pdf` / `oas-NPTH-drl_map.pdf` (regenerable, gitignored). All files produced by stages 20-33 on every `build.py` run.
 
@@ -496,6 +523,8 @@ The boardgen walker lives at `pipeline/generic/01_emit_sources.py` (stage 01 of 
 ## Changelog summary
 
 Full historical detail lives in `git log --tags`. Highlights of the most recent milestones:
+
+- **v0.40-validation-tighten** (2026-05-20): Pipeline grew from 20 to 29 stages — 9 new checks closing real failure modes from the v0.40 lessons-learned. Key additions: `oas.kicad_dru` JLCPCB-tuned custom DRC rules emitted by new boardgen stage 14 (auto-loaded by kicad-cli pcb drc); stage 09 schematic semantic invariants via kicad-skip (I²C pull-ups R5/R6, GPIO 8 pull-up R7, no_connect coverage); stage 15 mypy on pipeline/; stage 16 compileall sanity; stage 17 rule_severities=={} enforcement (Lesson 3); stage 18 hand-coded pad geometry forbid (Lesson 1) with whitelist for 9 documented OAS customs; stage 19 EXTERNAL_MODULES + lcsc_mapping schema lint (Lessons 10 + Gap H); stage 22 InteractiveHtmlBom artefact (vendor-neutral `hardware/output/oas-ibom.html`); stage 34 LCSC# class/value match vs offline jlcparts SQLite cache (Lesson 5 — would have caught the v0.40 R3 C23116 = 806 Ω near-miss before payment); stage 35 oas-jlcpcb.zip content audit (Gap D). 4 new git submodules under `hardware/kicad/third_party/`: kicad-skip, InteractiveHtmlBom, jlcparts, kicad-jlcpcb-dru. Setup helper `tools/setup_jlcparts_cache.py` downloads the upstream 41-volume split-ZIP catalogue and extracts to `.tmp/jlcparts/cache.sqlite3` (manual one-time action, ~2 GiB → ~28 GiB SQLite). Soft-skips removed — every new stage hard-fails on missing dependency with explicit setup instructions. 29/29 PASS in ~185 s.
 
 - **v0.40-build-harness** (2026-05-19): Renamed the top-level orchestrator `regenerate.py` → `build.py` and removed the `generate.py` shortcut at the repo root. The boardgen walker now lives at `pipeline/generic/01_emit_sources.py` (stage 01 of `build.py`); the former `pipeline/generic/01_generate.py` subprocess wrapper is gone. Motivation: AI-agent harness — when there were two top-level entrypoints (the fast-but-incomplete `generate.py` and the comprehensive `regenerate.py`), an autonomous agent could rationalize "I'll just rebuild the sources" and silently commit a board state that had never seen DRC / ERC / determinism / DC / ampacity / boot-strap / preflight / vendor-export checks. With a single entrypoint, the harness always runs the full pipeline. Also renamed `hardware/output/jlcpcb/oas-bom.csv` → `oas-BOM.csv` for consistency with the already-uppercased `oas-{top,bottom}-CPL.csv` (manufacturer acronyms uppercase). 20/20 PASS post-refactor; boardgen output bit-identical pre vs post.
 

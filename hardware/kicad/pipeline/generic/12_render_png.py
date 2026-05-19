@@ -19,7 +19,7 @@ def main() -> int:
     with Stage(STAGE_NAME) as st:
         RENDERS.mkdir(exist_ok=True)
         try:
-            import cairosvg  # type: ignore[import-not-found]
+            import cairosvg
         except ImportError:
             st.warn("cairosvg not installed — pip install cairosvg to enable PNG conversion")
             return 0

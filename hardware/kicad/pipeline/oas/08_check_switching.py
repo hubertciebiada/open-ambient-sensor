@@ -182,7 +182,7 @@ def ensure_ngspice() -> Path:
 
     print("  ngspice not in cache — auto-downloading from SourceForge")
     try:
-        import py7zr  # type: ignore[import-not-found]
+        import py7zr
     except ImportError:
         sys.exit(
             "[FAIL] py7zr not installed — needed to extract ngspice-46_64.7z.\n"

@@ -87,7 +87,7 @@ def parse_drill_tools(drl_path: Path) -> tuple[dict[int, float], int]:
 def main() -> int:
     with Stage(STAGE_NAME) as st:
         try:
-            from pygerber.gerberx3.api.v2 import (  # type: ignore[import-not-found]
+            from pygerber.gerberx3.api.v2 import (
                 GerberFile,
                 FileTypeEnum,
                 Project,

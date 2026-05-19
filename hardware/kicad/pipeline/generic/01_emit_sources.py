@@ -48,6 +48,8 @@ def _load_stage(path: Path):
     lets us load the module by path and exec it in its own namespace.
     """
     spec = importlib.util.spec_from_file_location(path.stem, path)
+    if spec is None or spec.loader is None:
+        sys.exit(f"ERROR: cannot construct module spec for {path}")
     mod = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(mod)
     return mod

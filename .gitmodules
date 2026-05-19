@@ -10,3 +10,6 @@
 [submodule "hardware/kicad/third_party/kicad-jlcpcb-dru"]
 	path = hardware/kicad/third_party/kicad-jlcpcb-dru
 	url = https://github.com/tinfever/KiCAD-Custom-DRC-Rules-for-JLCPCB-with-Unit-Tests.git
+[submodule "hardware/kicad/third_party/jlcparts"]
+	path = hardware/kicad/third_party/jlcparts
+	url = https://github.com/yaqwsx/jlcparts.git

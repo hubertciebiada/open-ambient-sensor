@@ -22,8 +22,10 @@ exact value must exist on this exact net for the design to work"):
      bulk-deletion of nc markers (which would silently flip a strap
      pin's net binding).
 
-Loads kicad-skip from `third_party/kicad-skip/src` (submodule). If the
-submodule is missing the check soft-skips with [WARN].
+Loads kicad-skip from `third_party/kicad-skip/src` (submodule). Hard-
+fails if the submodule is not initialized — these invariants protect
+against entire classes of silent design errors, the check must not
+be skippable.
 """
 from __future__ import annotations
 
@@ -68,11 +70,10 @@ def main() -> int:
     with Stage(STAGE_NAME) as st:
         skip = _load_skip()
         if skip is None:
-            st.warn(
-                "kicad-skip submodule not initialized "
-                "(run `git submodule update --init --recursive`) — skipping"
+            st.fail(
+                "kicad-skip submodule not initialized — "
+                "run `git submodule update --init --recursive`"
             )
-            return 0
 
         if not MCU_SCH.exists():
             st.fail(f"{MCU_SCH} not found — run build.py first")

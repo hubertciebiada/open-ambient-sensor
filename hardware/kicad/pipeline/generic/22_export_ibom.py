@@ -16,11 +16,11 @@ inside any per-vendor folder). Every assembler can use the same HTML
 regardless of fab choice.
 
 Loads the iBom CLI from `third_party/InteractiveHtmlBom` (submodule).
-The CLI normally requires wxpython for the GUI; we set
-`INTERACTIVE_HTML_BOM_NO_DISPLAY=1` to opt out and pass `--no-browser`
-to suppress the post-generation browser launch. If wxpython is still
-required (older releases) or the submodule is missing, soft-skip
-[WARN] and exit 0 — pattern mirrored from 08_check_switching.
+The CLI requires the `pcbnew` Python module that ships only with the
+KiCad-bundled python.exe — locate it under `C:/Program Files/KiCad/*/
+bin/python.exe`. Hard-fails if either the submodule or the KiCad-
+bundled python is missing — the harness must produce the iBom
+artefact on every successful build, not silently omit it.
 """
 from __future__ import annotations
 
@@ -59,19 +59,19 @@ def _find_kicad_python() -> Path | None:
 def main() -> int:
     with Stage(STAGE_NAME) as st:
         if not IBOM_GENERATOR.exists():
-            st.warn(
-                "InteractiveHtmlBom submodule not initialized "
-                "(run `git submodule update --init --recursive`) — skipping"
+            st.fail(
+                "InteractiveHtmlBom submodule not initialized — "
+                "run `git submodule update --init --recursive`"
             )
-            return 0
         kicad_python = _find_kicad_python()
         if kicad_python is None:
-            st.warn(
-                "KiCad-bundled python.exe not found (needs the `pcbnew` "
-                "module which only ships inside KiCad's own interpreter) "
-                "— skipping iBom export"
+            st.fail(
+                "KiCad-bundled python.exe not found at any of "
+                f"{[str(p) for p in KICAD_PYTHON_CANDIDATES]} — "
+                "iBom needs the `pcbnew` module that ships only inside "
+                "KiCad's own interpreter; install KiCad 10 or update the "
+                "candidate list"
             )
-            return 0
         if not PCB_PATH.exists():
             st.fail(f"{PCB_PATH} not found — run build.py first")
 
@@ -108,13 +108,6 @@ def main() -> int:
         if r.returncode != 0:
             print(r.stdout)
             print(r.stderr, file=sys.stderr)
-            if "wxpython is required" in r.stdout + r.stderr:
-                st.warn(
-                    "iBom requires wxpython on this release — "
-                    "soft-skip until wxpython is installed or upstream "
-                    "supports headless mode"
-                )
-                return 0
             st.fail("InteractiveHtmlBom generation failed")
 
         if not IBOM_OUTPUT_FILE.exists():

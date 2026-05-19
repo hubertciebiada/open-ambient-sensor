@@ -112,16 +112,17 @@ class Stage:
         self._t0 = time.time()
         return self
 
-    def __exit__(self, exc_type, exc, tb) -> bool:
+    def __exit__(self, exc_type, exc, tb) -> None:
         elapsed = time.time() - self._t0
         if exc_type is None:
             print(f"[OK]   stage passed in {elapsed:.1f}s")
-            return False
+            return
         # Let SystemExit (from .fail()) propagate verbatim — it already
         # printed [FAIL]. Other exceptions get a generic FAIL line.
         if not isinstance(exc, SystemExit):
             print(f"[FAIL] {exc_type.__name__}: {exc}")
-        return False  # do not suppress
+        # Never suppress; returning None (or any falsy) lets the
+        # exception propagate as normal.
 
     @staticmethod
     def info(msg: str) -> None:
