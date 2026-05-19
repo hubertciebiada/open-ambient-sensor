@@ -1,5 +1,20 @@
 """JLCPCB rotation corrections for OAS pos.csv export — single source of truth.
 
+ARCHITECTURE (audit-19, 2026-05-19): JLCPCB tape-feeder rotation offsets
+apply ONLY at stage 21_export_pos.py against the kicad-cli-emitted
+pos.csv. They NEVER touch `oas.kicad_pcb`, the schematic, or any
+2D / 3D / preflight render. This separation is intentional:
+
+  - `oas.kicad_pcb`             = KiCad ground truth (natural rotation)
+  - `hardware/renders/pcb/*`    = visual verification of KiCad placement
+  - `hardware/output/oas-top-pos.csv` = JLCPCB tape-feeder-correct
+
+Consequence: visual sanity-checking in renders reflects placement
+INTENT (what KiCad believes the chip body sits like on the PCB),
+free of JLCPCB-specific tape orientation quirks. The pos.csv on disk
+is the only artefact that JLCPCB ever sees, and it gets the offsets
+applied at emit time via this module.
+
 KiCad footprint "0 deg rotation" reference != JLCPCB tape-feeder "0 deg rotation"
 reference for many packages. Each pos.csv row needs a per-footprint offset
 applied before upload. This module aggregates two sources:

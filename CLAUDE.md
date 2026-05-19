@@ -402,6 +402,7 @@ The KiCad project in `hardware/kicad/` is **script-driven**. The source of truth
 - **All UUIDs are deterministic v5** (namespaced under the OAS project). Two consecutive runs with no source changes produce a bit-identical PCB → empty `git diff`.
 - **`renders/` is committed** as a visual changelog. Reviewers can see geometry changes in PRs without launching KiCad.
 - **External services run MANUALLY only.** `tools/jlcdfm_upload.py` and any future TI-WEBENCH / LCSC-stock-check / OSHPark-upload tool must be invoked by explicit user request — never from `regenerate.py` or any CI loop. JLCPCB's `/checkIp` endpoint tracks upload volume per IP; running on every regenerate would risk rate-limiting.
+- **JLCPCB-specific tape-feeder rotation offsets live in `jlcpcb_rotations.py` and apply only in stage `21_export_pos`.** `oas.kicad_pcb` and every 3D / 2D / preflight render show KiCad's natural rotation — visual verification reflects placement intent, not JLCPCB's tape geometry. Only `hardware/output/oas-top-pos.csv` (the file uploaded to JLCPCB) carries the compensated rotations. Same separation applies to gerbers (which don't encode component rotation at all).
 
 ---
 

@@ -3402,8 +3402,11 @@ def _emit_stock_lib_footprint(
       - Parse the top-level `(footprint "<name>" ...)` S-expression
       - Drop `(version)`, `(generator)`, `(generator_version)`, library
         `(property "Reference" ...)`, `(property "Value" ...)`,
-        `(property "KiLib_Generator" ...)`, `(embedded_fonts ...)`, and
-        `(model ...)` children
+        `(property "KiLib_Generator" ...)`, and `(embedded_fonts ...)`
+        children. `(model ...)` blocks are KEPT so the local 3D render
+        (stage 13) shows actual component bodies (chip / IC / connector
+        meshes) rather than just pads. KiCad 10 resolves the
+        `${KICAD10_3DMODEL_DIR}` env-var paths at render time.
       - Re-indent all remaining children one level deeper for nesting
         in the PCB file
       - Substitute the inline `${REFERENCE}` token with the literal
@@ -3467,13 +3470,18 @@ def _emit_stock_lib_footprint(
             if depth > 0:
                 cur.append(ch)
 
+    # (model ...) blocks are INTENTIONALLY KEPT (audit-19, 2026-05-19)
+    # so kicad-cli pcb render in stage 13 picks up the chip / IC /
+    # connector 3D meshes from the stock library. Paths use
+    # ${KICAD10_3DMODEL_DIR} which the KiCad installer sets at
+    # runtime — fully deterministic + portable across machines with
+    # KiCad 10 installed.
     SKIP_PREFIXES = (
         "(version", "(generator", "(generator_version",
         "(property \"Reference\"",
         "(property \"Value\"",
         "(property \"KiLib_Generator\"",
         "(embedded_fonts",
-        "(model ",
     )
     body_children = [c for c in children if not any(c.startswith(p) for p in SKIP_PREFIXES)]
 
