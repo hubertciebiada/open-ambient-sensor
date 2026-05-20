@@ -56,10 +56,14 @@ SOURCE_FILES_GLOBS = [
 
 # Stage 10: PCB 2D render targets -----------------------------------------
 # Each tuple: (renders/ subdir, output prefix, comma-separated KiCad layers, mirror?)
+# F.Mask / B.Mask are deliberately omitted: every solder-mask opening sits
+# exactly on a pad already drawn by F.Cu / B.Cu, so plotting the mask layer
+# only adds a redundant purple shape per pad that clutters the render. F.Fab
+# is kept — it carries component body outlines the copper layer cannot show.
 PCB_2D_TARGETS = [
-    ("pcb", "2d-top",     "Edge.Cuts,F.Cu,F.Mask,F.SilkS,F.CrtYd,F.Fab", False),
-    ("pcb", "2d-cutouts", "Edge.Cuts,F.Cu,Dwgs.User",                    False),
-    ("pcb", "2d-bottom",  "Edge.Cuts,B.Cu,B.Mask,B.SilkS,B.CrtYd,B.Fab", True),
+    ("pcb", "2d-top",     "Edge.Cuts,F.Cu,F.SilkS,F.CrtYd,F.Fab", False),
+    ("pcb", "2d-cutouts", "Edge.Cuts,F.Cu,Dwgs.User",             False),
+    ("pcb", "2d-bottom",  "Edge.Cuts,B.Cu,B.SilkS,B.CrtYd,B.Fab", True),
 ]
 
 # Stage 11: schematic SVG renders -----------------------------------------
