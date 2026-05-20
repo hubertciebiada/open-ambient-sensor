@@ -1741,6 +1741,16 @@
 )
 (wire
 	(pts
+		(xy 139.7 110.49) (xy 119.38 110.49)
+	)
+	(stroke
+		(width 0)
+		(type default)
+	)
+	(uuid "5a4b5e29-3e6e-5228-83a2-cfd735f178f0")
+)
+(wire
+	(pts
 		(xy 139.7 113.03) (xy 119.38 113.03)
 	)
 	(stroke
@@ -2351,6 +2361,17 @@
 	)
 	(uuid "b3cd52a7-8b69-5697-9e62-b415238961ec")
 )
+(hierarchical_label "BTN"
+	(shape input)
+	(at 119.38 110.49 180)
+	(effects
+		(font
+			(size 1.27 1.27)
+		)
+		(justify right)
+	)
+	(uuid "ae959c98-7000-5833-8ff8-e8f4a7070830")
+)
 (hierarchical_label "WS2812_DIN"
 	(shape output)
 	(at 119.38 113.03 180)
@@ -2395,10 +2416,6 @@
 (no_connect
 	(at 139.7 107.95)
 	(uuid "da94d6ba-6ab1-570a-8b00-c78014d809e1")
-)
-(no_connect
-	(at 139.7 110.49)
-	(uuid "bb7fc7e4-857e-5a72-a4b7-c6b484816cb8")
 )
 (no_connect
 	(at 139.7 120.65)

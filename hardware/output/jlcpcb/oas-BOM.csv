@@ -21,6 +21,7 @@ Comment,Designator,Footprint,Manufacturer,MPN,LCSC Part #,JLCPCB_Library,Qty
 33uH 2A,L1,L_Cenker_CKCS5040,CENKER,CKCS5040-33uH/M,C354612,Extended,1
 4.7k 1%,"R5,R6",R_0603_1608Metric,UNI-ROYAL (Uniroyal Elec),0603WAF4701T5E,C23162,Basic,2
 AO3401A,Q1,SOT-23,Alpha & Omega Semiconductor,AO3401A,C15127,Extended,1
+C&K PTS645VK392LFS,SW1,SW_Tactile_SPST_Angled_PTS645Vx39-2LFS,,,,THT (hand-solder),1
 JST SH SM04B-SRSS-TB (Qwiic / Stemma QT),J9,JST_SH_SM04B-SRSS-TB_1x04-1MP_P1.00mm_Horizontal,JST Sales America,SM04B-SRSS-TB(LF)(SN),C160404,Extended,1
 "JST SM06B-GHS-TB (SEN66-SIN-T, MPN 3.001.030; TME/Mouser)",J3,JST_GH_SM06B-GHS-TB_1x06-1MP_P1.25mm_Horizontal,JST Sales America,SM06B-GHS-TB(LF)(SN),C133065,Extended,1
 LM2596S-5.0,U1,TO-263-5_TabPin3,Texas Instruments,LM2596S-5.0/NOPB,C116713,Extended,1

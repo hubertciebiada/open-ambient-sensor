@@ -512,13 +512,19 @@ def IO_LIB_SYMBOLS() -> str:
     """Concatenated lib_symbols block for the IO sub-sheet.
 
     Reuses `_MCU_LIB_SYMBOLS_TAIL` (Conn_01x06, Device:C / C_Polarized,
-    power:+3V3, power:GND) and pulls in two stock symbols:
+    power:+3V3, power:GND) and pulls in stock symbols:
       - Connector_Generic:Conn_01x04  (4-pin Qwiic / Stemma QT JST SH)
       - Connector_Generic:Conn_01x06  (already in the tail)
+      - Switch:SW_Push                (SW1 tactile push-button)
     """
     extras = "\n".join([
         _read_kicad_lib_symbol("Connector_Generic.kicad_sym", "Conn_01x04",
                                lib_nickname="Connector_Generic"),
+        # v0.42: SW1 — side-actuated tactile push-button. Stock SW_Push
+        # has numeric pins "1"/"2" that bind natively to the footprint
+        # pads "1"/"2" — no pin_name_map remap needed (Lesson 8).
+        _read_kicad_lib_symbol("Switch.kicad_sym", "SW_Push",
+                               lib_nickname="Switch"),
     ])
     return _MCU_LIB_SYMBOLS_TAIL + "\n" + extras
 

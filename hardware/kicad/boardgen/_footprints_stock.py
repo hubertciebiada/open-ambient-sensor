@@ -297,6 +297,15 @@ _J10_LIB_FOOTPRINT_PATH = (
     / "PinHeader_1x06_P2.54mm_Vertical.kicad_mod"
 )
 
+# v0.42: SW1 — side-actuated (right-angle) THT SPST tactile push-button.
+# C&K PTS645VK392LFS. Mounts at the chord edge in the AK-N-94 USB-C
+# case-wall opening; actuator faces PCB +Y so the user presses it from
+# outside the case. Same chord-edge-connector pattern as J9 in C2.
+_SW1_LIB_FOOTPRINT_PATH = (
+    _kicad_install_path() / "footprints" / "Button_Switch_THT.pretty"
+    / "SW_Tactile_SPST_Angled_PTS645Vx39-2LFS.kicad_mod"
+)
+
 # v0.40 post-order systemic fix: replace inline `_emit_two_pad_smd_footprint`
 # hand-coded SMD geometry with verbatim KiCad stock library parsing for
 # every two-pad SMD passive on the OAS PCB. Same parse-and-patch pattern
@@ -1425,6 +1434,38 @@ def gen_j10_recovery_pcb_footprint(x: float, y: float, rotation: int) -> str:
         # v0.23 fix for review Mn4: schematic symbol carries `(dnp yes)`;
         # mirror it on the PCB so pos files + BOM exclude J10.
         dnp=True,
+    )
+
+
+def gen_sw1_button_pcb_footprint(x: float, y: float, rotation: int) -> str:
+    """Emit the placed SW1 — C&K PTS645VK392LFS side-actuated (right-angle)
+    THT SPST momentary tactile push-button at PCB (x, y) with `rotation`
+    degrees. Reads the stock
+    `Button_Switch_THT:SW_Tactile_SPST_Angled_PTS645Vx39-2LFS` footprint
+    and re-emits it with OAS-side metadata.
+
+    SW1 lives at the chord edge inside the AK-N-94 USB-C case-wall opening;
+    the actuator faces PCB +Y (chord side) so the user presses it from
+    outside the case (rotation 180° maps the footprint-local actuator,
+    which protrudes toward LIB -Y, onto PCB +Y). Pad 1 = ESP32-C6 GPIO 1
+    (BTN net), pad 2 = GND. Firmware: short press cycles the LED ring
+    brightness, long press restarts the ESP32-C6.
+    """
+    return _emit_stock_lib_footprint(
+        src_path=_SW1_LIB_FOOTPRINT_PATH,
+        lib_nickname="Button_Switch_THT",
+        reference="SW1",
+        value="C&K PTS645VK392LFS",
+        datasheet="https://www.lcsc.com/datasheet/C285519.pdf",
+        description="C&K PTS645VK392LFS — side-actuated (right-angle) THT SPST momentary tactile push-button. 6x6 mm body, ~3.9 mm actuator. Mounts at the OAS PCB chord edge inside the AK-N-94 USB-C case-wall opening; actuator faces PCB +Y so the user presses it from outside the case. Pad 1 = ESP32-C6 GPIO 1 (BTN net), pad 2 = GND. Two unnamed plated mounting posts. Short press cycles the LED ring brightness, long press restarts the MCU (handled in firmware).",
+        x=x, y=y, rotation=rotation,
+        uuid_tag="sw1-button",
+        ref_offset_x=2.25, ref_offset_y=-3.5,
+        val_offset_x=2.25, val_offset_y=6.0,
+        # Hide in-footprint ref + value: with rotation 180° an in-footprint
+        # ref would land south of the chord (off PCB). The board-level
+        # cutout silk label + the gen_silk_labels "SW1" label identify it.
+        hide_ref=True, hide_value=True,
     )
 
 

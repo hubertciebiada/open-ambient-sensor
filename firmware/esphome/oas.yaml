@@ -97,6 +97,7 @@ esp32:
 packages:
   core:        !include packages/core.yaml
   leds:        !include packages/leds.yaml
+  buttons:     !include packages/buttons.yaml
   air_quality: !include packages/air-quality.yaml
   presence:    !include packages/presence.yaml
   nfc:         !include packages/nfc.yaml

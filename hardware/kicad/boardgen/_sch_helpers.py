@@ -1523,6 +1523,99 @@ def _sch_conn_01x04(
         \t)""")
 
 
+def _sch_sw_push(
+    x: float, y: float, angle: int, reference: str, value: str, uuid_tag: str,
+    sheet_key: str = "io",
+) -> str:
+    """Emit a Switch:SW_Push symbol instance — 2-pin SPST momentary push-button.
+
+    Verified against the KiCad stock `Switch.kicad_sym` SW_Push symbol: a
+    horizontal 2-pin part with pin "1" at lib (-5.08, 0) and pin "2" at
+    lib (+5.08, 0), both on the centre line. With angle=0 the schematic
+    pin connection points are:
+      Pin 1 (left):  (X - 5.08, Y)
+      Pin 2 (right): (X + 5.08, Y)
+    Pin numbers "1"/"2" match the footprint pads "1"/"2" natively, so no
+    pin_name_map remap is needed (CLAUDE.md Lesson 8).
+
+    Used by the IO sub-sheet for SW1 — the side-actuated tactile push-
+    button in the AK-N-94 USB-C case-wall opening.
+    """
+    sym_uuid = U("sym:" + uuid_tag)
+    pin_uuids = [U(f"sym-pin:{uuid_tag}-{n}") for n in range(1, 3)]
+    sheet_path = f"/{ROOT_SHEET_UUID}/{SHEET_BLOCK_UUIDS[sheet_key]}"
+    pin_blocks = "\n".join(
+        f"\t\t(pin \"{n}\"\n\t\t\t(uuid \"{pin_uuids[n-1]}\")\n\t\t)"
+        for n in range(1, 3)
+    )
+    return textwrap.dedent(f"""\
+        \t(symbol
+        \t\t(lib_id "Switch:SW_Push")
+        \t\t(at {fmt(x)} {fmt(y)} {angle})
+        \t\t(unit 1)
+        \t\t(exclude_from_sim no)
+        \t\t(in_bom yes)
+        \t\t(on_board yes)
+        \t\t(dnp no)
+        \t\t(fields_autoplaced yes)
+        \t\t(uuid "{sym_uuid}")
+        \t\t(property "Reference" "{reference}"
+        \t\t\t(at {fmt(x)} {fmt(y - 5.08)} 0)
+        \t\t\t(effects
+        \t\t\t\t(font
+        \t\t\t\t\t(size 1.27 1.27)
+        \t\t\t\t)
+        \t\t\t\t(justify left)
+        \t\t\t)
+        \t\t)
+        \t\t(property "Value" "{value}"
+        \t\t\t(at {fmt(x)} {fmt(y + 3.81)} 0)
+        \t\t\t(effects
+        \t\t\t\t(font
+        \t\t\t\t\t(size 1.27 1.27)
+        \t\t\t\t)
+        \t\t\t\t(justify left)
+        \t\t\t)
+        \t\t)
+        \t\t(property "Footprint" ""
+        \t\t\t(at {fmt(x)} {fmt(y)} 0)
+        \t\t\t(effects
+        \t\t\t\t(font
+        \t\t\t\t\t(size 1.27 1.27)
+        \t\t\t\t)
+        \t\t\t\t(hide yes)
+        \t\t\t)
+        \t\t)
+        \t\t(property "Datasheet" ""
+        \t\t\t(at {fmt(x)} {fmt(y)} 0)
+        \t\t\t(effects
+        \t\t\t\t(font
+        \t\t\t\t\t(size 1.27 1.27)
+        \t\t\t\t)
+        \t\t\t\t(hide yes)
+        \t\t\t)
+        \t\t)
+        \t\t(property "Description" ""
+        \t\t\t(at {fmt(x)} {fmt(y)} 0)
+        \t\t\t(effects
+        \t\t\t\t(font
+        \t\t\t\t\t(size 1.27 1.27)
+        \t\t\t\t)
+        \t\t\t\t(hide yes)
+        \t\t\t)
+        \t\t)
+        {pin_blocks}
+        \t\t(instances
+        \t\t\t(project "oas"
+        \t\t\t\t(path "{sheet_path}"
+        \t\t\t\t\t(reference "{reference}")
+        \t\t\t\t\t(unit 1)
+        \t\t\t\t)
+        \t\t\t)
+        \t\t)
+        \t)""")
+
+
 def _sch_conn_01x05(
     x: float, y: float, angle: int, reference: str, value: str, uuid_tag: str,
     dnp: bool = False, sheet_key: str = "sensors",

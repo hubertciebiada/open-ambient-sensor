@@ -66,7 +66,10 @@ def main() -> int:
         #
         # When the routing rework lands, set EXPECTED_UNCONNECTED = 0 and
         # delete this comment.
-        EXPECTED_UNCONNECTED = 88
+        # v0.42: 88 -> 89 — the new SW1 push-button BTN net (SW1.1 ↔
+        # ESP32-C6 GPIO 1) adds one unrouted ratsnest; it gets routed in
+        # the pending routing-rework task. SW1.2 connects via the GND pour.
+        EXPECTED_UNCONNECTED = 89
         if n_unc != EXPECTED_UNCONNECTED:
             st.fail(
                 f"{n_unc} unconnected pads — expected exactly "

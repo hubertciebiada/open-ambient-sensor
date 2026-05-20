@@ -691,6 +691,11 @@ FOOTPRINT_HEIGHT: dict[str, float] = {
     "Connector_PinHeader_2.54mm:PinHeader_1x06_P2.54mm_Vertical": 14.0,
     "Connector_PinSocket_2.54mm:PinSocket_1x08_P2.54mm_Vertical": 8.5,
     "Connector_PinSocket_2.54mm:PinSocket_1x15_P2.54mm_Vertical": 8.5,
+    # ---- Switches ----
+    # SW1 — C&K PTS645 right-angle THT tactile. Body 6 mm; the standing
+    # body + actuator reach ~7.5 mm above the PCB (VERIFY vs C&K PTS645
+    # datasheet). Well under the 17 mm front-side height limit.
+    "Button_Switch_THT:SW_Tactile_SPST_Angled_PTS645Vx39-2LFS": 7.5,
     # ---- OAS-internal footprints ----
     "oas:SK6812-SIDE": 1.6,
     "oas:MountingHole_3.8mm_M3": 0.0,
@@ -918,6 +923,10 @@ _FOOTPRINT_HALF_EXTENT: dict[str, tuple[float, float]] = {
     "Connector_PinSocket_2.54mm:PinSocket_1x08_P2.54mm_Vertical": (1.8, 10.2),
     # J5/J6 — 15-pin ESP32 sockets, rotation 90 (long axis along PCB +X)
     "Connector_PinSocket_2.54mm:PinSocket_1x15_P2.54mm_Vertical": (19.6, 1.8),
+    # SW1 — PTS645 right-angle THT tactile, rotation 180. Courtyard
+    # 9.55 × 7.25 mm -> half-extent ~(4.8, 3.7). SW1 sits at the chord,
+    # far from any daughterboard shadow, so this only needs to exist.
+    "Button_Switch_THT:SW_Tactile_SPST_Angled_PTS645Vx39-2LFS": (4.8, 3.7),
     "oas:SK6812-SIDE": (2.0, 1.0),
     "oas:MountingHole_3.8mm_M3": (1.9, 1.9),
     "oas:ZipTieHole_3mm_NPTH": (1.5, 1.5),

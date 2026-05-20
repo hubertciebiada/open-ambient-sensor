@@ -44,6 +44,7 @@ from boardgen._project import (  # noqa: F401
     J1_PCB_X, J1_PCB_Y, J1_PCB_ROTATION,
     J9_PCB_X, J9_PCB_Y, J9_PCB_ROTATION,
     J10_PCB_X, J10_PCB_Y, J10_PCB_ROTATION,
+    SW1_PCB_X, SW1_PCB_Y, SW1_PCB_ROTATION,
     LED_RING_COUNT, LED_RING_THETA_START_DEG, LED_RING_THETA_STEP_DEG,
     LED_RING_SKIP_INDICES,
     SK6812SIDE_BODY_W, SK6812SIDE_BODY_H,
@@ -66,6 +67,7 @@ from boardgen._footprints_stock import (
     gen_j1_terminal_block_pcb_footprint,
     gen_j9_qwiic_pcb_footprint,
     gen_j10_recovery_pcb_footprint,
+    gen_sw1_button_pcb_footprint,
     gen_pinsocket_pcb_footprint,
     gen_sk6812_side_pcb_footprint,
     gen_capacitor_0402_pcb_footprint,
@@ -850,6 +852,15 @@ def gen_sensors_pcb_footprints() -> str:
         x=J10_PCB_X, y=J10_PCB_Y, rotation=J10_PCB_ROTATION,
     ))
 
+    # v0.42: SW1 — C&K PTS645VK392LFS side-actuated (right-angle) THT
+    # tactile push-button. Lives in the USB-C case-wall cutout (CUTOUTS
+    # "USBC", left of C2); actuator faces PCB +Y (chord) so the user
+    # presses it from outside the case. Short press cycles the LED ring
+    # brightness, long press restarts the ESP32-C6 (firmware).
+    parts.append(gen_sw1_button_pcb_footprint(
+        x=SW1_PCB_X, y=SW1_PCB_Y, rotation=SW1_PCB_ROTATION,
+    ))
+
     # ESP32-C6 DevKitM-1-N4 daughterboard shadow reservation. Mounted on
     # 2× 1x15 P2.54 mm female pin sockets (chunk #7); module sits face-up
     # ~8 mm above OAS PCB. Antenna at TOP short edge (Y=anchor_y), USB-C
@@ -1335,11 +1346,13 @@ def gen_silk_labels() -> str:
         # between J1 (terminal block, east) and the MIKROE NFC cluster
         # (MOD2 / J7, west); a longer label trips silk_overlap DRC.
         "C2": "J9",
+        # USB-C opening hosts SW1 (side-actuated tactile push-button).
+        "USBC": "SW1",
     }
     # Cutouts that host a connector (with its own body silk) — skip the
     # cutout silk rect to avoid silk_overlap DRC violations. The text
     # label still emits, positioned just NORTH of the connector body.
-    CUTOUTS_WITHOUT_RECT = {"C2"}
+    CUTOUTS_WITHOUT_RECT = {"C2", "USBC"}
     for name, x1, x2, y1, y2, allow_pads in CUTOUTS:
         rx1, rx2 = x1 + SILK_EDGE_INSET, x2 - SILK_EDGE_INSET
         ry1, ry2 = y1 + SILK_EDGE_INSET, y2 - SILK_EDGE_INSET

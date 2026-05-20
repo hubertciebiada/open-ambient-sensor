@@ -1081,6 +1081,170 @@
 			)
 			(embedded_fonts no)
 		)
+	(symbol "Switch:SW_Push"
+			(pin_numbers
+				(hide yes)
+			)
+			(pin_names
+				(offset 1.016)
+				(hide yes)
+			)
+			(exclude_from_sim no)
+			(in_bom yes)
+			(on_board yes)
+			(in_pos_files yes)
+			(duplicate_pin_numbers_are_jumpers no)
+			(property "Reference" "SW"
+				(at 1.27 2.54 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(justify left)
+				)
+			)
+			(property "Value" "SW_Push"
+				(at 0 -1.524 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "Footprint" ""
+				(at 0 5.08 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(hide yes)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "Datasheet" ""
+				(at 0 5.08 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(hide yes)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "Description" "Push button switch, generic, two pins"
+				(at 0 0 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(hide yes)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "ki_keywords" "switch normally-open pushbutton push-button"
+				(at 0 0 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(hide yes)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(symbol "SW_Push_0_1"
+				(circle
+					(center -2.032 0)
+					(radius 0.508)
+					(stroke
+						(width 0)
+						(type default)
+					)
+					(fill
+						(type none)
+					)
+				)
+				(polyline
+					(pts
+						(xy 0 1.27) (xy 0 3.048)
+					)
+					(stroke
+						(width 0)
+						(type default)
+					)
+					(fill
+						(type none)
+					)
+				)
+				(circle
+					(center 2.032 0)
+					(radius 0.508)
+					(stroke
+						(width 0)
+						(type default)
+					)
+					(fill
+						(type none)
+					)
+				)
+				(polyline
+					(pts
+						(xy 2.54 1.27) (xy -2.54 1.27)
+					)
+					(stroke
+						(width 0)
+						(type default)
+					)
+					(fill
+						(type none)
+					)
+				)
+				(pin passive line
+					(at -5.08 0 0)
+					(length 2.54)
+					(name "1"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "1"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+				(pin passive line
+					(at 5.08 0 180)
+					(length 2.54)
+					(name "2"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "2"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+			)
+			(embedded_fonts no)
+		)
         	)
         (wire
 	(pts
@@ -1512,6 +1676,103 @@
 	)
 	(uuid "007e78c3-ae3e-5d4f-a4b0-252d1e56ff24")
 )
+(wire
+	(pts
+		(xy 90.17 105.41) (xy 67.31 105.41)
+	)
+	(stroke
+		(width 0)
+		(type default)
+	)
+	(uuid "da000be0-cc88-50c4-9087-8ebb54f85dd4")
+)
+(hierarchical_label "BTN"
+	(shape output)
+	(at 67.31 105.41 180)
+	(effects
+		(font
+			(size 1.27 1.27)
+		)
+		(justify right)
+	)
+	(uuid "8634ad94-8e79-5f78-81c1-e3b7e0cd3b4c")
+)
+(wire
+	(pts
+		(xy 100.33 105.41) (xy 105.41 105.41)
+	)
+	(stroke
+		(width 0)
+		(type default)
+	)
+	(uuid "1bd2c585-b793-50fb-b150-a8744bc07bca")
+)
+(symbol
+	(lib_id "power:GND")
+	(at 105.41 105.41 90)
+	(unit 1)
+	(exclude_from_sim no)
+	(in_bom yes)
+	(on_board yes)
+	(dnp no)
+	(fields_autoplaced yes)
+	(uuid "f24a32db-08c8-5e9a-bd5c-1158ee28fcd1")
+	(property "Reference" "#PWR64"
+		(at 105.41 101.6 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(hide yes)
+		)
+	)
+	(property "Value" "GND"
+		(at 109.22 105.41 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+		)
+	)
+	(property "Footprint" ""
+		(at 105.41 105.41 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(hide yes)
+		)
+	)
+	(property "Datasheet" ""
+		(at 105.41 105.41 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(hide yes)
+		)
+	)
+	(property "Description" ""
+		(at 105.41 105.41 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(hide yes)
+		)
+	)
+	(pin "1"
+		(uuid "78fb6753-1066-55ee-b53e-3b4c3a2e6cbb")
+	)
+	(instances
+		(project "oas"
+			(path "/515343fe-5590-5fd9-97ec-5bed0f979de2/30fc7086-1657-5b17-a13a-76780ee3d8bb"
+				(reference "#PWR64")
+				(unit 1)
+			)
+		)
+	)
+)
         	(symbol
         		(lib_id "Connector_Generic:Conn_01x04")
         		(at 95.25 82.55 0)
@@ -1692,6 +1953,76 @@
         			(project "oas"
         				(path "/515343fe-5590-5fd9-97ec-5bed0f979de2/30fc7086-1657-5b17-a13a-76780ee3d8bb"
         					(reference "J10")
+        					(unit 1)
+        				)
+        			)
+        		)
+        	)
+        	(symbol
+        		(lib_id "Switch:SW_Push")
+        		(at 95.25 105.41 0)
+        		(unit 1)
+        		(exclude_from_sim no)
+        		(in_bom yes)
+        		(on_board yes)
+        		(dnp no)
+        		(fields_autoplaced yes)
+        		(uuid "9dca26f3-8646-5826-8e42-3b96ca766976")
+        		(property "Reference" "SW1"
+        			(at 95.25 100.33 0)
+        			(effects
+        				(font
+        					(size 1.27 1.27)
+        				)
+        				(justify left)
+        			)
+        		)
+        		(property "Value" "C&K PTS645VK392LFS"
+        			(at 95.25 109.22 0)
+        			(effects
+        				(font
+        					(size 1.27 1.27)
+        				)
+        				(justify left)
+        			)
+        		)
+        		(property "Footprint" "Button_Switch_THT:SW_Tactile_SPST_Angled_PTS645Vx39-2LFS"
+        			(at 95.25 105.41 0)
+        			(effects
+        				(font
+        					(size 1.27 1.27)
+        				)
+        				(hide yes)
+        			)
+        		)
+        		(property "Datasheet" ""
+        			(at 95.25 105.41 0)
+        			(effects
+        				(font
+        					(size 1.27 1.27)
+        				)
+        				(hide yes)
+        			)
+        		)
+        		(property "Description" ""
+        			(at 95.25 105.41 0)
+        			(effects
+        				(font
+        					(size 1.27 1.27)
+        				)
+        				(hide yes)
+        			)
+        		)
+        		(pin "1"
+			(uuid "577ddc55-bbc1-590b-ac95-928bbb930de6")
+		)
+		(pin "2"
+			(uuid "c45b0aee-52a7-56c3-8eb2-fce758a827ac")
+		)
+        		(instances
+        			(project "oas"
+        				(path "/515343fe-5590-5fd9-97ec-5bed0f979de2/30fc7086-1657-5b17-a13a-76780ee3d8bb"
+        					(reference "SW1")
         					(unit 1)
         				)
         			)
