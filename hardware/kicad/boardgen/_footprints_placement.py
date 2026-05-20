@@ -760,7 +760,7 @@ def gen_power_pcb_footprints() -> str:
     # 0.85, pad outer edge at X=-53.15 — clearance ~2.06 mm).
     parts.append(gen_pinheader_6_recovery_pcb_footprint(
         x=-54, y=-8, rotation=0,
-        reference="J2", value="SWD/UART Recovery (DNP)",
+        reference="J2", value="UART/Boot Recovery (DNP)",
         uuid_tag="j2-recovery-header",
         descr="1x6 P2.54 mm THT recovery header (Do-Not-Populate by default).",
     ))

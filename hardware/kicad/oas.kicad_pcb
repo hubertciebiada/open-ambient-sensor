@@ -15041,7 +15041,7 @@
 	(uuid "04013c22-7236-5856-a862-c668cb9e7528")
 	(effects (font (size 1 1) (thickness 0.15)))
 )
-(property "Value" "SWD/UART Recovery (DNP)"
+(property "Value" "UART/Boot Recovery (DNP)"
 	(at 2.5 15 0)
 	(layer "F.Fab")
 			(hide yes)

@@ -324,7 +324,7 @@ CABLE_HOLE_DIAMETER = 12.0
 # v0.15.6: C1 and C2 REMOVED to free up the bottom-left region for the
 # MIKROE-2462 NFC body (size L = 57.15 mm long, requires deep vertical
 # real estate). Remaining cutouts C3/C4/C5 cover the connector strip on
-# the right half (24V terminal, Qwiic, optional SWD/UART recovery).
+# the right half (24V terminal, Qwiic, optional UART/Boot recovery).
 # Documented in CLAUDE.md.
 #
 # v0.19: 6th tuple element `allow_pads` (bool). When True, the copper

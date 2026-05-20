@@ -79,7 +79,7 @@ def gen_mcu_sch() -> str:
       existing left- and right-edge hierarchical labels and all
       the +3V3 bus / R5 / R6 / C9 / C17 wiring drop in unchanged.
 
-      J2 (SWD/UART recovery, DNP) — rotated to angle=180 in v0.21
+      J2 (UART/Boot recovery, DNP) — rotated to angle=180 in v0.21
       so its UART TX/RX pin row aligns with J6's UART_TX (pin 2 at
       Y=125.73) / UART_RX (pin 3 at Y=123.19). At angle=180 the J2
       pin order in screen Y is REVERSED vs angle=0: pin 1 (+3V3) at
@@ -109,8 +109,8 @@ def gen_mcu_sch() -> str:
 
       J6 (DevKitM-1 J3, USB-side header)
         J6.1   GND                              → GND
-        J6.2   GPIO16  (UART0 TX)               → hier label "UART_TX"
-        J6.3   GPIO17  (UART0 RX)               → hier label "UART_RX"
+        J6.2   GPIO16  (UART1 TX)               → hier label "UART_TX"
+        J6.3   GPIO17  (UART1 RX)               → hier label "UART_RX"
         J6.4   GPIO23                           → no_connect (spare)
         J6.5   GPIO22                           → no_connect (spare)
         J6.6   GPIO21                           → no_connect (spare)
@@ -140,7 +140,7 @@ def gen_mcu_sch() -> str:
     Adding hier labels for them would produce "multiple net names on the
     same net" ERC noise without any electrical benefit.
 
-    J2 (SWD/UART Recovery, DNP) pinout — same as v0.19 (only J2.5
+    J2 (UART/Boot Recovery, DNP) pinout — same as v0.19 (only J2.5
     was renamed from "RST" → "EN" in v0.19 to share the hier-labelled
     EN net with the IO sub-sheet's J10 recovery EN pin):
       J2.1  +3V3
@@ -234,15 +234,15 @@ def gen_mcu_sch() -> str:
     J6_USB_DP_Y = j6_pin_y(J6_SIGNAL_PIN["USB_DP"])      # 97.79
     J6_USB_DM_Y = j6_pin_y(J6_SIGNAL_PIN["USB_DM"])      # 95.25
 
-    # ===== C9: bulk decoupling, 10uF polarized =====
+    # ===== C9: bulk decoupling, 10uF ceramic (non-polarized) =====
     # Reviewer raised C9's voltage rating from 10 V to 16 V (v0.5):
     # the +3V3 rail's transient operating margin and reliability over
     # the device's expected lifetime is better served by a 0402 ceramic
     # with the standard ~5× derating headroom at 3.3 V.
     C9_X = 129.54
     C9_Y = 80.01
-    C9_TOP_Y = C9_Y - 3.81   # 76.20 — pin 1 (anode +) on the +3V3 bus
-    C9_BOT_Y = C9_Y + 3.81   # 83.82 — pin 2 (cathode -) drops to GND
+    C9_TOP_Y = C9_Y - 3.81   # 76.20 — pin 1 on the +3V3 bus
+    C9_BOT_Y = C9_Y + 3.81   # 83.82 — pin 2 drops to GND
     C9_GND_Y = 87.63
 
     # ===== C17: HF decoupling, 100nF ceramic =====
@@ -294,7 +294,7 @@ def gen_mcu_sch() -> str:
     PWR_3V3_X       = 134.62       # power flag between R6 and C17
     PWR_3V3_Y       = BUS_3V3_Y
 
-    # ===== J2: SWD/UART recovery header, 6-pin, DNP =====
+    # ===== J2: UART/Boot recovery header, 6-pin, DNP =====
     # v0.21: rotated to angle=180 so its pin 3 (TX) / pin 4 (RX) order
     # matches J6's reversed pin Y order (J6.2 UART_TX at BOTTOM
     # Y=125.73, J6.3 UART_RX above at Y=123.19). With angle=180, J2
@@ -552,10 +552,10 @@ def gen_mcu_sch() -> str:
         uuid_tag="j6", sheet_key="mcu",
     ))
 
-    # ===== J2 symbol (SWD/UART recovery header, DNP) =====
+    # ===== J2 symbol (UART/Boot recovery header, DNP) =====
     parts.append(_sch_conn_01x06(
         x=J2_X, y=J2_Y, angle=180,
-        reference="J2", value="SWD/UART Recovery (DNP)",
+        reference="J2", value="UART/Boot Recovery (DNP)",
         uuid_tag="j2", dnp=True,
     ))
 
@@ -563,7 +563,7 @@ def gen_mcu_sch() -> str:
     # C9 voltage rating raised to 16 V (v0.5) — 10 V was too tight a
     # margin for a reliable 0402 / 3.3 V design.
     parts.append(_sch_capacitor(
-        lib_id="Device:C_Polarized",
+        lib_id="Device:C",
         x=C9_X, y=C9_Y, angle=0,
         reference="C9", value="10uF 16V",
         uuid_tag="c9", sheet_key="mcu",

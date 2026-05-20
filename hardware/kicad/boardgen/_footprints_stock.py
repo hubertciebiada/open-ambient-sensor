@@ -373,7 +373,7 @@ _SOT583_8_LIB_FOOTPRINT_PATH = (
     _kicad_install_path() / "footprints" / "Package_TO_SOT_SMD.pretty"
     / "SOT-583-8.kicad_mod"
 )
-# v0.40 audit-16: 1×6 P2.54 mm THT pin header (J2 — SWD/UART recovery).
+# v0.40 audit-16: 1×6 P2.54 mm THT pin header (J2 — UART/Boot recovery).
 # Same stock-library entry as J10 (_J10_LIB_FOOTPRINT_PATH) but emitted
 # via a different generator. Consolidating to verbatim stock parsing.
 _J2_LIB_FOOTPRINT_PATH = _J10_LIB_FOOTPRINT_PATH

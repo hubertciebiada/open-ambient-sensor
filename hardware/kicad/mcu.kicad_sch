@@ -2673,7 +2673,7 @@
         				(justify left)
         			)
         		)
-        		(property "Value" "SWD/UART Recovery (DNP)"
+        		(property "Value" "UART/Boot Recovery (DNP)"
         			(at 191.77 138.43 0)
         			(effects
         				(font
@@ -2737,7 +2737,7 @@
         		)
         	)
 (symbol
-	(lib_id "Device:C_Polarized")
+	(lib_id "Device:C")
 	(at 129.54 80.01 0)
 	(unit 1)
 	(exclude_from_sim no)
