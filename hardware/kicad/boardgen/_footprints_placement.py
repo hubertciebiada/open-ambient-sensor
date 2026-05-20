@@ -836,9 +836,9 @@ def gen_sensors_pcb_footprints() -> str:
     ))
 
     # v0.19: J9 — JST SH 4-pin horizontal SMD Qwiic / Stemma QT
-    # expansion socket. Lives in the C5 chord-east cutout; mouth faces
-    # PCB +Y (chord side, case wall) so the cable plugs in from outside
-    # the case. See `J9_PCB_*` constants near the top of the file.
+    # expansion socket. Lives in the C2 RJ45 / Ethernet cutout; mouth
+    # faces PCB +Y (chord side, case wall) so the cable plugs in from
+    # outside the case. See `J9_PCB_*` constants near the top of the file.
     parts.append(gen_j9_qwiic_pcb_footprint(
         x=J9_PCB_X, y=J9_PCB_Y, rotation=J9_PCB_ROTATION,
     ))
@@ -1308,8 +1308,8 @@ def gen_silk_labels() -> str:
     # "J10 flash" cutout label.)
 
     # ---- v0.7: cutout-zone reservation labels + outlines on F.SilkS ----
-    # Each cutout C3..C5 along the chord is a case-wall opening that may
-    # host a connector (24V terminal, JST GH, USB-C debug, Qwiic, etc.).
+    # Each cutout in CUTOUTS along the chord is a case-wall opening that
+    # hosts a connector (24V terminal, JST GH, USB-C debug, Qwiic, etc.).
     # Draw both:
     #   - A thin F.SilkS rectangle outlining the cutout footprint, inset
     #     by SILK_EDGE_INSET on each side so it clears Edge.Cuts even
@@ -1319,17 +1319,10 @@ def gen_silk_labels() -> str:
     #     it still fits inside the outline without overlapping
     #     (DRC silk_overlap).
     #
-    # v0.19 — per-cutout label override:
-    #   - C3 → "J10 flash" (6-pin recovery header for native USB
-    #     flashing of the ESP32-C6; DNP by default). NO silk rect —
-    #     the J10 stock footprint's own body silk already marks the
-    #     connector outline; a second rect over the same area would
-    #     trigger DRC `silk_overlap`. Label only.
-    #   - C4 → "C4 v2"     (placeholder for v2 expansion; no connector
-    #     installed). Silk rect + label, same as v0.7 convention, so
-    #     the user can identify the unused cutout at assembly time.
-    #   - C5 → "J9 Qwiic"  (Qwiic / Stemma QT JST SH 4-pin expansion).
-    #     NO silk rect for the same reason as C3.
+    # Per-cutout label override: a cutout hosting a connector with its
+    # own body silk skips the silk rect (see CUTOUTS_WITHOUT_RECT) to
+    # avoid a DRC `silk_overlap` against the connector outline — only the
+    # text label is emitted, positioned clear of the connector body.
     SILK_EDGE_INSET = 0.3       # mm — keeps rect off the board edge.
                                 # With 0.12 mm silk stroke, line outer edge
                                 # sits 0.06 mm beyond the centerline; 0.3 mm
@@ -1338,18 +1331,15 @@ def gen_silk_labels() -> str:
     SILK_TEXT_MIN_HORIZONTAL_FIT = 5.0   # mm — width needed to keep label
                                           # at 1.0 mm horizontal inside the rect
     CUTOUT_LABELS = {
-        # C3/C4 cutouts removed (pre-routing rework 2) — kept entries
-        # here as historical reference only; not iterated since CUTOUTS
-        # no longer contains them.
-        "C5": "J9 Qwiic",
+        # Short "J9" — the C2 opening sits in a tight silk corridor
+        # between J1 (terminal block, east) and the MIKROE NFC cluster
+        # (MOD2 / J7, west); a longer label trips silk_overlap DRC.
+        "C2": "J9",
     }
     # Cutouts that host a connector (with its own body silk) — skip the
     # cutout silk rect to avoid silk_overlap DRC violations. The text
     # label still emits, positioned just NORTH of the connector body.
-    # C3 lost its J10 occupant in pre-routing rework but J1 body has
-    # since slid south into the cutout zone; rect kept suppressed to
-    # avoid silk_overlap against J1's own silk.
-    CUTOUTS_WITHOUT_RECT = {"C3", "C5"}
+    CUTOUTS_WITHOUT_RECT = {"C2"}
     for name, x1, x2, y1, y2, allow_pads in CUTOUTS:
         rx1, rx2 = x1 + SILK_EDGE_INSET, x2 - SILK_EDGE_INSET
         ry1, ry2 = y1 + SILK_EDGE_INSET, y2 - SILK_EDGE_INSET
@@ -1371,15 +1361,16 @@ def gen_silk_labels() -> str:
         # overlapping the outline.
         text_angle = 90.0 if rect_w < SILK_TEXT_MIN_HORIZONTAL_FIT else 0.0
         label = CUTOUT_LABELS.get(name, f"{name} AUX")
-        # For C3/C5 — position the cutout label NORTH of the connector
-        # body shadow (i.e., into the PCB interior, away from the
-        # case-wall edge) where it doesn't clash with connector silk.
-        # For other cutouts, use the cutout centre.
-        if name == "C5":
-            # C5 hosts J9 (body at PCB X=+27.75..+35.55, Y=+36.41..+42.47).
-            # Place label NORTH of the J9 body at PCB Y=+34.5 (clear of
-            # body's north silk at Y=+36.41).
-            tx, ty = +31.65, +34.5
+        # A cutout hosting a connector gets its label positioned NORTH of
+        # the connector body shadow (into the PCB interior, away from the
+        # case-wall edge) so it doesn't clash with the connector silk.
+        # Other cutouts use the cutout centre.
+        if name == "C2":
+            # C2 hosts J9 (body at PCB X=-12.85..-5.05, Y=+36.41..+42.47).
+            # Centre the label in the silk corridor (PCB X -12.99..-8.73 at
+            # Y=+34.5) between the MIKROE NFC body (MOD2, east edge -12.99)
+            # and J1's terminal-block silk rect (west edge -8.73).
+            tx, ty = -10.86, +34.5
         else:
             tx, ty = cx, cy
         parts.append(_silk(

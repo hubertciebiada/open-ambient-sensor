@@ -133,17 +133,17 @@
 	(uuid "e8f878cf-90a9-5001-9bea-45dd089aaa09")
 )
 (gr_rect
-	(start 176.4 141.494)
-	(end 183.9 147.494)
+	(start 131.7 132.198)
+	(end 147.4 148.497798)
 	(stroke (width 0.1) (type solid))
 	(fill no)
 	(layer "Dwgs.User")
-	(uuid "5059c712-fa7b-58c0-b1f2-587cd9472bb9")
+	(uuid "3d2a16b2-1d74-5099-94d5-6e69ee9f8726")
 )
-(gr_text "C5\n7.5×6.0"
-	(at 180.15 144.494)
+(gr_text "C2\n15.7×16.3"
+	(at 139.55 140.347899)
 	(layer "Dwgs.User")
-	(uuid "5d9fa094-21e5-553b-882a-91a5714c0ccb")
+	(uuid "219d7139-c245-56bf-a291-6a6b98d57e08")
 	(effects
 		(font (size 0.8 0.8) (thickness 0.12))
 	)
@@ -1774,7 +1774,7 @@
 (footprint "Connector_JST:JST_SH_SM04B-SRSS-TB_1x04-1MP_P1.00mm_Horizontal"
 	(layer "F.Cu")
 	(uuid "0f1ee8d3-e388-507e-9ba1-1b6b45863158")
-	(at 180.15 144.69 0)
+	(at 139.55 144.69 0)
 (property "Reference" "J9"
 	(at 0 -3.6 0)
 	(layer "F.SilkS")
@@ -15410,7 +15410,7 @@
 	)
 )
 (gr_text "J9 GND"
-	(at 181.65 144.69 0)
+	(at 141.05 144.69 0)
 	(layer "F.Fab")
 	(uuid "7576b624-1ff4-5202-ba09-939643eb627b")
 	(effects
@@ -15473,10 +15473,10 @@
 		(font (size 1 1) (thickness 0.15))
 	)
 )
-(gr_text "J9 Qwiic"
-	(at 180.15 139.5 0)
+(gr_text "J9"
+	(at 137.64 139.5 0)
 	(layer "F.SilkS")
-	(uuid "3dd3d997-ec3f-5f61-8a75-c76d6f272ba5")
+	(uuid "05cfd0c6-ab1e-5c34-9b12-ddd1444365da")
 	(effects
 		(font (size 1 1) (thickness 0.15))
 	)
@@ -15925,8 +15925,8 @@
 	(net 0)
 	(net_name "")
 	(layers "F.Cu" "B.Cu")
-	(uuid "4befe080-71ab-5233-bcf9-48e18d188417")
-	(name "Connector_Cutout_C5")
+	(uuid "e5b1a561-6518-5130-a8c5-3549e318b7aa")
+	(name "Connector_Cutout_C2")
 	(hatch edge 0.508)
 	(connect_pads
 		(clearance 0.508)
@@ -15950,10 +15950,10 @@
 	)
 	(polygon
 		(pts
-			(xy 176.4 141.494)
-			(xy 183.9 141.494)
-			(xy 183.9 147.494)
-			(xy 176.4 147.494)
+			(xy 131.7 132.198)
+			(xy 147.4 132.198)
+			(xy 147.4 148.497798)
+			(xy 131.7 148.497798)
 		)
 	)
 )

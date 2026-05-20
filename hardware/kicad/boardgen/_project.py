@@ -306,50 +306,26 @@ CABLE_HOLE_DIAMETER = 12.0
 # -----------------------------------------------------------------------------
 # Connector cutouts in the enclosure wall along the flat chord
 # -----------------------------------------------------------------------------
-# The SZOMK AK-N-94 has 5 rectangular cutouts in the case wall at the flat
-# chord position. Connectors mounted on the PCB extend through these cutouts.
-# Coordinates below are in PCB-local space (origin = centre of PCB outline),
-# transformed from the manufacturer DXF:
-#   X_pcb = X_dxf - 831.436;  Y_pcb = Y_dxf - 979.389
+# The SZOMK AK-N-94 has 5 rectangular openings in the case wall along the
+# flat chord. The manufacturer DXF is a bottom-of-enclosure view; the OAS
+# PCB works in that same coordinate frame (verified — the DXF RJ45 opening
+# lands exactly on the X -16.8..-1.1 / 15.7 mm-wide cutout below). Order
+# along the chord, top-of-enclosure view left to right: single round hole |
+# two round holes | USB-C | RJ45 Ethernet | square (microSD).
 #
-# C2/C3/C4 extend beyond the chord (clipped here to Y_max = Y_chord since
-# the keepout zone must stay inside the PCB outline). C1 and C5 sit fully
-# inside the PCB.
+# Only openings that host a real OAS connector are emitted as keepout
+# zones. The others stay physical in the enclosure, but the PCB ends below
+# the case wall so an empty keepout would only sterilise routing space.
 #
-# Names are tentative — final assignment (USB-C, terminal 24V, JST-GH to
-# SEN66, SWD, Qwiic) will be decided during schematic + layout.
-#
-# Format: (label, x_min, x_max, y_min_inside_pcb, y_max_at_or_through_chord)
-#
-# v0.15.6: C1 and C2 REMOVED to free up the bottom-left region for the
-# MIKROE-2462 NFC body (size L = 57.15 mm long, requires deep vertical
-# real estate). Remaining cutouts C3/C4/C5 cover the connector strip on
-# the right half (24V terminal, Qwiic, optional UART/Boot recovery).
-# Documented in CLAUDE.md.
-#
-# v0.19: 6th tuple element `allow_pads` (bool). When True, the copper
-# keepout zone drops `(pads not_allowed)` so a connector footprint's
-# solder pads can live INSIDE the case-wall opening area (the case-wall
-# opening hosts the connector body + accessible pads from outside).
-# When False (default), pads are kept out of the cutout area — used for
-# cutouts that are placeholders or that host connectors whose pads stay
-# strictly inside the PCB-side edge.
-#   - C3 — recovery header (J10): allow_pads=True so the 6-pin THT pin
-#     header's pads can sit inside the cutout, accessible via pogopin
-#     jig through the case-wall opening for emergency flashing.
-#   - C4 — v2 expansion placeholder (no connector yet): allow_pads=False.
-#   - C5 — Qwiic / Stemma QT expansion (J9): allow_pads=True so the
-#     JST SH SMD pads can sit inside the cutout area.
+# Tuple: (name, x_min, x_max, y_min, y_max, allow_pads). PCB-local mm,
+# +Y toward the chord. y_max = Y_CHORD means the opening runs past the
+# chord and the keepout is clipped to the PCB edge. allow_pads=True drops
+# `(pads not_allowed)` so a connector's solder pads may live inside the
+# opening area (connector body + accessible pads sit in the case-wall
+# opening).
 CUTOUTS = [
     # name, x_min, x_max, y_min, y_max, allow_pads  (PCB-local mm, +Y = toward chord)
-    # C3 (J10 recovery) + C4 (v2 placeholder) removed in pre-routing rework
-    # 2 — both became unused after J10 moved out of the chord and freeing
-    # the copper-keepout zones opens ~178 mm² of routing space south of
-    # J1/F1 + chord-edge corridor, unblocking Net-(D1-A1) (J1.1 → D3.1)
-    # which had to detour around F1 with no south option available.
-    # Case-wall openings in the SZOMK enclosure remain physical regardless;
-    # PCB stops 5 mm below the case wall so there's no mechanical conflict.
-    ("C5", +27.900, +35.400, +36.494, +42.494, True),    # 7.5 × 6 mm,   J9 Qwiic / Stemma QT expansion (JST SH 4-pin, fully inside PCB)
+    ("C2", -16.800, -1.100, +27.198, +Y_CHORD, True),    # RJ45 / Ethernet opening (15.7 mm wide) — hosts J9 Qwiic / Stemma QT
 ]
 
 
@@ -884,52 +860,27 @@ J1_PCB_ROTATION = 180        # Rotation 180° places the cable-entry face
 # -----------------------------------------------------------------------------
 # J9 — Qwiic / Stemma QT JST SH 4-pin horizontal SMD socket (v0.19)
 # -----------------------------------------------------------------------------
-# J9 lives in the C5 case-wall cutout (X +27.9..+35.4, Y +36.494..+42.494,
-# 7.5 × 6 mm fully inside PCB). The Qwiic / Stemma QT cable plugs in
-# through the case-wall opening to the connector mouth.
+# J9 lives in the C2 case-wall opening — the RJ45 / Ethernet-jack cutout in
+# the AK-N-94 wall (X -16.8..-1.1, 15.7 mm wide, clipped at the chord).
+# v0.41: relocated here from the C5 opening (a single Ø3.4 mm round hole —
+# nonsensical for a 4-pin cable connector) after a physical enclosure
+# fit-check against the manufacturer DXF.
 #
-# Stock JST_SH_SM04B-SRSS-TB footprint geometry (verified against the
-# KiCad 10 stock library file):
-#   - Pads at footprint Y = -2 (north of origin), pin pitch 1.0 mm, pin
-#     row total width 3 mm centred on X = 0. Pads are SMD roundrects on
-#     F.Cu only (signal pads); the two MP (mech pin) tabs at footprint
-#     (-2.8, +1.875) and (+2.8, +1.875) anchor the body.
-#   - Body courtyard footprint X = -3.9..+3.9, Y = -2.78..+3.28.
-#   - The connector "mouth" — the slot the cable plug enters — is on
-#     the footprint -Y face (where the pads are). I.e. with default
-#     orientation (rotation 0) the cable enters from the -Y direction.
+# Stock JST_SH_SM04B-SRSS-TB footprint: a 1.0 mm-pitch signal pad row
+# (3 mm total width) plus two MP mech-pin tabs anchoring the body; body
+# courtyard ~7.8 mm wide. The connector mouth (cable-entry slot) is on the
+# pad side and faces the chord (+Y) so the cable plugs in from outside the
+# case. Orientation (J9_PCB_ROTATION) and J9_PCB_Y are carried over
+# verbatim from the prior C5 placement — only the X coordinate changes.
 #
-# Desired physical layout: cable plugs in from outside the case through
-# the C5 opening on the chord (PCB +Y, south). So the connector mouth
-# must face PCB +Y → use rotation 180°.
-#
-# With rotation 180° (LIB +Y → PCB -Y, LIB -Y → PCB +Y):
-#   - Signal pads at LIB Y=-2 land at PCB Y = anchor_y + 2 (south of anchor)
-#   - Body north edge at LIB Y=+3.28 lands at PCB Y = anchor_y - 3.28 (north)
-#   - Body south edge at LIB Y=-2.78 lands at PCB Y = anchor_y + 2.78
-#   - Mech pin (MP) tabs at LIB Y=+1.875 land at PCB Y = anchor_y - 1.875
-#   - Mouth opens to PCB +Y (toward chord) ✓
-#
-# C5 cutout Y = 36.494..42.494 (6 mm). Center the connector body in the
-# cutout vertically: anchor_y = midpoint - (mouth-side offset). With
-# anchor_y = +39.69 the body spans PCB Y +36.41..+42.47 (effectively
-# filling the cutout). Signal pads at PCB Y = +41.69 — INSIDE the cutout
-# zone, which is fine because C5 has allow_pads=True (v0.19 CUTOUTS).
-# Pad outer edge at +41.69 + 0.85 (pad half-height) = +42.54 — just
-# inside the cutout south edge (+42.494). 0.05 mm overshoot is below
-# the min_copper_edge_clearance rule (0.3 mm) BUT the chord is at
-# Y = +Y_chord ≈ +43.5237, so the actual PCB edge is 0.98 mm south of
-# the pad outer edge. Plenty of clearance.
-#
-# Horizontal: C5 X = 27.9..35.4 (7.5 mm). Pad row total width 3 mm.
-# Center the connector at X = +31.65 (cutout midpoint). Body courtyard
-# X = +27.75..+35.55 — 0.15 mm overshoot at each side relative to the
-# cutout extents, but PCB outline is far further north so courtyard-vs-
-# Edge.Cuts checks aren't applicable (the cutout silk rect is purely
-# visual, not an actual PCB edge).
-J9_PCB_X = +31.65            # PCB X — centred on C5 (midpoint +31.65)
-J9_PCB_Y = +39.69            # PCB Y — pads at +41.69 (just inside cutout)
-J9_PCB_ROTATION = 0          # mouth → -Y (south chord side, case-wall opening)
+# Placement: C2 cutout X -16.8..-1.1 → centre the connector on the cutout
+# midpoint X = -8.95. Body courtyard X ~-12.85..-5.05, comfortably inside
+# the 15.7 mm-wide opening. J9_PCB_Y = +39.69 keeps the signal pad row at
+# PCB Y = +41.69, inside the cutout (C2 has allow_pads=True); the chord at
+# Y ≈ +43.52 is ~1 mm beyond the pad outer edge.
+J9_PCB_X = -8.95             # PCB X — centred on the C2 / Ethernet cutout
+J9_PCB_Y = +39.69            # PCB Y — pads at +41.69 (inside the cutout)
+J9_PCB_ROTATION = 0          # orientation unchanged from prior C5 placement
 
 # -----------------------------------------------------------------------------
 # J10 — Native-USB recovery header (v0.19) — DNP 6-pin 2.54 mm THT

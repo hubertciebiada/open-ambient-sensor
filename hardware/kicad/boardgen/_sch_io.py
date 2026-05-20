@@ -22,14 +22,14 @@ def gen_io_sch() -> str:
     """IO sub-sheet — chord-east case-wall connectors (v0.19).
 
     The IO sub-sheet hosts the two connectors that live on the OAS PCB's
-    chord-east cutouts (C3 / C5; C4 stays as a v2 expansion placeholder):
+    chord-edge case-wall openings:
 
       J9 — Qwiic / Stemma QT expansion port (always populated)
         4-pin JST SH 1.0 mm pitch horizontal SMD socket. Standard Qwiic
         pinout (GND, +3.3V, SDA, SCL). Mates with any Sparkfun Qwiic
         or Adafruit Stemma QT cable. Connector mouth faces the chord
-        edge so the cable plugs in from outside the case after pulling
-        a service finger through the C5 cutout.
+        edge so the cable plugs in from outside the case through the C2
+        RJ45 / Ethernet opening.
 
       J10 — Native-USB recovery header (DNP by default)
         6-pin 2.54 mm vertical pin header. Solder pads exposed on the
