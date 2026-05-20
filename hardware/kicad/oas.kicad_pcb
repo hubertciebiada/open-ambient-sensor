@@ -16001,16 +16001,16 @@
 	)
 )
 (gr_text "C1"
-	(at 184.25 66 0)
-	(layer "F.Fab")
+	(at 184.25 59.5 0)
+	(layer "F.SilkS")
 	(uuid "f36f6d2f-cd4c-5a92-a119-3de77c2b5ada")
 	(effects
 		(font (size 1 1) (thickness 0.15))
 	)
 )
 (gr_text "C3"
-	(at 174.25 66 0)
-	(layer "F.Fab")
+	(at 178.53 70.12 90)
+	(layer "F.SilkS")
 	(uuid "d0bc93c7-2fec-5ce9-bc9c-87f5773216e2")
 	(effects
 		(font (size 1 1) (thickness 0.15))
@@ -16041,8 +16041,8 @@
 	)
 )
 (gr_text "C4"
-	(at 174.068 57 0)
-	(layer "F.Fab")
+	(at 174.068 52 0)
+	(layer "F.SilkS")
 	(uuid "40f9374a-1c7f-534e-9e83-8d21906bc74b")
 	(effects
 		(font (size 1 1) (thickness 0.15))

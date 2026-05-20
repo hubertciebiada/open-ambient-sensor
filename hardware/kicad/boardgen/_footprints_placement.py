@@ -1466,14 +1466,14 @@ def gen_silk_labels() -> str:
         ("R1",  -3.0,  0.0, "F.Fab"),
         ("R4",  +3.0,  0.0, "F.Fab"),
         # Buck1 cluster — NE radial caps (C1, C3, C4, C10).
-        # v0.43: C1/C3 form the top row of the NE cluster. The cluster is
-        # tight, so C1/C3 designators go on F.Fab (assembly layer) — the
-        # radial-cap body silk identifies the part visually, same as C10.
-        ("C1",  0.0, 0.0, "F.Fab"),
-        # C3 — v0.43: relocated to the NE radial cluster next to C1.
-        # Designator on F.Fab (assembly layer) — the cluster is tight and
-        # the radial-cap body silk identifies the part visually.
-        ("C3",  0.0, 0.0, "F.Fab"),
+        # v0.43: printed F.SilkS designators so each cap is identifiable
+        # on the assembled board (the cap body covers its own footprint).
+        # C1 + C4 have a clear strip toward the board arc → label NORTH of
+        # the body. C3 is boxed in on three sides (C4 N / C1 E / ESP32 W /
+        # SEN66 S), so its label goes in the 4:30 (SE) pocket, rotated
+        # 90 deg (vertical) to fit the ~1.6 mm slot between C1 and SEN66.
+        ("C1",  0.0, -6.5, "F.SilkS"),
+        ("C3",  +4.28, +4.12, "F.SilkS", 90.0),
         # U1 (TO-263-5): signal pads at X_local=-7.65 (= PCB X=-41.65),
         # tab pad east at X_local=+1.5 to +6.2 (= PCB X=-32.5..-27.8).
         # Label needs to clear the signal pad column (PCB X=-41.65 ±
@@ -1487,10 +1487,9 @@ def gen_silk_labels() -> str:
         # D2, L1 INSIDE ESP32 shadow → F.Fab
         ("D2",  0.0, -3.0, "F.Fab"),
         ("L1",  0.0, -4.0, "F.Fab"),
-        # C4 — NE radial cluster. v0.43: designator on F.Fab like the
-        # rest of the cluster (C1/C3/C10) — the tight 4-cap packing
-        # leaves no clean F.SilkS room; the cap body silk identifies it.
-        ("C4",  0.0, 0.0, "F.Fab"),
+        # C4 — NE radial cluster. F.SilkS designator NORTH of the body,
+        # in the open strip toward the board arc.
+        ("C4",  0.0, -5.0, "F.SilkS"),
         # Buck2 cluster INSIDE ESP32 shadow → F.Fab
         ("U2",  0.0, -2.5, "F.Fab"),
         ("L2",  0.0, -4.0, "F.Fab"),
