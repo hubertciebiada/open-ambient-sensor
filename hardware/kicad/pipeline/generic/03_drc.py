@@ -66,7 +66,7 @@ def main() -> int:
         #
         # When the routing rework lands, set EXPECTED_UNCONNECTED = 0 and
         # delete this comment.
-        EXPECTED_UNCONNECTED = 89
+        EXPECTED_UNCONNECTED = 88
         if n_unc != EXPECTED_UNCONNECTED:
             st.fail(
                 f"{n_unc} unconnected pads — expected exactly "

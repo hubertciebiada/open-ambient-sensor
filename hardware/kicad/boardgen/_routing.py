@@ -499,7 +499,7 @@ def _route_gnd_pour(em: "_RouteEmitter", nets: dict) -> int:
     em.gnd_zone("F.Cu", code)
     em.gnd_zone("B.Cu", code)
 
-    # v0.32: close the last 3 F.Cu GND zone-island unconnected_items that
+    # v0.32: close the last 2 F.Cu GND zone-island unconnected_items that
     # v0.31 could not bridge with through-vias. Each fragment requires a
     # different treatment:
     #
@@ -511,14 +511,6 @@ def _route_gnd_pour(em: "_RouteEmitter", nets: dict) -> int:
     #     sits only 0.39 mm from a B.Cu Net-(U2-FB) diagonal track — FAIL).
     #     Cannot use keepout alone (would strand C8.2's only GND path).
     #
-    #   F.Cu #6 (1.22 mm²) at (+4.193, -48.116) — pure stranded copper
-    #     between buck-section tracks; NO pad inside, NO B.Cu main pour
-    #     overlap (B.Cu under this fragment is filled with /IO/BOOT and
-    #     Net-(U2-FB) tracks). Cannot bridge with via (no B.Cu GND to
-    #     reach). ONLY option: copperpour keepout to suppress the
-    #     fragment entirely. Safe: no pad/track inside; ~1 mm² of pour
-    #     copper deleted is electrically irrelevant.
-    #
     #   F.Cu #9 (0.40 mm²) at (+34.125, +24.738) — sliver around J3.2
     #     (SEN66 GND pin). Bridge: via-IN-PAD at J3.2 center (34.125,
     #     25.15). J3.2 is 0.6x1.7 mm SMD pad; 0.6 ⌀ via fits inside on
@@ -526,36 +518,6 @@ def _route_gnd_pour(em: "_RouteEmitter", nets: dict) -> int:
     #     B.Cu under J3.2: nearest non-GND track is /IO/I2C_SDA at
     #     3.09 mm — comfortable margin. Via lands on B.Cu main GND
     #     pour, joining J3.2 to the GND network.
-    em.gnd_island_keepout("F.Cu", +3.15, -48.80, +5.52, -47.48, tag="fcu-6")
-
-    # v0.40 hand_v40: F.Cu fragments that cannot be stitched cleanly
-    # (every via offset lands on a foreign-net pad/track within DRC
-    # clearance). Suppress each via copperpour keepout matched to
-    # the fragment's bbox so the zone-filler refuses to fill that
-    # rectangle. Deleted copper is electrically irrelevant — the
-    # fragments were isolated islands anyway, and any GND pads
-    # inside the bbox stay connected through the B.Cu pour via
-    # PTH plating (for through-hole pads) or via thermal reliefs
-    # to the main F.Cu pour just outside the keepout (for SMD pads
-    # near the fragment perimeter).
-    # Shrink keepouts to AVOID covering known GND SMD pads inside the
-    # fragment bboxes (otherwise the keepout strands the pad from
-    # the main pour). Pads that need to stay in F.Cu pour:
-    #   - C14 pad 2 GND at (-5.225, -30)  ← inside frag13 bbox
-    #   - C31 pad 2 GND at (+8.55, -4.38) ← inside frag8 bbox
-    #   - D22 pad 4 GND at (+11.23,-4.84) ← inside frag8 bbox
-    #   - U2 pad 1 GND at (-2.74, -44.25) ← inside frag24 bbox
-    # Full-bbox keepouts now safe because pads inside (C14.2, D22.4,
-    # U2.1, C31.2) have been pinned to the GND net via dedicated
-    # via-in-pad stitches earlier in hand_v40.
-    em.gnd_island_keepout("F.Cu", -5.626, -30.468, +0.917, -22.815, tag="v40-frag13-j5w-row")
-    em.gnd_island_keepout("F.Cu", +8.228, -5.813, +11.825, -0.805, tag="v40-frag8-e-of-hole")
-    em.gnd_island_keepout("F.Cu", +0.145, -27.710, +7.961, -23.757, tag="v40-frag14-j5e-row")
-    em.gnd_island_keepout("F.Cu", -6.210, -46.428, -2.314, -44.075, tag="v40-frag24-u2-area")
-    # Tiny J5-area fragments (<1 mm²): no SMD pads inside.
-    em.gnd_island_keepout("F.Cu", +6.098, -27.058, +7.961, -26.099, tag="v40-frag17-j5-tiny")
-    em.gnd_island_keepout("F.Cu", +8.219, -27.098, +9.526, -26.099, tag="v40-frag18-j5-tiny")
-    em.gnd_island_keepout("F.Cu", +8.219, -25.777, +8.795, -25.265, tag="v40-frag16-j5-micro")
 
     # F.Cu#5 — C8.2 GND bridge: via overlapping C8.2 pad on F.Cu.
     #   C8.2 is an 0805 cap with pads sized 0.95×0.95, pitch 0.85 → C8.2
