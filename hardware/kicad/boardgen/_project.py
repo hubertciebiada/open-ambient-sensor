@@ -307,11 +307,13 @@ CABLE_HOLE_DIAMETER = 12.0
 # Connector cutouts in the enclosure wall along the flat chord
 # -----------------------------------------------------------------------------
 # The SZOMK AK-N-94 has 5 rectangular openings in the case wall along the
-# flat chord. The manufacturer DXF is a bottom-of-enclosure view; the OAS
-# PCB works in that same coordinate frame (verified — the DXF RJ45 opening
-# lands exactly on the X -16.8..-1.1 / 15.7 mm-wide cutout below). Order
-# along the chord, top-of-enclosure view left to right: single round hole |
-# two round holes | USB-C | RJ45 Ethernet | square (microSD).
+# flat chord. The manufacturer DXF is a bottom-of-enclosure view, so its X
+# axis is mirror-flipped relative to the PCB's top-view coordinate frame.
+# The C2 RJ45 / Ethernet opening X range below has been mirror-corrected
+# about X=0: it now sits on the +X (right) side, X +1.1..+16.8 / 15.7 mm
+# wide, hosting J9. Order along the chord, top-of-enclosure view left to
+# right: single round hole | two round holes | USB-C | RJ45 Ethernet |
+# square (microSD).
 #
 # Only openings that host a real OAS connector are emitted as keepout
 # zones. The others stay physical in the enclosure, but the PCB ends below
@@ -325,7 +327,7 @@ CABLE_HOLE_DIAMETER = 12.0
 # opening).
 CUTOUTS = [
     # name, x_min, x_max, y_min, y_max, allow_pads  (PCB-local mm, +Y = toward chord)
-    ("C2", -16.800, -1.100, +27.198, +Y_CHORD, True),    # RJ45 / Ethernet opening (15.7 mm wide) — hosts J9 Qwiic / Stemma QT
+    ("C2", +1.100, +16.800, +27.198, +Y_CHORD, True),    # RJ45 / Ethernet opening (15.7 mm wide) — hosts J9 Qwiic / Stemma QT
 ]
 
 
@@ -861,24 +863,22 @@ J1_PCB_ROTATION = 180        # Rotation 180° places the cable-entry face
 # J9 — Qwiic / Stemma QT JST SH 4-pin horizontal SMD socket (v0.19)
 # -----------------------------------------------------------------------------
 # J9 lives in the C2 case-wall opening — the RJ45 / Ethernet-jack cutout in
-# the AK-N-94 wall (X -16.8..-1.1, 15.7 mm wide, clipped at the chord).
-# v0.41: relocated here from the C5 opening (a single Ø3.4 mm round hole —
-# nonsensical for a 4-pin cable connector) after a physical enclosure
-# fit-check against the manufacturer DXF.
+# the AK-N-94 wall (X +1.1..+16.8, 15.7 mm wide, clipped at the chord). The
+# C2 X range was mirror-corrected about X=0 — the source DXF is a bottom-of-
+# enclosure view, so J9 / C2 belong on the +X (right) side of the board.
 #
 # Stock JST_SH_SM04B-SRSS-TB footprint: a 1.0 mm-pitch signal pad row
 # (3 mm total width) plus two MP mech-pin tabs anchoring the body; body
 # courtyard ~7.8 mm wide. The connector mouth (cable-entry slot) is on the
 # pad side and faces the chord (+Y) so the cable plugs in from outside the
-# case. Orientation (J9_PCB_ROTATION) and J9_PCB_Y are carried over
-# verbatim from the prior C5 placement — only the X coordinate changes.
+# case. J9_PCB_Y and J9_PCB_ROTATION are unaffected by the X mirror.
 #
-# Placement: C2 cutout X -16.8..-1.1 → centre the connector on the cutout
-# midpoint X = -8.95. Body courtyard X ~-12.85..-5.05, comfortably inside
+# Placement: C2 cutout X +1.1..+16.8 → centre the connector on the cutout
+# midpoint X = +8.95. Body courtyard X ~+5.05..+12.85, comfortably inside
 # the 15.7 mm-wide opening. J9_PCB_Y = +39.69 keeps the signal pad row at
 # PCB Y = +41.69, inside the cutout (C2 has allow_pads=True); the chord at
 # Y ≈ +43.52 is ~1 mm beyond the pad outer edge.
-J9_PCB_X = -8.95             # PCB X — centred on the C2 / Ethernet cutout
+J9_PCB_X = +8.95             # PCB X — centred on the C2 / Ethernet cutout
 J9_PCB_Y = +39.69            # PCB Y — pads at +41.69 (inside the cutout)
 J9_PCB_ROTATION = 0          # orientation unchanged from prior C5 placement
 

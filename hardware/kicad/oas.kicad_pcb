@@ -133,15 +133,15 @@
 	(uuid "e8f878cf-90a9-5001-9bea-45dd089aaa09")
 )
 (gr_rect
-	(start 131.7 132.198)
-	(end 147.4 148.497798)
+	(start 149.6 132.198)
+	(end 165.3 148.497798)
 	(stroke (width 0.1) (type solid))
 	(fill no)
 	(layer "Dwgs.User")
 	(uuid "3d2a16b2-1d74-5099-94d5-6e69ee9f8726")
 )
 (gr_text "C2\n15.7×16.3"
-	(at 139.55 140.347899)
+	(at 157.45 140.347899)
 	(layer "Dwgs.User")
 	(uuid "219d7139-c245-56bf-a291-6a6b98d57e08")
 	(effects
@@ -1774,7 +1774,7 @@
 (footprint "Connector_JST:JST_SH_SM04B-SRSS-TB_1x04-1MP_P1.00mm_Horizontal"
 	(layer "F.Cu")
 	(uuid "0f1ee8d3-e388-507e-9ba1-1b6b45863158")
-	(at 139.55 144.69 0)
+	(at 157.45 144.69 0)
 (property "Reference" "J9"
 	(at 0 -3.6 0)
 	(layer "F.SilkS")
@@ -15410,7 +15410,7 @@
 	)
 )
 (gr_text "J9 GND"
-	(at 141.05 144.69 0)
+	(at 158.95 144.69 0)
 	(layer "F.Fab")
 	(uuid "7576b624-1ff4-5202-ba09-939643eb627b")
 	(effects
@@ -15474,7 +15474,7 @@
 	)
 )
 (gr_text "J9"
-	(at 137.64 139.5 0)
+	(at 158.9 139.5 0)
 	(layer "F.SilkS")
 	(uuid "05cfd0c6-ab1e-5c34-9b12-ddd1444365da")
 	(effects
@@ -15950,10 +15950,10 @@
 	)
 	(polygon
 		(pts
-			(xy 131.7 132.198)
-			(xy 147.4 132.198)
-			(xy 147.4 148.497798)
-			(xy 131.7 148.497798)
+			(xy 149.6 132.198)
+			(xy 165.3 132.198)
+			(xy 165.3 148.497798)
+			(xy 149.6 148.497798)
 		)
 	)
 )

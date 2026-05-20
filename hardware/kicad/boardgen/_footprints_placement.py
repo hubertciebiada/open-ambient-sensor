@@ -1366,11 +1366,11 @@ def gen_silk_labels() -> str:
         # case-wall edge) so it doesn't clash with the connector silk.
         # Other cutouts use the cutout centre.
         if name == "C2":
-            # C2 hosts J9 (body at PCB X=-12.85..-5.05, Y=+36.41..+42.47).
-            # Centre the label in the silk corridor (PCB X -12.99..-8.73 at
-            # Y=+34.5) between the MIKROE NFC body (MOD2, east edge -12.99)
-            # and J1's terminal-block silk rect (west edge -8.73).
-            tx, ty = -10.86, +34.5
+            # C2 hosts J9 (body at PCB X=+5.05..+12.85, Y=+36.41..+42.47).
+            # Place the label in the silk corridor at Y=+34.5 between J1's
+            # terminal-block silk rect (east edge +8.73) and the reverse-
+            # polarity cluster to the east (Q1 courtyard starts ~X +12.07).
+            tx, ty = +10.4, +34.5
         else:
             tx, ty = cx, cy
         parts.append(_silk(
