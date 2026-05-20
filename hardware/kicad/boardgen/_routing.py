@@ -20,6 +20,7 @@ from __future__ import annotations
 import math
 import re
 import uuid
+from typing import Any, cast
 
 from boardgen._common import HERE, _OAS_NS, fmt
 from boardgen._project import (
@@ -1680,7 +1681,7 @@ def _route_autoroute_tracks(em: "_RouteEmitter", nets: dict) -> int:
     Returns the number of segment + via records emitted.
     """
     try:
-        from oas_routes import ROUTES_SEGMENTS, ROUTES_VIAS  # type: ignore
+        from oas_routes import ROUTES_SEGMENTS, ROUTES_VIAS
     except ImportError:
         # oas_routes.py is optional — if it doesn't exist, no autoroute
         # data is available and this chunk emits nothing. Allows the
@@ -1690,7 +1691,7 @@ def _route_autoroute_tracks(em: "_RouteEmitter", nets: dict) -> int:
 
     emitted = 0
     skipped_nets: set[str] = set()
-    for rec in ROUTES_SEGMENTS:
+    for rec in cast("list[dict[str, Any]]", ROUTES_SEGMENTS):
         code = _net_code(nets, rec["net_name"])
         if code is None:
             skipped_nets.add(rec["net_name"])
@@ -1703,7 +1704,7 @@ def _route_autoroute_tracks(em: "_RouteEmitter", nets: dict) -> int:
             uuid_tag=f'autoroute:{rec["uuid_tag"]}',
         )
         emitted += 1
-    for rec in ROUTES_VIAS:
+    for rec in cast("list[dict[str, Any]]", ROUTES_VIAS):
         code = _net_code(nets, rec["net_name"])
         if code is None:
             skipped_nets.add(rec["net_name"])
@@ -1730,7 +1731,7 @@ def _net_code(nets: dict, name: str) -> int | None:
     helper re-reads the PCB header by parsing the (net N "<name>") lines.
     Caches the lookup on first call.
     """
-    cache: dict = getattr(_net_code, "_cache", None)
+    cache: dict | None = getattr(_net_code, "_cache", None)
     if cache is None:
         cache = {}
         import re
@@ -1742,7 +1743,7 @@ def _net_code(nets: dict, name: str) -> int | None:
             # pad assignments repeat names later.
             if net_name not in cache:
                 cache[net_name] = code
-        _net_code._cache = cache
+        setattr(_net_code, "_cache", cache)
     return cache.get(name)
 
 

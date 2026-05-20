@@ -1434,7 +1434,10 @@ def gen_silk_labels() -> str:
     # designator without launching pcbnew.
     #
     # Each entry: (designator, dx, dy, layer)
-    POWER_LABELS = [
+    POWER_LABELS: list[
+        tuple[str, float, float, str]
+        | tuple[str, float, float, str, float]
+    ] = [
         # input-protection cluster (NOT under any daughterboard shadow)
         ("D1",  0.0, -3.0, "F.SilkS"),
         ("F1",  0.0, -4.5, "F.SilkS"),

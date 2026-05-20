@@ -334,9 +334,9 @@ open-ambient-sensor/
     │   │   │   ├── 04_erc.py             # kicad-cli sch erc strict
     │   │   │   ├── 10_render_2d.py       # PCB top/cutouts/bottom SVG
     │   │   │   ├── 11_render_sch.py      # schematic root + sub-sheets SVG
-    │   │   │   ├── 12_render_png.py      # cairosvg batch SVG -> PNG
+    │   │   │   ├── 12_render_png.py      # cairosvg batch SVG -> PNG (hard FAIL if cairosvg missing)
     │   │   │   ├── 13_render_3d.py       # 3D top + iso renders
-    │   │   │   ├── 15_lint_typecheck.py  # mypy on pipeline/ (real-bug flags)
+    │   │   │   ├── 15_lint_typecheck.py  # mypy on boardgen/ + pipeline/ (real-bug flags)
     │   │   │   ├── 16_lint_compileall.py # python -m compileall sanity check
     │   │   │   ├── 17_lint_kicad_pro.py  # rule_severities=={} enforcement (Lesson 3)
     │   │   │   ├── 20_export_gerbers.py  # Protel gerbers + Excellon drill -> hardware/build/gerbers/
@@ -346,7 +346,7 @@ open-ambient-sensor/
     │   │   │   ├── 05_check_dc.py        # DC voltage propagation analytical model
     │   │   │   ├── 06_check_boot.py      # ESP32-C6 strap + signal pin audit
     │   │   │   ├── 07_check_ampacity.py  # IPC-2221 trace width verifier
-    │   │   │   ├── 08_check_switching.py # ngspice LM2596 soft-start (hard FAIL if cache empty)
+    │   │   │   ├── 08_check_switching.py # ngspice LM2596 soft-start (auto-downloads model; hard FAIL on download / py7zr failure)
     │   │   │   ├── 09_check_semantic.py  # I2C pull-ups, GPIO 8 pull-up, no_connect coverage (kicad-skip)
     │   │   │   ├── 14_check_refdes_unique.py  # designator uniqueness across schematic
     │   │   │   ├── 18_lint_no_hand_pads.py    # forbid hand-coded pad geometry (Lesson 1)
@@ -416,11 +416,11 @@ The boardgen walker lives at `pipeline/generic/01_emit_sources.py` (stage 01 of 
    - `02_determinism` — re-runs `01_emit_sources.py` in a fresh subprocess and checks 18 source files are bit-identical (fresh interpreter so `PYTHONHASHSEED` randomization exposes any dict-order leak).
    - `03_drc` — `kicad-cli pcb drc` strict (`--severity-error --severity-warning --refill-zones`). Auto-loads `oas.kicad_dru` (custom JLCPCB-tuned rules emitted by boardgen stage 14).
    - `04_erc` — `kicad-cli sch erc` strict (`--severity-error --severity-warning --exit-code-violations`).
-   - `05_check_dc` / `06_check_boot` / `07_check_ampacity` / `08_check_switching` — DC voltage propagation, boot-strap audit, trace ampacity, ngspice transient (soft-skips with [WARN] if ngspice + LM2596 PSpice model not in `.tmp/spice/`).
+   - `05_check_dc` / `06_check_boot` / `07_check_ampacity` / `08_check_switching` — DC voltage propagation, boot-strap audit, trace ampacity, ngspice transient (auto-downloads ngspice + the LM2596 PSpice model into `.tmp/spice/` on first run; hard-fails on any download / `py7zr` extraction failure — no soft-skip).
    - `09_check_semantic` — schematic semantic invariants via `kicad-skip` (I²C pull-ups R5/R6 = 4.7 kΩ, GPIO 8 pull-up R7 = 10 kΩ, no_connect coverage). Hard-fails if the kicad-skip submodule isn't initialized.
-   - `10_render_2d` / `11_render_sch` / `12_render_png` / `13_render_3d` — re-renders SVG + PNG + 3D into `renders/`.
+   - `10_render_2d` / `11_render_sch` / `12_render_png` / `13_render_3d` — re-renders SVG + PNG + 3D into `renders/`. `12_render_png` hard-fails if `cairosvg` is not importable (committed PNGs must never silently drift from their SVGs).
    - `14_check_refdes_unique` — designator uniqueness across the schematic.
-   - `15_lint_typecheck` — `mypy` on `pipeline/` (real-bug flags: `--check-untyped-defs --warn-unused-ignores --warn-redundant-casts --warn-unreachable --no-implicit-optional`). Hard-fails if mypy missing.
+   - `15_lint_typecheck` — `mypy` on `boardgen/` + `pipeline/` (real-bug flags: `--check-untyped-defs --warn-unused-ignores --warn-redundant-casts --warn-unreachable --no-implicit-optional`). Hard-fails if mypy missing.
    - `16_lint_compileall` — `python -m compileall` over `boardgen/` + `pipeline/` + `tools/` (catches syntax errors in modules not on the happy path).
    - `17_lint_kicad_pro` — Lesson 3 enforcement: `board.design_settings.rule_severities` and `erc.rule_severities` MUST be empty in `oas.kicad_pro`. Hard-fails on any suppression entry.
    - `18_lint_no_hand_pads` — Lesson 1 enforcement: every `gen_*_pcb_footprint` delegates to `_emit_stock_lib_footprint` or parses a `_*_lib_footprint_path` file. Whitelist: 9 documented OAS custom footprints in CLAUDE.md "Deviation budget".

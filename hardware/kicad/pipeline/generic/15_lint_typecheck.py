@@ -34,12 +34,7 @@ from _common import Stage, KICAD_ROOT  # noqa: E402
 
 STAGE_NAME = "lint_typecheck"
 
-TARGETS = ["pipeline"]
-# Note: boardgen/ has ~40 pre-existing untyped-function-body issues
-# (float vs int rotation drift, str|float refdes lookups, _routing.py
-# dynamic-type chain). Fixing them requires a codebase-wide annotation
-# pass — tracked separately. For now stage 15 covers pipeline/ only,
-# which carries every NEW validator we add.
+TARGETS = ["boardgen", "pipeline"]
 
 
 def main() -> int:
@@ -73,7 +68,7 @@ def main() -> int:
             print(r.stdout)
             if r.stderr:
                 print(r.stderr, file=sys.stderr)
-            st.fail("mypy --strict reported type errors")
+            st.fail("mypy reported type errors")
         st.ok(f"mypy clean across {', '.join(TARGETS)}/")
     return 0
 

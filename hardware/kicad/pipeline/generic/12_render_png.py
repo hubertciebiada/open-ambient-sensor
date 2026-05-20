@@ -1,8 +1,11 @@
 """Stage 12/11: PNG conversion via cairosvg.
 
 Converts every `renders/*.svg` file produced by stages 10/11 to PNG at
-1600 px output width. cairosvg is optional — if not installed, the stage
-prints a WARN and exits 0 (PNG previews are nice-to-have, not required).
+1600 px output width. `renders/` is committed as a visual changelog, so
+a silently-skipped conversion would let the committed PNGs drift out of
+sync with their SVGs without anyone noticing. cairosvg is therefore
+REQUIRED, not optional — the stage hard-fails if it is not importable.
+One-time setup: `pip install cairosvg`.
 """
 from __future__ import annotations
 
@@ -21,8 +24,9 @@ def main() -> int:
         try:
             import cairosvg
         except ImportError:
-            st.warn("cairosvg not installed — pip install cairosvg to enable PNG conversion")
-            return 0
+            print("[FAIL] cairosvg not importable — required for stage 12 PNG conversion")
+            print("[FAIL] one-time setup: pip install cairosvg")
+            st.fail("cairosvg missing")
 
         # rglob picks up SVGs from every subdir under renders/ (pcb/, sch/,
         # plus any future grouping). PNG lands in the same dir as its SVG.

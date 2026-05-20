@@ -16,11 +16,12 @@ Run modes
 * Pipeline stage:  invoked from build.py as stage 08.
 * Standalone:      `python pipeline/oas/08_check_switching.py`.
 
-Soft-skip: if `ngspice_con.exe` or the LM2596 PSpice model are not
-present in the local cache (one-time ~50 MB download from TI), the stage
-prints a [WARN] and exits 0. Pipeline therefore runs out-of-box on a
-clean machine; SPICE verification kicks in once the user has populated
-the cache.
+Self-provisioning, NO soft-skip: on first run the stage auto-downloads
+ngspice 46 (SourceForge) and the LM2596 PSpice transient model (TI)
+into the local cache `.tmp/spice/`; subsequent runs reuse the cache.
+If a download fails, or `py7zr` (needed to unpack the ngspice .7z) is
+not installed, the stage HARD-FAILS with explicit setup instructions.
+SPICE verification is a hard gate — the harness never silently skips it.
 
 Datasheet sources
 -----------------
@@ -43,8 +44,8 @@ Limitations
   sweep and the TI model's small-signal accuracy under PSpice-compat
   ngspice mode is not characterised by TI.
 
-Exit code 0 if all assertions pass OR ngspice cache is empty (soft-skip);
-1 on any actual assertion failure or ngspice runtime error.
+Exit code 0 if all assertions pass; 1 on any assertion failure, ngspice
+runtime error, or missing-dependency hard-fail.
 """
 from __future__ import annotations
 

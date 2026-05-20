@@ -434,7 +434,7 @@ def _read_kicad_lib_symbol(lib_filename: str, sym_name: str, lib_nickname: str) 
     return "\n".join("\t" + line for line in block.split("\n"))
 
 
-def _annotate_pad_rotations(body_text: str, rotation: int) -> str:
+def _annotate_pad_rotations(body_text: str, rotation: float) -> str:
     """Inject the footprint rotation into every `(pad ...)` block's `(at)`.
 
     KiCad pcbnew, when saving a rotated footprint, writes each pad with
@@ -539,9 +539,8 @@ def gen_j3_jst_gh_pcb_footprint(x: float, y: float, rotation: int) -> str:
     # The easiest parse: split on top-level S-expression bounds. KiCad
     # footprint files are well-formatted; each (key ...) at the indent
     # level "\t(" is a top-level child. We walk the file and split.
-    body_chars = []
     depth = 0
-    current = []
+    current: list[str] = []
     items: list[str] = []
     for ch in src:
         if ch == "(":
@@ -580,7 +579,7 @@ def gen_j3_jst_gh_pcb_footprint(x: float, y: float, rotation: int) -> str:
     # (key ...) S-expression or whitespace.
     children: list[str] = []
     depth = 0
-    cur = []
+    cur: list[str] = []
     for ch in inner_after_name:
         if ch == "(":
             if depth == 0:
@@ -1115,7 +1114,7 @@ def _emit_stock_lib_footprint(
     value: str,
     datasheet: str,
     description: str,
-    x: float, y: float, rotation: int,
+    x: float, y: float, rotation: float,
     uuid_tag: str,
     ref_offset_x: float = 0.0,
     ref_offset_y: float = -2.0,
@@ -1572,7 +1571,7 @@ def gen_pinsocket_pcb_footprint(
 
 
 def gen_sk6812_side_pcb_footprint(
-    *, x: float, y: float, rotation: int, reference: str, uuid_tag: str,
+    *, x: float, y: float, rotation: float, reference: str, uuid_tag: str,
     hide_ref: bool = True,
     show_pin_labels: bool = False,
 ) -> str:
@@ -1741,7 +1740,7 @@ def gen_sk6812_side_pcb_footprint(
 
 
 def gen_capacitor_0402_pcb_footprint(
-    *, x: float, y: float, rotation: int, reference: str, value: str,
+    *, x: float, y: float, rotation: float, reference: str, value: str,
     uuid_tag: str, descr: str = "100 nF 0402 X7R decoupling capacitor",
     hide_ref: bool = True,
 ) -> str:
