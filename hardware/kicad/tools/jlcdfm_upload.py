@@ -35,11 +35,19 @@ First-time auth setup (the upload requires a JLCPCB account)
 
   python tools/jlcdfm_upload.py --login
 
-  This opens a headed Chromium window. Log in to your JLCPCB account
-  (passport.jlcpcb.com), dismiss cookie banners, then press ENTER in
-  the terminal. The script saves browser storage state (cookies,
-  localStorage) to .cache/dfm/auth_state.json (gitignored). Subsequent
-  runs reuse that state in headless mode.
+  This opens a headed Chromium window and saves the browser storage
+  state (cookies, localStorage) to .cache/dfm/auth_state.json
+  (gitignored). Subsequent runs reuse that state in headless mode.
+
+  Two ways to log in:
+    * Unattended - drop a credentials file at
+      .cache/dfm/credentials.json (gitignored, NEVER committed):
+          {"email": "you@example.com", "password": "..."}
+      `--login` then fills the JLCPCB passport form automatically.
+      JLCPCB's reCAPTCHA v3 is invisible and normally passes; if a
+      visible challenge appears the script pauses for you to solve it.
+    * Manual - no credentials file: click 'Sign In', log in in the
+      window, then press ENTER in the terminal.
 
   Re-run --login if your session expires (typically every 30-90 days
   per JLCPCB's session cookie lifetime).
@@ -67,14 +75,51 @@ from datetime import datetime
 
 HERE = Path(__file__).parent
 KICAD_DIR = HERE.parent
-REPO_ROOT = KICAD_DIR.parent.parent
-GERBERS_DIR = REPO_ROOT / "hardware" / "gerbers"
-ZIP_PATH = GERBERS_DIR / "oas-jlcpcb.zip"
+# v0.40-vendor-split moved the JLCPCB bundle: stage 32 of build.py now
+# writes it to hardware/output/jlcpcb/ (KICAD_DIR.parent == hardware).
+ZIP_PATH = KICAD_DIR.parent / "output" / "jlcpcb" / "oas-jlcpcb.zip"
 OUT_DIR = KICAD_DIR / ".cache" / "dfm"
 AUTH_STATE = OUT_DIR / "auth_state.json"
+# Optional credentials file for unattended `--login`. NEVER committed:
+# .cache/ is gitignored (`**/.cache/` rule). Format:
+#   {"email": "you@example.com", "password": "..."}
+# Absent -> `--login` falls back to interactive manual login.
+CREDENTIALS = OUT_DIR / "credentials.json"
 
 UPLOAD_URL = "https://jlcdfm.com/"
 TIMEOUT_MS = 180_000  # 3 minutes for analysis to complete
+
+
+def _load_credentials() -> dict | None:
+    """Read JLCPCB login credentials from the gitignored creds file.
+
+    Returns {"email": ..., "password": ...} or None if the file is
+    absent / malformed (caller then does interactive manual login).
+    The file lives at .cache/dfm/credentials.json and is never
+    committed (see CREDENTIALS comment above).
+    """
+    if not CREDENTIALS.exists():
+        return None
+    try:
+        data = json.loads(CREDENTIALS.read_text(encoding="utf-8"))
+    except (ValueError, OSError):
+        return None
+    if isinstance(data, dict) and data.get("email") and data.get("password"):
+        return {"email": str(data["email"]), "password": str(data["password"])}
+    return None
+
+
+def _dismiss_cookie_banner(page) -> None:
+    """Click whichever cookie-consent button is showing, if any."""
+    for label in ("Accept all cookies", "Accept only essential cookies"):
+        try:
+            btn = page.get_by_role("button", name=label).first
+            if btn.is_visible(timeout=2000):
+                btn.click()
+                page.wait_for_timeout(400)
+                return
+        except Exception:
+            continue
 
 
 def banner() -> None:
@@ -92,7 +137,7 @@ def preflight() -> None:
     if not ZIP_PATH.exists():
         sys.exit(
             f"ERROR: {ZIP_PATH} not found. Run "
-            f"`python hardware/kicad/export_production.py` first."
+            f"`python hardware/kicad/build.py` first (stage 32 bundles the ZIP)."
         )
     try:
         import playwright  # noqa: F401
@@ -138,16 +183,43 @@ def main() -> None:
 
     with sync_playwright() as p:
         if args.login:
+            creds = _load_credentials()
             print("  LOGIN MODE: launching headed browser ...")
-            print("  1. Log in to your JLCPCB account in the browser window.")
-            print("  2. Dismiss any cookie banners.")
-            print("  3. Navigate back to https://jlcdfm.com/ if needed.")
-            print("  4. Return to this terminal and press ENTER.")
             browser = p.chromium.launch(headless=False)
             context = browser.new_context(accept_downloads=True)
             page = context.new_page()
-            page.goto("https://passport.jlcpcb.com/", timeout=30_000)
-            input("  Press ENTER when logged in and ready to save state ...")
+            page.goto(UPLOAD_URL, wait_until="domcontentloaded", timeout=30_000)
+            _dismiss_cookie_banner(page)
+            if creds:
+                # Unattended login: open the JLCPCB passport form, fill
+                # the credentials, submit. JLCPCB protects the form with
+                # reCAPTCHA v3 (invisible / score-based) — a normal
+                # headed browser usually passes without a challenge. If a
+                # visible challenge DOES appear, the script falls through
+                # to the manual ENTER prompt so the human can solve it.
+                print(f"  AUTO-LOGIN as {creds['email']} ...")
+                try:
+                    page.get_by_role("button", name="Sign In").first.click()
+                    page.wait_for_url("**passport.jlcpcb.com/**", timeout=20_000)
+                    page.get_by_role(
+                        "textbox", name="Username or Email").fill(creds["email"])
+                    page.get_by_role(
+                        "textbox", name="Password").fill(creds["password"])
+                    page.get_by_role(
+                        "button", name="Sign In", exact=True).click()
+                    # Success = OAuth redirect back to jlcdfm.com.
+                    page.wait_for_url("**jlcdfm.com/**", timeout=30_000)
+                    print("  Login OK - redirected back to jlcdfm.com.")
+                except Exception as e:
+                    print(f"  Auto-login did not complete ({type(e).__name__}).")
+                    print("  Finish the login in the browser window")
+                    print("  (solve any captcha), then return here.")
+                    input("  Press ENTER once you are logged in ...")
+            else:
+                print("  No .cache/dfm/credentials.json - manual login.")
+                print("  1. Click 'Sign In' and log in to JLCPCB in the window.")
+                print("  2. Return to this terminal and press ENTER.")
+                input("  Press ENTER when logged in and ready to save state ...")
             context.storage_state(path=str(AUTH_STATE))
             print(f"  Saved auth state -> {AUTH_STATE}")
             browser.close()
