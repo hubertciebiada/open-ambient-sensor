@@ -1214,12 +1214,25 @@ SK6812SIDE_PAD_Y = 0.15             # mm, body-local +Y of pad-row centerline.
 # Per-pad land geometry -- (body-local center X, pad width) in mm; pad
 # heights are uniform (SK6812SIDE_PAD_HEIGHT). Pad 1 = DIN (leftmost),
 # 2 = VDD, 3 = DOUT, 4 = GND. Asymmetric: the outer pads are the widest,
-# pad 3 (DOUT) the narrowest -- verbatim from EasyEDA C5378721.
+# pad 3 (DOUT) the narrowest.
+#
+# Pads 2 / 3 are verbatim EasyEDA C5378721. Pads 1 / 4 (the L-shaped end
+# terminals) are EasyEDA + 0.10 mm extension on the INNER edge only.
+# Reason: EasyEDA's own C5378721 land draws pads 1/4 flush with the
+# part's pin inner edge (pad inner edge == pin inner edge, 0 mm margin) —
+# which trips JLCPCB DFM DANGER "pin right edge" / "pin left edge" (a pin
+# edge level with the pad edge leaves no solder-fillet margin; only the
+# 90/180/270-deg ring LEDs flag, but the condition is rotation-agnostic).
+# Extending the inner edge 0.10 mm toward the body centre gives the pin a
+# 0.10 mm margin (pads 2/3 already clear the check at 0.05 mm). Outer
+# edges (X = +/-2.30) are unchanged, so the courtyard extent is
+# unaffected; the pin-1 dot (derived from pad 1's inner edge) shifts
+# 0.10 mm toward centre, away from the daughterboard silk.
 SK6812SIDE_PADS: tuple[tuple[float, float], ...] = (
-    (-1.800, 1.00),   # pad 1 = DIN
+    (-1.750, 1.10),   # pad 1 = DIN  (EasyEDA 1.00 + 0.10 mm inner margin)
     (-0.450, 0.70),   # pad 2 = VDD
     (+0.575, 0.45),   # pad 3 = DOUT
-    (+1.800, 1.00),   # pad 4 = GND
+    (+1.750, 1.10),   # pad 4 = GND  (EasyEDA 1.00 + 0.10 mm inner margin)
 )
 # Derived: body-local center X of each pad (pin-1 dot, silk labels).
 SK6812SIDE_PAD_X_OFFSETS = tuple(x for x, _w in SK6812SIDE_PADS)
