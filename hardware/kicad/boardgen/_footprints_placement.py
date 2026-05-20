@@ -42,6 +42,7 @@ from boardgen._project import (  # noqa: F401
     MIKROE2462_PIN_COUNT_PER_ROW, MIKROE2462_PIN_START_OFFSET,
     MIKROE2462_ANCHOR_X, MIKROE2462_ANCHOR_Y, MIKROE2462_ROTATION,
     J1_PCB_X, J1_PCB_Y, J1_PCB_ROTATION,
+    J2_PCB_X, J2_PCB_Y, J2_PCB_ROTATION,
     J9_PCB_X, J9_PCB_Y, J9_PCB_ROTATION,
     J10_PCB_X, J10_PCB_Y, J10_PCB_ROTATION,
     J1_PIN_MAP, J2_PIN_MAP, J7_PIN_MAP, J8_PIN_MAP, J10_PIN_MAP,
@@ -531,21 +532,27 @@ def gen_power_pcb_footprints() -> str:
     # gap 0.35 — tight but clear), west of C10 0603 (now relocated to
     # +46, +32) and mounting hole H1 at +47.631 / +27.5 (distance ~13.1 mm).
     # PCB outline corner (+44.25, +40.25): distance 59.82 — 0.18 mm inside.
+    # v0.43: C1 nudged ~4 mm EAST (to +37) to open room in the NE radial
+    # cluster for C3, which is relocated here from the LD2410-north pocket
+    # (that pocket is taken over by J2). C1 and C3 are the same part
+    # (100 µF / 50 V, 8 mm radial); they sit as a pair in the NE corner.
     parts.append(gen_capacitor_polarized_radial_pcb_footprint(
-        x=+33, y=-42, rotation=0,
+        x=+35.75, y=-39, rotation=0,
         reference="C1", value="100uF/50V",
         uuid_tag="c1-protected-bulk",
         diameter_mm=8.0, pitch_mm=3.5,
-        descr="100 µF / 50 V radial electrolytic bulk on protected +24V rail. Pre-routing rework 2: relocated from south-east (+40, +36) to north-east next to C4 (+33, -42). Body 8 mm diameter; 1.8 mm gap to C10 north edge, 0.5 mm gap to C4 east silk, 0.96 mm to PCB outline at NE corner.",
+        descr="100 µF / 50 V radial electrolytic bulk on protected +24V rail. v0.43: hand-tuned into the NE radial cluster (body centre +35.75, -39), paired with C3.",
     ))
-    # C3 (U1.VIN input bulk) — sits directly south of U1 in the same
-    # west column to keep U1.VIN trace length minimal.
+    # C3 (U1.VIN input bulk) — v0.43: relocated from the LD2410-north
+    # pocket (now occupied by J2) to the NE corner next to C1, out of every
+    # daughterboard shadow (C3 is a ~12 mm-tall radial — must stay clear of
+    # the ESP32 / MIKROE / SEN66 shadows per the v0.26 relocation rule).
     parts.append(gen_capacitor_polarized_radial_pcb_footprint(
-        x=-34, y=-22, rotation=0,
+        x=+25.75, y=-39, rotation=0,
         reference="C3", value="100uF/50V",
         uuid_tag="c3-u1-vin-bulk",
         diameter_mm=8.0, pitch_mm=3.5,
-        descr="100 µF / 50 V radial electrolytic input bulk for U1 buck. Pre-routing rework: nudged south +2 mm to (-34, -22) to open routing channel above U1.",
+        descr="100 µF / 50 V radial electrolytic input bulk for U1 buck. v0.43: relocated to the NE radial cluster next to C1 (body centre +25.75, -39) — the prior LD2410-north spot is now occupied by J2.",
     ))
 
     # ---- v0.26: U1 in west-of-ESP32 strip ----
@@ -572,13 +579,15 @@ def gen_power_pcb_footprints() -> str:
         uuid_tag="l1-buck1",
         descr="33 µH ≥2 A SMD shielded power inductor (Wurth WE-PD-S or eq).",
     ))
-    # ---- v0.26: C4 in east-of-ESP32 strip, north of SEN66 ----
+    # ---- C4 in the NE radial cluster, east of ESP32 / north of SEN66 ----
+    # v0.43: position hand-tuned in KiCad alongside C1/C3/C10 to pack the
+    # 4-cap NE cluster, then transcribed back here (body-centre coords).
     parts.append(gen_capacitor_polarized_radial_pcb_footprint(
-        x=+25, y=-47, rotation=0,
+        x=+25.568, y=-48, rotation=0,
         reference="C4", value="220uF/10V",
         uuid_tag="c4-u1-vout-bulk",
         diameter_mm=6.3, pitch_mm=2.5,
-        descr="220 µF / 10 V radial electrolytic output bulk on +5V rail. v0.26: relocated from (+16, -37) inside ESP32 shadow to (+25, -47) east of ESP32 / north of SEN66. 1.10 mm gap to ESP32 east edge, 8.40 mm gap to SEN66 north edge. Distance to L1 (+9, -37) grows from 9 mm to ~14 mm — acceptable for +5V bulk.",
+        descr="220 µF / 10 V radial electrolytic output bulk on +5V rail. v0.43: hand-tuned into the NE radial cluster (body centre +25.568, -48).",
     ))
 
     # ---- Row Y=-44: Buck2 (5V→3.3V) main components ----
@@ -713,20 +722,16 @@ def gen_power_pcb_footprints() -> str:
         descr="Soft-start cap C(SS) between U2.SS and GND. Sets ramp time.",
     ))
 
-    # ---- C2 (Y2 safety cap) — WEST of LD2410, outside daughterboard shadow ----
-    # v0.26: shifted from (-32, -25) to (-46, -25) to clear C3 (relocated
-    # to (-34, -24) column). New position sits north of LD2410's
-    # north edge (Y=-16.51), west of the U1/C3 column. C2 body Y[-25.9,
-    # -24.1] is entirely north of the LD2410 Y range. X=-46 puts C2
-    # body X[-47.4, -44.6]: this overlaps the LD2410 X range
-    # [-51.09, -43.47] by 1.13 mm but Y is clear so no shadow conflict.
-    # Sits 2 mm west of J2 (DNP recovery header at -54, -8) at distance
-    # ~18.8 mm — plenty of clearance.
+    # ---- C2 (Y2 safety cap) — under the ESP32, in the Y=-30 SMD row ----
+    # v0.43: relocated from (-46, -25) — that spot is inside the new J2
+    # zone (J2 moved to the LD2410-north pocket). C2 is a low 0805 SMD, so
+    # it may sit under the ESP32 daughterboard shadow. Placed in the empty
+    # west stretch of the Y=-30 power-cap row, west of C13 (-14, -30).
     parts.append(gen_capacitor_0805_pcb_footprint(
-        x=-46, y=-25, rotation=0,
+        x=-21, y=-30, rotation=0,
         reference="C2", value="10nF Y2",
         uuid_tag="c2-y2",
-        descr="10 nF Y2 safety class — GND ↔ Earth_Protective EMI bridge. v0.26: shifted from (-32, -25) to (-46, -25) to clear C3 relocated to (-34, -24).",
+        descr="10 nF Y2 safety class — GND ↔ Earth_Protective EMI bridge. v0.43: relocated to (-21, -30) under the ESP32 (Y=-30 SMD row) — the prior spot is now occupied by J2.",
     ))
 
     # Sensor decoupling caps: C10 (SEN66 +3V3), C11 (LD2410 +5V), C12 (NFC +3V3).
@@ -737,10 +742,10 @@ def gen_power_pcb_footprints() -> str:
     # mounting hole H1 at (+47.631, +27.5) (distance 5.21 mm, gap 1.36
     # mm after H1 2.85 + C10 1.0 keep-clear).
     parts.append(gen_capacitor_0603_pcb_footprint(
-        x=+30, y=-47, rotation=0,
+        x=+32, y=-47, rotation=0,
         reference="C10", value="100nF",
         uuid_tag="c10-sen66-decoupling",
-        descr="100 nF local decoupling for SEN66 (J3 +3V3 pin 1/6). Pre-routing rework: relocated to (+30, -47), east of C4 (+25, -47) in the upper-right corner cluster.",
+        descr="100 nF local decoupling for SEN66 (J3 +3V3 pin 1/6). v0.43: hand-tuned to (+32, -47) in the NE radial cluster.",
     ))
     # LD2410 J4 pads at PCB X=-44.74, Y=+19.05 (1×5 P1.27 row going south
     # from anchor; pad 1 north Y=+13.97, pad 5 south Y=+19.05). Pre-
@@ -770,17 +775,13 @@ def gen_power_pcb_footprints() -> str:
         descr="100 nF local decoupling for MIKROE-2462 NFC (mikroBUS pin 7 / +3V3).",
     ))
 
-    # J2 — DNP recovery pin header. Place in the NW corner near LD2410's
-    # left edge. LD2410 body left edge at X=-51.09, PCB outline at X≈-57.7
-    # at Y=-16.5 (top of LD2410). Strip X ∈ [-57, -51], Y ∈ [-16, +19],
-    # ~6 mm wide and 35 mm tall. Drop J2 into this strip with pins
-    # running north-south. With rotation 0, pads at LIB Y=0..+12.7
-    # → PCB Y = anchor_y..anchor_y+12.7. Anchor (-54, -8) puts 6 pads
-    # at Y=-8..+4.7. All inside the strip; clearance to LD2410 body
-    # left edge X=-51.09 is 51.09 - 54 = 2.91 mm (with pad half-width
-    # 0.85, pad outer edge at X=-53.15 — clearance ~2.06 mm).
+    # J2 — DNP recovery pin header. v0.43: relocated from the cramped NW
+    # corner to the free pocket NORTH of the LD2410, placed HORIZONTAL
+    # (rotation 90 → pad row along PCB +X). See the J2_PCB_* block in
+    # _project.py for the placement rationale. The horizontal row lets the
+    # per-pin signal labels go on real F.SilkS (gen_silk_labels).
     parts.append(gen_pinheader_6_recovery_pcb_footprint(
-        x=-54, y=-8, rotation=0,
+        x=J2_PCB_X, y=J2_PCB_Y, rotation=J2_PCB_ROTATION,
         reference="J2", value="UART/Boot Recovery (DNP)",
         uuid_tag="j2-recovery-header",
         descr="1x6 P2.54 mm THT recovery header (Do-Not-Populate by default).",
@@ -1279,16 +1280,17 @@ def gen_silk_labels() -> str:
         layer="F.Fab", tag="j1-pin", size=0.8,
     ))
 
-    # J2 — UART/Boot recovery header, 1x06 P2.54 mm, rotation 0°. Pads run
-    # along footprint-local +Y. Sits in the cramped NW corner (board edge
-    # west, LD2410 body east), so the six 4-char signal names go on F.Fab
-    # (assembly layer — exempt from silk_min_text_height / silk_overlap),
-    # placed just EAST of the pad column. DNP header — F.Fab is honest.
+    # J2 — UART/Boot recovery header, 1x06 P2.54 mm. v0.43: relocated
+    # HORIZONTAL (rotation 90, pad row along PCB +X) north of the LD2410 —
+    # see J2_PCB_* in _project.py. Per-pin signal labels go on real
+    # F.SilkS, each rotated 90° (perpendicular to the horizontal pad row —
+    # the whole name turned on its side, ~1 mm wide, so it clears the
+    # 2.54 mm pitch), placed just NORTH of the row (away from the LD2410).
     parts.extend(_pin_labels(
-        origin_x=-54.0, origin_y=-8.0, rotation=0,
+        origin_x=J2_PCB_X, origin_y=J2_PCB_Y, rotation=J2_PCB_ROTATION,
         pin1_local=(0.0, 0.0), step_local=(0.0, 2.54),
-        pin_map=J2_PIN_MAP, label_offset=(+2.7, 0.0),
-        layer="F.Fab", tag="j2-pin", size=0.8,
+        pin_map=J2_PIN_MAP, label_offset=(0.0, -4.5),
+        layer="F.SilkS", tag="j2-pin", size=1.0, angle=90.0,
     ))
 
     # J9 — Qwiic JST SH 4-pin at 1.0 mm pitch: too fine for four separate
@@ -1300,18 +1302,16 @@ def gen_silk_labels() -> str:
     parts.append(_silk("J9 GND", J9_PCB_X + 1.5, J9_PCB_Y, "j9-p1-gnd",
                        size=0.8, layer="F.Fab"))
 
-    # J10 — native-USB recovery header, 1x06 P2.54 mm, rotation 90° so the
-    # pad row runs along PCB +X (pad 1 at the origin, pads 2..6 spread
-    # east). Six 4-char signal names at 2.54 mm pitch exceed the
-    # silk_min_text_height (1.0 mm) horizontal budget, so the per-pin
-    # labels stay on F.Fab (assembly layer — no min-height / overlap
-    # rule), placed just SOUTH of the pad row. DNP header — F.Fab is the
-    # honest layer anyway.
+    # J10 — native-USB recovery header, 1x06 P2.54 mm, rotation 90° (pad
+    # row along PCB +X, pad 1 at the origin). v0.43: per-pin signal labels
+    # moved to real F.SilkS, each rotated 90° (perpendicular to the
+    # horizontal row — the whole name turned on its side, ~1 mm wide, so
+    # it clears the 2.54 mm pitch), placed just SOUTH of the pad row.
     parts.extend(_pin_labels(
         origin_x=J10_PCB_X, origin_y=J10_PCB_Y, rotation=J10_PCB_ROTATION,
         pin1_local=(0.0, 0.0), step_local=(0.0, 2.54),
-        pin_map=J10_PIN_MAP, label_offset=(0.0, +2.5),
-        layer="F.Fab", tag="j10-pin", size=0.8,
+        pin_map=J10_PIN_MAP, label_offset=(0.0, +3.8),
+        layer="F.SilkS", tag="j10-pin", size=1.0, angle=90.0,
     ))
     # J10 connector ID — moved EAST of the pad row (user request: the old
     # placement, 7.5 mm SOUTH of the pads, had drifted far from the
@@ -1465,61 +1465,15 @@ def gen_silk_labels() -> str:
         ("D3",  +2.5,  0.0, "F.Fab"),
         ("R1",  -3.0,  0.0, "F.Fab"),
         ("R4",  +3.0,  0.0, "F.Fab"),
-        # Buck1 cluster
-        # C1 sits south of SEN66, outside daughterboard shadows.
-        # v0.40 post-order: stock CP_Radial_D8.0mm_P3.50mm has many F.SilkS
-        # body-curve fp_lines spanning Y ∈ [-4.08, +4.08] (relative to
-        # body center). North-of-body (Y=-6.5 from anchor) → PCB Y=+29.5
-        # which hits J3 (SEN66 socket) silk frame and J3 MP mounting
-        # pad. Other directions are similarly tight. Push to F.Fab —
-        # the C1 silkscreen body itself identifies the cap to the
-        # assembler; F.Fab text gives the designator for documentation.
-        # C1 relocated to (+33, -42). North (-46 to -50) is occupied by
-        # C4/C10. South (-38 to -30) is open strip between C1 body and
-        # ESP32 east. Push label south of body silk: offset (0, +6.5)
-        # → PCB (+33, -35.5).
-        ("C1",  0.0, +6.5, "F.SilkS"),
-        # C3 — pre-fix C3 label at body anchor offset (0, -2.0) sat INSIDE
-        # the body shadow (D8 radius 4 mm). v0.40 post-order: C3 body
-        # is at PCB Y_center=-24. North of body Y=-20 there's only the
-        # MOD1 (ESP32) silk; south of body Y=-28 is U1 (TO-263-5) tab
-        # which extends Y to -28.6 north edge. Sweet spot is the strip
-        # Y ∈ [-28.6, -20], i.e. label_y ∈ [-28.6 + half_text_h + 0.15,
-        # -20 - half_text_h - 0.15] = [-27.95, -20.55]. Place label at
-        # Y=-21 (just south of C3 body north silk edge), within the
-        # strip. Note: this is offset = -3 from C3 anchor at Y=-24.
-        # Wait — actually the v0.40 anchor convention is preserved
-        # (call site x=-34, y=-24 IS body center); the stock body silk
-        # extent +/-4 mm around center means north_edge at Y=-20.
-        # Label offset (0, +4.5) puts text at Y=-19.5 (north of body
-        # silk) which collides with MOD1 silk south edge at Y=-19. Use
-        # (0, -3) — text at Y=-27 = halfway between body south Y=-28
-        # and U1 tab north Y=-28.6 → 0.9 mm from U1 tab, 1.0 mm from
-        # body. Wait this also puts text inside body silk (extends to
-        # Y=-28). Let's go with (0, -6.5) but reduce — actually the
-        # silk has a half-CIRCLE only (open on the cathode side at +X),
-        # so silk lines exist only at Y ∈ approx [-4.08, +4.08]. At
-        # X=center+0 (label X = body center X), Y_silk = ±sqrt(r² - 0²) =
-        # ±4 mm, so silk reaches Y_local = -4 at the body's north pole
-        # (= PCB Y = -28). Text at Y=-30.5 is BELOW silk, but the U1 tab
-        # is at Y=-28.6, so text would intersect U1 tab. Skip this
-        # zone entirely — push label further south of U1 tab south edge
-        # (Y=-39.4): offset to Y=-40 (= offset -16) → far away. Too
-        # far. Better: keep label INSIDE U1 tab silk (which has F.SilkS
-        # body outline at -4.825..-3.46 LIB-Y mapped to PCB ?), or
-        # move it WEST off U1 tab. U1 tab west edge at PCB X = -36.7,
-        # east at -27.8. Width 9 mm. C3 body west edge at PCB X = -36.25,
-        # east at -28.25. They overlap! West of C3 body is the LD2410
-        # body (extends X to ~-43.7 east edge — that's far west). Use
-        # offset (+5, 0) east — east of C3 body (X=-29..-28.25), but
-        # still west of U1 east edge at -27.8. NOT clear of U1.
-        # Final approach: put label SOUTH on F.Fab (assembly drawing
-        # only, exempt from silk_overlap / silk_over_copper rules).
-        # C3 at (-34, -22). Body silk Ø8 mm extends X=[-38, -30]. Open
-        # strip west between C3 west silk (-38) and LD2410 east edge
-        # (-43.47). Offset (-6, 0) → PCB (-40, -22): 1.72 mm to LD2410
-        # west, 0.25 mm clear of C3 body silk east of text right edge.
-        ("C3",  -6.0, 0.0, "F.SilkS"),
+        # Buck1 cluster — NE radial caps (C1, C3, C4, C10).
+        # v0.43: C1/C3 form the top row of the NE cluster. The cluster is
+        # tight, so C1/C3 designators go on F.Fab (assembly layer) — the
+        # radial-cap body silk identifies the part visually, same as C10.
+        ("C1",  0.0, 0.0, "F.Fab"),
+        # C3 — v0.43: relocated to the NE radial cluster next to C1.
+        # Designator on F.Fab (assembly layer) — the cluster is tight and
+        # the radial-cap body silk identifies the part visually.
+        ("C3",  0.0, 0.0, "F.Fab"),
         # U1 (TO-263-5): signal pads at X_local=-7.65 (= PCB X=-41.65),
         # tab pad east at X_local=+1.5 to +6.2 (= PCB X=-32.5..-27.8).
         # Label needs to clear the signal pad column (PCB X=-41.65 ±
@@ -1533,10 +1487,10 @@ def gen_silk_labels() -> str:
         # D2, L1 INSIDE ESP32 shadow → F.Fab
         ("D2",  0.0, -3.0, "F.Fab"),
         ("L1",  0.0, -4.0, "F.Fab"),
-        # C4 in east-of-ESP32 / north-of-SEN66 strip — outside shadows.
-        # v0.40 post-order: stock CP_Radial_D6.3mm body radius 3.15 mm;
-        # label needs ≥5 mm offset to clear body silk.
-        ("C4",  0.0, -5.0, "F.SilkS"),
+        # C4 — NE radial cluster. v0.43: designator on F.Fab like the
+        # rest of the cluster (C1/C3/C10) — the tight 4-cap packing
+        # leaves no clean F.SilkS room; the cap body silk identifies it.
+        ("C4",  0.0, 0.0, "F.Fab"),
         # Buck2 cluster INSIDE ESP32 shadow → F.Fab
         ("U2",  0.0, -2.5, "F.Fab"),
         ("L2",  0.0, -4.0, "F.Fab"),
@@ -1579,15 +1533,11 @@ def gen_silk_labels() -> str:
         # C12 INSIDE MIKROE shadow (X=-38.16..-12.76, Y=-16.51..+40.64,
         # C12 anchor (-25, +23) is inside) → F.Fab
         ("C12", 0.0, -2.0, "F.Fab"),
-        # J2 DNP recovery — outside shadows
-        # v0.40 audit-16: stock 1x06 P2.54 PinHeader has silk frame top
-        # edge at footprint-local Y=-1.38. Label offset (0, -2) gave text
-        # bottom edge at PCB Y=-9.5, which overlapped the frame top
-        # segment at Y=-9.38 by 0.12 mm. Move label WEST of the frame
-        # entirely (offset -3.5, 0 → PCB X=-57.5, ~2.0 mm west of silk
-        # frame west edge at PCB X=-55.38). Still inside PCB outline
-        # (~Ø60 at Y=-8 → X_edge=-59.46).
-        ("J2",  -3.5, 0.0, "F.SilkS"),
+        # J2 DNP recovery — v0.43: relocated horizontal north of the
+        # LD2410. Designator sits just EAST of the pad row, in the pocket
+        # vacated by C3, clear of the per-pin labels (which sit north of
+        # the row).
+        ("J2",  +15.5, 0.0, "F.SilkS"),
     ]
     # Component anchors mirror the placements in gen_power_pcb_footprints().
     # Keep this dict in lock-step with that function.
@@ -1598,12 +1548,12 @@ def gen_silk_labels() -> str:
         "D3":  (+20, +33),
         "R1":  (+14, +37),
         "R4":  (+20, +37),
-        "C1":  (+33, -42),
-        "C3":  (-34, -22),
+        "C1":  (+35.75, -39),
+        "C3":  (+25.75, -39),
         "U1":  (-35, -34),
         "D2":  (+2, -37),
         "L1":  (+9, -37),
-        "C4":  (+25, -47),
+        "C4":  (+25.568, -48),
         "U2":  (-2, -43.5),
         "L2":  (+4, -44),
         "R2":  (+10, -44),
@@ -1621,11 +1571,11 @@ def gen_silk_labels() -> str:
         "C16": (-10, -46),
         "C7":  (-6, -46),
         "C8":  (-2, -46),
-        "C2":  (-46, -25),
-        "C10": (+30, -47),
+        "C2":  (-21, -30),
+        "C10": (+32, -47),
         "C11": (-43, +22),
         "C12": (-25, +23),
-        "J2":  (-54, -8),
+        "J2":  (J2_PCB_X, J2_PCB_Y),
     }
     for entry in POWER_LABELS:
         # Optional 5th tuple element: explicit angle (deg) override.

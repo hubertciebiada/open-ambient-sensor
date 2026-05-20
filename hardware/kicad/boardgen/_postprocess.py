@@ -946,9 +946,11 @@ _FOOTPRINT_HALF_EXTENT: dict[str, tuple[float, float]] = {
 # placements. Each entry pins down the SPECIFIC (half_x, half_y) for
 # that reference, overriding the per-footprint lookup.
 _FOOTPRINT_HALF_EXTENT_OVERRIDES: dict[str, tuple[float, float]] = {
-    # J10 — PinHeader_1x06_P2.54mm_Vertical at rotation 90 (horizontal
-    # pad row east). Default dict value (1.5, 7.6) is calibrated for
-    # J2 at rotation 0; J10 needs the swapped (7.6, 1.5).
+    # J2 / J10 — PinHeader_1x06_P2.54mm_Vertical, both placed at rotation
+    # 90 (horizontal pad row along PCB +X) as of v0.43. The
+    # _FOOTPRINT_HALF_EXTENT default (1.5, 7.6) is the un-rotated extent;
+    # rotation 90 swaps it to (7.6, 1.5).
+    "J2":  (7.6, 1.5),
     "J10": (7.6, 1.5),
 }
 
@@ -975,6 +977,9 @@ def check_z_clearance_violations() -> list[str]:
     daughterboard's own support feet and live under its shadow by
     design.
     """
+    import math
+    import re
+
     placements = _parse_footprint_placements()
     shadows = _daughterboard_body_shadows()
     violations: list[str] = []
@@ -1003,10 +1008,17 @@ def check_z_clearance_violations() -> list[str]:
             f"_FOOTPRINT_HALF_EXTENT in boardgen/_postprocess.py."
         )
         half_x, half_y = half
-        _ = rotation  # captured by parser for future use; current AABB
-                      # check uses calibrated half-extents (per-rotation
-                      # values baked into _FOOTPRINT_HALF_EXTENT and
-                      # _FOOTPRINT_HALF_EXTENT_OVERRIDES).
+        # Radial caps: the footprint (at) anchor is at PIN 1, not the body
+        # centre — the body sits +pitch/2 along local +X (see
+        # gen_capacitor_polarized_radial_pcb_footprint). Shift the test
+        # point to the body centre so the AABB uses the real body, not a
+        # pitch/2-displaced phantom.
+        m_radial = re.search(r"CP_Radial_D[\d.]+mm_P([\d.]+)mm", fp_prop)
+        if m_radial:
+            hp = float(m_radial.group(1)) / 2.0
+            th = math.radians(rotation)
+            px = px + hp * math.cos(th)
+            py = py + hp * math.sin(th)
         # Footprint body AABB (axis-aligned bounding box) on the PCB.
         body_xmin, body_xmax = px - half_x, px + half_x
         body_ymin, body_ymax = py - half_y, py + half_y

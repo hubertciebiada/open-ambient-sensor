@@ -990,19 +990,37 @@ J10_PCB_X = -10.96            # PCB X of pad 1 (west end). Pre-routing
                               # 4.79 mm west of J10 body silk west edge
                               # (anchor + (-1.27) = -12.23 at rotation 90)
                               # → no overlap.
-J10_PCB_Y = -20.0            # PCB Y of pad row. 5.97 mm south of J5 row
-                              # A (Y=-25.97). Rework 3 placed J10 at
-                              # Y=-22.0 (3.97 mm south); rework 4 added
-                              # 2 mm more so per-pin F.Fab labels and
-                              # the "J10 flash" silk title can sit clear
-                              # of J5 socket's silk frame without
-                              # crowding the J5 designator label.
+J10_PCB_Y = -21.0            # PCB Y of pad row. 4.97 mm south of J5 row
+                              # A (Y=-25.97). v0.43: nudged 1 mm NORTH
+                              # (from -20.0) so the per-pin F.SilkS labels
+                              # placed south of the row clear LED D17 of
+                              # the AQI ring.
 J10_PCB_ROTATION = 90        # LIB +Y → PCB +X (horizontal pad row east).
                               # Rotation 90 swaps the dict half-extent
                               # tuple (1.5, 7.6) → effective (7.6, 1.5);
                               # the Z-clearance check handles this via
                               # the rotation flag captured by
                               # _parse_footprint_placements.
+
+# -----------------------------------------------------------------------------
+# J2 — UART/Boot recovery header (DNP), 1x06 P2.54 mm
+# -----------------------------------------------------------------------------
+# v0.43: relocated from the cramped NW corner to the free pocket NORTH of
+# the LD2410 presence sensor, and rotated HORIZONTAL (pad row along PCB +X,
+# like J10). The cramped NW corner could not host printed F.SilkS per-pin
+# labels; the LD2410-north pocket can. C2 and C3 were evicted from this
+# pocket (see gen_power_pcb_footprints). With rotation 90 the 1x06 row runs
+# +X from pin 1 (west) to pin 6 (east); the row is centred above the
+# LD2410 body (X centre ≈ -47.3) and sits ~4.5 mm north of the LD2410 top
+# edge (Y=-16.51). Per-pin signal labels go on F.SilkS just NORTH of the
+# row (gen_silk_labels).
+J2_PCB_X = -51.0             # PCB X of pad 1 (west end); row spans
+                              # -51.0..-38.3 (6 pins, 2.54 mm pitch).
+                              # Shifted east of dead-centre over the
+                              # LD2410 so the pin-1 per-pin label clears
+                              # the curving west board edge.
+J2_PCB_Y = -21.0             # PCB Y of the pad row.
+J2_PCB_ROTATION = 90         # LIB +Y → PCB +X (horizontal pad row east).
 
 # -----------------------------------------------------------------------------
 # Connector pin maps — single source of truth for per-pin silkscreen labels

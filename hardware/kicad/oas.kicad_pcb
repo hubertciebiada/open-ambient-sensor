@@ -2148,7 +2148,7 @@
 (footprint "Connector_PinHeader_2.54mm:PinHeader_1x06_P2.54mm_Vertical"
 	(layer "F.Cu")
 	(uuid "2c580359-c7fc-5144-a7c0-4576b5886c31")
-	(at 137.54 85 90)
+	(at 137.54 84 90)
 (property "Reference" "J10"
 	(at 2.5 -1.5 90)
 	(layer "F.SilkS")
@@ -7332,7 +7332,7 @@
 (footprint "Capacitor_THT:CP_Radial_D8.0mm_P3.50mm"
 	(layer "F.Cu")
 	(uuid "1a92e331-a768-5cf1-a998-b027df7031ba")
-	(at 179.75 63 0)
+	(at 182.5 66 0)
 (property "Reference" "C1"
 	(at 1.75 -4.6 0)
 	(layer "F.SilkS")
@@ -7361,7 +7361,7 @@
 	(uuid "fa2bd747-773c-5f20-80f6-f262c039528e")
 	(effects (font (size 1.27 1.27)))
 )
-(property "Description" "100 µF / 50 V radial electrolytic bulk on protected +24V rail. Pre-routing rework 2: relocated from south-east (+40, +36) to north-east next to C4 (+33, -42). Body 8 mm diameter; 1.8 mm gap to C10 north edge, 0.5 mm gap to C4 east silk, 0.96 mm to PCB outline at NE corner."
+(property "Description" "100 µF / 50 V radial electrolytic bulk on protected +24V rail. v0.43: hand-tuned into the NE radial cluster (body centre +35.75, -39), paired with C3."
 	(at 0 0 0)
 	(layer "F.Fab")
 	(hide yes)
@@ -8876,7 +8876,7 @@
 (footprint "Capacitor_THT:CP_Radial_D8.0mm_P3.50mm"
 	(layer "F.Cu")
 	(uuid "a9bcddd0-4ffb-543b-a9c7-194d49a8a894")
-	(at 112.75 83 0)
+	(at 172.5 66 0)
 (property "Reference" "C3"
 	(at 1.75 -4.6 0)
 	(layer "F.SilkS")
@@ -8905,7 +8905,7 @@
 	(uuid "6102d9a1-1890-56a5-b256-b0dde6ef719d")
 	(effects (font (size 1.27 1.27)))
 )
-(property "Description" "100 µF / 50 V radial electrolytic input bulk for U1 buck. Pre-routing rework: nudged south +2 mm to (-34, -22) to open routing channel above U1."
+(property "Description" "100 µF / 50 V radial electrolytic input bulk for U1 buck. v0.43: relocated to the NE radial cluster next to C1 (body centre +25.75, -39) — the prior LD2410-north spot is now occupied by J2."
 	(at 0 0 0)
 	(layer "F.Fab")
 	(hide yes)
@@ -11319,7 +11319,7 @@
 (footprint "Capacitor_THT:CP_Radial_D6.3mm_P2.50mm"
 	(layer "F.Cu")
 	(uuid "7a1d7c78-1da7-5d3a-889c-065ce85cfaa9")
-	(at 172.25 58 0)
+	(at 172.818 57 0)
 (property "Reference" "C4"
 	(at 1.25 -3.75 0)
 	(layer "F.SilkS")
@@ -11348,7 +11348,7 @@
 	(uuid "d15fb883-b136-5986-af02-a2ac44982ba5")
 	(effects (font (size 1.27 1.27)))
 )
-(property "Description" "220 µF / 10 V radial electrolytic output bulk on +5V rail. v0.26: relocated from (+16, -37) inside ESP32 shadow to (+25, -47) east of ESP32 / north of SEN66. 1.10 mm gap to ESP32 east edge, 8.40 mm gap to SEN66 north edge. Distance to L1 (+9, -37) grows from 9 mm to ~14 mm — acceptable for +5V bulk."
+(property "Description" "220 µF / 10 V radial electrolytic output bulk on +5V rail. v0.43: hand-tuned into the NE radial cluster (body centre +25.568, -48)."
 	(at 0 0 0)
 	(layer "F.Fab")
 	(hide yes)
@@ -14984,7 +14984,7 @@
 (footprint "Capacitor_SMD:C_0805_2012Metric"
 	(layer "F.Cu")
 	(uuid "c648293e-49a3-5319-8e91-b6b77372f997")
-	(at 102.5 80 0)
+	(at 127.5 75 0)
 (property "Reference" "C2"
 	(at 0 -1.75 0)
 	(layer "F.SilkS")
@@ -15013,7 +15013,7 @@
 	(uuid "23ca0c56-0a13-50aa-bcb0-b4959e328837")
 	(effects (font (size 1.27 1.27)))
 )
-(property "Description" "10 nF Y2 safety class — GND ↔ Earth_Protective EMI bridge. v0.26: shifted from (-32, -25) to (-46, -25) to clear C3 relocated to (-34, -24)."
+(property "Description" "10 nF Y2 safety class — GND ↔ Earth_Protective EMI bridge. v0.43: relocated to (-21, -30) under the ESP32 (Y=-30 SMD row) — the prior spot is now occupied by J2."
 	(at 0 0 0)
 	(layer "F.Fab")
 	(hide yes)
@@ -15102,7 +15102,7 @@
 (footprint "Capacitor_SMD:C_0603_1608Metric"
 	(layer "F.Cu")
 	(uuid "489e1d0e-6404-5875-aeec-2ca2e5ba7b49")
-	(at 178.5 58 0)
+	(at 180.5 58 0)
 (property "Reference" "C10"
 	(at 0 -1.45 0)
 	(layer "F.SilkS")
@@ -15131,7 +15131,7 @@
 	(uuid "c16c6c12-c4f2-5db1-af37-f2ae1a38d57c")
 	(effects (font (size 1.27 1.27)))
 )
-(property "Description" "100 nF local decoupling for SEN66 (J3 +3V3 pin 1/6). Pre-routing rework: relocated to (+30, -47), east of C4 (+25, -47) in the upper-right corner cluster."
+(property "Description" "100 nF local decoupling for SEN66 (J3 +3V3 pin 1/6). v0.43: hand-tuned to (+32, -47) in the NE radial cluster."
 	(at 0 0 0)
 	(layer "F.Fab")
 	(hide yes)
@@ -15456,16 +15456,16 @@
 (footprint "Connector_PinHeader_2.54mm:PinHeader_1x06_P2.54mm_Vertical"
 	(layer "F.Cu")
 	(uuid "248ec511-6502-5242-b00e-7b0f4487f47a")
-	(at 94.5 97 0)
+	(at 97.5 84 90)
 (property "Reference" "J2"
-	(at 2.5 -1.5 0)
+	(at 2.5 -1.5 90)
 	(layer "F.SilkS")
 			(hide yes)
 	(uuid "04013c22-7236-5856-a862-c668cb9e7528")
 	(effects (font (size 1 1) (thickness 0.15)))
 )
 (property "Value" "UART/Boot Recovery (DNP)"
-	(at 2.5 15 0)
+	(at 2.5 15 90)
 	(layer "F.Fab")
 			(hide yes)
 	(uuid "1d3abd92-04af-533e-b868-c846c3818044")
@@ -15617,7 +15617,7 @@
 			)
 		)
 	(pad "1" thru_hole rect
-			(at 0 0)
+			(at 0 0 90)
 			(size 1.7 1.7)
 			(drill 1)
 			(layers "*.Cu" "*.Mask")
@@ -15625,7 +15625,7 @@
 			(net 1 "+3V3")
 		)
 	(pad "2" thru_hole circle
-			(at 0 2.54)
+			(at 0 2.54 90)
 			(size 1.7 1.7)
 			(drill 1)
 			(layers "*.Cu" "*.Mask")
@@ -15633,7 +15633,7 @@
 			(net 17 "GND")
 		)
 	(pad "3" thru_hole circle
-			(at 0 5.08)
+			(at 0 5.08 90)
 			(size 1.7 1.7)
 			(drill 1)
 			(layers "*.Cu" "*.Mask")
@@ -15641,7 +15641,7 @@
 			(net 14 "/MCU/UART_TX")
 		)
 	(pad "4" thru_hole circle
-			(at 0 7.62)
+			(at 0 7.62 90)
 			(size 1.7 1.7)
 			(drill 1)
 			(layers "*.Cu" "*.Mask")
@@ -15649,7 +15649,7 @@
 			(net 13 "/MCU/UART_RX")
 		)
 	(pad "5" thru_hole circle
-			(at 0 10.16)
+			(at 0 10.16 90)
 			(size 1.7 1.7)
 			(drill 1)
 			(layers "*.Cu" "*.Mask")
@@ -15657,7 +15657,7 @@
 			(net 6 "/IO/EN")
 		)
 	(pad "6" thru_hole circle
-			(at 0 12.7)
+			(at 0 12.7 90)
 			(size 1.7 1.7)
 			(drill 1)
 			(layers "*.Cu" "*.Mask")
@@ -15825,51 +15825,51 @@
 	)
 )
 (gr_text "+3V3"
-	(at 97.2 97 0)
-	(layer "F.Fab")
+	(at 97.5 79.5 90)
+	(layer "F.SilkS")
 	(uuid "6db3fd3e-e639-58d1-9039-444c270dab43")
 	(effects
-		(font (size 0.8 0.8) (thickness 0.15))
+		(font (size 1 1) (thickness 0.15))
 	)
 )
 (gr_text "GND"
-	(at 97.2 99.54 0)
-	(layer "F.Fab")
+	(at 100.04 79.5 90)
+	(layer "F.SilkS")
 	(uuid "03b1af58-4a0c-5f76-b44b-d98d0f7a7de5")
 	(effects
-		(font (size 0.8 0.8) (thickness 0.15))
+		(font (size 1 1) (thickness 0.15))
 	)
 )
 (gr_text "TX"
-	(at 97.2 102.08 0)
-	(layer "F.Fab")
+	(at 102.58 79.5 90)
+	(layer "F.SilkS")
 	(uuid "b8936fb2-eeb2-5cf0-9bd6-5a00f9b415f6")
 	(effects
-		(font (size 0.8 0.8) (thickness 0.15))
+		(font (size 1 1) (thickness 0.15))
 	)
 )
 (gr_text "RX"
-	(at 97.2 104.62 0)
-	(layer "F.Fab")
+	(at 105.12 79.5 90)
+	(layer "F.SilkS")
 	(uuid "352c04ce-7344-5826-af9e-9041dba46a38")
 	(effects
-		(font (size 0.8 0.8) (thickness 0.15))
+		(font (size 1 1) (thickness 0.15))
 	)
 )
 (gr_text "EN"
-	(at 97.2 107.16 0)
-	(layer "F.Fab")
+	(at 107.66 79.5 90)
+	(layer "F.SilkS")
 	(uuid "a98cf3ad-44f6-59ce-8add-8e943b1c208a")
 	(effects
-		(font (size 0.8 0.8) (thickness 0.15))
+		(font (size 1 1) (thickness 0.15))
 	)
 )
 (gr_text "BOOT"
-	(at 97.2 109.7 0)
-	(layer "F.Fab")
+	(at 110.2 79.5 90)
+	(layer "F.SilkS")
 	(uuid "e4732b20-08d9-5110-9910-63aaf654cb51")
 	(effects
-		(font (size 0.8 0.8) (thickness 0.15))
+		(font (size 1 1) (thickness 0.15))
 	)
 )
 (gr_text "J9 GND"
@@ -15881,55 +15881,55 @@
 	)
 )
 (gr_text "GND"
-	(at 137.54 87.5 0)
-	(layer "F.Fab")
+	(at 137.54 87.8 90)
+	(layer "F.SilkS")
 	(uuid "ce08e743-bf67-5500-8f1f-5a1a57af074d")
 	(effects
-		(font (size 0.8 0.8) (thickness 0.15))
+		(font (size 1 1) (thickness 0.15))
 	)
 )
 (gr_text "+3V3"
-	(at 140.08 87.5 0)
-	(layer "F.Fab")
+	(at 140.08 87.8 90)
+	(layer "F.SilkS")
 	(uuid "f5f8ac31-2c4d-564f-ad39-9ee1ae759e31")
 	(effects
-		(font (size 0.8 0.8) (thickness 0.15))
+		(font (size 1 1) (thickness 0.15))
 	)
 )
 (gr_text "USB-"
-	(at 142.62 87.5 0)
-	(layer "F.Fab")
+	(at 142.62 87.8 90)
+	(layer "F.SilkS")
 	(uuid "f5d62578-c0c1-5e6c-8f6e-132b59ce8f32")
 	(effects
-		(font (size 0.8 0.8) (thickness 0.15))
+		(font (size 1 1) (thickness 0.15))
 	)
 )
 (gr_text "USB+"
-	(at 145.16 87.5 0)
-	(layer "F.Fab")
+	(at 145.16 87.8 90)
+	(layer "F.SilkS")
 	(uuid "e04557fa-8077-51b9-8d5d-6c1f83519731")
 	(effects
-		(font (size 0.8 0.8) (thickness 0.15))
+		(font (size 1 1) (thickness 0.15))
 	)
 )
 (gr_text "EN"
-	(at 147.7 87.5 0)
-	(layer "F.Fab")
+	(at 147.7 87.8 90)
+	(layer "F.SilkS")
 	(uuid "6065dd89-3d5f-5f73-8ba5-03e4ad763935")
 	(effects
-		(font (size 0.8 0.8) (thickness 0.15))
+		(font (size 1 1) (thickness 0.15))
 	)
 )
 (gr_text "BOOT"
-	(at 150.24 87.5 0)
-	(layer "F.Fab")
+	(at 150.24 87.8 90)
+	(layer "F.SilkS")
 	(uuid "6c89944e-d705-5afa-90b8-4d55af04d48b")
 	(effects
-		(font (size 0.8 0.8) (thickness 0.15))
+		(font (size 1 1) (thickness 0.15))
 	)
 )
 (gr_text "J10 flash"
-	(at 155.44 85 0)
+	(at 155.44 84 0)
 	(layer "F.SilkS")
 	(uuid "657e6069-039f-5781-a5c6-bc2203f0d6aa")
 	(effects
@@ -16001,16 +16001,16 @@
 	)
 )
 (gr_text "C1"
-	(at 181.5 69.5 0)
-	(layer "F.SilkS")
+	(at 184.25 66 0)
+	(layer "F.Fab")
 	(uuid "f36f6d2f-cd4c-5a92-a119-3de77c2b5ada")
 	(effects
 		(font (size 1 1) (thickness 0.15))
 	)
 )
 (gr_text "C3"
-	(at 108.5 83 0)
-	(layer "F.SilkS")
+	(at 174.25 66 0)
+	(layer "F.Fab")
 	(uuid "d0bc93c7-2fec-5ce9-bc9c-87f5773216e2")
 	(effects
 		(font (size 1 1) (thickness 0.15))
@@ -16041,8 +16041,8 @@
 	)
 )
 (gr_text "C4"
-	(at 173.5 53 0)
-	(layer "F.SilkS")
+	(at 174.068 57 0)
+	(layer "F.Fab")
 	(uuid "40f9374a-1c7f-534e-9e83-8d21906bc74b")
 	(effects
 		(font (size 1 1) (thickness 0.15))
@@ -16185,7 +16185,7 @@
 	)
 )
 (gr_text "C2"
-	(at 102.5 78 0)
+	(at 127.5 73 0)
 	(layer "F.SilkS")
 	(uuid "f2413655-b3bd-5477-b543-be760ecb8238")
 	(effects
@@ -16193,7 +16193,7 @@
 	)
 )
 (gr_text "C10"
-	(at 178.5 60 0)
+	(at 180.5 60 0)
 	(layer "F.Fab")
 	(uuid "48678fb3-7588-558b-971b-113cb06d3877")
 	(effects
@@ -16217,7 +16217,7 @@
 	)
 )
 (gr_text "J2"
-	(at 91 97 0)
+	(at 113 84 0)
 	(layer "F.SilkS")
 	(uuid "6c82ea2d-4511-58b2-bd2f-171d805bcf2b")
 	(effects
