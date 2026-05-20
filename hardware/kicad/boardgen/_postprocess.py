@@ -626,7 +626,7 @@ BARE_FOOTPRINT_TO_LIB: dict[str, str] = {
 #   - TO-263-5 / D2PAK-5 (LM2596S): TI — 4.83 mm max, 4.6 mm typ.
 #   - 5×5 SMD shielded inductor (NR5040 / WE-PD-S): Wurth WE-PD-S 5045
 #     = 4.5 mm worst-case body height.
-#   - 2920 SMD polyfuse: Bourns MF-RHT — 3.0 mm.
+#   - 1812 SMD PTC fuse (F1): Littelfuse 1812L075/33DR — ~1.1 mm.
 #   - JST GH 6-pin horizontal SMD socket (J3): JST — 4.25 mm.
 #   - JST SH 4-pin horizontal SMD socket (J9): JST — 1.5 mm.
 #   - Phoenix MSTBA 5.08 mm 3-pin terminal block (J1): Phoenix
@@ -672,14 +672,12 @@ FOOTPRINT_HEIGHT: dict[str, float] = {
     # Note: the TPS62933 SOT-583 footprint property is written as
     # `Package_SO:VSON-8-1EP_2x2mm_P0.5mm_EP0.9x1.6mm` by gen_sot583_pcb_footprint
     "Package_SO:VSON-8-1EP_2x2mm_P0.5mm_EP0.9x1.6mm": 0.85,
-    # ---- Inductors + polyfuses ----
+    # ---- Inductors ----
     "Inductor_SMD:L_APV_ANR5040": 4.5,
     # v0.40 post-order: CENKER CKCS5040 is 5.0 × 5.0 × 4.0 mm.
     "Inductor_SMD:L_Cenker_CKCS5040": 4.0,
-    "Fuse:Fuse_2920_7451Metric": 3.0,
-    # 1812 polyfuse — Littelfuse 1812L075THDR datasheet max height 1.0 mm,
-    # Bourns MF-MSMF075/60-2 max height 0.95 mm. Round to 1.0 with margin.
-    "Fuse:Fuse_1812_4532Metric": 1.0,
+    # F1 polyfuse — see "oas:Fuse_1812L_4532Metric" in the OAS-internal
+    # block below (v0.42 moved it off the KiCad stock Fuse_* land).
     # ---- Radial THT electrolytics (the v0.26 audit-driven entries) ----
     "Capacitor_THT:CP_Radial_D6.3mm_P2.50mm": 11.2,
     "Capacitor_THT:CP_Radial_D8.0mm_P3.50mm": 12.5,
@@ -698,6 +696,10 @@ FOOTPRINT_HEIGHT: dict[str, float] = {
     "Button_Switch_THT:SW_Tactile_SPST_Angled_PTS645Vx39-2LFS": 7.5,
     # ---- OAS-internal footprints ----
     "oas:SK6812-SIDE": 1.6,
+    # F1 PTC fuse — Littelfuse 1812L075/33DR, 1812 body, datasheet max
+    # thickness ~1.1 mm. Custom land (oas:Fuse_1812L_4532Metric); v0.42
+    # replaced the generic KiCad stock 1812 fuse land — see Deviation budget.
+    "oas:Fuse_1812L_4532Metric": 1.1,
     "oas:MountingHole_3.8mm_M3": 0.0,
     "oas:ZipTieHole_3mm_NPTH": 0.0,
     # Mechanical references — daughterboards / SEN66. Excluded from the
@@ -898,11 +900,7 @@ _FOOTPRINT_HALF_EXTENT: dict[str, tuple[float, float]] = {
     # v0.40 post-order: CENKER CKCS5040 body half-extent (5.0 / 2 + ~0.3 mm
     # for end-terminals = 2.8).
     "Inductor_SMD:L_Cenker_CKCS5040": (2.8, 2.6),
-    "Fuse:Fuse_2920_7451Metric": (3.7, 2.6),
-    # Fuse_1812_4532Metric: pad pitch 4.40 mm + pad 1.30 mm wide -> outer pad
-    # edge at +/- 2.85 mm X; pad height 3.40 mm -> +/- 1.70 mm Y. Add 0.15 mm
-    # courtyard margin for safe placement clearance audits.
-    "Fuse:Fuse_1812_4532Metric": (3.0, 1.85),
+    # F1 polyfuse half-extent — see "oas:Fuse_1812L_4532Metric" below.
     # Radial caps — cylindrical body, radius = half-extent both axes
     "Capacitor_THT:CP_Radial_D6.3mm_P2.50mm": (3.2, 3.2),
     "Capacitor_THT:CP_Radial_D8.0mm_P3.50mm": (4.0, 4.0),
@@ -928,6 +926,9 @@ _FOOTPRINT_HALF_EXTENT: dict[str, tuple[float, float]] = {
     # far from any daughterboard shadow, so this only needs to exist.
     "Button_Switch_THT:SW_Tactile_SPST_Angled_PTS645Vx39-2LFS": (4.8, 3.7),
     "oas:SK6812-SIDE": (2.0, 1.0),
+    # F1 PTC fuse — courtyard 5.51 × 3.90 mm (pads at ±2.557 mm X outer
+    # edge, 0.20 mm margin) -> half-extent (2.76, 1.95).
+    "oas:Fuse_1812L_4532Metric": (2.76, 1.95),
     "oas:MountingHole_3.8mm_M3": (1.9, 1.9),
     "oas:ZipTieHole_3mm_NPTH": (1.5, 1.5),
     # Mechanical references (daughterboards / SEN66) — these refs are

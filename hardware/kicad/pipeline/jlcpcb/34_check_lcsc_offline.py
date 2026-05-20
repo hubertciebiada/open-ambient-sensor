@@ -57,7 +57,11 @@ FOOTPRINT_TO_CATEGORY: list[tuple[re.Pattern[str], set[str]]] = [
     (re.compile(r"Diode_SMD:D_S(MA|MB|OD)"),        {"diode", "tvs", "zener"}),
     (re.compile(r"Inductor_SMD:L_\w+_5040"),        {"inductor"}),
     # Polyfuse: jlcparts uses 'Circuit Protection / Resettable Fuses'.
-    (re.compile(r"Fuse:Fuse_\d+_\d+Metric"),        {"resettable", "ptc", "fuse"}),
+    # F1 uses the project-local oas:Fuse_1812L_4532Metric land (v0.42 —
+    # the generic KiCad stock Fuse_*_*Metric land mismatched the
+    # Littelfuse 1812L termination geometry); match by substring so the
+    # `oas:` prefix does not hide F1 from this Lesson-5 class check.
+    (re.compile(r"Fuse_1812L_\d+Metric"),           {"resettable", "ptc", "fuse"}),
     (re.compile(r"Package_TO_SOT_SMD:SOT-23"),      {"mosfet", "transistor"}),
     # Buck regulators: jlcparts uses 'Power Management ICs / DC-DC' or
     # 'Voltage Regulators'.

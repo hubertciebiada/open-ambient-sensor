@@ -106,7 +106,7 @@ Before assigning signals: read the official datasheet of the SPECIFIC model (NOT
 
 ## Status
 
-**v0.40 boards in flight at JLCPCB** (first prototype run, 5 units, full SMT assembly, ordered post-audit-16 — awaiting delivery). Schematic + PCB layout closed. Every placed footprint header uses canonical `<lib>:<name>` from KiCad stock or `oas:<name>` from the project-local library — zero bare names, zero custom geometry for any component covered by a stock library entry.
+**v0.40 boards in flight at JLCPCB** (first prototype run, 5 units, full SMT assembly, ordered post-audit-16 — awaiting delivery). Schematic + PCB layout closed. Every placed footprint header uses canonical `<lib>:<name>` from KiCad stock or `oas:<name>` from the project-local library — zero bare names. Custom `oas:` geometry is used only where a stock entry is absent OR geometrically wrong for the exact ordered part; every such case is enumerated in the "Deviation budget" with a technical reason.
 
 Routing rework is pending (separate task) — the v0.40-post-order footprint refactor invalidated the autoroute snapshot in `oas_routes.py`; `ROUTING_CHUNKS` is currently reduced to `("gnd",)` only. The GND copper pour gives every GND pad a connection; non-GND signal nets show as unconnected pads (warning, not error).
 
@@ -154,7 +154,7 @@ Additional features:
 | Power input | Phoenix Contact MSTBA 2,5/3-G-5,08 3-pos terminal | THT hand-solder | 24 V DC |
 | Reverse-polarity | **AO3401A** P-MOSFET (SOT-23) + BZT52C10S Zener clamp (SOD-323) + 100 k pull-down + 1 k gate series | LCSC C15127 / C19334 / C25803 / C21190 | — |
 | TVS | **Brightking SMBJ24A** (SMB, unidirectional 24 V) | LCSC C87268 | — |
-| PTC fuse | **Littelfuse 1812L075THDR** (750 mA hold, 1.5 A trip, 75 V) | LCSC C262023 | — |
+| PTC fuse | **Littelfuse 1812L075/33DR** (750 mA hold, 1.5 A trip, 33 V) | LCSC C151170 | — |
 | Buck 24 V → 5 V | **TI LM2596S-5.0/NOPB** (async, TO-263-5) + CENKER CKCS5040-33µH/M (C354612) + MDD SS14 (C2480, freewheel) | LCSC C116713 | ~76% η |
 | Buck 5 V → 3.3 V | **TI TPS62933DRLR** (sync, SOT-583-8) + CENKER CKCS5040-2.2µH/M (C354602) + UNI-ROYAL 100 k / 30.9 k FB pair | LCSC C3200405 | ~95% η |
 | 24 V terminal | J1 Phoenix MSTBA 2,5/3-G-5,08 (THT hand-solder) | — | — |
@@ -207,6 +207,7 @@ Every placed footprint is verbatim KiCad stock OR a project-local OAS footprint 
 | H1..H3 | `oas:MountingHole_3.8mm_M3` | Custom Ø3.8 mm NPTH for SZOMK AK-N-94 manufacturer spec (between stock Ø3.2 mm and Ø4.0 mm sizes). |
 | ZT1..ZT4 | `oas:ZipTieHole_3mm_NPTH` | Custom Ø3.0 mm NPTH for SEN66 zip-tie retention. |
 | D11..D22 | `oas:SK6812-SIDE` | OAS-custom 4020 side-emit LED footprint matching OPSCO / Normand SK6812 SIDE-A datasheet pinout (1=DIN, 2=VDD, 3=DOUT, 4=GND — DIFFERENT from KiCad stock `LED:SK6812` which is the PLCC4 5050 with 1=VSS, 2=DIN, 3=VDD, 4=DOUT). |
+| F1 | `oas:Fuse_1812L_4532Metric` | OAS-custom 1812 PTC-fuse land matching the Littelfuse 1812L-series termination geometry (verbatim EasyEDA F1812 / LCSC C151170: pad gap 2.30 mm). KiCad stock `Fuse:Fuse_1812_4532Metric` is a generic IPC chip-fuse land (gap 3.15 mm) — its pads leave the part's pin inner edge 0.43 mm off the copper → JLCPCB DFM "pin inner edge". 3D model: stock `R_1812_4532Metric.step` surrogate. |
 | Q1 | `Package_TO_SOT_SMD:SOT-23` (stock) | Schematic uses project-local `OAS:Q_PMOS_GDS` symbol with numeric pin numbers 1/2/3 (pin NAMES G/S/D for readability). Footprint geometry is verbatim stock. |
 
 No "hand-solder friendly" deviations remain anywhere in the design.
@@ -426,7 +427,7 @@ The boardgen walker lives at `pipeline/generic/01_emit_sources.py` (stage 01 of 
    - `15_lint_typecheck` — `mypy` on `boardgen/` + `pipeline/` (real-bug flags: `--check-untyped-defs --warn-unused-ignores --warn-redundant-casts --warn-unreachable --no-implicit-optional`). Hard-fails if mypy missing.
    - `16_lint_compileall` — `python -m compileall` over `boardgen/` + `pipeline/` + `tools/` (catches syntax errors in modules not on the happy path).
    - `17_lint_kicad_pro` — Lesson 3 enforcement: `board.design_settings.rule_severities` and `erc.rule_severities` MUST be empty in `oas.kicad_pro`. Hard-fails on any suppression entry.
-   - `18_lint_no_hand_pads` — Lesson 1 enforcement: every `gen_*_pcb_footprint` delegates to `_emit_stock_lib_footprint` or parses a `_*_lib_footprint_path` file. Whitelist: 9 documented OAS custom footprints in CLAUDE.md "Deviation budget".
+   - `18_lint_no_hand_pads` — Lesson 1 enforcement: every `gen_*_pcb_footprint` delegates to `_emit_stock_lib_footprint` or parses a `_*_lib_footprint_path` file. Whitelist: 10 documented OAS custom footprints in CLAUDE.md "Deviation budget".
    - `19_check_oas_metadata` — Lesson 10 + Gap H: every `EXTERNAL_MODULES` entry has at least one identifier (`mpn` / `ean` / `material` / `supplier_*`); every `lcsc_mapping` entry matches the expected schema (LCSC# `^C\d+$`, library tier ∈ {Basic, Extended, N/A}, manufacturer + MPN non-empty).
    - `20_export_gerbers` — vendor-neutral raw fab data (Protel gerbers + Excellon drill + drill_map PDFs) written to `hardware/build/gerbers/` (gitignored, intermediate).
    - `22_export_ibom` — InteractiveHtmlBom HTML artefact `hardware/output/oas-ibom.html`. Vendor-neutral; primary use is the JLCPCB Assembly XLS pre-payment cross-check (Lesson 5). Hard-fails if InteractiveHtmlBom submodule or KiCad-bundled python missing.
@@ -526,6 +527,8 @@ The boardgen walker lives at `pipeline/generic/01_emit_sources.py` (stage 01 of 
 ## Changelog summary
 
 Full historical detail lives in `git log --tags`. Highlights of the most recent milestones:
+
+- **v0.42-F1-fuse-fix** (2026-05-20): F1 PTC fuse — corrected both a wrong BOM part and a mismatched footprint, flagged by JLCPCB DFM ("pin inner edge"). (1) **Wrong part (Lesson 5):** `lcsc_mapping.py` carried LCSC `C262023` labelled "Littelfuse 1812L075THDR / 75 V" — but `C262023` is actually **TLC-MSMD050, a 15 V / 500 mA fuse** (confirmed via the EasyEDA component API + the LCSC product page), under-rated for the 24 V rail. Corrected to **`C151170` = Littelfuse 1812L075/33DR** (33 V / 750 mA hold / 1.5 A trip) — verified part identity from two sources before any order. 33 V clears the 24 V SELV rail with margin (the 1812L075 family tops out at 33 V; 60 V needs the larger 2920 body). (2) **Mismatched footprint:** F1 used KiCad stock `Fuse:Fuse_1812_4532Metric`, a generic IPC chip-fuse land (pad gap 3.15 mm). The Littelfuse 1812L termination bands are wide and the part wants a tighter land (gap 2.30 mm) — the stock pads left the part's pin inner edge 0.43 mm off the copper. New project-local footprint **`oas:Fuse_1812L_4532Metric`** — pad geometry is the verbatim EasyEDA F1812 land of `C151170` (the exact data JLCPCB DFM resolves against). 3D model keeps the KiCad-stock `R_1812_4532Metric.step` 1812-chip surrogate. Whitelist in stage 18 grows to 10 documented OAS customs. Schematic value `PTC 750mA / 75V` → `33V`.
 
 - **v0.40-validation-tighten** (2026-05-20): Pipeline grew from 20 to 29 stages — 9 new checks closing real failure modes from the v0.40 lessons-learned. Key additions: `oas.kicad_dru` JLCPCB-tuned custom DRC rules emitted by new boardgen stage 14 (auto-loaded by kicad-cli pcb drc); stage 09 schematic semantic invariants via kicad-skip (I²C pull-ups R5/R6, GPIO 8 pull-up R7, no_connect coverage); stage 15 mypy on pipeline/; stage 16 compileall sanity; stage 17 rule_severities=={} enforcement (Lesson 3); stage 18 hand-coded pad geometry forbid (Lesson 1) with whitelist for 9 documented OAS customs; stage 19 EXTERNAL_MODULES + lcsc_mapping schema lint (Lessons 10 + Gap H); stage 22 InteractiveHtmlBom artefact (vendor-neutral `hardware/output/oas-ibom.html`); stage 34 LCSC# class/value match vs offline jlcparts SQLite cache (Lesson 5 — would have caught the v0.40 R3 C23116 = 806 Ω near-miss before payment); stage 35 oas-jlcpcb.zip content audit (Gap D). 4 new git submodules under `hardware/kicad/third_party/`: kicad-skip, InteractiveHtmlBom, jlcparts, kicad-jlcpcb-dru. Setup helper `tools/setup_jlcparts_cache.py` downloads the upstream 41-volume split-ZIP catalogue and extracts to `.tmp/jlcparts/cache.sqlite3` (manual one-time action, ~2 GiB → ~28 GiB SQLite). Soft-skips removed — every new stage hard-fails on missing dependency with explicit setup instructions. 29/29 PASS in ~185 s.
 

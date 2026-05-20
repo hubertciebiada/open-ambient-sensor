@@ -1224,6 +1224,30 @@ SK6812SIDE_PADS: tuple[tuple[float, float], ...] = (
 # Derived: body-local center X of each pad (pin-1 dot, silk labels).
 SK6812SIDE_PAD_X_OFFSETS = tuple(x for x, _w in SK6812SIDE_PADS)
 
+# Littelfuse 1812L-series PTC fuse — land pattern + body geometry.
+#
+# F1 (the 24 V input PTC) is the Littelfuse 1812L075/33DR (LCSC C151170,
+# 33 V / 750 mA hold / 1.5 A trip). KiCad stock `Fuse:Fuse_1812_4532Metric`
+# is a GENERIC IPC-7351 1812 chip-fuse land (pad pitch 4.275 mm, gap
+# 3.15 mm) — it does NOT match this part's terminal geometry. The
+# Littelfuse 1812L termination bands are wide, so the recommended land is
+# tighter: pad pitch 3.707 mm, gap 2.30 mm. On the generic stock land the
+# part's pin inner edge sat 0.43 mm past the copper -> JLCPCB DFM DANGER
+# "pin inner edge". The numbers below are the verbatim EasyEDA F1812
+# footprint of C151170 (1 EasyEDA unit = 0.254 mm) — the exact data
+# JLCPCB's DFM resolves against. Consumed by oas:Fuse_1812L_4532Metric.
+#
+# (An earlier revision carried LCSC C262023 here, believed to be the
+# Littelfuse part — it is actually TLC-MSMD050, a 15 V / 500 mA fuse,
+# under-rated for the 24 V rail. Caught by the EasyEDA cross-check before
+# any order was placed, per CLAUDE.md Lesson 5.)
+FUSE1812L_BODY_W = 4.55      # mm, body long axis  (X) — EasyEDA gge999 span
+FUSE1812L_BODY_H = 3.24      # mm, body short axis (Y) — EasyEDA gge999 span
+FUSE1812L_BODY_Z = 1.10     # mm, max height above PCB (Littelfuse 1812L)
+FUSE1812L_PAD_W = 1.4067    # mm, pad width  (X) — EasyEDA 5.5381 u
+FUSE1812L_PAD_H = 3.4992    # mm, pad height (Y) — EasyEDA 13.7764 u
+FUSE1812L_PAD_X = 1.8534    # mm, |body-local centre X| of each pad — 7.297 u
+
 
 def _led_ring_position(index: int) -> tuple[float, float, float]:
     """Return (PCB_x, PCB_y, kicad_rotation_deg) for the i-th LED on the ring.

@@ -260,23 +260,27 @@ LCSC_MAPPING = {
             "Pin order 1=G, 2=S, 3=D (same as PMV65XP — drop-in)."
         ),
     },
-    ("PTC 750mA / 75V", "Fuse:Fuse_1812_4532Metric"): {
-        "lcsc": "C262023",
+    ("PTC 750mA / 33V", "oas:Fuse_1812L_4532Metric"): {
+        "lcsc": "C151170",
         "manufacturer": "Littelfuse",
-        "mpn": "1812L075THDR",
+        "mpn": "1812L075/33DR",
         "library": "Extended",
-        "stock": "VERIFY-LCSC",
-        "datasheet": "https://www.lcsc.com/datasheet/C262023.pdf",
+        "stock": ">12k",
+        "datasheet": "https://www.lcsc.com/datasheet/C151170.pdf",
         "notes": (
-            "F1 polyfuse 75V SMD 1812. Downsized from 2920L075/60MR (C207083) to "
-            "1812 in v0.41 so the 3D model can use KiCad stock "
-            "`Resistor_SMD.3dshapes/R_1812_4532Metric.step` (CC-BY-SA 4.0 + Design "
-            "Exception, bundled with KiCad, commitable to public repo). 1812 body "
-            "(4.5 x 3.2 x 0.6 mm) is dimensionally identical to a 1812 chip "
-            "resistor, so the resistor STEP renders correctly. Electrically "
-            "equivalent: 0.75A hold / 1.5A trip / 75V max (>= original 60V). "
-            "VERIFY LCSC stock + LCSC# before submitting to JLCPCB Assembly Order; "
-            "alternative: Bourns MF-MSMF075/60-2 (60V/0.75A, also 1812)."
+            "F1 input PTC polyfuse, 1812 SMD. Littelfuse 1812L075/33DR: 33 V, "
+            "0.75 A hold / 1.5 A trip. 33 V gives comfortable margin on the 24 V "
+            "SELV rail (input transients clamped by D1 SMBJ24A TVS); the 1812L075 "
+            "family tops out at 33 V — 60 V needs the larger 2920 body. "
+            "v0.42 (2026-05-20) CORRECTION: the previous entry carried LCSC "
+            "C262023 labelled 'Littelfuse 1812L075THDR' — but C262023 is actually "
+            "TLC-MSMD050, a 15 V / 500 mA fuse (verified via EasyEDA + LCSC), "
+            "under-rated for the 24 V rail. Caught by the pre-order cross-check "
+            "per Lesson 5. Footprint is project-local oas:Fuse_1812L_4532Metric: "
+            "KiCad stock Fuse_1812_4532Metric is a generic IPC land (pad gap "
+            "3.15 mm) that mismatched this part's terminal geometry (gap "
+            "2.30 mm) -> JLCPCB DFM 'pin inner edge'. 3D model: KiCad stock "
+            "`Resistor_SMD.3dshapes/R_1812_4532Metric.step` surrogate."
         ),
     },
     ("SK6812-SIDE", "oas:SK6812-SIDE"): {

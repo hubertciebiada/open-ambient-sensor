@@ -1,8 +1,10 @@
-"""boardgen stage 01: write the 7 custom .kicad_mod files.
+"""boardgen stage 01: write the 8 custom .kicad_mod files.
 
 These project-local footprints live under libraries/oas.pretty/ and
-cover mechanical references + 4020 side-emit SK6812 LED that has no
-KiCad stock equivalent.
+cover mechanical references + the 4020 side-emit SK6812 LED + the
+Littelfuse-1812L PTC fuse land — none have a usable KiCad stock
+equivalent (the SK6812 SIDE package and the 1812L termination geometry
+are both absent from / mismatched by the stock libraries).
 """
 from __future__ import annotations
 
@@ -17,6 +19,7 @@ from boardgen._footprints import (
     gen_ziptie_hole_footprint,
     gen_ld2410_mechanical_footprint,
     gen_sk6812_side_footprint,
+    gen_fuse_1812l_footprint,
     gen_daughterboard_mech_lib_file,
 )
 from boardgen._project import (
@@ -77,6 +80,9 @@ def run(ctx) -> None:
     )
     (HERE / "libraries" / "oas.pretty" / "SK6812-SIDE.kicad_mod").write_text(
         gen_sk6812_side_footprint(), encoding="utf-8",
+    )
+    (HERE / "libraries" / "oas.pretty" / "Fuse_1812L_4532Metric.kicad_mod").write_text(
+        gen_fuse_1812l_footprint(), encoding="utf-8",
     )
 
 

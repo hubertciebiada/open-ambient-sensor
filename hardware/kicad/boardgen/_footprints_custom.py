@@ -47,6 +47,8 @@ from boardgen._project import (  # noqa: F401
     SK6812SIDE_BODY_W, SK6812SIDE_BODY_H,
     SK6812SIDE_PAD_HEIGHT, SK6812SIDE_PAD_Y,
     SK6812SIDE_PADS,
+    FUSE1812L_BODY_W, FUSE1812L_BODY_H,
+    FUSE1812L_PAD_W, FUSE1812L_PAD_H, FUSE1812L_PAD_X,
     _led_ring_position, _led_cap_position,
 )
 
@@ -893,6 +895,150 @@ def gen_sk6812_side_footprint() -> str:
         \t)
         """) + pads + textwrap.dedent("""
         \t(model "${KIPRJMOD}/libraries/oas.3dshapes/SK6812-SIDE-A.step"
+        \t\t(offset (xyz 0 0 0))
+        \t\t(scale (xyz 1 1 1))
+        \t\t(rotate (xyz 0 0 0))
+        \t)
+        )
+        """)
+
+
+# -----------------------------------------------------------------------------
+# 1ac) Fuse_1812L_4532Metric — Littelfuse 1812L-series PTC fuse footprint
+# -----------------------------------------------------------------------------
+# Custom land pattern for F1, the 24 V input PTC fuse (Littelfuse
+# 1812L075/33DR, LCSC C151170). KiCad stock `Fuse:Fuse_1812_4532Metric`
+# is a generic IPC-7351 1812 chip-fuse land (pad gap 3.15 mm); the
+# Littelfuse 1812L series has wide termination bands and a tighter
+# recommended land (gap 2.30 mm). On the generic stock land the part's
+# pin inner edge sits 0.43 mm past the copper -> JLCPCB DFM DANGER
+# "pin inner edge".
+#
+# Pad geometry is the verbatim EasyEDA F1812 footprint of C151170 — the
+# exact data JLCPCB's DFM resolves against (1 EasyEDA unit = 0.254 mm):
+# two rect pads 1.4067 × 3.4992 mm at body-local X = ±1.8534 mm.
+#
+# Layers:
+#   F.Cu     — 2 SMD pads
+#   F.Fab    — body outline (4.55 × 3.24 mm) + ${REFERENCE} text
+#   F.SilkS  — 2 short body-edge lines in the inter-pad gap (stock-fuse
+#               style; a full body RECT would run under the pads)
+#   F.CrtYd  — courtyard, 0.20 mm past the pads / body
+# 3D model: KiCad stock `Resistor_SMD.3dshapes/R_1812_4532Metric.step` —
+# the 1812 PTC body is dimensionally a 1812 chip, so the resistor STEP is
+# a 1:1 visual surrogate (bundled with KiCad, CC-BY-SA + Design Exception).
+
+
+def gen_fuse_1812l_footprint() -> str:
+    """Custom Littelfuse-1812L PTC fuse footprint definition (library file)."""
+    body_hw = FUSE1812L_BODY_W / 2.0        # 2.275
+    body_hh = FUSE1812L_BODY_H / 2.0        # 1.62
+    pad_hw = FUSE1812L_PAD_W / 2.0          # 0.70335
+    pad_hh = FUSE1812L_PAD_H / 2.0          # 1.7496
+    pad_outer_x = FUSE1812L_PAD_X + pad_hw  # 2.55675
+    crty_x = max(body_hw, pad_outer_x) + 0.20
+    crty_y = max(body_hh, pad_hh) + 0.20
+    # F.SilkS: two short body-edge lines, confined to the inter-pad gap
+    # (pad inner edge at X = ±1.150) so they never run over copper.
+    silk_x = 0.8
+    silk_y = body_hh + 0.09     # 1.71 — snug above / below the body
+    pad_blocks = []
+    for pin_num, sign in ((1, -1.0), (2, +1.0)):
+        pad_blocks.append(textwrap.dedent(f"""\
+            \t(pad "{pin_num}" smd rect
+            \t\t(at {fmt(sign * FUSE1812L_PAD_X)} 0)
+            \t\t(size {fmt(FUSE1812L_PAD_W)} {fmt(FUSE1812L_PAD_H)})
+            \t\t(layers "F.Cu" "F.Mask" "F.Paste")
+            \t\t(uuid "{U(f'fuse-1812l:fp:pad-{pin_num}')}")
+            \t)"""))
+    pads = "\n".join(pad_blocks)
+    return textwrap.dedent(f"""\
+        (footprint "Fuse_1812L_4532Metric"
+        \t(version {PCB_VERSION})
+        \t(generator "pcbnew")
+        \t(generator_version "{GEN_VERSION}")
+        \t(layer "F.Cu")
+        \t(descr "PTC resettable fuse, 1812 (4532 Metric) SMD. Land matched to the Littelfuse 1812L-series termination geometry (EasyEDA F1812 / LCSC C151170) — pad gap 2.30 mm, tighter than the generic IPC Fuse_1812_4532Metric land (3.15 mm).")
+        \t(tags "fuse ptc resettable polyfuse 1812 littelfuse")
+        \t(attr smd)
+        \t(property "Reference" "REF**"
+        \t\t(at 0 {fmt(-(body_hh + 1.0))} 0)
+        \t\t(unlocked yes)
+        \t\t(layer "F.SilkS")
+        \t\t(hide yes)
+        \t\t(uuid "{U('fuse-1812l:fp:prop-ref')}")
+        \t\t(effects (font (size 1 1) (thickness 0.15)))
+        \t)
+        \t(property "Value" "Fuse_1812L_4532Metric"
+        \t\t(at 0 {fmt(body_hh + 1.0)} 0)
+        \t\t(unlocked yes)
+        \t\t(layer "F.Fab")
+        \t\t(hide yes)
+        \t\t(uuid "{U('fuse-1812l:fp:prop-val')}")
+        \t\t(effects (font (size 1 1) (thickness 0.15)))
+        \t)
+        \t(property "Footprint" ""
+        \t\t(at 0 0 0)
+        \t\t(unlocked yes)
+        \t\t(layer "F.Fab")
+        \t\t(hide yes)
+        \t\t(uuid "{U('fuse-1812l:fp:prop-fp')}")
+        \t\t(effects (font (size 1.27 1.27)))
+        \t)
+        \t(property "Datasheet" "https://www.lcsc.com/datasheet/C151170.pdf"
+        \t\t(at 0 0 0)
+        \t\t(unlocked yes)
+        \t\t(layer "F.Fab")
+        \t\t(hide yes)
+        \t\t(uuid "{U('fuse-1812l:fp:prop-ds')}")
+        \t\t(effects (font (size 1.27 1.27)))
+        \t)
+        \t(property "Description" "Littelfuse 1812L075/33DR PTC resettable fuse — 33 V, 750 mA hold / 1.5 A trip, 1812 SMD."
+        \t\t(at 0 0 0)
+        \t\t(unlocked yes)
+        \t\t(layer "F.Fab")
+        \t\t(hide yes)
+        \t\t(uuid "{U('fuse-1812l:fp:prop-desc')}")
+        \t\t(effects (font (size 1.27 1.27)))
+        \t)
+        \t(fp_rect
+        \t\t(start {fmt(-body_hw)} {fmt(-body_hh)})
+        \t\t(end {fmt(body_hw)} {fmt(body_hh)})
+        \t\t(stroke (width 0.1) (type solid))
+        \t\t(fill no)
+        \t\t(layer "F.Fab")
+        \t\t(uuid "{U('fuse-1812l:fp:fab-body')}")
+        \t)
+        \t(fp_text user "${{REFERENCE}}"
+        \t\t(at 0 0 0)
+        \t\t(layer "F.Fab")
+        \t\t(uuid "{U('fuse-1812l:fp:fab-ref')}")
+        \t\t(effects (font (size 1 1) (thickness 0.15)))
+        \t)
+        \t(fp_rect
+        \t\t(start {fmt(-crty_x)} {fmt(-crty_y)})
+        \t\t(end {fmt(crty_x)} {fmt(crty_y)})
+        \t\t(stroke (width 0.05) (type solid))
+        \t\t(fill no)
+        \t\t(layer "F.CrtYd")
+        \t\t(uuid "{U('fuse-1812l:fp:crtyd')}")
+        \t)
+        \t(fp_line
+        \t\t(start {fmt(-silk_x)} {fmt(-silk_y)})
+        \t\t(end {fmt(silk_x)} {fmt(-silk_y)})
+        \t\t(stroke (width 0.12) (type solid))
+        \t\t(layer "F.SilkS")
+        \t\t(uuid "{U('fuse-1812l:fp:silk-top')}")
+        \t)
+        \t(fp_line
+        \t\t(start {fmt(-silk_x)} {fmt(silk_y)})
+        \t\t(end {fmt(silk_x)} {fmt(silk_y)})
+        \t\t(stroke (width 0.12) (type solid))
+        \t\t(layer "F.SilkS")
+        \t\t(uuid "{U('fuse-1812l:fp:silk-bot')}")
+        \t)
+        """) + pads + textwrap.dedent("""
+        \t(model "${KICAD10_3DMODEL_DIR}/Resistor_SMD.3dshapes/R_1812_4532Metric.step"
         \t\t(offset (xyz 0 0 0))
         \t\t(scale (xyz 1 1 1))
         \t\t(rotate (xyz 0 0 0))

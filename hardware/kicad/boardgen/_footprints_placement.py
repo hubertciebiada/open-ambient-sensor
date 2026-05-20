@@ -81,7 +81,7 @@ from boardgen._footprints_stock import (
     gen_diode_smb_pcb_footprint,
     gen_diode_sod323_pcb_footprint,
     gen_inductor_smd_5x5_pcb_footprint,
-    gen_polyfuse_smd_pcb_footprint,
+    gen_fuse_1812l_pcb_footprint,
     gen_capacitor_polarized_radial_pcb_footprint,
     gen_sot23_3pin_pcb_footprint,
     gen_to263_5_pcb_footprint,
@@ -448,18 +448,20 @@ def gen_power_pcb_footprints() -> str:
         uuid_tag="d3-zener",
         descr="10 V Zener clamp on Q1 gate-source to keep |Vgs| ≤ 10 V (v0.37 — was 18V pre-fix; AO3401A Vgs_max=±12V).",
     ))
-    # F1 — polyfuse. v0.41 downsized 2920 -> 1812 (Littelfuse 1812L075THDR)
-    # so the 3D model can be sourced from KiCad stock under permissive
-    # CC-BY-SA + Design Exception (see gen_polyfuse_smd_pcb_footprint
-    # docstring). 1812 body 4.5 x 3.2 mm with pad pitch 4.40 mm vs old
-    # 2920 body 7.4 x 5.1 mm with pad pitch 6.775 mm — new courtyard
-    # ~6.0 x 4.0 mm centered at (+15, +25) leaves comfortable clearance
-    # vs both J1 east edge (+9.12) and SEN66 west courtyard (+23.50).
-    parts.append(gen_polyfuse_smd_pcb_footprint(
+    # F1 — PTC polyfuse, Littelfuse 1812L075/33DR (LCSC C151170, 33 V /
+    # 750 mA hold / 1.5 A trip, 1812 SMD). v0.42 land pattern moved off
+    # KiCad stock `Fuse:Fuse_1812_4532Metric` to the project-local
+    # `oas:Fuse_1812L_4532Metric` — the stock generic IPC land (pad gap
+    # 3.15 mm) mismatched this part's terminal geometry (gap 2.30 mm),
+    # tripping JLCPCB DFM "pin inner edge". See gen_fuse_1812l_pcb_footprint.
+    # Body 4.55 x 3.24 mm, courtyard ~5.5 x 3.9 mm centered at (+15, +25)
+    # leaves comfortable clearance vs J1 east edge (+9.12) and SEN66 west
+    # courtyard (+23.50).
+    parts.append(gen_fuse_1812l_pcb_footprint(
         x=+15, y=+25, rotation=0,
-        reference="F1", value="1812L075THDR",
+        reference="F1", value="1812L075/33DR",
         uuid_tag="f1-ptc",
-        descr="PTC polyfuse 750 mA hold / 1.5 A trip / 75 V (Littelfuse 1812L075THDR, 1812 SMD).",
+        descr="PTC polyfuse 750 mA hold / 1.5 A trip / 33 V (Littelfuse 1812L075/33DR, LCSC C151170, 1812 SMD).",
     ))
     # Pre-routing rework 3: R1 / R4 moved into the Q1 cluster south of
     # F1. Row Y=+33 (3 mm south of Q1/D3 row at Y=+30). R1 below Q1,

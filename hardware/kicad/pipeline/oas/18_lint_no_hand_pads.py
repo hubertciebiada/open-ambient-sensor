@@ -48,6 +48,11 @@ WHITELIST_FUNCTIONS = {
     # D11..D22 (oas:SK6812-SIDE) — 4020 side-emit LED, datasheet pinout
     # differs from KiCad's PLCC4 5050. CLAUDE.md Deviation budget #4.
     "gen_sk6812_side_pcb_footprint",
+    # F1 (oas:Fuse_1812L_4532Metric) — Littelfuse 1812L-series PTC fuse
+    # land. KiCad stock Fuse_1812_4532Metric is a generic IPC chip-fuse
+    # land that mismatched the 1812L termination geometry (JLCPCB DFM
+    # "pin inner edge"). CLAUDE.md Deviation budget.
+    "gen_fuse_1812l_pcb_footprint",
     # OAS-version-line silk text emitter (no pads).
     "gen_oas_version_silk_pcb_footprint",
     # Dead-code helper kept for historical reference (no caller — audit-16

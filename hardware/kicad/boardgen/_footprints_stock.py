@@ -53,6 +53,8 @@ from boardgen._project import (  # noqa: F401
     SK6812SIDE_BODY_W, SK6812SIDE_BODY_H,
     SK6812SIDE_PAD_HEIGHT, SK6812SIDE_PAD_Y,
     SK6812SIDE_PAD_X_OFFSETS, SK6812SIDE_PADS,
+    FUSE1812L_BODY_W, FUSE1812L_BODY_H,
+    FUSE1812L_PAD_W, FUSE1812L_PAD_H, FUSE1812L_PAD_X,
     _led_ring_position, _led_cap_position,
 )
 
@@ -348,14 +350,11 @@ _L_CENKER_CKCS5040_LIB_FOOTPRINT_PATH = (
     _kicad_install_path() / "footprints" / "Inductor_SMD.pretty"
     / "L_Cenker_CKCS5040.kicad_mod"
 )
-_FUSE_2920_LIB_FOOTPRINT_PATH = (
-    _kicad_install_path() / "footprints" / "Fuse.pretty"
-    / "Fuse_2920_7451Metric.kicad_mod"
-)
-_FUSE_1812_LIB_FOOTPRINT_PATH = (
-    _kicad_install_path() / "footprints" / "Fuse.pretty"
-    / "Fuse_1812_4532Metric.kicad_mod"
-)
+# v0.42 (2026-05-20): the KiCad stock `Fuse_*_*Metric` footprint paths
+# were removed. F1 (the only fuse on the board) now uses the project-local
+# `oas:Fuse_1812L_4532Metric` land — KiCad's generic IPC chip-fuse land
+# mismatched the Littelfuse 1812L termination geometry. See
+# `gen_fuse_1812l_pcb_footprint` and CLAUDE.md Deviation budget.
 # v0.40 post-order: SOT-23 for Q1 P-MOSFET. Stock layout has pads in an
 # "E" pattern (pads 1, 2 on -X column at Y=±0.95; pad 3 on +X at Y=0),
 # size 1.475 × 0.6 mm. The previous custom geometry rotated the pattern
@@ -2157,40 +2156,132 @@ def gen_inductor_smd_5x5_pcb_footprint(*, x: float, y: float, rotation: int,
     )
 
 
-def gen_polyfuse_smd_pcb_footprint(*, x: float, y: float, rotation: int,
-                                    reference: str, value: str, uuid_tag: str,
-                                    descr: str = "Polyfuse SMD 1812",
-                                    hide_ref: bool = True) -> str:
-    """SMD PTC polyfuse — 1812 size for 60-75 V / 750 mA hold parts.
+def gen_fuse_1812l_pcb_footprint(*, x: float, y: float, rotation: int,
+                                  reference: str, value: str, uuid_tag: str,
+                                  descr: str = "PTC polyfuse 1812 (Littelfuse 1812L series).",
+                                  hide_ref: bool = True) -> str:
+    """Emit a placed Littelfuse-1812L PTC fuse footprint instance at PCB (x, y).
 
-    v0.41 (2026-05-19): downsized from 2920 to 1812 to use a 3D STEP model
-    permissively-licensed (CC-BY-SA 4.0 + Design Exception) and bundled
-    with KiCad. KiCad 10 ships `Fuse:Fuse_1812_4532Metric.kicad_mod`
-    (pitch 4.40 mm, pad 1.30 × 3.40 mm), but the matching STEP
-    `Fuse.3dshapes/Fuse_1812_4532Metric.step` is ABSENT from the install.
-    Workaround: override the model path to `Resistor_SMD.3dshapes/
-    R_1812_4532Metric.step` — the 1812 polyfuse body has identical
-    physical dimensions (4.5 x 3.2 x 0.6 mm) to a 1812 chip resistor,
-    so the resistor STEP is a 1:1 visual surrogate, and it ships in
-    every KiCad install under the same CC-BY-SA 4.0 + Design Exception
-    license that makes it commitable to public open-source repositories
-    (this OAS repo). No external STEP download / license check needed.
+    Embeds the same body content as `gen_fuse_1812l_footprint()` (the
+    library file body) directly into the PCB file so opening pcbnew
+    without the project-local library still renders the placement.
 
-    Candidate parts: Littelfuse 1812L075THDR (75 V / 0.75 A hold), Bourns
-    MF-MSMF075/60-2 (60 V / 0.75 A hold). Both 1812 SMD, both
-    electrically interchangeable with the previous 2920L075/60MR."""
-    return _emit_stock_lib_footprint(
-        src_path=_FUSE_1812_LIB_FOOTPRINT_PATH,
-        lib_nickname="Fuse",
-        reference=reference, value=value,
-        datasheet="", description=descr,
-        x=x, y=y, rotation=rotation,
-        uuid_tag=uuid_tag,
-        ref_offset_x=0.0, ref_offset_y=-2.5,
-        val_offset_x=0.0, val_offset_y=2.5,
-        hide_ref=hide_ref, hide_value=True,
-        model_override="${KICAD10_3DMODEL_DIR}/Resistor_SMD.3dshapes/R_1812_4532Metric.step",
-    )
+    v0.42 (2026-05-20): replaces the former `gen_polyfuse_smd_pcb_footprint`
+    which delegated to KiCad stock `Fuse:Fuse_1812_4532Metric`. That stock
+    land is a GENERIC IPC 1812 chip-fuse pattern (pad gap 3.15 mm) and
+    does NOT match the Littelfuse 1812L termination geometry (gap
+    2.30 mm) — JLCPCB DFM flagged the part's pin inner edge 0.43 mm past
+    the copper ("pin inner edge"). This custom land is the verbatim
+    EasyEDA F1812 footprint of LCSC C151170. See oas:Fuse_1812L_4532Metric
+    / CLAUDE.md Deviation budget. 3D model: KiCad stock
+    `Resistor_SMD.3dshapes/R_1812_4532Metric.step` — the 1812 PTC body is
+    dimensionally a 1812 chip, so the resistor STEP is a 1:1 visual
+    surrogate (CC-BY-SA 4.0 + Design Exception, bundled with KiCad).
+    """
+    body_hw = FUSE1812L_BODY_W / 2.0
+    body_hh = FUSE1812L_BODY_H / 2.0
+    pad_hw = FUSE1812L_PAD_W / 2.0
+    pad_hh = FUSE1812L_PAD_H / 2.0
+    pad_outer_x = FUSE1812L_PAD_X + pad_hw
+    crty_x = max(body_hw, pad_outer_x) + 0.20
+    crty_y = max(body_hh, pad_hh) + 0.20
+    silk_x = 0.8
+    silk_y = body_hh + 0.09
+    ref_hide_line = "\n\t\t\t(hide yes)" if hide_ref else ""
+    rot_clause = f" {rotation}" if rotation != 0 else ""
+    pad_blocks = []
+    for pin_num, sign in ((1, -1.0), (2, +1.0)):
+        pad_blocks.append(textwrap.dedent(f"""\
+            \t\t(pad "{pin_num}" smd rect
+            \t\t\t(at {fmt(sign * FUSE1812L_PAD_X)} 0{rot_clause})
+            \t\t\t(size {fmt(FUSE1812L_PAD_W)} {fmt(FUSE1812L_PAD_H)})
+            \t\t\t(layers "F.Cu" "F.Mask" "F.Paste")
+            \t\t\t(uuid "{U(f'fp-pad:{uuid_tag}:{pin_num}')}")
+            \t\t)"""))
+    pads = "\n".join(pad_blocks)
+    return textwrap.dedent(f"""\
+        \t(footprint "oas:Fuse_1812L_4532Metric"
+        \t\t(layer "F.Cu")
+        \t\t(uuid "{U('fp-inst:' + uuid_tag)}")
+        \t\t(at {fx(x)} {fy(y)} {rotation})
+        \t\t(descr "{descr}")
+        \t\t(attr smd)
+        \t\t(property "Reference" "{reference}"
+        \t\t\t(at 0 {fmt(-(body_hh + 1.0))} {rotation})
+        \t\t\t(layer "F.SilkS"){ref_hide_line}
+        \t\t\t(uuid "{U('fp-prop-ref:' + uuid_tag)}")
+        \t\t\t(effects (font (size 1.0 1.0) (thickness 0.15)))
+        \t\t)
+        \t\t(property "Value" "{value}"
+        \t\t\t(at 0 {fmt(body_hh + 1.0)} {rotation})
+        \t\t\t(layer "F.Fab")
+        \t\t\t(hide yes)
+        \t\t\t(uuid "{U('fp-prop-val:' + uuid_tag)}")
+        \t\t\t(effects (font (size 1.0 1.0) (thickness 0.15)))
+        \t\t)
+        \t\t(property "Footprint" "oas:Fuse_1812L_4532Metric"
+        \t\t\t(at 0 0 0)
+        \t\t\t(layer "F.Fab")
+        \t\t\t(hide yes)
+        \t\t\t(uuid "{U('fp-prop-fp:' + uuid_tag)}")
+        \t\t\t(effects (font (size 1.27 1.27)))
+        \t\t)
+        \t\t(property "Datasheet" "https://www.lcsc.com/datasheet/C151170.pdf"
+        \t\t\t(at 0 0 0)
+        \t\t\t(layer "F.Fab")
+        \t\t\t(hide yes)
+        \t\t\t(uuid "{U('fp-prop-ds:' + uuid_tag)}")
+        \t\t\t(effects (font (size 1.27 1.27)))
+        \t\t)
+        \t\t(property "Description" "Littelfuse 1812L075/33DR PTC resettable fuse — 33 V, 750 mA hold / 1.5 A trip, 1812 SMD."
+        \t\t\t(at 0 0 0)
+        \t\t\t(layer "F.Fab")
+        \t\t\t(hide yes)
+        \t\t\t(uuid "{U('fp-prop-desc:' + uuid_tag)}")
+        \t\t\t(effects (font (size 1.27 1.27)))
+        \t\t)
+        \t\t(fp_rect
+        \t\t\t(start {fmt(-body_hw)} {fmt(-body_hh)})
+        \t\t\t(end {fmt(body_hw)} {fmt(body_hh)})
+        \t\t\t(stroke (width 0.1) (type solid))
+        \t\t\t(fill no)
+        \t\t\t(layer "F.Fab")
+        \t\t\t(uuid "{U('fp-fab-body:' + uuid_tag)}")
+        \t\t)
+        \t\t(fp_text user "{reference}"
+        \t\t\t(at 0 0 {rotation})
+        \t\t\t(layer "F.Fab")
+        \t\t\t(uuid "{U('fp-fab-ref:' + uuid_tag)}")
+        \t\t\t(effects (font (size 1 1) (thickness 0.15)))
+        \t\t)
+        \t\t(fp_rect
+        \t\t\t(start {fmt(-crty_x)} {fmt(-crty_y)})
+        \t\t\t(end {fmt(crty_x)} {fmt(crty_y)})
+        \t\t\t(stroke (width 0.05) (type solid))
+        \t\t\t(fill no)
+        \t\t\t(layer "F.CrtYd")
+        \t\t\t(uuid "{U('fp-crtyd:' + uuid_tag)}")
+        \t\t)
+        \t\t(fp_line
+        \t\t\t(start {fmt(-silk_x)} {fmt(-silk_y)})
+        \t\t\t(end {fmt(silk_x)} {fmt(-silk_y)})
+        \t\t\t(stroke (width 0.12) (type solid))
+        \t\t\t(layer "F.SilkS")
+        \t\t\t(uuid "{U('fp-silk-top:' + uuid_tag)}")
+        \t\t)
+        \t\t(fp_line
+        \t\t\t(start {fmt(-silk_x)} {fmt(silk_y)})
+        \t\t\t(end {fmt(silk_x)} {fmt(silk_y)})
+        \t\t\t(stroke (width 0.12) (type solid))
+        \t\t\t(layer "F.SilkS")
+        \t\t\t(uuid "{U('fp-silk-bot:' + uuid_tag)}")
+        \t\t)
+        """) + pads + "\n" + textwrap.dedent("""\
+        \t\t(model "${KICAD10_3DMODEL_DIR}/Resistor_SMD.3dshapes/R_1812_4532Metric.step"
+        \t\t\t(offset (xyz 0 0 0))
+        \t\t\t(scale (xyz 1 1 1))
+        \t\t\t(rotate (xyz 0 0 0))
+        \t\t)""") + "\n\t)"
 
 
 def gen_capacitor_polarized_radial_pcb_footprint(*, x: float, y: float, rotation: int,

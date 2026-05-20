@@ -3671,7 +3671,7 @@
 			(justify left)
 		)
 	)
-	(property "Value" "PTC 750mA / 75V"
+	(property "Value" "PTC 750mA / 33V"
 		(at 88.9 67.31 0)
 		(effects
 			(font
@@ -3680,7 +3680,7 @@
 			(justify left)
 		)
 	)
-	(property "Footprint" "Fuse:Fuse_1812_4532Metric"
+	(property "Footprint" "oas:Fuse_1812L_4532Metric"
 		(at 85.09 66.04 0)
 		(effects
 			(font
@@ -3716,7 +3716,7 @@
 				(hide yes)
 			)
 		)
-		(property "MPN" "1812L075THDR"
+		(property "MPN" "1812L075/33DR"
 			(at 0 0 0)
 			(effects
 				(font
@@ -3725,7 +3725,7 @@
 				(hide yes)
 			)
 		)
-		(property "LCSC" "C262023"
+		(property "LCSC" "C151170"
 			(at 0 0 0)
 			(effects
 				(font

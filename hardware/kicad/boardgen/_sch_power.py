@@ -167,15 +167,15 @@ def gen_power_sch() -> str:
     Q1_S_X = Q1_X + 2.54     # 115.57
     Q1_S_Y = Q1_Y + 5.08     # 93.98 — matches PIN1_Y; same horizontal row as J1.1
 
-    # ----- F1: PTC polyfuse (Bourns MF-RHT075/60-2 candidate), angle=0 -----
+    # ----- F1: PTC polyfuse (Littelfuse 1812L075/33DR), angle=0 -----
     # In series between Q1.D and the +24V power flag.
     # With angle=0:
     #   F1.1 (top)    = (F1_X, F1_Y - 3.81)
     #   F1.2 (bottom) = (F1_X, F1_Y + 3.81)
     # Provides resettable overcurrent protection on the protected +24V rail.
     # 750 mA hold current gives ~2x margin over the ~350 mA combined load
-    # while still well below the 1.5 A trip threshold. 60V rating provides
-    # comfortable margin over the SMBJ24A surge-clamp ceiling (38.9V).
+    # while still well below the 1.5 A trip threshold. 33V rating gives
+    # comfortable margin over the 24V SELV rail (D1 SMBJ24A clamps surges).
     F1_X = Q1_D_X            # 115.57 — same vertical column as Q1.D
     F1_Y = 76.2 + PWR_Y_SHIFT
     F1_TOP_Y = F1_Y - 3.81   # 72.39
@@ -600,18 +600,19 @@ def gen_power_sch() -> str:
         reference="Q1", value="AO3401A", uuid_tag="q1",
     ))
 
-    # ----- F1: PTC polyfuse, 750 mA hold / 60 V -----
-    # Candidate part: Bourns MF-RHT075/60-2 (750 mA hold, 1.5 A trip,
-    # 60 V max, 1812 SMD). The 60V rating provides comfortable margin
-    # over the SMBJ24A surge-clamp ceiling (38.9V) — critical if Q1
-    # fails short and the clamp voltage appears across F1. The 750 mA
-    # hold current widens the safety margin against C1 (100 uF)
-    # cold-start inrush while staying within the ~350 mA combined
-    # load budget. Final footprint (1812 SMD) TBD in PCB-layout chunk;
-    # verify JLCPCB stock on order day.
+    # ----- F1: PTC polyfuse, 750 mA hold / 33 V -----
+    # Part: Littelfuse 1812L075/33DR (750 mA hold, 1.5 A trip, 33 V max,
+    # 1812 SMD, LCSC C151170). 33 V gives comfortable margin over the
+    # 24 V SELV rail; input surges are clamped by the D1 SMBJ24A TVS
+    # (the 1812L075 family tops out at 33 V — a 60 V rating needs the
+    # larger 2920 body). The 750 mA hold current widens the safety
+    # margin against C1 (100 uF) cold-start inrush while staying within
+    # the ~350 mA combined load budget. v0.42: the earlier LCSC
+    # C262023 was a SKU error (TLC-MSMD050, 15 V / 500 mA — under-rated
+    # for 24 V); corrected to C151170 — see lcsc_mapping.py notes.
     parts.append(_sch_polyfuse(
         x=F1_X, y=F1_Y, angle=0,
-        reference="F1", value="PTC 750mA / 75V", uuid_tag="f1",
+        reference="F1", value="PTC 750mA / 33V", uuid_tag="f1",
     ))
 
     # ----- R1: 100 kΩ gate-GND pulldown -----
