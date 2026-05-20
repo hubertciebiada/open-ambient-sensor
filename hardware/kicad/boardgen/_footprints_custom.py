@@ -18,7 +18,6 @@ from pathlib import Path
 from boardgen._common import (  # noqa: F401
     U, fmt,
     PCB_VERSION, GEN_VERSION,
-    OAS_NAME_SHORT, OAS_VERSION_LINE, OAS_REPO_URL,
 )
 from boardgen._project import (  # noqa: F401
     fx, fy,

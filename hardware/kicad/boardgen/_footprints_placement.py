@@ -19,7 +19,7 @@ from pathlib import Path
 from boardgen._common import (  # noqa: F401
     U, fmt,
     PCB_VERSION, GEN_VERSION,
-    OAS_NAME_SHORT, OAS_VERSION_LINE, OAS_REPO_URL,
+    OAS_NAME_SHORT, OAS_VERSION_LINE,
 )
 from boardgen._project import (  # noqa: F401
     fx, fy,
@@ -44,6 +44,7 @@ from boardgen._project import (  # noqa: F401
     J1_PCB_X, J1_PCB_Y, J1_PCB_ROTATION,
     J9_PCB_X, J9_PCB_Y, J9_PCB_ROTATION,
     J10_PCB_X, J10_PCB_Y, J10_PCB_ROTATION,
+    J1_PIN_MAP, J2_PIN_MAP, J10_PIN_MAP,
     SW1_PCB_X, SW1_PCB_Y, SW1_PCB_ROTATION,
     LED_RING_COUNT, LED_RING_THETA_START_DEG, LED_RING_THETA_STEP_DEG,
     LED_RING_SKIP_INDICES,
@@ -85,6 +86,23 @@ from boardgen._footprints_stock import (
     gen_sot583_pcb_footprint,
     gen_pinheader_6_recovery_pcb_footprint,
 )
+
+
+# -----------------------------------------------------------------------------
+# 1a) Footprint-local → PCB coordinate transform
+# -----------------------------------------------------------------------------
+def _rotate_local(lx: float, ly: float, rotation: float) -> tuple[float, float]:
+    """Rotate a footprint-local (lx, ly) delta by `rotation` degrees.
+
+    Uses the SAME matrix KiCad applies to a footprint placed `(at x y rot)`
+    — identical to the convention in `_sen66_local_to_pcb` /
+    `_ld2410_local_to_pcb`. Returns the PCB-space delta to add to the
+    footprint origin, so a pad / silk position can be DERIVED from the
+    placement instead of being hand-typed per pin.
+    """
+    a = math.radians(rotation)
+    cos_a, sin_a = math.cos(a), math.sin(a)
+    return (cos_a * lx + sin_a * ly, -sin_a * lx + cos_a * ly)
 
 
 # -----------------------------------------------------------------------------
@@ -1044,6 +1062,34 @@ def gen_silk_labels() -> str:
             \t\t)
             \t)""")
 
+    def _pin_labels(*, origin_x: float, origin_y: float, rotation: float,
+                    pin1_local: tuple[float, float],
+                    step_local: tuple[float, float],
+                    pin_map: dict[int, str],
+                    label_offset: tuple[float, float],
+                    layer: str, tag: str,
+                    size: float = 0.8, angle: float = 0.0) -> list[str]:
+        """Emit one `gr_text` per connector pin.
+
+        Every pad's PCB position is DERIVED from the footprint placement
+        (origin + rotation) via `_rotate_local`, so a per-pin label can
+        never disagree with where the pad physically lands — no hand-typed
+        coordinates. `pin1_local` is pad 1 in footprint-local mm,
+        `step_local` the local delta to the next pad; `label_offset` is a
+        PCB-space nudge applied to every label to clear the pad row.
+        """
+        out: list[str] = []
+        for pin, text in sorted(pin_map.items()):
+            lx = pin1_local[0] + (pin - 1) * step_local[0]
+            ly = pin1_local[1] + (pin - 1) * step_local[1]
+            rdx, rdy = _rotate_local(lx, ly, rotation)
+            out.append(_silk(text,
+                             origin_x + rdx + label_offset[0],
+                             origin_y + rdy + label_offset[1],
+                             f"{tag}-p{pin}", size=size, layer=layer,
+                             angle=angle))
+        return out
+
     parts = []
     # SEN66 body label. With v0.9 anchor (23.5, 22), body shadow occupies
     # PCB X=23.5..49.1, Y=-33.2..22. Place the label INSIDE the body in
@@ -1053,31 +1099,20 @@ def gen_silk_labels() -> str:
     # Centred horizontally on body mid-X = anchor_x + SEN66_BODY_Y/2 = 36.3.
     body_mid_x = SEN66_ANCHOR_X + SEN66_BODY_Y / 2
     parts.append(_silk("SEN66 air quality", body_mid_x, -3.0, "sen66-body"))
-    # ---- v0.38: board-level project identification ----
-    # Industry-standard prototype tracking — a physical PCB can be
-    # identified by name + version (+ URL via assembly drawing) without
-    # booting the device. Placed in the clear strip BETWEEN J7/MIKROE
-    # east silk (PCB X=-12.7) and C3 cutout west wall (PCB X=+4.9) —
-    # 17.6 mm wide, with the J1 south silk edge (Y=+24.51) on the north
-    # and J7 south silk edge (Y=+39.4) on the south.
-    #
-    # F.SilkS (printed on physical PCB) gets two short lines that fit
-    # at the board's silk_min_text_height rule (1.0 mm):
-    #   - "OAS Open Ambient Sensor" — 23 chars × ~0.7 mm = ~16.1 mm wide
-    #     at size 1.0, fits with ~0.5 mm clearance to J7/C3 silk.
-    #   - "v0.38" — 5 chars, fits easily.
-    # The full repo URL (~45 chars, too wide at silk-min size 1.0)
-    # goes on F.Fab — visible in 2d-top.png assembly renders for
-    # documentation, not printed on the physical PCB.
-    # Pre-routing rework: board-id silk lines moved from F.SilkS to F.Fab
-    # because the new J1 / F1 / J10 placements occupy the central south
-    # strip the labels used to live in. Still visible in 2D renders.
-    parts.append(_silk(OAS_NAME_SHORT,   -4.0, +30.0, "board-id-name",
-                       size=1.0, layer="F.Fab"))
-    parts.append(_silk(OAS_VERSION_LINE, -4.0, +33.0, "board-id-version",
-                       size=1.0, layer="F.Fab"))
-    parts.append(_silk(OAS_REPO_URL,     -4.0, +36.0, "board-id-url",
-                       size=0.9, layer="F.Fab"))
+    # ---- Board identification block (F.SilkS, SE pocket under J3) ----
+    # A physical PCB can be identified by name + version without booting
+    # the device. Placed on F.SilkS in the open pocket SOUTH of the J3
+    # SEN66 socket (J3 body south edge ≈ Y+29) and NORTH of the chord
+    # edge (Y+43.5), EAST of the C5 AUX cutout (X≤35.4) and clear of the
+    # H1 mounting-hole courtyard (which sits north at Y≤30.35). The
+    # version string is read from OAS_VERSION_LINE (boardgen/_common.py)
+    # — single source of truth, bump it on each release tag. The repo
+    # URL is intentionally NOT printed: at the silk_min_text_height rule
+    # (1.0 mm) a ~45-char URL is far wider than this pocket.
+    parts.append(_silk(OAS_NAME_SHORT, J3_X + 2.5, J3_Y + 6.5,
+                       "board-id-name", size=1.0))
+    parts.append(_silk(OAS_VERSION_LINE, J3_X + 2.5, J3_Y + 10.0,
+                       "board-id-version", size=1.0))
     # v0.9 dropped a J3-side "to SEN66" reciprocal arrow because J3 sits
     # right under the SEN66 body shadow — at ~1.1 mm between SEN66 silk
     # south edge (Y=+22) and J3 Reference field (Y=+23.1), there is
@@ -1209,114 +1244,73 @@ def gen_silk_labels() -> str:
         size=1.0,
     ))
 
-    # ---- v0.18: J1 24 V terminal block board-level labels (south flip) ----
-    # Board-level gr_text labels (not in-footprint) so they remain
-    # horizontal regardless of the J1 footprint's 180° rotation, and
-    # because the in-footprint Reference / Value text positions of the
-    # stock Phoenix MSTBA footprint would overlap with the LED ring
-    # south corners or the chord cutout C3 depending on rotation.
-    #
-    # J1 footprint at PCB (J1_PCB_X=+5.08, J1_PCB_Y=+22.4), rotation 180°:
-    #   - Pin 1 (+24V) at PCB X = +5.08
-    #   - Pin 2 (GND)  at PCB X =  0.00
-    #   - Pin 3 (PE)   at PCB X = −5.08
-    #   - Body F.SilkS rect: PCB X = −8.73..+8.73, Y = +12.29..+24.51
-    #   - Body courtyard:    PCB X = −9.13..+9.13, Y = +11.90..+24.90
-    #   - Cable entry on north face at PCB Y = +12.29 (toward cable
-    #     hole at origin).
-    #
-    # Free F.SilkS regions near J1 are narrow (mirror of v0.17 situation):
-    #   - North strip: between LED ring south Y=+11.67 and body north
-    #     Y=+12.29 ≈ 0.62 mm.
-    #   - South strip: between body south Y=+24.51 and C3 cutout north
-    #     Y=+28.998 ≈ 4.49 mm (plenty for text, but text outside the
-    #     body wouldn't be near J1 visually).
-    #
-    # Therefore: per-pin labels (24V/GND/PE) go on F.Fab (assembly-doc
-    # layer, no silk_overlap rule), positioned just inside the body's
-    # north face near each pin clamp. A SINGLE F.SilkS label "J1 (24V)"
-    # sits 6.3 mm EAST of the J1 body at PCB (+15, +22.4), on the same
-    # Y row as the J1 body centre for easy visual association. To J1's
-    # east at X=+15 there's an open strip between J1 east edge (+8.73)
-    # and SEN66 body west edge (+23.5) — ~14.77 mm wide. The west-side
-    # placement chosen in v0.17 doesn't work here because MIKROE-2462's
-    # body silk extends to PCB X = -12.26 at this Y range; the east
-    # side is the cleaner option for v0.18's south flip.
+    # ---- J1 / J2 / J9 / J10 per-pin silkscreen labels ----
+    # Every per-pin label below is positioned by `_pin_labels`, which
+    # derives each pad's PCB coordinate from the footprint placement
+    # (origin + rotation). The label TEXT comes from the connector pin
+    # maps in _project.py — the SAME dicts the schematic generators use —
+    # so a silk label can never silently drift from the netlist.
+
+    # J1 — Phoenix MSTBA 2,5/3 terminal block, 3-pin, 5.08 mm pitch,
+    # rotation 180°. Pads run along footprint-local +X from pad 1 at the
+    # origin; in PCB space pin 1 (24V) lands at +5.08, pin 2 (GND) at 0,
+    # pin 3 (PE) at -5.08. The stock Phoenix footprint already prints a
+    # pin-1 triangle on F.SilkS; the terminal body silk fills the strip
+    # immediately south of the pads and the chord connectors (J9 / SW1)
+    # crowd the rest, so the per-pin 24V/GND/PE labels go on F.Fab
+    # (assembly layer — visible in the 2D render, exempt from
+    # silk_overlap). The F.SilkS "J1 (24V)" body-id stays printed.
     parts.append(_silk("J1 (24V)", +15.0, J1_PCB_Y, "j1-body-id",
                        size=1.0, layer="F.Fab"))
-    # Per-pin function labels on F.Fab. Pin-row Y − 0.8 mm (north of
-    # pin row) → inside the body's north face (toward cable entry),
-    # near each pin clamp. F.Fab is silk-overlap-exempt so positioning
-    # right next to the silk body rect is fine. F.Fab is rendered in
-    # assembly drawings, not on the physical PCB silkscreen — but
-    # pcbnew shows it in-editor.
-    j1_pin_fab_y = J1_PCB_Y - 0.8
-    parts.append(_silk("24V", +5.08, j1_pin_fab_y, "j1-pin1-24v",
-                       size=0.8, layer="F.Fab"))
-    parts.append(_silk("GND",  0.00, j1_pin_fab_y, "j1-pin2-gnd",
-                       size=0.8, layer="F.Fab"))
-    parts.append(_silk("PE",  -5.08, j1_pin_fab_y, "j1-pin3-pe",
+    parts.extend(_pin_labels(
+        origin_x=J1_PCB_X, origin_y=J1_PCB_Y, rotation=J1_PCB_ROTATION,
+        pin1_local=(0.0, 0.0), step_local=(5.08, 0.0),
+        pin_map=J1_PIN_MAP, label_offset=(0.0, -0.8),
+        layer="F.Fab", tag="j1-pin", size=0.8,
+    ))
+
+    # J2 — UART/Boot recovery header, 1x06 P2.54 mm, rotation 0°. Pads run
+    # along footprint-local +Y. Sits in the cramped NW corner (board edge
+    # west, LD2410 body east), so the six 4-char signal names go on F.Fab
+    # (assembly layer — exempt from silk_min_text_height / silk_overlap),
+    # placed just EAST of the pad column. DNP header — F.Fab is honest.
+    parts.extend(_pin_labels(
+        origin_x=-54.0, origin_y=-8.0, rotation=0,
+        pin1_local=(0.0, 0.0), step_local=(0.0, 2.54),
+        pin_map=J2_PIN_MAP, label_offset=(+2.7, 0.0),
+        layer="F.Fab", tag="j2-pin", size=0.8,
+    ))
+
+    # J9 — Qwiic JST SH 4-pin at 1.0 mm pitch: too fine for four separate
+    # readable per-pin texts. The connector is mechanically keyed (the
+    # Qwiic cable mates one way only) and follows the universal Qwiic
+    # pinout, so a single pin-1 marker is sufficient. Pad 1 (GND) sits at
+    # PCB X = J9_PCB_X + 1.5, pad row at PCB Y = J9_PCB_Y + 2.0; the F.Fab
+    # hint is placed just north of the pad row.
+    parts.append(_silk("J9 GND", J9_PCB_X + 1.5, J9_PCB_Y, "j9-p1-gnd",
                        size=0.8, layer="F.Fab"))
 
-    # ---- v0.19: J9 (Qwiic) + J10 (recovery) per-pin F.Fab labels ----
-    # The per-cutout F.SilkS labels emitted earlier ("J9 Qwiic" /
-    # "J10 flash" / "C4 v2") identify the connector by designator;
-    # per-pin labels go on F.Fab so the assembler / debugger can read
-    # them on the assembly drawing without consulting the schematic.
-    # F.Fab is silk-overlap-exempt so we can position labels right
-    # next to the pad without DRC complaints.
-    #
-    # J9 — JST SH 4-pin. PCB pad row at PCB Y = J9_PCB_Y + 2 = +41.69,
-    # pads at PCB X = J9_PCB_X ± 1.5, J9_PCB_X ± 0.5 (1 mm pitch).
-    # With rotation 180°, pad 1 (north / "top of footprint Y order")
-    # lands at PCB X = J9_PCB_X + 1.5, pad 4 at PCB X = J9_PCB_X - 1.5.
-    # Mark the pin-1 corner with a "P1" hint on F.Fab so the visual
-    # assembly drawing identifies which pad is GND.
-    j9_pad_y = J9_PCB_Y + 2.0      # +41.69 — pad row Y
-    j9_p1_x = J9_PCB_X + 1.5       # +33.15 — pad 1 (GND, north-east edge of footprint)
-    # F.Fab pin-function hint just north of pad row (toward body interior).
-    parts.append(_silk("J9 GND", j9_p1_x, j9_pad_y - 2.0, "j9-p1-gnd",
-                       size=0.8, layer="F.Fab"))
-    # Cable-direction hint moved into J9's per-pin F.Fab labels (the
-    # "J9 GND" pin-1 marker above), so the surface silk stays clean.
-    # The cutout "J9 Qwiic" label (emitted by the cutout loop above)
-    # marks the connector identity from outside the case.
-
-    # J10 — 6-pin 2.54 mm pin header. Pre-routing rework 3: switched to
-    # rotation 90 (horizontal pad row). With rotation 90 (LIB +Y → PCB
-    # +X), pad 1 at (J10_PCB_X, J10_PCB_Y) and pads 2..6 spread EAST at
-    # 2.54 mm pitch. Per-pin function labels on F.Fab placed SOUTH of
-    # each pad (between J10 body silk south edge ~Y=-21.23 and the LED
-    # ring at Y≈-13). F.Fab is silk-overlap-exempt so positioning right
-    # next to the pads is fine, and F.Fab text isn't subject to the
-    # silk_min_text_height rule.
-    j10_pin_labels = ["GND", "+3V3", "USB-", "USB+", "EN", "BOOT"]
-    for i, lbl in enumerate(j10_pin_labels):
-        px = J10_PCB_X + i * 2.54
-        parts.append(_silk(
-            lbl, px, J10_PCB_Y + 2.5,
-            f"j10-pin{i+1}-{lbl.lower().replace('+', 'p').replace('-', 'm')}",
-            size=0.8, layer="F.Fab",
-        ))
-    # Overall connector ID on F.SilkS (south of the per-pin F.Fab labels
-    # so they don't visually stack; F.SilkS and F.Fab are different
-    # layers so silk_overlap won't fire between them either way). Place
-    # at pad-row centre X = J10_PCB_X + 12.7/2 = -4.61.
-    # v0.41 2026-05-19: silk Y offset increased 4.5 → 7.5 mm because LED
-    # ring radius bumped from 13 to 14.7 (LED emission outward fix) — D17
-    # body now spans Y=[-15.7..-13.7], its pads Y=[-16.05..-15.05]. Old
-    # silk Y=-15.5 collided with D17 pads. New silk Y = J10_PCB_Y + 7.5
-    # = -12.5, in the gap between D17 (south edge -13.7) and D18 body
-    # (north edge -11.4).
+    # J10 — native-USB recovery header, 1x06 P2.54 mm, rotation 90° so the
+    # pad row runs along PCB +X (pad 1 at the origin, pads 2..6 spread
+    # east). Six 4-char signal names at 2.54 mm pitch exceed the
+    # silk_min_text_height (1.0 mm) horizontal budget, so the per-pin
+    # labels stay on F.Fab (assembly layer — no min-height / overlap
+    # rule), placed just SOUTH of the pad row. DNP header — F.Fab is the
+    # honest layer anyway.
+    parts.extend(_pin_labels(
+        origin_x=J10_PCB_X, origin_y=J10_PCB_Y, rotation=J10_PCB_ROTATION,
+        pin1_local=(0.0, 0.0), step_local=(0.0, 2.54),
+        pin_map=J10_PIN_MAP, label_offset=(0.0, +2.5),
+        layer="F.Fab", tag="j10-pin", size=0.8,
+    ))
+    # J10 connector ID — moved EAST of the pad row (user request: the old
+    # placement, 7.5 mm SOUTH of the pads, had drifted far from the
+    # connector). Pad 6 sits at PCB X = J10_PCB_X + 5·2.54 = +1.74; the
+    # label is centred just east of it on the pad-row Y.
     parts.append(_silk(
-        "J10 flash", J10_PCB_X + 6.35, J10_PCB_Y + 7.5, "j10-body-id",
+        "J10 flash", J10_PCB_X + 5 * 2.54 + 5.2, J10_PCB_Y, "j10-body-id",
         size=1.0,
     ))
-    # (No F.SilkS "(DNP)" hint on the PCB — "Do Not Populate" status
-    # lives in the schematic (J10 symbol has `(dnp yes)`) and in the
-    # BOM exporter output. Adding a board-level "(DNP)" silk near J10
-    # collided with the J1 body silk rect and was redundant with the
-    # "J10 flash" cutout label.)
 
     # ---- v0.7: cutout-zone reservation labels + outlines on F.SilkS ----
     # Each cutout in CUTOUTS along the chord is a case-wall opening that
@@ -1658,6 +1652,63 @@ def gen_silk_labels() -> str:
     # label bbox bottom (+42.775), well clear.
     parts.append(_silk("J7", -14.03, +42.2, "desig:J7", size=1.0))
     parts.append(_silk("J8", -36.89, +42.2, "desig:J8", size=1.0))
+
+    # ---- 2b) Module connector end-pin numbers ----
+    # ESP32 (J5/J6), MIKROE-2462 (J7/J8) and LD2410 (J4) plug onto
+    # multi-pin rows. Printing the first + last pin number at each row's
+    # ends lets the user orient the module during hand-assembly. The pad
+    # positions are DERIVED from the same placement constants the pin
+    # sockets are generated from (see gen_sensors_pcb_footprints); the
+    # number labels sit just OUTSIDE the daughterboard body so they stay
+    # on real F.SilkS and clear of the body silk / under-shadow copper.
+    esp32_row_a_y = ESP32_ANCHOR_Y - ESP32_PIN_ROW_INSET
+    esp32_row_b_y = ESP32_ANCHOR_Y - (ESP32_BODY_W - ESP32_PIN_ROW_INSET)
+    esp32_row_x_start = ESP32_ANCHOR_X + ESP32_PIN_START_OFFSET
+    mikroe_row_a_x = MIKROE2462_ANCHOR_X - MIKROE2462_PIN_ROW_INSET
+    mikroe_row_b_x = (MIKROE2462_ANCHOR_X
+                      - (MIKROE2462_BODY_W - MIKROE2462_PIN_ROW_INSET))
+    mikroe_row_y_start = MIKROE2462_ANCHOR_Y - MIKROE2462_PIN_START_OFFSET
+    esp32_end = {1: "1", ESP32_PIN_COUNT_PER_ROW: str(ESP32_PIN_COUNT_PER_ROW)}
+    mikroe_end = {1: "1",
+                  MIKROE2462_PIN_COUNT_PER_ROW: str(MIKROE2462_PIN_COUNT_PER_ROW)}
+    # ESP32 J5 (antenna-side row) — end numbers pushed SOUTH, clear of the
+    # MOD1 body south edge.
+    parts.extend(_pin_labels(
+        origin_x=esp32_row_x_start, origin_y=esp32_row_a_y, rotation=90,
+        pin1_local=(0.0, 0.0), step_local=(0.0, ESP32_PIN_PITCH),
+        pin_map=esp32_end, label_offset=(0.0, +2.9),
+        layer="F.SilkS", tag="j5-end", size=1.0,
+    ))
+    # ESP32 J6 (USB-side row) — end numbers pushed NORTH.
+    parts.extend(_pin_labels(
+        origin_x=esp32_row_x_start, origin_y=esp32_row_b_y, rotation=90,
+        pin1_local=(0.0, 0.0), step_local=(0.0, ESP32_PIN_PITCH),
+        pin_map=esp32_end, label_offset=(0.0, -2.9),
+        layer="F.SilkS", tag="j6-end", size=1.0,
+    ))
+    # MIKROE-2462 J7 (mikroBUS row A) — end numbers pushed EAST, clear of
+    # the MOD2 body east edge.
+    parts.extend(_pin_labels(
+        origin_x=mikroe_row_a_x, origin_y=mikroe_row_y_start, rotation=180,
+        pin1_local=(0.0, 0.0), step_local=(0.0, MIKROE2462_PIN_PITCH),
+        pin_map=mikroe_end, label_offset=(+2.9, 0.0),
+        layer="F.SilkS", tag="j7-end", size=1.0,
+    ))
+    # MIKROE-2462 J8 (mikroBUS row B) — end numbers pushed WEST.
+    parts.extend(_pin_labels(
+        origin_x=mikroe_row_b_x, origin_y=mikroe_row_y_start, rotation=180,
+        pin1_local=(0.0, 0.0), step_local=(0.0, MIKROE2462_PIN_PITCH),
+        pin_map=mikroe_end, label_offset=(-2.9, 0.0),
+        layer="F.SilkS", tag="j8-end", size=1.0,
+    ))
+    # LD2410 J4 — 1x05 P1.27 mm header at the LD2410 body's south edge;
+    # end numbers pushed SOUTH, clear of the body.
+    parts.extend(_pin_labels(
+        origin_x=J4_PCB_X, origin_y=J4_PCB_Y, rotation=J4_PCB_ROTATION,
+        pin1_local=(0.0, 0.0), step_local=(0.0, 1.27),
+        pin_map={1: "1", 5: "5"}, label_offset=(0.0, +2.9),
+        layer="F.SilkS", tag="j4-end", size=1.0,
+    ))
 
     # ---- 3) Mounting holes H1/H2/H3 ----
     # Per CLAUDE.md "Designators on PCB features: when a footprint's

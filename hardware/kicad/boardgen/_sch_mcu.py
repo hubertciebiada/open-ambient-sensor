@@ -5,7 +5,9 @@ import math
 import textwrap
 
 from boardgen._common import U, fmt, sheet_context, SCH_VERSION, GEN_VERSION, SHEET_FILE_UUIDS, ROOT_SHEET_UUID, SUBSHEET_DISPLAY_NAMES
-from boardgen._project import fx, fy, PROJECT_SHORTNAME, GPIO_ASSIGNMENTS, GPIO_RESERVED
+from boardgen._project import (
+    fx, fy, PROJECT_SHORTNAME, GPIO_ASSIGNMENTS, GPIO_RESERVED, J2_PIN_MAP,
+)
 from boardgen._lib_symbols import (
     MCU_LIB_SYMBOLS,
     ESP32C6_DEVKITM1_PINS,
@@ -318,17 +320,11 @@ def gen_mcu_sch() -> str:
         6: J2_Y - 7.62,          # 118.11 — TOP    (BOOT)
     }
 
-    # J2_PIN_MAP — recovery header pinout signal assignment. EN (= RST,
-    # chip reset) and BOOT come in via hierarchical labels (v0.19; were
-    # local labels in v0.18 and earlier).
-    J2_PIN_MAP: dict[int, str] = {
-        1: "+3V3",
-        2: "GND",
-        3: "TX",        # ← J6.2 GPIO16 ; continues east to UART_TX hier label
-        4: "RX",        # ← J6.3 GPIO17 ; continues east to UART_RX hier label
-        5: "EN",        # ← J5.2 RST    (hier label, v0.19 was "RST" local)
-        6: "BOOT",      # ← J6.11 GPIO9 (hier label, v0.19 was local)
-    }
+    # J2_PIN_MAP — recovery header pinout signal assignment, imported from
+    # _project.py so the schematic netlist and the PCB silkscreen labels
+    # share one source of truth. EN (= RST, chip reset) and BOOT come in via
+    # hierarchical labels: J6.2 GPIO16 → TX, J6.3 GPIO17 → RX, J5.2 RST → EN,
+    # J6.11 GPIO9 → BOOT.
     assert set(J2_PIN_MAP.values()) == {"+3V3", "GND", "EN", "BOOT", "TX", "RX"}
     J2_PIN_OF: dict[str, int] = {sig: pin for pin, sig in J2_PIN_MAP.items()}
 

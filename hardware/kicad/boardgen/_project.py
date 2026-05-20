@@ -983,6 +983,39 @@ J10_PCB_ROTATION = 90        # LIB +Y → PCB +X (horizontal pad row east).
                               # _parse_footprint_placements.
 
 # -----------------------------------------------------------------------------
+# Connector pin maps — single source of truth for per-pin silkscreen labels
+# -----------------------------------------------------------------------------
+# Each dict maps a 1-based pin number to the short label printed next to that
+# pad on the PCB. The PCB silkscreen generator (gen_silk_labels) and the
+# schematic generators consume the SAME dict, so a silk label can never drift
+# from the netlist. Verified against the schematic sub-sheets:
+#   J1  — _sch_power.py  (J1.1 VIN / J1.2 GND / J1.3 PE)
+#   J2  — _sch_mcu.py    (UART/Boot recovery header)
+#   J9  — _sch_io.py     (standard Qwiic: GND / +3V3 / SDA / SCL)
+#   J10 — _sch_io.py     (native-USB recovery header)
+J1_PIN_MAP: dict[int, str] = {1: "24V", 2: "GND", 3: "PE"}
+J2_PIN_MAP: dict[int, str] = {1: "+3V3", 2: "GND", 3: "TX", 4: "RX",
+                              5: "EN", 6: "BOOT"}
+J9_PIN_MAP: dict[int, str] = {1: "GND", 2: "+3V3", 3: "SDA", 4: "SCL"}
+J10_PIN_MAP: dict[int, str] = {1: "GND", 2: "+3V3", 3: "USB-", 4: "USB+",
+                               5: "EN", 6: "BOOT"}
+
+# Polarity-sensitive designators — components whose orientation matters and
+# which therefore MUST carry a polarity / pin-1 silkscreen mark. Consumed by
+# pipeline/oas/21_check_polarity_silk.py, which fails the build if any of
+# these footprints loses its F.SilkS polarity primitive.
+#   D1/D2/D3 — diodes (TVS / Schottky / Zener): stock cathode bar
+#   Q1       — AO3401A P-MOSFET (SOT-23): stock pin-1 mark
+#   U1/U2    — buck ICs (TO-263-5 / SOT-583): stock pin-1 mark
+#   C1/C4    — polarized radial electrolytics: stock "+" / pad-1 mark
+#   D11..D18 — SK6812-SIDE LEDs (oas custom footprint): pin-1 dot
+#              (D13 is skipped at the J1 cable slot — not placed).
+POLARIZED_DESIGNATORS: frozenset[str] = frozenset({
+    "D1", "D2", "D3", "Q1", "U1", "U2", "C1", "C4",
+    "D11", "D12", "D14", "D15", "D16", "D17", "D18",
+})
+
+# -----------------------------------------------------------------------------
 # AQI status LED ring — 8 x SK6812-SIDE side-emit addressable RGB (45 deg pitch)
 # -----------------------------------------------------------------------------
 # Eight side-emit RGB LEDs (one skipped at the J1 cable-area position
