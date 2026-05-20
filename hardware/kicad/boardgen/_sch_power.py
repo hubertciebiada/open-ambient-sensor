@@ -9,7 +9,7 @@ from boardgen._project import fx, fy, PROJECT_SHORTNAME
 from boardgen._lib_symbols import POWER_LIB_SYMBOLS
 from boardgen._sch_helpers import (
     _sch_wire, _sch_junction, _sch_power_flag,
-    _sch_resistor, _sch_polyfuse, _sch_diode_tvs,
+    _sch_resistor, _sch_polyfuse,
     _sch_capacitor, _sch_inductor, _sch_diode_schottky,
     _sch_diode_zener, _sch_q_pmos, _sch_buck_lm2596_5,
     _sch_buck_tps62933,
@@ -57,7 +57,7 @@ def gen_power_sch() -> str:
     Layout (page-absolute mm, KiCad +Y is down on screen):
 
         - J1 placed on the LEFT (mirror_y so pins face RIGHT into the circuit)
-        - D1 mid-VIN (angle=90, body vertical), top pin on VIN wire, bottom
+        - D1 mid-VIN (angle=270, body vertical), top pin on VIN wire, bottom
           pin drops to a local GND symbol. No new PWR_FLAG sentinel — the
           existing GND sentinel on J1.2 covers the global GND net.
         - Q1 placed to the right of D1, angle=0:
@@ -241,12 +241,12 @@ def gen_power_sch() -> str:
     D3_K_Y = D3_Y - 3.81     # 95.25 — short stub up to VIN row (93.98)
     D3_A_Y = D3_Y + 3.81     # 102.87 — short stub down-then-right to junction
 
-    # ----- D1: TVS surge-clamp diode (SMBJ24A), angle=90 (body vertical) -----
+    # ----- D1: TVS surge-clamp diode (SMBJ24A), Device:D_Zener, angle=270 -----
     # Tap point on the J1.1 -> Q1.S wire (the UNPROTECTED VIN net). With
-    # angle=90, lib pin (-3.81, 0) -> schem (D1_X, D1_Y + 3.81) is the
-    # BOTTOM pin and lib (3.81, 0) -> schem (D1_X, D1_Y - 3.81) is the TOP
-    # pin. The top pin lands on the VIN row (Y = PIN1_Y = 93.98) so D1_Y
-    # = 93.98 + 3.81 = 97.79. X chosen between J1.1 (X = 92.71) and
+    # angle=270, lib pin 1 K (-3.81, 0) -> schem (D1_X, D1_Y - 3.81) is the
+    # TOP pin and lib pin 2 A (3.81, 0) -> schem (D1_X, D1_Y + 3.81) is the
+    # BOTTOM pin. The top pin (K, cathode) lands on the VIN row (Y = PIN1_Y
+    # = 93.98) so D1_Y = 93.98 + 3.81 = 97.79. X chosen between J1.1 (X = 92.71) and
     # Q1.S (X = 115.57), leaving the existing R1 column (X = 107.95) and
     # its value-text untouched. X = 96.52 (= 76 × 1.27) was moved one
     # grid step LEFT of the previous 100.33 to give breathing room
@@ -539,17 +539,18 @@ def gen_power_sch() -> str:
     # point and consumes ~uA leakage. Peak pulse power 600W. F1 (PTC)
     # downstream catches the sustained over-current that follows a
     # clamped event.
-    # angle=270 (NOT 90) — see CRITICAL-1 fix in v0.36 swarm audit. KiCad's
-    # Device:D_TVS lib_id has both pins named A1/A2 (bidirectional convention),
-    # but the SMBJ24A is UNIDIRECTIONAL with a cathode bar marker. KiCad's
-    # Diode_SMD:D_SMB stock footprint follows the KLC: pad 1 = cathode.
-    # `sync_pcb_nets_from_schematic` maps schematic-pin-N → PCB-pad-N, so
-    # whichever schematic pin sits on the VIN wire becomes PCB pad 1 = cathode
-    # only if that schematic pin number is 1. At angle=90, schematic pin 2
-    # lands on TOP (VIN) and pin 1 lands on BOTTOM (GND) → PCB pad 1 = GND
-    # = REVERSED TVS. At angle=270, pin 1 lands on TOP (VIN) and pin 2 on
-    # BOTTOM (GND) → PCB pad 1 = cathode = VIN ✓.
-    parts.append(_sch_diode_tvs(
+    # Symbol: Device:D_Zener. KiCad ships NO unidirectional-TVS symbol —
+    # every stock D_TVS* glyph is the back-to-back BIDIRECTIONAL TVS with
+    # ambiguous A1/A2 pins. A unidirectional TVS is, on a schematic, drawn
+    # identically to a Zener diode (same triangle + cathode bar), so
+    # Device:D_Zener is the correct glyph: pin 1 = K (cathode), pin 2 = A
+    # (anode) — self-documenting, no A1/A2 guesswork. angle=270 places
+    # pin 1 K on the TOP (VIN) wire and pin 2 A on the BOTTOM (GND) drop.
+    # pad 1 of the Diode_SMD:D_SMB footprint is the cathode (per the KLC),
+    # and sync_pcb_nets_from_schematic maps schematic-pin-1 -> PCB-pad-1,
+    # so cathode -> VIN and anode -> GND -- the correct surge-clamp
+    # orientation for the unidirectional SMBJ24A.
+    parts.append(_sch_diode_zener(
         x=D1_X, y=D1_Y, angle=270,
         reference="D1", value="SMBJ24A", uuid_tag="d1",
     ))

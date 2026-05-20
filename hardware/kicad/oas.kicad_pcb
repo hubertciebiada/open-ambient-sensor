@@ -70,7 +70,7 @@
 	(net 14 "/MCU/WS2812_DIN")
 	(net 15 "Earth_Protective")
 	(net 16 "GND")
-	(net 17 "Net-(D1-A1)")
+	(net 17 "Net-(D1-K)")
 	(net 18 "Net-(D2-K)")
 	(net 19 "Net-(D3-A)")
 	(net 20 "Net-(D11-DOUT)")
@@ -1741,7 +1741,7 @@
 			(layers "*.Cu" "*.Mask")
 			(remove_unused_layers no)
 			(roundrect_rratio 0.120192)
-			(net 17 "Net-(D1-A1)")
+			(net 17 "Net-(D1-K)")
 		)
 	(pad "2" thru_hole oval
 			(at 5.08 0 180)
@@ -5929,7 +5929,7 @@
 			(layers "F.Cu" "F.Mask" "F.Paste")
 			(roundrect_rratio 0.1086956522)
 			(uuid "4c545c05-8272-419a-979f-2ddaea156b0f")
-			(net 17 "Net-(D1-A1)")
+			(net 17 "Net-(D1-K)")
 		)
 	(pad "2" smd roundrect
 			(at 2.15 0 180)
@@ -6252,7 +6252,7 @@
 			(size 1.475 0.6)
 			(layers "F.Cu" "F.Mask" "F.Paste")
 			(roundrect_rratio 0.25)
-			(net 17 "Net-(D1-A1)")
+			(net 17 "Net-(D1-K)")
 		)
 	(pad "3" smd roundrect
 			(at 0.9375 0)
@@ -6530,7 +6530,7 @@
 			(layers "F.Cu" "F.Mask" "F.Paste")
 			(roundrect_rratio 0.25)
 			(uuid "8ca31b66-f8b6-45f9-8378-2150b0b7a501")
-			(net 17 "Net-(D1-A1)")
+			(net 17 "Net-(D1-K)")
 		)
 	(pad "2" smd roundrect
 			(at 1.05 0)
