@@ -45,6 +45,8 @@ from boardgen._project import (  # noqa: F401
     J9_PCB_X, J9_PCB_Y, J9_PCB_ROTATION,
     J10_PCB_X, J10_PCB_Y, J10_PCB_ROTATION,
     J1_PIN_MAP, J2_PIN_MAP, J10_PIN_MAP,
+    J4_END_SIGNALS, J5_END_SIGNALS, J6_END_SIGNALS,
+    J7_END_SIGNALS, J8_END_SIGNALS,
     SW1_PCB_X, SW1_PCB_Y, SW1_PCB_ROTATION,
     LED_RING_COUNT, LED_RING_THETA_START_DEG, LED_RING_THETA_STEP_DEG,
     LED_RING_SKIP_INDICES,
@@ -1653,14 +1655,16 @@ def gen_silk_labels() -> str:
     parts.append(_silk("J7", -14.03, +42.2, "desig:J7", size=1.0))
     parts.append(_silk("J8", -36.89, +42.2, "desig:J8", size=1.0))
 
-    # ---- 2b) Module connector end-pin numbers ----
+    # ---- 2b) Module connector end-pin labels ----
     # ESP32 (J5/J6), MIKROE-2462 (J7/J8) and LD2410 (J4) plug onto
-    # multi-pin rows. Printing the first + last pin number at each row's
-    # ends lets the user orient the module during hand-assembly. The pad
-    # positions are DERIVED from the same placement constants the pin
-    # sockets are generated from (see gen_sensors_pcb_footprints); the
-    # number labels sit just OUTSIDE the daughterboard body so they stay
-    # on real F.SilkS and clear of the body silk / under-shadow copper.
+    # multi-pin rows. Labelling the first + last pad of each row lets the
+    # user orient the module during hand-assembly. The pad positions are
+    # DERIVED from the same placement constants the pin sockets are
+    # generated from (see gen_sensors_pcb_footprints); the labels sit just
+    # OUTSIDE the daughterboard body so they stay on real F.SilkS and
+    # clear of the body silk / under-shadow copper. Every end label is the
+    # SIGNAL NAME of that pad (J*_END_SIGNALS in _project.py) — more useful
+    # for orienting the module than a bare pin number.
     esp32_row_a_y = ESP32_ANCHOR_Y - ESP32_PIN_ROW_INSET
     esp32_row_b_y = ESP32_ANCHOR_Y - (ESP32_BODY_W - ESP32_PIN_ROW_INSET)
     esp32_row_x_start = ESP32_ANCHOR_X + ESP32_PIN_START_OFFSET
@@ -1668,46 +1672,50 @@ def gen_silk_labels() -> str:
     mikroe_row_b_x = (MIKROE2462_ANCHOR_X
                       - (MIKROE2462_BODY_W - MIKROE2462_PIN_ROW_INSET))
     mikroe_row_y_start = MIKROE2462_ANCHOR_Y - MIKROE2462_PIN_START_OFFSET
-    esp32_end = {1: "1", ESP32_PIN_COUNT_PER_ROW: str(ESP32_PIN_COUNT_PER_ROW)}
-    mikroe_end = {1: "1",
-                  MIKROE2462_PIN_COUNT_PER_ROW: str(MIKROE2462_PIN_COUNT_PER_ROW)}
-    # ESP32 J5 (antenna-side row) — end numbers pushed SOUTH, clear of the
+    # ESP32 J5 (antenna-side row) — end labels pushed SOUTH, clear of the
     # MOD1 body south edge.
     parts.extend(_pin_labels(
         origin_x=esp32_row_x_start, origin_y=esp32_row_a_y, rotation=90,
         pin1_local=(0.0, 0.0), step_local=(0.0, ESP32_PIN_PITCH),
-        pin_map=esp32_end, label_offset=(0.0, +2.9),
+        pin_map=J5_END_SIGNALS, label_offset=(0.0, +2.9),
         layer="F.SilkS", tag="j5-end", size=1.0,
     ))
-    # ESP32 J6 (USB-side row) — end numbers pushed NORTH.
+    # ESP32 J6 (USB-side row) — end labels pushed NORTH.
     parts.extend(_pin_labels(
         origin_x=esp32_row_x_start, origin_y=esp32_row_b_y, rotation=90,
         pin1_local=(0.0, 0.0), step_local=(0.0, ESP32_PIN_PITCH),
-        pin_map=esp32_end, label_offset=(0.0, -2.9),
+        pin_map=J6_END_SIGNALS, label_offset=(0.0, -2.9),
         layer="F.SilkS", tag="j6-end", size=1.0,
     ))
-    # MIKROE-2462 J7 (mikroBUS row A) — end numbers pushed EAST, clear of
-    # the MOD2 body east edge.
+    # MIKROE-2462 J7 (mikroBUS row A) — end labels pushed EAST, clear of
+    # the MOD2 body east edge. Rotated 90° (vertical) so the wider signal
+    # names present only their 1 mm text height toward the crowded body.
     parts.extend(_pin_labels(
         origin_x=mikroe_row_a_x, origin_y=mikroe_row_y_start, rotation=180,
         pin1_local=(0.0, 0.0), step_local=(0.0, MIKROE2462_PIN_PITCH),
-        pin_map=mikroe_end, label_offset=(+2.9, 0.0),
-        layer="F.SilkS", tag="j7-end", size=1.0,
+        pin_map=J7_END_SIGNALS, label_offset=(+2.9, 0.0),
+        layer="F.SilkS", tag="j7-end", size=1.0, angle=90.0,
     ))
-    # MIKROE-2462 J8 (mikroBUS row B) — end numbers pushed WEST.
+    # MIKROE-2462 J8 (mikroBUS row B) — end labels pushed WEST, rotated 90°.
+    # The pad-8 end is boxed in by the MOD2 body, the J4 reference field
+    # and the C11 decoupling cap (copper pads), with no DRC-clean F.SilkS
+    # gap — so J8's end labels go on F.Fab (assembly layer, still in the
+    # 2D render, exempt from silk_overlap / silk_over_copper).
     parts.extend(_pin_labels(
         origin_x=mikroe_row_b_x, origin_y=mikroe_row_y_start, rotation=180,
         pin1_local=(0.0, 0.0), step_local=(0.0, MIKROE2462_PIN_PITCH),
-        pin_map=mikroe_end, label_offset=(-2.9, 0.0),
-        layer="F.SilkS", tag="j8-end", size=1.0,
+        pin_map=J8_END_SIGNALS, label_offset=(-2.9, 0.0),
+        layer="F.Fab", tag="j8-end", size=1.0, angle=90.0,
     ))
     # LD2410 J4 — 1x05 P1.27 mm header at the LD2410 body's south edge;
-    # end numbers pushed SOUTH, clear of the body.
+    # end labels (OUT / VCC signal names) rotated 90° (vertical) and
+    # pushed well SOUTH so they clear both the body silk and the C11
+    # decoupling cap pads that sit at the same Y as a smaller offset.
     parts.extend(_pin_labels(
         origin_x=J4_PCB_X, origin_y=J4_PCB_Y, rotation=J4_PCB_ROTATION,
         pin1_local=(0.0, 0.0), step_local=(0.0, 1.27),
-        pin_map={1: "1", 5: "5"}, label_offset=(0.0, +2.9),
-        layer="F.SilkS", tag="j4-end", size=1.0,
+        pin_map=J4_END_SIGNALS, label_offset=(0.0, +4.5),
+        layer="F.SilkS", tag="j4-end", size=1.0, angle=90.0,
     ))
 
     # ---- 3) Mounting holes H1/H2/H3 ----

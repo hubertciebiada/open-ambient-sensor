@@ -1000,6 +1000,26 @@ J9_PIN_MAP: dict[int, str] = {1: "GND", 2: "+3V3", 3: "SDA", 4: "SCL"}
 J10_PIN_MAP: dict[int, str] = {1: "GND", 2: "+3V3", 3: "USB-", 4: "USB+",
                                5: "EN", 6: "BOOT"}
 
+# Module socket end-pin signal names — printed at the EXTREME pads of each
+# daughterboard row so the module can be oriented during hand-assembly.
+# Signal names (not bare pin numbers) are used: they tell the assembler at
+# a glance which way round the module goes. Only the first + last pad of a
+# row carry a label (see gen_silk_labels). Keyed by footprint pad number.
+#   ESP32-C6-DevKitM-1 — verified vs _lib_symbols.ESP32C6_DEVKITM1_PINS:
+#     J5 = module header J1 (pad 1 = 3V3 … pad 15 = GND)
+#     J6 = module header J3 (pad 1 = GND … pad 15 = GND — both rails GND
+#          at the J3 header ends; J5's 3V3/GND orients the module)
+#   MIKROE-2462 — standard mikroBUS socket L pinout:
+#     J7 = row A (pad 1 = AN  … pad 8 = GND)
+#     J8 = row B (pad 1 = PWM … pad 8 = GND)
+#   HLK-LD2410B — HiLink datasheet V1.04 Table 1 (see _sch_sensors.py):
+#     J4 (pad 1 = OUT … pad 5 = VCC)
+J4_END_SIGNALS: dict[int, str] = {1: "OUT", 5: "VCC"}
+J5_END_SIGNALS: dict[int, str] = {1: "3V3", 15: "GND"}
+J6_END_SIGNALS: dict[int, str] = {1: "GND", 15: "GND"}
+J7_END_SIGNALS: dict[int, str] = {1: "AN", 8: "GND"}
+J8_END_SIGNALS: dict[int, str] = {1: "PWM", 8: "GND"}
+
 # Polarity-sensitive designators — components whose orientation matters and
 # which therefore MUST carry a polarity / pin-1 silkscreen mark. Consumed by
 # pipeline/oas/21_check_polarity_silk.py, which fails the build if any of
