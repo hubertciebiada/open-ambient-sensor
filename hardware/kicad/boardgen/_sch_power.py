@@ -308,7 +308,7 @@ def gen_power_sch() -> str:
     #
     # Placed in its OWN column at X=142.24, 26.67 mm (= 10.5 grid steps)
     # to the right of F1's column (X=115.57). The wide horizontal gap
-    # is needed because F1's Value text "PTC 750mA / 60V" is left-
+    # is needed because F1's Value text "PTC 750mA / 75V" is left-
     # justified at X=119.38 and renders ~17 mm wide, reaching to ~X=137
     # at the displayed character spacing — placing C1's Value text any
     # closer (e.g. at X=137.16) caused the F1 voltage suffix and the
@@ -611,7 +611,7 @@ def gen_power_sch() -> str:
     # verify JLCPCB stock on order day.
     parts.append(_sch_polyfuse(
         x=F1_X, y=F1_Y, angle=0,
-        reference="F1", value="PTC 750mA / 60V", uuid_tag="f1",
+        reference="F1", value="PTC 750mA / 75V", uuid_tag="f1",
     ))
 
     # ----- R1: 100 kΩ gate-GND pulldown -----
@@ -1208,10 +1208,10 @@ def gen_power_sch() -> str:
     U2_FB_X     = U2_X + 7.62     # 208.28
     U2_FB_Y     = U2_Y + 7.62     # 152.40 — feedback tap
 
-    # ----- C5: input bulk ceramic, 10uF 16V, angle=0 -----
+    # ----- C5: input bulk ceramic, 10uF 25V, angle=0 -----
     # Non-polarized ceramic X5R/X7R. Pin 1 (top) on +5V bus, pin 2 (bottom)
     # to GND. C5 sits 15.24 mm left of C15 — wide enough that the
-    # value-text label "10uF 16V" (rendered ~10 mm at size 1.27) clears
+    # value-text label "10uF 25V" (rendered ~10 mm at size 1.27) clears
     # C15's value-text "100nF" without visual overlap.
     C5_X = 170.18 + PWR_X_SHIFT   # 134 × 1.27
     C5_Y = 140.97 + PWR_Y_SHIFT   # 111 × 1.27
@@ -1445,11 +1445,11 @@ def gen_power_sch() -> str:
         reference="L2", value="2.2uH 2A", uuid_tag="l2",
     ))
 
-    # ----- C5: input bulk ceramic, 10 uF / 16 V -----
+    # ----- C5: input bulk ceramic, 10 uF / 25 V -----
     parts.append(_sch_capacitor(
         lib_id="Device:C",
         x=C5_X, y=C5_Y, angle=0,
-        reference="C5", value="10uF 16V", uuid_tag="c5",
+        reference="C5", value="10uF 25V", uuid_tag="c5",
     ))
 
     # ----- C15: input HF ceramic bypass, 100 nF -----

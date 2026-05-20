@@ -122,7 +122,7 @@ LCSC_MAPPING = {
             "required change footprint to 1812 and source Knowles/KEMET CAS series."
         ),
     },
-    ("10uF 16V", "Capacitor_SMD:C_0805_2012Metric"): {
+    ("10uF 25V", "Capacitor_SMD:C_0805_2012Metric"): {
         "lcsc": "C15850",
         "manufacturer": "Samsung Electro-Mechanics",
         "mpn": "CL21A106KAYNNNE",
@@ -260,7 +260,7 @@ LCSC_MAPPING = {
             "Pin order 1=G, 2=S, 3=D (same as PMV65XP — drop-in)."
         ),
     },
-    ("PTC 750mA / 60V", "Fuse:Fuse_1812_4532Metric"): {
+    ("PTC 750mA / 75V", "Fuse:Fuse_1812_4532Metric"): {
         "lcsc": "C262023",
         "manufacturer": "Littelfuse",
         "mpn": "1812L075THDR",

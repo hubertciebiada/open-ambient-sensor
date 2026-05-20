@@ -3671,7 +3671,7 @@
 			(justify left)
 		)
 	)
-	(property "Value" "PTC 750mA / 60V"
+	(property "Value" "PTC 750mA / 75V"
 		(at 88.9 67.31 0)
 		(effects
 			(font
@@ -6592,7 +6592,7 @@
 			(justify left)
 		)
 	)
-	(property "Value" "10uF 16V"
+	(property "Value" "10uF 25V"
 		(at 142.24 132.08 0)
 		(effects
 			(font

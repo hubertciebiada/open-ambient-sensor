@@ -565,7 +565,7 @@ def gen_mcu_sch() -> str:
     parts.append(_sch_capacitor(
         lib_id="Device:C",
         x=C9_X, y=C9_Y, angle=0,
-        reference="C9", value="10uF 16V",
+        reference="C9", value="10uF 25V",
         uuid_tag="c9", sheet_key="mcu",
     ))
     parts.append(_sch_capacitor(
