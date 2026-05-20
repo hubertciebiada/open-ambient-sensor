@@ -77,27 +77,30 @@ UPSTREAM_CSV = KICAD_ROOT / "third_party" / "JLCKicadTools" / "jlc_kicad_tools" 
 # U1 or U2 mis-oriented, re-add the entry with the screenshot path
 # in the rationale.
 #
-# The SK6812-SIDE entry stays — it is empirically validated: without
-# it, JLCPCB DFM renders the LEDs emitting inward, meaning JLCPCB's
-# tape-feeder reference for the OPSCO/Normand SK6812 SIDE-A part is
-# 180 deg offset from KiCad's footprint reference. Without the +180
-# compensation, each LED would land 180 deg off the pads — chip pin 1
-# (DIN) on PCB pad 4 (GND trace), reverse-polarity destruction at
-# first power-up.
+# The SK6812-SIDE entry is kept at 0 deg deliberately (see the entry's
+# own comment block): the boardgen (90 - theta) LED placement formula
+# already carries the 180 deg tape-feeder compensation, so no extra
+# pos.csv offset is needed. A stale +180 here — left over from the
+# older (270 - theta) placement — double-compensated and put the AQI
+# ring 180 deg off (emission inward, "pin outer edge") on JLCPCB DFM.
 JLCPCB_ROTATIONS_OAS: list[tuple[re.Pattern, float, str]] = [
-    # D11..D18 SK6812-SIDE (oas:SK6812-SIDE custom footprint). v0.40
-    # JLCPCB DFM render WITHOUT this entry: LEDs on the AQI ring
-    # emitting INWARD (toward central cable hole) instead of OUTWARD
-    # (toward perforated cover). Root cause: JLCPCB's tape feeder
-    # reference for this part is 180 deg off KiCad's footprint frame.
-    # +180 deg in pos.csv brings the chip onto the pads correctly so
-    # pin 1 (DIN) on pad 1 (DIN trace) etc. Combined with the
-    # (270 - theta) placement formula in boardgen, each placed LED
-    # emits radially outward through the AK-N-94 perforated cover.
+    # D11..D18 SK6812-SIDE (oas:SK6812-SIDE custom footprint).
+    # Offset 0 deg — and that is DELIBERATE. Do NOT re-add +180.
+    #
+    # A +180 entry lived here while the boardgen LED placement used the
+    # (270 - theta) formula. v0.41 (2026-05-19) changed that formula to
+    # (90 - theta) so the KiCad 3D render shows the ring emitting
+    # radially OUTWARD. (90 - theta) already differs from (270 - theta)
+    # by 180 deg, so the placement now bakes in the tape-feeder
+    # compensation. The +180 left here on top of it double-compensated:
+    # JLCPCB DFM then rendered the ring emitting INWARD and flagged
+    # "pin outer edge" (the asymmetric land 180 deg off its pins).
+    # Offset 0 makes the CPL rotation == boardgen placement == the
+    # KiCad 3D render: emission outward, pins on pads.
     (
         re.compile(r"^SK6812-SIDE$"),
-        180,
-        "v0.40 DFM (2026-05): LED ring emitting inward without compensation -> JLCPCB feeder is 180 deg off KiCad reference. +180 in pos.csv aligns chip with PCB pads.",
+        0,
+        "SK6812-SIDE: 0 deg by design — the (90 - theta) boardgen placement already carries the 180 deg tape-feeder compensation; an extra +180 double-compensates (JLCPCB DFM: emission inward + pin-outer-edge).",
     ),
 ]
 

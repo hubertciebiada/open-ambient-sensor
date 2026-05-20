@@ -51,8 +51,8 @@ from boardgen._project import (  # noqa: F401
     LED_RING_COUNT, LED_RING_THETA_START_DEG, LED_RING_THETA_STEP_DEG,
     LED_RING_SKIP_INDICES,
     SK6812SIDE_BODY_W, SK6812SIDE_BODY_H,
-    SK6812SIDE_PAD_WIDTH, SK6812SIDE_PAD_HEIGHT, SK6812SIDE_PAD_Y,
-    SK6812SIDE_PAD_X_OFFSETS,
+    SK6812SIDE_PAD_HEIGHT, SK6812SIDE_PAD_Y,
+    SK6812SIDE_PAD_X_OFFSETS, SK6812SIDE_PADS,
     _led_ring_position, _led_cap_position,
 )
 
@@ -1635,16 +1635,18 @@ def gen_sk6812_side_pcb_footprint(
     """
     body_hw = SK6812SIDE_BODY_W / 2.0
     body_hh = SK6812SIDE_BODY_H / 2.0
-    crty_x_min = -body_hw - 0.20
-    crty_x_max = +body_hw + 0.20
+    pad_x_min = min(lx - pw / 2.0 for lx, pw in SK6812SIDE_PADS)
+    pad_x_max = max(lx + pw / 2.0 for lx, pw in SK6812SIDE_PADS)
+    crty_x_min = min(-body_hw, pad_x_min) - 0.20
+    crty_x_max = max(+body_hw, pad_x_max) + 0.20
     crty_y_min = -body_hh - 0.20
     crty_y_max = SK6812SIDE_PAD_Y + SK6812SIDE_PAD_HEIGHT/2 + 0.20
-    pin1_dot_x = SK6812SIDE_PAD_X_OFFSETS[0]
+    pin1_dot_x = SK6812SIDE_PADS[0][0] + SK6812SIDE_PADS[0][1] / 2.0   # pad 1 inner edge
     pin1_dot_y = SK6812SIDE_PAD_Y + SK6812SIDE_PAD_HEIGHT/2 + 0.35
     arrow_tip_y = -body_hh - 0.35
     arrow_base_y = -body_hh + 0.25
     pad_blocks = []
-    for pin_num, lx in enumerate(SK6812SIDE_PAD_X_OFFSETS, start=1):
+    for pin_num, (lx, pw) in enumerate(SK6812SIDE_PADS, start=1):
         # Pad rotation injected explicitly so DRC interprets the pad
         # geometry as rotated WITH the footprint (KiCad quirk — see
         # `_annotate_pad_rotations` rationale).
@@ -1652,7 +1654,7 @@ def gen_sk6812_side_pcb_footprint(
         pad_blocks.append(textwrap.dedent(f"""\
             \t\t(pad "{pin_num}" smd rect
             \t\t\t(at {fmt(lx)} {fmt(SK6812SIDE_PAD_Y)}{rot_clause})
-            \t\t\t(size {fmt(SK6812SIDE_PAD_WIDTH)} {fmt(SK6812SIDE_PAD_HEIGHT)})
+            \t\t\t(size {fmt(pw)} {fmt(SK6812SIDE_PAD_HEIGHT)})
             \t\t\t(layers "F.Cu" "F.Paste" "F.Mask")
             \t\t\t(uuid "{U(f'fp-pad:{uuid_tag}:{pin_num}')}")
             \t\t)"""))

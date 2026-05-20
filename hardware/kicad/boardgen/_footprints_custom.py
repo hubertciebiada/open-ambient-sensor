@@ -45,8 +45,8 @@ from boardgen._project import (  # noqa: F401
     LED_RING_COUNT, LED_RING_THETA_START_DEG, LED_RING_THETA_STEP_DEG,
     LED_RING_SKIP_INDICES,
     SK6812SIDE_BODY_W, SK6812SIDE_BODY_H,
-    SK6812SIDE_PAD_WIDTH, SK6812SIDE_PAD_HEIGHT, SK6812SIDE_PAD_Y,
-    SK6812SIDE_PAD_X_OFFSETS,
+    SK6812SIDE_PAD_HEIGHT, SK6812SIDE_PAD_Y,
+    SK6812SIDE_PADS,
     _led_ring_position, _led_cap_position,
 )
 
@@ -740,13 +740,16 @@ def gen_ziptie_hole_footprint() -> str:
 # MINI / 1515 variants — none match the 4020 SIDE package geometry or
 # pinout — hence this project-local footprint.
 #
-# Pad rectangles: 0.6 × 1.0 mm at 0.95 mm pitch along body-local +X,
-# offset to body-local +Y = +0.85 (toward the pad-row face). The emission
-# face is on the opposite long edge (body-local -Y direction).
+# Pad rectangles: ASYMMETRIC land pattern from EasyEDA C5378721 — four
+# rect pads 1.2 mm tall, widths 1.00/0.70/0.45/1.00 mm, centres at
+# body-local X = -1.80/-0.45/+0.575/+1.80. Pad-row centreline at
+# body-local +Y = SK6812SIDE_PAD_Y (0.15 mm) — re-centred on where
+# JLCPCB lands the part pins; see the SK6812SIDE_PAD_Y comment in
+# _project.py. The emission face is on the opposite long edge (-Y).
 #
 # Layers:
 #   F.Cu      — 4 SMD pads
-#   F.Fab     — body outline (4.0 × 2.0 mm), pin-1 dot, emission-edge arrow
+#   F.Fab     — body outline (4.0 × 1.6 mm), pin-1 dot, emission-edge arrow
 #   F.SilkS   — pin-1 dot near pad 1 + small emission-direction arrow on
 #                the body's -Y edge. No body silk RECT is emitted (would
 #                trigger silk_overlap DRC against the MIKROE-2462 silk
@@ -762,28 +765,33 @@ def gen_ziptie_hole_footprint() -> str:
 def gen_sk6812_side_footprint() -> str:
     """Custom SK6812-SIDE footprint definition (library file)."""
     body_hw = SK6812SIDE_BODY_W / 2.0    # = 2.0 (half-extent along +X)
-    body_hh = SK6812SIDE_BODY_H / 2.0    # = 1.0 (half-extent along +Y)
-    # Courtyard: 0.25 mm beyond pad row on +Y side, 0.25 mm beyond body
-    # on the emission (-Y) side. ±X extent matches body.
-    crty_x_min = -body_hw - 0.20
-    crty_x_max = +body_hw + 0.20
+    body_hh = SK6812SIDE_BODY_H / 2.0    # = 0.8 (half-extent along +Y)
+    # Courtyard: encloses the body AND the asymmetric land. The outer
+    # pads run past the body ends on +/-X and the pad row runs past the
+    # body on +Y; 0.20 mm margin on every side.
+    pad_x_min = min(lx - pw / 2.0 for lx, pw in SK6812SIDE_PADS)
+    pad_x_max = max(lx + pw / 2.0 for lx, pw in SK6812SIDE_PADS)
+    crty_x_min = min(-body_hw, pad_x_min) - 0.20
+    crty_x_max = max(+body_hw, pad_x_max) + 0.20
     crty_y_min = -body_hh - 0.20         # emission side
-    crty_y_max = SK6812SIDE_PAD_Y + SK6812SIDE_PAD_HEIGHT/2 + 0.20   # +1.55
-    # Pad rectangles
+    crty_y_max = SK6812SIDE_PAD_Y + SK6812SIDE_PAD_HEIGHT/2 + 0.20
+    # Pad rectangles -- asymmetric land pattern (see SK6812SIDE_PADS).
     pad_blocks = []
-    for pin_num, lx in enumerate(SK6812SIDE_PAD_X_OFFSETS, start=1):
+    for pin_num, (lx, pw) in enumerate(SK6812SIDE_PADS, start=1):
         pad_blocks.append(textwrap.dedent(f"""\
             \t(pad "{pin_num}" smd rect
             \t\t(at {fmt(lx)} {fmt(SK6812SIDE_PAD_Y)})
-            \t\t(size {fmt(SK6812SIDE_PAD_WIDTH)} {fmt(SK6812SIDE_PAD_HEIGHT)})
+            \t\t(size {fmt(pw)} {fmt(SK6812SIDE_PAD_HEIGHT)})
             \t\t(layers "F.Cu" "F.Paste" "F.Mask")
             \t\t(uuid "{U(f'sk6812-side:fp:pad-{pin_num}')}")
             \t)"""))
     pads = "\n".join(pad_blocks)
-    # Pin-1 dot on F.SilkS, just outside pad 1 on the +X- / +Y-extreme
-    # corner so it survives any rotation that lands pad 1 on either side
-    # of the ring.
-    pin1_dot_x = SK6812SIDE_PAD_X_OFFSETS[0]   # -1.425
+    # Pin-1 dot on F.SilkS above pad 1, at pad 1's INNER edge (not its
+    # centre): the asymmetric land puts pad 1 centre at -1.80, and a dot
+    # that far out collides with the MIKROE-2462 (MOD2) silk at the
+    # theta=135 deg LED (D14). The inner edge keeps the dot next to pad 1
+    # while clearing neighbouring daughterboard silk on every ring slot.
+    pin1_dot_x = SK6812SIDE_PADS[0][0] + SK6812SIDE_PADS[0][1] / 2.0   # = -1.30
     pin1_dot_y = SK6812SIDE_PAD_Y + SK6812SIDE_PAD_HEIGHT/2 + 0.35   # +1.7
     # Emission-direction arrow on F.SilkS: short line + tip at body-local
     # -Y side. Located on the emission face (-Y).

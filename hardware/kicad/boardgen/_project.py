@@ -1094,8 +1094,9 @@ POLARIZED_DESIGNATORS: frozenset[str] = frozenset({
 # over top-emit after a research pass on the diffuse-ring options.
 #
 # LED chip: SK6812 SIDE-A (Shenzhen Normand / OPSCO Optoelectronics).
-# Package 4.0 × 2.0 × 1.6 mm. Pinout 1=DIN, 2=VDD, 3=DOUT, 4=GND
-# (verified against Normand 2018 rev 01 datasheet and OPSCO 2021 rev A/1).
+# Package 4.0 (L) × 1.6 (W) × 2.0 (H) mm. Pinout 1=DIN, 2=VDD, 3=DOUT,
+# 4=GND (verified against Normand 2018 rev 01 + OPSCO 2021 rev A/1
+# datasheets; land pattern from EasyEDA C5378721 — see SK6812SIDE_PADS).
 # See EXTERNAL_MODULES['SK6812-SIDE'] entry above for the verified part spec.
 #
 # Geometry:
@@ -1121,9 +1122,9 @@ POLARIZED_DESIGNATORS: frozenset[str] = frozenset({
 #
 # LED_RING_RADIUS = 13.0 mm (pre-routing rework: bumped from 11.0 → 13.0
 # to free up the cable-hole / centre routing channel). LED centres on
-# a Ø26 mm pitch circle. Inner-most LED body edge at R = 12 mm (body
-# half-width 1 mm radially); 6 mm radial clearance to the Ø12 mm cable
-# hole edge at R=6. Outer-most LED body edge at R = 14 mm.
+# a Ø26 mm pitch circle. Inner-most LED body edge at R = 12.2 mm (body
+# half-extent 0.8 mm radially); 6.2 mm radial clearance to the Ø12 mm
+# cable hole edge at R=6. Outer-most LED body edge at R = 13.8 mm.
 # Chord distance between adjacent 45° LEDs: 2·R·sin(22.5°) = 9.95 mm,
 # giving 2.98 mm gap per side of the 4 mm LED body (was 1.37 mm at 30°).
 LED_RING_RADIUS = 13.0    # v0.41 2026-05-19 (rev 3): back to 13.0 base after
@@ -1184,21 +1185,44 @@ LED_RING_CAP_RADIAL_OFFSET = 3.4
 LED_RING_CAP_RADIAL_OFFSET_OVERRIDE = {1: 2.6, 3: 2.6}
 
 # SK6812-SIDE package + pad geometry (body-local frame; +X = long-axis,
-# +Y = short-axis pointing toward pad-row face).
+# +Y = short-axis pointing toward the pad-row face; emission face at -Y).
+#
+# Body + land pattern are taken from the LCSC/EasyEDA footprint of the
+# exact ordered part C5378721 (OPSCO SK6812SIDE-A) -- the same data
+# JLCPCB's DFM resolves "Pin without a pad" against -- cross-checked
+# against the Normand SPC/SK6812 SIDE-A Rev.01 datasheet section 4.
+#
+# The package is 4.0 (L) x 1.6 (W, PCB plane) x 2.0 (H) mm. NOTE the
+# datasheet marketing string "4.0x2.0x1.6mm" is L x H x W -- earlier
+# boardgen revisions mis-read it as L x W x H, producing a 4.0x2.0 body
+# and a SYMMETRIC 4 x 0.60 mm land. The real part terminals are
+# ASYMMETRIC, so JLCPCB's part model did not land on that copper -> a
+# DANGER "Pin without a pad" on the two outer pins in JLCPCB DFM.
 SK6812SIDE_BODY_W = 4.0              # mm, long axis (pad row direction)
-SK6812SIDE_BODY_H = 2.0              # mm, short axis (emission perpendicular)
-SK6812SIDE_BODY_Z = 1.6              # mm, height above PCB (well within 17 mm)
-SK6812SIDE_PAD_PITCH = 0.95          # mm pad pitch along long axis
-SK6812SIDE_PAD_WIDTH = 0.60          # mm along long axis (X)
-SK6812SIDE_PAD_HEIGHT = 1.00         # mm along short axis (Y)
-SK6812SIDE_PAD_Y = 0.85              # mm, body-local +Y of pad centerline
-                                      # (pad-row face). Emission face at -Y.
-# Pad X positions: 4 pads, centered at body-local X = ±1.425, ±0.475
-# (i.e. evenly spaced at SK6812SIDE_PAD_PITCH = 0.95 mm pitch, centered
-# on body X = 0).
-SK6812SIDE_PAD_X_OFFSETS = tuple(
-    (-1.5 + i) * SK6812SIDE_PAD_PITCH for i in range(4)
-)  # = (-1.425, -0.475, +0.475, +1.425)
+SK6812SIDE_BODY_H = 1.6             # mm, short axis (radial / emission-perp)
+SK6812SIDE_BODY_Z = 2.0             # mm, height standing above PCB (<< 17 mm)
+SK6812SIDE_PAD_HEIGHT = 1.2         # mm along short axis (Y) -- all 4 pads
+SK6812SIDE_PAD_Y = 0.15             # mm, body-local +Y of pad-row centerline.
+# This is the COPPER pad-row position, re-centred on where JLCPCB lands
+# the part pins -- NOT the raw EasyEDA pad-vs-body offset (0.575 mm).
+# JLCPCB places the part by its footprint ORIGIN; for C5378721 that
+# origin (EasyEDA "head", y=3001.7715) sits on the pad row, ~0.56 mm off
+# the body centre that our footprint anchors on. With the copper at the
+# raw 0.575 mm the JLCPCB DFM "pin inner edge" check flagged every ring
+# LED pin 0.2 mm past the pad inner edge. 0.15 mm re-centres the copper
+# on the pins (~0.225 mm fillet all round). Emission face at body-local -Y.
+# Per-pad land geometry -- (body-local center X, pad width) in mm; pad
+# heights are uniform (SK6812SIDE_PAD_HEIGHT). Pad 1 = DIN (leftmost),
+# 2 = VDD, 3 = DOUT, 4 = GND. Asymmetric: the outer pads are the widest,
+# pad 3 (DOUT) the narrowest -- verbatim from EasyEDA C5378721.
+SK6812SIDE_PADS: tuple[tuple[float, float], ...] = (
+    (-1.800, 1.00),   # pad 1 = DIN
+    (-0.450, 0.70),   # pad 2 = VDD
+    (+0.575, 0.45),   # pad 3 = DOUT
+    (+1.800, 1.00),   # pad 4 = GND
+)
+# Derived: body-local center X of each pad (pin-1 dot, silk labels).
+SK6812SIDE_PAD_X_OFFSETS = tuple(x for x, _w in SK6812SIDE_PADS)
 
 
 def _led_ring_position(index: int) -> tuple[float, float, float]:
@@ -1219,14 +1243,13 @@ def _led_ring_position(index: int) -> tuple[float, float, float]:
     # -X axis), rot=270 maps (0, -1) CCW to (-1, 0) = OUTWARD. (v0.41
     # 2026-05-19: previous formula was (270 - θ) which produced INWARD
     # emission — verified visually on 3D render after SK6812-SIDE-A.step
-    # was added.) JLCPCB tape-feeder reference
-    # for SK6812-SIDE is offset 180° from KiCad's footprint reference
-    # — without compensation, JLCPCB would place the chip 180° off
-    # the pads (pin 1 DIN landing on pad 4 GND → reverse polarity).
-    # The +180° SK6812-SIDE entry in JLCPCB_ROTATIONS_OAS in
-    # pipeline/jlcpcb/_rotations.py applies that compensation at pos.csv emit
-    # time. Validated empirically: without the entry, user saw JLCPCB
-    # DFM rendering LEDs emitting inward (= chip 180° off pads).
+    # was added.) Because (90 - θ) already differs from the old
+    # (270 - θ) by 180°, the placement formula itself now carries the
+    # JLCPCB tape-feeder compensation: the SK6812-SIDE entry in
+    # JLCPCB_ROTATIONS_OAS (pipeline/jlcpcb/_rotations.py) is therefore
+    # 0°. Adding a +180° there on top of (90 - θ) double-compensates
+    # and lands every LED 180° off on JLCPCB DFM (emission inward,
+    # pin-outer-edge danger). Keep that entry at 0°.
     # body-local emission face is at -Y; to point that face RADIALLY OUTWARD
     # from the ring center for an LED placed at angle theta_deg, we need
     # rotation = 90deg - theta_deg (mod 360). Earlier formula used
