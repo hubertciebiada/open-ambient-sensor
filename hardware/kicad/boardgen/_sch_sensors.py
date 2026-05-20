@@ -327,8 +327,13 @@ def gen_sensors_sch() -> str:
     #   Pin 4 = GND
     #   Pin 5 = VCC (5 V supply, range 5-12 V)
     #
-    # v0.15.8 fix: J4 pin-to-net mapping was reversed end-for-end vs the
-    # datasheet (pin 1 was wired to VCC, pin 5 to OUT). Corrected here.
+    # This schematic pad-to-net mapping (pad 1 = OUT … pad 5 = VCC) is
+    # CORRECT and matches the datasheet — do not touch it. The v0.15.8
+    # "fix" that reversed these nets was misdiagnosed: the real defect was
+    # the J4 PCB footprint placement (rotation put pad 1 at the wrong
+    # physical end vs where the LD2410 module's OUT pin lands). That was
+    # corrected at the footprint layer in v0.43 — see the J4_PCB_* block in
+    # _project.py. The schematic stays as-is.
     J4_X = 180.34
     J4_Y = 146.05
     J4_PIN_X = J4_X - 5.08    # 175.26 — tip column for all 5 pin tips

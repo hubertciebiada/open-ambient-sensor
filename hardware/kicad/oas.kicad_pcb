@@ -1275,15 +1275,15 @@
 (footprint "Connector_PinHeader_1.27mm:PinHeader_1x05_P1.27mm_Vertical"
 	(layer "F.Cu")
 	(uuid "8ebfd4a6-1715-5c15-af6d-8ec606e8b113")
-	(at 103.76 124.05 270)
+	(at 98.68 124.05 90)
 (property "Reference" "J4"
-	(at 0 -1.9 270)
+	(at 0 -1.9 90)
 	(layer "F.SilkS")
 	(uuid "6e70e07e-b45a-53dc-8a21-d9073deacde6")
 	(effects (font (size 1 1) (thickness 0.15)))
 )
 (property "Value" "1x5 P1.27mm header (HLK-LD2410B)"
-	(at 0 6.98 270)
+	(at 0 6.98 90)
 	(layer "F.Fab")
 	(uuid "1546325c-6e06-5a22-a5b5-118a8d8eaa59")
 	(effects (font (size 1 1) (thickness 0.15)))
@@ -1452,7 +1452,7 @@
 			)
 		)
 	(pad "1" thru_hole rect
-			(at 0 0 270)
+			(at 0 0 90)
 			(size 1 1)
 			(drill 0.65)
 			(layers "*.Cu" "*.Mask")
@@ -1460,7 +1460,7 @@
 			(net 11 "/MCU/LD2410_OUT")
 		)
 	(pad "2" thru_hole circle
-			(at 0 1.27 270)
+			(at 0 1.27 90)
 			(size 1 1)
 			(drill 0.65)
 			(layers "*.Cu" "*.Mask")
@@ -1468,7 +1468,7 @@
 			(net 13 "/MCU/UART_RX")
 		)
 	(pad "3" thru_hole circle
-			(at 0 2.54 270)
+			(at 0 2.54 90)
 			(size 1 1)
 			(drill 0.65)
 			(layers "*.Cu" "*.Mask")
@@ -1476,7 +1476,7 @@
 			(net 14 "/MCU/UART_TX")
 		)
 	(pad "4" thru_hole circle
-			(at 0 3.81 270)
+			(at 0 3.81 90)
 			(size 1 1)
 			(drill 0.65)
 			(layers "*.Cu" "*.Mask")
@@ -1484,7 +1484,7 @@
 			(net 17 "GND")
 		)
 	(pad "5" thru_hole circle
-			(at 0 5.08 270)
+			(at 0 5.08 90)
 			(size 1 1)
 			(drill 0.65)
 			(layers "*.Cu" "*.Mask")
@@ -3890,16 +3890,16 @@
 (footprint "Connector_PinSocket_2.54mm:PinSocket_1x08_P2.54mm_Vertical"
 	(layer "F.Cu")
 	(uuid "fb204548-ef88-5ff5-b11c-039eec21351c")
-	(at 132.47 143.1 180)
+	(at 109.61 125.32 0)
 (property "Reference" "J7"
-	(at 0 -1.9 180)
+	(at 0 -1.9 0)
 	(layer "F.SilkS")
 	(hide yes)
 	(uuid "2fab4acb-810d-5fe7-ace0-5aa7fea320a4")
 	(effects (font (size 1 1) (thickness 0.15)))
 )
-(property "Value" "MIKROE row A (mikroBUS pins 1..8, AN/RST/CS/SCK/MISO/MOSI/+3V3/GND)"
-	(at 0 19.28 180)
+(property "Value" "MIKROE mikroBUS pins 1..8 (AN/RST/CS/SCK/MISO/MOSI/+3V3/GND)"
+	(at 0 19.28 0)
 	(layer "F.Fab")
 	(hide yes)
 	(uuid "016bbf19-c038-5382-8a11-ec0e338cd8ee")
@@ -4077,7 +4077,7 @@
 			)
 		)
 	(pad "1" thru_hole rect
-			(at 0 0 180)
+			(at 0 0)
 			(size 1.7 1.7)
 			(drill 1)
 			(layers "*.Cu" "*.Mask")
@@ -4085,7 +4085,7 @@
 			(net 46 "unconnected-(J7-Pin_1-Pad1)")
 		)
 	(pad "2" thru_hole circle
-			(at 0 2.54 180)
+			(at 0 2.54)
 			(size 1.7 1.7)
 			(drill 1)
 			(layers "*.Cu" "*.Mask")
@@ -4093,7 +4093,7 @@
 			(net 47 "unconnected-(J7-Pin_2-Pad2)")
 		)
 	(pad "3" thru_hole circle
-			(at 0 5.08 180)
+			(at 0 5.08)
 			(size 1.7 1.7)
 			(drill 1)
 			(layers "*.Cu" "*.Mask")
@@ -4101,7 +4101,7 @@
 			(net 48 "unconnected-(J7-Pin_3-Pad3)")
 		)
 	(pad "4" thru_hole circle
-			(at 0 7.62 180)
+			(at 0 7.62)
 			(size 1.7 1.7)
 			(drill 1)
 			(layers "*.Cu" "*.Mask")
@@ -4109,7 +4109,7 @@
 			(net 49 "unconnected-(J7-Pin_4-Pad4)")
 		)
 	(pad "5" thru_hole circle
-			(at 0 10.16 180)
+			(at 0 10.16)
 			(size 1.7 1.7)
 			(drill 1)
 			(layers "*.Cu" "*.Mask")
@@ -4117,7 +4117,7 @@
 			(net 50 "unconnected-(J7-Pin_5-Pad5)")
 		)
 	(pad "6" thru_hole circle
-			(at 0 12.7 180)
+			(at 0 12.7)
 			(size 1.7 1.7)
 			(drill 1)
 			(layers "*.Cu" "*.Mask")
@@ -4125,7 +4125,7 @@
 			(net 51 "unconnected-(J7-Pin_6-Pad6)")
 		)
 	(pad "7" thru_hole circle
-			(at 0 15.24 180)
+			(at 0 15.24)
 			(size 1.7 1.7)
 			(drill 1)
 			(layers "*.Cu" "*.Mask")
@@ -4133,7 +4133,7 @@
 			(net 1 "+3V3")
 		)
 	(pad "8" thru_hole circle
-			(at 0 17.78 180)
+			(at 0 17.78)
 			(size 1.7 1.7)
 			(drill 1)
 			(layers "*.Cu" "*.Mask")
@@ -4155,16 +4155,16 @@
 (footprint "Connector_PinSocket_2.54mm:PinSocket_1x08_P2.54mm_Vertical"
 	(layer "F.Cu")
 	(uuid "b50e8556-1aa7-56fd-819a-838645660fbf")
-	(at 109.61 143.1 180)
+	(at 132.47 125.32 0)
 (property "Reference" "J8"
-	(at 0 -1.9 180)
+	(at 0 -1.9 0)
 	(layer "F.SilkS")
 	(hide yes)
 	(uuid "dc7983e4-d09b-56c6-b138-5381e4221eed")
 	(effects (font (size 1 1) (thickness 0.15)))
 )
-(property "Value" "MIKROE row B (mikroBUS pins 9..16, PWM/INT/RX/TX/SCL/SDA/+5V/GND)"
-	(at 0 19.28 180)
+(property "Value" "MIKROE mikroBUS pins 9..16 (PWM/INT/RX/TX/SCL/SDA/+5V/GND)"
+	(at 0 19.28 0)
 	(layer "F.Fab")
 	(hide yes)
 	(uuid "9b323d98-8bcb-5f6d-b986-5b33a99e77d9")
@@ -4342,7 +4342,7 @@
 			)
 		)
 	(pad "1" thru_hole rect
-			(at 0 0 180)
+			(at 0 0)
 			(size 1.7 1.7)
 			(drill 1)
 			(layers "*.Cu" "*.Mask")
@@ -4350,7 +4350,7 @@
 			(net 52 "unconnected-(J8-Pin_1-Pad1)")
 		)
 	(pad "2" thru_hole circle
-			(at 0 2.54 180)
+			(at 0 2.54)
 			(size 1.7 1.7)
 			(drill 1)
 			(layers "*.Cu" "*.Mask")
@@ -4358,7 +4358,7 @@
 			(net 12 "/MCU/NFC_FD")
 		)
 	(pad "3" thru_hole circle
-			(at 0 5.08 180)
+			(at 0 5.08)
 			(size 1.7 1.7)
 			(drill 1)
 			(layers "*.Cu" "*.Mask")
@@ -4366,7 +4366,7 @@
 			(net 53 "unconnected-(J8-Pin_3-Pad3)")
 		)
 	(pad "4" thru_hole circle
-			(at 0 7.62 180)
+			(at 0 7.62)
 			(size 1.7 1.7)
 			(drill 1)
 			(layers "*.Cu" "*.Mask")
@@ -4374,7 +4374,7 @@
 			(net 54 "unconnected-(J8-Pin_4-Pad4)")
 		)
 	(pad "5" thru_hole circle
-			(at 0 10.16 180)
+			(at 0 10.16)
 			(size 1.7 1.7)
 			(drill 1)
 			(layers "*.Cu" "*.Mask")
@@ -4382,7 +4382,7 @@
 			(net 7 "/IO/I2C_SCL")
 		)
 	(pad "6" thru_hole circle
-			(at 0 12.7 180)
+			(at 0 12.7)
 			(size 1.7 1.7)
 			(drill 1)
 			(layers "*.Cu" "*.Mask")
@@ -4390,7 +4390,7 @@
 			(net 8 "/IO/I2C_SDA")
 		)
 	(pad "7" thru_hole circle
-			(at 0 15.24 180)
+			(at 0 15.24)
 			(size 1.7 1.7)
 			(drill 1)
 			(layers "*.Cu" "*.Mask")
@@ -4398,7 +4398,7 @@
 			(net 55 "unconnected-(J8-Pin_7-Pad7)")
 		)
 	(pad "8" thru_hole circle
-			(at 0 17.78 180)
+			(at 0 17.78)
 			(size 1.7 1.7)
 			(drill 1)
 			(layers "*.Cu" "*.Mask")
@@ -16241,7 +16241,7 @@
 	)
 )
 (gr_text "J7"
-	(at 134.47 147.2 0)
+	(at 109.61 147.2 0)
 	(layer "F.SilkS")
 	(uuid "41c5500d-e2ba-5fd1-81f6-93b31f952aa0")
 	(effects
@@ -16249,7 +16249,7 @@
 	)
 )
 (gr_text "J8"
-	(at 111.61 147.2 0)
+	(at 132.47 147.2 0)
 	(layer "F.SilkS")
 	(uuid "34417cf4-3d91-5c0b-8a41-547590e13f86")
 	(effects
@@ -16289,39 +16289,135 @@
 	)
 )
 (gr_text "AN"
-	(at 135.37 143.1 90)
+	(at 114.11 125.32 0)
 	(layer "F.SilkS")
-	(uuid "4ca06095-1069-54a5-835a-27b8d7511331")
+	(uuid "055a4ac7-2b96-59e0-a28f-eb4b2ee83b4c")
+	(effects
+		(font (size 1 1) (thickness 0.15))
+	)
+)
+(gr_text "RST"
+	(at 114.11 127.86 0)
+	(layer "F.SilkS")
+	(uuid "33d42323-9c16-5683-9fb5-521b4e53f65f")
+	(effects
+		(font (size 1 1) (thickness 0.15))
+	)
+)
+(gr_text "CS"
+	(at 114.11 130.4 0)
+	(layer "F.SilkS")
+	(uuid "0b955c3f-5d0d-5181-8b9a-a0f8f175bc26")
+	(effects
+		(font (size 1 1) (thickness 0.15))
+	)
+)
+(gr_text "SCK"
+	(at 114.11 132.94 0)
+	(layer "F.SilkS")
+	(uuid "48320671-744e-550c-9f9e-23376ac5b380")
+	(effects
+		(font (size 1 1) (thickness 0.15))
+	)
+)
+(gr_text "MISO"
+	(at 114.11 135.48 0)
+	(layer "F.SilkS")
+	(uuid "88c0add8-5a56-5b85-969f-3b7b62262385")
+	(effects
+		(font (size 1 1) (thickness 0.15))
+	)
+)
+(gr_text "MOSI"
+	(at 114.11 138.02 0)
+	(layer "F.SilkS")
+	(uuid "642e512e-869b-5565-8cb9-f30fdaa38e54")
+	(effects
+		(font (size 1 1) (thickness 0.15))
+	)
+)
+(gr_text "+3V3"
+	(at 114.11 140.56 0)
+	(layer "F.SilkS")
+	(uuid "088bb933-748a-5f25-af57-73c343085fb2")
 	(effects
 		(font (size 1 1) (thickness 0.15))
 	)
 )
 (gr_text "GND"
-	(at 135.37 125.32 90)
+	(at 114.11 143.1 0)
 	(layer "F.SilkS")
-	(uuid "c323257d-6b80-51e8-9947-09c6985ddfe6")
+	(uuid "9dc04e14-1aa7-571f-b922-f49148240c78")
 	(effects
 		(font (size 1 1) (thickness 0.15))
 	)
 )
 (gr_text "PWM"
-	(at 106.71 143.1 90)
-	(layer "F.Fab")
-	(uuid "a9b34e82-d85d-5116-9bfd-956dc270af4f")
+	(at 127.97 125.32 0)
+	(layer "F.SilkS")
+	(uuid "a8a7a39d-ea1d-5e37-965d-32656715fbe3")
+	(effects
+		(font (size 1 1) (thickness 0.15))
+	)
+)
+(gr_text "INT"
+	(at 127.97 127.86 0)
+	(layer "F.SilkS")
+	(uuid "29d2f3f9-6726-5355-aa90-f55e368ecf41")
+	(effects
+		(font (size 1 1) (thickness 0.15))
+	)
+)
+(gr_text "RX"
+	(at 127.97 130.4 0)
+	(layer "F.SilkS")
+	(uuid "55891fa8-fed5-5c18-9024-8deb555d0b83")
+	(effects
+		(font (size 1 1) (thickness 0.15))
+	)
+)
+(gr_text "TX"
+	(at 127.97 132.94 0)
+	(layer "F.SilkS")
+	(uuid "578fa002-5ddf-5cf1-b7db-644ecc9ea412")
+	(effects
+		(font (size 1 1) (thickness 0.15))
+	)
+)
+(gr_text "SCL"
+	(at 127.97 135.48 0)
+	(layer "F.SilkS")
+	(uuid "7d736c20-04f8-5b59-a797-dca998741922")
+	(effects
+		(font (size 1 1) (thickness 0.15))
+	)
+)
+(gr_text "SDA"
+	(at 127.97 138.02 0)
+	(layer "F.SilkS")
+	(uuid "c5ce1ba5-9a65-5e52-b738-b373a632467f")
+	(effects
+		(font (size 1 1) (thickness 0.15))
+	)
+)
+(gr_text "+5V"
+	(at 127.97 140.56 0)
+	(layer "F.SilkS")
+	(uuid "cae4cc2d-654f-5fe9-83f3-dc2f99450940")
 	(effects
 		(font (size 1 1) (thickness 0.15))
 	)
 )
 (gr_text "GND"
-	(at 106.71 125.32 90)
-	(layer "F.Fab")
-	(uuid "8c3088f4-8955-558d-9be7-73e2ef30fd77")
+	(at 127.97 143.1 0)
+	(layer "F.SilkS")
+	(uuid "0fc7213f-f08c-5c76-b0cd-e8f3e8f0e1cb")
 	(effects
 		(font (size 1 1) (thickness 0.15))
 	)
 )
 (gr_text "OUT"
-	(at 103.76 128.55 90)
+	(at 98.68 128.55 90)
 	(layer "F.SilkS")
 	(uuid "7bed3352-2079-5724-8b46-e35f6acb3d31")
 	(effects
@@ -16329,7 +16425,7 @@
 	)
 )
 (gr_text "VCC"
-	(at 98.68 128.55 90)
+	(at 103.76 128.55 90)
 	(layer "F.SilkS")
 	(uuid "541c221b-e1b6-5c81-8da5-20d87ca88921")
 	(effects

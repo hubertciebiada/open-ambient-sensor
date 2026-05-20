@@ -44,9 +44,8 @@ from boardgen._project import (  # noqa: F401
     J1_PCB_X, J1_PCB_Y, J1_PCB_ROTATION,
     J9_PCB_X, J9_PCB_Y, J9_PCB_ROTATION,
     J10_PCB_X, J10_PCB_Y, J10_PCB_ROTATION,
-    J1_PIN_MAP, J2_PIN_MAP, J10_PIN_MAP,
+    J1_PIN_MAP, J2_PIN_MAP, J7_PIN_MAP, J8_PIN_MAP, J10_PIN_MAP,
     J4_END_SIGNALS, J5_END_SIGNALS, J6_END_SIGNALS,
-    J7_END_SIGNALS, J8_END_SIGNALS,
     SW1_PCB_X, SW1_PCB_Y, SW1_PCB_ROTATION,
     LED_RING_COUNT, LED_RING_THETA_START_DEG, LED_RING_THETA_STEP_DEG,
     LED_RING_SKIP_INDICES,
@@ -957,31 +956,40 @@ def gen_sensors_pcb_footprints() -> str:
     # MIKROE-2462 NFC Tag 2 Click — 2×1×8 mikroBUS, row spacing 22.86 mm,
     # pitch 2.54 mm, pin block offset 2.54 mm from pin-1 short edge.
     # v0.15.7: NFC body flipped 180° so pin block sits at PCB +Y (chord
-    # side, bottom of body). Anchor moved to body's PCB bottom-right
-    # corner. After rotation 180, LIB (lx, ly) → PCB (anchor_x - lx,
-    # anchor_y - ly):
-    #   Row A (LIB X=1.27, mikroBUS pins 1..8): PCB X = anchor_x - 1.27 = -14.03
-    #   Row B (LIB X=24.13, pins 9..16):        PCB X = anchor_x - 24.13 = -36.89
-    #   Pin 1 of each row at PCB Y = anchor_y - 2.54 = +38.10 (close to chord)
-    #   Pin 8/16 of each row at PCB Y = anchor_y - 20.32 = +20.32
-    # Pin sockets placed at pin-1 position with rotation 180 so LIB +Y
-    # (toward pin 8) → PCB -Y (away from chord, toward body interior).
-    mikroe_row_a_x = MIKROE2462_ANCHOR_X - MIKROE2462_PIN_ROW_INSET                          # -14.03
-    mikroe_row_b_x = MIKROE2462_ANCHOR_X - (MIKROE2462_BODY_W - MIKROE2462_PIN_ROW_INSET)    # -36.89
-    mikroe_row_y_start = MIKROE2462_ANCHOR_Y - MIKROE2462_PIN_START_OFFSET                   # +38.10
+    # side, bottom of body). Anchor at body's PCB bottom-right corner;
+    # the pin block spans PCB Y = +20.32 .. +38.10, with the two row
+    # slots 22.86 mm apart in X (row A near the anchor, row B far).
+    #
+    # v0.43 fix — the J7/J8 socket pair was laid out as if the NFC antenna
+    # pointed toward the chord (PCB +Y); it actually points the other way
+    # (PCB -Y, toward the AK-N-94 perforated cover). The fix rotates the
+    # WHOLE J7+J8 pair 180° about its centre: J7 and J8 swap X slots and
+    # each footprint goes from rotation 180 → 0, moving pin 1 of each row
+    # from the chord (south) end to the body-interior (north) end. The pair
+    # still occupies the exact same area; only the internal handedness
+    # flips so the NFC click mates correctly. Net assignment is unchanged —
+    # the pads (carrying their nets) simply relocate. See _project.py
+    # J7_PIN_MAP / J8_PIN_MAP for the mikroBUS pin order.
+    mikroe_row_a_x = MIKROE2462_ANCHOR_X - MIKROE2462_PIN_ROW_INSET
+    mikroe_row_b_x = MIKROE2462_ANCHOR_X - (MIKROE2462_BODY_W - MIKROE2462_PIN_ROW_INSET)
+    mikroe_row_y_start = MIKROE2462_ANCHOR_Y - MIKROE2462_PIN_START_OFFSET
+    mikroe_row_span = (MIKROE2462_PIN_COUNT_PER_ROW - 1) * MIKROE2462_PIN_PITCH  # 17.78
+    mikroe_pin1_y = mikroe_row_y_start - mikroe_row_span    # north (body-interior) end
+    # J7 (mikroBUS pins 1..8) — now in the row-B (west) slot, rotation 0.
     parts.append(gen_pinsocket_pcb_footprint(
         pin_count=MIKROE2462_PIN_COUNT_PER_ROW,
-        x=mikroe_row_a_x, y=mikroe_row_y_start, rotation=180,
+        x=mikroe_row_b_x, y=mikroe_pin1_y, rotation=0,
         reference="J7",
-        value="MIKROE row A (mikroBUS pins 1..8, AN/RST/CS/SCK/MISO/MOSI/+3V3/GND)",
+        value="MIKROE mikroBUS pins 1..8 (AN/RST/CS/SCK/MISO/MOSI/+3V3/GND)",
         descr="Stock 1x8 P2.54 mm female pin socket. MIKROE-2462 plugs into this row + J8 (other row). mikroBUS standard pin block, offset 2.54 mm from pin-1 short edge.",
         uuid_tag="j7-mikroe-row-a",
     ))
+    # J8 (mikroBUS pins 9..16) — now in the row-A (east) slot, rotation 0.
     parts.append(gen_pinsocket_pcb_footprint(
         pin_count=MIKROE2462_PIN_COUNT_PER_ROW,
-        x=mikroe_row_b_x, y=mikroe_row_y_start, rotation=180,
+        x=mikroe_row_a_x, y=mikroe_pin1_y, rotation=0,
         reference="J8",
-        value="MIKROE row B (mikroBUS pins 9..16, PWM/INT/RX/TX/SCL/SDA/+5V/GND)",
+        value="MIKROE mikroBUS pins 9..16 (PWM/INT/RX/TX/SCL/SDA/+5V/GND)",
         descr="Stock 1x8 P2.54 mm female pin socket. MIKROE-2462 plugs into this row + J7 (other row).",
         uuid_tag="j8-mikroe-row-b",
     ))
@@ -1647,31 +1655,37 @@ def gen_silk_labels() -> str:
     # J6 label south of MOD1 silk south edge at Y=-50.6: label at
     # Y=-52.5 gives 1.325 mm clearance.
     parts.append(_silk("J6", -22.39 + 5.37, -52.5, "desig:J6", size=1.0))
-    # J7 row A at PCB (-14.03, +38.10), rotation 180. MIKROE-2462
-    # daughterboard silk rect Y range [-16.71, +40.84]. Label at
-    # PCB X = -14.03, Y = +42.2 — 0.785 mm south of MIKROE silk
-    # frame south edge (+40.84). Chord at Y=+43.5 → 0.725 mm to
-    # label bbox bottom (+42.775), well clear.
-    parts.append(_silk("J7", -14.03, +42.2, "desig:J7", size=1.0))
-    parts.append(_silk("J8", -36.89, +42.2, "desig:J8", size=1.0))
-
-    # ---- 2b) Module connector end-pin labels ----
-    # ESP32 (J5/J6), MIKROE-2462 (J7/J8) and LD2410 (J4) plug onto
-    # multi-pin rows. Labelling the first + last pad of each row lets the
-    # user orient the module during hand-assembly. The pad positions are
-    # DERIVED from the same placement constants the pin sockets are
-    # generated from (see gen_sensors_pcb_footprints); the labels sit just
-    # OUTSIDE the daughterboard body so they stay on real F.SilkS and
-    # clear of the body silk / under-shadow copper. Every end label is the
-    # SIGNAL NAME of that pad (J*_END_SIGNALS in _project.py) — more useful
-    # for orienting the module than a bare pin number.
-    esp32_row_a_y = ESP32_ANCHOR_Y - ESP32_PIN_ROW_INSET
-    esp32_row_b_y = ESP32_ANCHOR_Y - (ESP32_BODY_W - ESP32_PIN_ROW_INSET)
-    esp32_row_x_start = ESP32_ANCHOR_X + ESP32_PIN_START_OFFSET
+    # J7/J8 — MIKROE-2462 mikroBUS socket pair. v0.43: after the 180° pair
+    # rotation J7 occupies the WEST slot (mikroe_row_b_x) and J8 the EAST
+    # slot (mikroe_row_a_x). Designators sit just SOUTH of the MIKROE-2462
+    # (MOD2) silk frame (south edge ≈ +40.84) and clear of the chord at
+    # Y=+43.5. mikroe_row_a_x / _b_x are reused by the per-pin label block.
     mikroe_row_a_x = MIKROE2462_ANCHOR_X - MIKROE2462_PIN_ROW_INSET
     mikroe_row_b_x = (MIKROE2462_ANCHOR_X
                       - (MIKROE2462_BODY_W - MIKROE2462_PIN_ROW_INSET))
-    mikroe_row_y_start = MIKROE2462_ANCHOR_Y - MIKROE2462_PIN_START_OFFSET
+    parts.append(_silk("J7", mikroe_row_b_x, +42.2, "desig:J7", size=1.0))
+    parts.append(_silk("J8", mikroe_row_a_x, +42.2, "desig:J8", size=1.0))
+
+    # ---- 2b) Module connector pin labels ----
+    # ESP32 (J5/J6), MIKROE-2462 (J7/J8) and LD2410 (J4) plug onto
+    # multi-pin rows. Pad positions are DERIVED from the same placement
+    # constants the pin sockets are generated from (see
+    # gen_sensors_pcb_footprints) via `_pin_labels`, so a label can never
+    # disagree with where the pad physically lands.
+    #   J5/J6/J4 — only the first + last pad carry a SIGNAL-NAME label
+    #     (J*_END_SIGNALS), placed just OUTSIDE the daughterboard body so
+    #     the module can be oriented during hand-assembly.
+    #   J7/J8 — FULL per-pin mikroBUS names (J7/J8_PIN_MAP), placed in the
+    #     22.86 mm gap BETWEEN the two socket rows.
+    esp32_row_a_y = ESP32_ANCHOR_Y - ESP32_PIN_ROW_INSET
+    esp32_row_b_y = ESP32_ANCHOR_Y - (ESP32_BODY_W - ESP32_PIN_ROW_INSET)
+    esp32_row_x_start = ESP32_ANCHOR_X + ESP32_PIN_START_OFFSET
+    # mikroe_row_a_x / _b_x computed above (J7/J8 designator block). The
+    # pair was rotated 180° in v0.43: J7 in the west slot, J8 in the east
+    # slot, both rotation 0 with pin 1 at the NORTH (body-interior) end.
+    mikroe_row_span = (MIKROE2462_PIN_COUNT_PER_ROW - 1) * MIKROE2462_PIN_PITCH
+    mikroe_pin1_y = ((MIKROE2462_ANCHOR_Y - MIKROE2462_PIN_START_OFFSET)
+                     - mikroe_row_span)
     # ESP32 J5 (antenna-side row) — end labels pushed SOUTH, clear of the
     # MOD1 body south edge.
     parts.extend(_pin_labels(
@@ -1687,25 +1701,25 @@ def gen_silk_labels() -> str:
         pin_map=J6_END_SIGNALS, label_offset=(0.0, -2.9),
         layer="F.SilkS", tag="j6-end", size=1.0,
     ))
-    # MIKROE-2462 J7 (mikroBUS row A) — end labels pushed EAST, clear of
-    # the MOD2 body east edge. Rotated 90° (vertical) so the wider signal
-    # names present only their 1 mm text height toward the crowded body.
+    # MIKROE-2462 J7 (mikroBUS pins 1..8) — full per-pin names. J7 sits in
+    # the WEST slot; labels are pushed EAST into the 22.86 mm gap between
+    # the two socket rows. Horizontal (angle 0); text size 1.0 mm (the
+    # F.SilkS silk_min_text_height floor). The +4.5 mm offset clears J7's
+    # own stock silk frame (east line ~1.3 mm east of the pad column).
     parts.extend(_pin_labels(
-        origin_x=mikroe_row_a_x, origin_y=mikroe_row_y_start, rotation=180,
+        origin_x=mikroe_row_b_x, origin_y=mikroe_pin1_y, rotation=0,
         pin1_local=(0.0, 0.0), step_local=(0.0, MIKROE2462_PIN_PITCH),
-        pin_map=J7_END_SIGNALS, label_offset=(+2.9, 0.0),
-        layer="F.SilkS", tag="j7-end", size=1.0, angle=90.0,
+        pin_map=J7_PIN_MAP, label_offset=(+4.5, 0.0),
+        layer="F.SilkS", tag="j7-pin", size=1.0,
     ))
-    # MIKROE-2462 J8 (mikroBUS row B) — end labels pushed WEST, rotated 90°.
-    # The pad-8 end is boxed in by the MOD2 body, the J4 reference field
-    # and the C11 decoupling cap (copper pads), with no DRC-clean F.SilkS
-    # gap — so J8's end labels go on F.Fab (assembly layer, still in the
-    # 2D render, exempt from silk_overlap / silk_over_copper).
+    # MIKROE-2462 J8 (mikroBUS pins 9..16) — full per-pin names. J8 sits in
+    # the EAST slot; labels are pushed WEST (-4.5 mm) into the same gap,
+    # clear of J8's stock silk frame.
     parts.extend(_pin_labels(
-        origin_x=mikroe_row_b_x, origin_y=mikroe_row_y_start, rotation=180,
+        origin_x=mikroe_row_a_x, origin_y=mikroe_pin1_y, rotation=0,
         pin1_local=(0.0, 0.0), step_local=(0.0, MIKROE2462_PIN_PITCH),
-        pin_map=J8_END_SIGNALS, label_offset=(-2.9, 0.0),
-        layer="F.Fab", tag="j8-end", size=1.0, angle=90.0,
+        pin_map=J8_PIN_MAP, label_offset=(-4.5, 0.0),
+        layer="F.SilkS", tag="j8-pin", size=1.0,
     ))
     # LD2410 J4 — 1x05 P1.27 mm header at the LD2410 body's south edge;
     # end labels (OUT / VCC signal names) rotated 90° (vertical) and

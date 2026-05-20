@@ -102,7 +102,11 @@ EXTERNAL_MODULES = {
         "datasheet": "https://www.hlktech.net (search LD2410B)",
         "note": (
             "Specifically -B variant. -C variant has different pin order "
-            "and body dims; NOT interchangeable."
+            "and body dims; NOT interchangeable. Connector pinout (HLK "
+            "datasheet Figure 1 + Table 1): pins 1..5 = OUT, UART_Tx, "
+            "UART_Rx, GND, VCC. Physical board order (antenna end -> "
+            "connector tip) = VCC, GND, Rx, Tx, OUT — drives the J4 "
+            "footprint orientation (see J4_PCB_* block)."
         ),
     },
     "MIKROE-2462": {
@@ -112,6 +116,13 @@ EXTERNAL_MODULES = {
         "supplier": "MikroE direct / TME",
         "datasheet": "https://www.mikroe.com/nfc-tag-2-click",
         "form_factor": "mikroBUS L (25.4 x 57.15 x 7 mm)",
+        "note": (
+            "Pinout verified against the NFC Tag 2 Click schematic v101: "
+            "of the 16 mikroBUS pins only +3.3V (pin 7) + GND (pin 8) on "
+            "the left header and INT/FD (pin 10), SCL (pin 13), SDA "
+            "(pin 14), GND (pin 16) on the right header are connected; the "
+            "rest are NC. NT3H1101 I2C slave address 0x55."
+        ),
     },
     "SZOMK AK-N-94": {
         "manufacturer": "SZOMK",
@@ -740,26 +751,37 @@ MIKROE2462_ROTATION = 180           # v0.15.7: flipped 180° per user request
 # in the .kicad_pcb file, which puts the connector edge at PCB Y=+19.05),
 # the 5 pads run along a HORIZONTAL line at Y=+19.05.
 #
-# Anchor + rotation convention check (empirical, from rendered output):
-#   KiCad rotation N° in the .kicad_pcb file rotates the footprint
-#   CCW visually on screen (= mathematical CW with +Y-down screen
-#   convention). So a stock footprint native pad at local (0, +5.08)
-#   ends up at PCB (anchor_x + 5.08, anchor_y) under rotation 90° and
-#   at PCB (anchor_x - 5.08, anchor_y) under rotation 270°.
+# Pad-end orientation (v0.43 fix — the pre-v0.43 state was WRONG end-for-end):
+#   The LD2410 module's own 5-pin row, per HLK datasheet Figure 1, is
+#   physically ordered VCC, GND, Rx, Tx, OUT (antenna-side end → connector
+#   tip). LD2410 sits antenna-NORTH / connector-SOUTH (ROTATION=270), which
+#   maps the module's OUT pin to the WEST end of the J4 row and VCC to the
+#   EAST end (see _ld2410_local_to_pcb: larger LD2410-local Y → more
+#   negative PCB X). J4 pad 1 carries the LD2410_OUT net, so pad 1 MUST
+#   land at the WEST end of the row.
 #
-# We want pin 5 (local Y=+5.08) to land WEST of pin 1 (at anchor), so
-# the pin row sits centered on the LD2410 body's long-axis centerline
-# (PCB X = -36.83). That means rotation 270, not 90.
+# Rotation convention (empirical, from rendered output): a stock footprint
+# native pad at local (0, +5.08) ends up at PCB (anchor_x + 5.08, anchor_y)
+# under rotation 90° and at (anchor_x - 5.08, anchor_y) under rotation 270°.
+# rotation 90° therefore puts pad 1 at the anchor (WEST) and pad 5 at
+# anchor_x + 5.08 (EAST) — the orientation we need.
 #
-# Anchor X = -34.29 = pin 1 position = body centerline (-36.83) + 2.54
-# (half the pin row width 5.08). Pin row spans X = -34.29 (pin 1, east)
-# .. -39.37 (pin 5, west); centre X = -36.83 = body centerline. ✓
-J4_PCB_X = -44.74            # mm — v0.15: shifted -5.45 mm in tandem
-                              # with LD2410_ANCHOR_X to keep pin 3 (middle)
-                              # centred on LD2410's new body centerline
-                              # at PCB X = -47.28 = -39.66 − LD2410_BODY_H/2.
+# anchor_x = -49.82 → pad 1 (OUT) at PCB X=-49.82 (WEST), pad 5 (+5V) at
+# X=-44.74 (EAST). Pin row spans X=-49.82..-44.74, centre X=-47.28 =
+# LD2410 body long-axis centerline (LD2410_ANCHOR_X - LD2410_BODY_H/2). ✓
+#
+# WHY this was wrong before: the pre-v0.43 comment reasoned "we want pin 5
+# WEST of pin 1 → rotation 270" — backwards. The v0.15.8 "fix" then papered
+# over the symptom by reversing the SCHEMATIC net order instead of the
+# footprint. v0.43 reverses the FOOTPRINT (rotation 270→90, anchor X) and
+# leaves the schematic net mapping (pad 1 = OUT) untouched and correct.
+J4_PCB_X = -49.82            # mm — v0.43: pad 1 (OUT) at the WEST end of
+                              # the row, where the LD2410 module's OUT pin
+                              # physically lands. Row spans -49.82..-44.74,
+                              # centred X=-47.28 on the LD2410 body centerline.
 J4_PCB_Y = +19.05            # mm — OAS PCB Y of the pin row (unchanged).
-J4_PCB_ROTATION = 270        # degrees; pad row along OAS -X from anchor.
+J4_PCB_ROTATION = 90         # degrees — v0.43: was 270 (end-for-end wrong);
+                              # 90 puts pad 1 at the anchor (WEST end).
 
 # -----------------------------------------------------------------------------
 # J1 PCB placement (v0.18; supersedes v0.17) — 24 V Phoenix MSTBA terminal block
@@ -989,36 +1011,44 @@ J10_PCB_ROTATION = 90        # LIB +Y → PCB +X (horizontal pad row east).
 # pad on the PCB. The PCB silkscreen generator (gen_silk_labels) and the
 # schematic generators consume the SAME dict, so a silk label can never drift
 # from the netlist. Verified against the schematic sub-sheets:
-#   J1  — _sch_power.py  (J1.1 VIN / J1.2 GND / J1.3 PE)
-#   J2  — _sch_mcu.py    (UART/Boot recovery header)
-#   J9  — _sch_io.py     (standard Qwiic: GND / +3V3 / SDA / SCL)
-#   J10 — _sch_io.py     (native-USB recovery header)
+#   J1     — _sch_power.py    (J1.1 VIN / J1.2 GND / J1.3 PE)
+#   J2     — _sch_mcu.py      (UART/Boot recovery header)
+#   J7/J8  — _sch_sensors.py  (MIKROE-2462 mikroBUS socket, rows A/B)
+#   J9     — _sch_io.py       (standard Qwiic: GND / +3V3 / SDA / SCL)
+#   J10    — _sch_io.py       (native-USB recovery header)
 J1_PIN_MAP: dict[int, str] = {1: "24V", 2: "GND", 3: "PE"}
 J2_PIN_MAP: dict[int, str] = {1: "+3V3", 2: "GND", 3: "TX", 4: "RX",
                               5: "EN", 6: "BOOT"}
 J9_PIN_MAP: dict[int, str] = {1: "GND", 2: "+3V3", 3: "SDA", 4: "SCL"}
 J10_PIN_MAP: dict[int, str] = {1: "GND", 2: "+3V3", 3: "USB-", 4: "USB+",
                                5: "EN", 6: "BOOT"}
+# J7/J8 — MIKROE-2462 mikroBUS socket, full per-pin names (mikroBUS Standard
+# Specifications v2.00, page 6). J7 = row A / mikroBUS pins 1..8 (left
+# header), J8 = row B / mikroBUS pins 9..16 (right header). The socket
+# carries the mikroBUS pin names regardless of which pins the NFC Tag 2
+# Click actually uses (NFC uses only +3V3/GND on J7 and INT-FD/SCL/SDA/GND
+# on J8 — see _sch_sensors.py chunk #5c).
+J7_PIN_MAP: dict[int, str] = {1: "AN", 2: "RST", 3: "CS", 4: "SCK",
+                              5: "MISO", 6: "MOSI", 7: "+3V3", 8: "GND"}
+J8_PIN_MAP: dict[int, str] = {1: "PWM", 2: "INT", 3: "RX", 4: "TX",
+                              5: "SCL", 6: "SDA", 7: "+5V", 8: "GND"}
 
 # Module socket end-pin signal names — printed at the EXTREME pads of each
 # daughterboard row so the module can be oriented during hand-assembly.
 # Signal names (not bare pin numbers) are used: they tell the assembler at
 # a glance which way round the module goes. Only the first + last pad of a
 # row carry a label (see gen_silk_labels). Keyed by footprint pad number.
+# Used for J4/J5/J6 only — J7/J8 carry FULL per-pin labels (J7/J8_PIN_MAP)
+# in the gap between the two mikroBUS rows, not just end labels.
 #   ESP32-C6-DevKitM-1 — verified vs _lib_symbols.ESP32C6_DEVKITM1_PINS:
 #     J5 = module header J1 (pad 1 = 3V3 … pad 15 = GND)
 #     J6 = module header J3 (pad 1 = GND … pad 15 = GND — both rails GND
 #          at the J3 header ends; J5's 3V3/GND orients the module)
-#   MIKROE-2462 — standard mikroBUS socket L pinout:
-#     J7 = row A (pad 1 = AN  … pad 8 = GND)
-#     J8 = row B (pad 1 = PWM … pad 8 = GND)
 #   HLK-LD2410B — HiLink datasheet V1.04 Table 1 (see _sch_sensors.py):
 #     J4 (pad 1 = OUT … pad 5 = VCC)
 J4_END_SIGNALS: dict[int, str] = {1: "OUT", 5: "VCC"}
 J5_END_SIGNALS: dict[int, str] = {1: "3V3", 15: "GND"}
 J6_END_SIGNALS: dict[int, str] = {1: "GND", 15: "GND"}
-J7_END_SIGNALS: dict[int, str] = {1: "AN", 8: "GND"}
-J8_END_SIGNALS: dict[int, str] = {1: "PWM", 8: "GND"}
 
 # Polarity-sensitive designators — components whose orientation matters and
 # which therefore MUST carry a polarity / pin-1 silkscreen mark. Consumed by
