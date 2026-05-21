@@ -776,7 +776,7 @@ def gen_power_pcb_footprints() -> str:
         x=-43, y=+22, rotation=0,
         reference="C11", value="100nF",
         uuid_tag="c11-ld2410-decoupling-pcb",
-        descr="100 nF local decoupling for LD2410 (J4 pin 5 / +5V).",
+        descr="100 nF local decoupling for LD2410 (J4 pin 5 / +5V). Stays ~2.1 mm (Warning) from the J4 / J7 THT pads — the pocket (J4 N / J7 E / H2 mounting-hole SW / J4 pin-label row) is geometrically too tight for full clearance, and JLCPCB DFM 'tht to smd' Warning is a solder-wicking caution, not a defect.",
     ))
     # NFC J7/J8 socket: pin 7 (+3V3) at row A position. Row A at PCB X=-14.03.
     # Pin 7 is the 7th from pin 1; pin 1 at PCB Y=+38.10, going north (LIB +Y → PCB -Y).

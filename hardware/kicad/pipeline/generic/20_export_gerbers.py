@@ -9,8 +9,11 @@ Gerbers are plotted from a silk-stripped WORKING COPY of the PCB (when
 STRIP_SILK_NEAR_PADS is set) — footprint body-outline silk within the
 DFM clearance of a pad is removed there, so oas.kicad_pcb itself stays
 library-faithful (an in-place footprint edit would trip KiCad's
-lib_footprint_mismatch DRC). The drill files are exported from the
-original PCB (drill geometry has no silkscreen).
+lib_footprint_mismatch DRC). STRIP_FOOTPRINT_SILK additionally drops
+DFM-hostile silk that the near-pad pass cannot reach (SW1's body-outline
+brackets, the CP_Radial polarity hatch fill) from named footprints on
+that same copy. The drill files are exported from the original PCB
+(drill geometry has no silkscreen).
 
 Output is vendor-neutral raw fab data. Each vendor's pipeline subdirectory
 (stages 30+ in pipeline/<vendor>/) consumes these files and packages them
@@ -38,11 +41,11 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 from _common import (  # noqa: E402
     Stage, run, find_kicad_cli,
-    strip_silk_near_pads, expand_thru_hole_mask_margin,
+    strip_silk_near_pads, strip_footprint_silk, expand_thru_hole_mask_margin,
 )
 from _project import (  # noqa: E402
     PCB_PATH, FAB_LAYERS, GERBERS_BUILD_DIR,
-    STRIP_SILK_NEAR_PADS, SILK_PAD_MIN_CLEARANCE_MM,
+    STRIP_SILK_NEAR_PADS, SILK_PAD_MIN_CLEARANCE_MM, STRIP_FOOTPRINT_SILK,
     EXPAND_THT_MASK_MARGIN, THT_MASK_MARGIN_MM,
 )
 
@@ -71,7 +74,7 @@ def main() -> int:
         # looks for project plot settings.
         gerber_src = PCB_PATH
         tmpdir: Path | None = None
-        if STRIP_SILK_NEAR_PADS or EXPAND_THT_MASK_MARGIN:
+        if STRIP_SILK_NEAR_PADS or STRIP_FOOTPRINT_SILK or EXPAND_THT_MASK_MARGIN:
             tmpdir = Path(tempfile.mkdtemp(prefix="oas-fab-"))
             gerber_src = tmpdir / PCB_PATH.name
             shutil.copy2(PCB_PATH, gerber_src)
@@ -82,6 +85,10 @@ def main() -> int:
             n_silk = strip_silk_near_pads(gerber_src, SILK_PAD_MIN_CLEARANCE_MM)
             st.info(f"stripped {n_silk} body-outline silk elements within "
                     f"{SILK_PAD_MIN_CLEARANCE_MM} mm of a pad (export copy)")
+        if STRIP_FOOTPRINT_SILK:
+            n_fps = strip_footprint_silk(gerber_src, STRIP_FOOTPRINT_SILK)
+            st.info(f"stripped {n_fps} silk elements from "
+                    f"{len(STRIP_FOOTPRINT_SILK)} named footprints (export copy)")
         if EXPAND_THT_MASK_MARGIN:
             n_mask = expand_thru_hole_mask_margin(gerber_src, THT_MASK_MARGIN_MM)
             st.info(f"set {THT_MASK_MARGIN_MM} mm solder-mask margin on "

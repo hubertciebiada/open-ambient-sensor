@@ -251,6 +251,108 @@ def strip_silk_near_pads(pcb_path: Path, min_clearance: float = 0.15) -> int:
     return len(drops)
 
 
+def strip_footprint_silk(pcb_path: Path, rules: dict) -> int:
+    """Drop selected F/B.SilkS drawing elements from named footprints,
+    rewriting `pcb_path` in place. Returns the count removed.
+
+    `rules` maps a footprint-name substring to a spec:
+      "all"        -> drop every F/B.SilkS fp_line / fp_rect / fp_poly /
+                      fp_circle inside the footprint.
+      ("x_ge", v)  -> drop every F/B.SilkS fp_line / fp_rect / fp_poly
+                      whose every coordinate has footprint-local x >= v
+                      (fp_circle is kept).
+
+    Handles stock-library silk that `strip_silk_near_pads` cannot reach
+    (it only strips body outlines WITHIN min_clearance of a pad):
+      - SW1 C&K PTS645: the body-outline brackets only clutter the board
+        and crowd the THT pads -> dropped outright ("all").
+      - CP_Radial electrolytics: the polarity HATCH fill is hundreds of
+        dense silk lines crowding the cathode pinhole. ("x_ge", v) drops
+        the hatch (positive local x) while keeping the "+" mark (negative
+        local x, clear of every pad) and the body circle.
+
+    Runs on the throwaway gerber-export copy only — the committed PCB
+    stays library-faithful (an in-place edit trips lib_footprint_mismatch).
+    Pure deterministic text processing: string-aware paren matching,
+    source-ordered iteration."""
+    text = pcb_path.read_text(encoding="utf-8")
+    n = len(text)
+
+    def block_end(i: int) -> int:
+        depth = 0
+        in_str = False
+        j = i
+        while j < n:
+            c = text[j]
+            if in_str:
+                if c == "\\":
+                    j += 2
+                    continue
+                if c == '"':
+                    in_str = False
+            elif c == '"':
+                in_str = True
+            elif c == "(":
+                depth += 1
+            elif c == ")":
+                depth -= 1
+                if depth == 0:
+                    return j + 1
+            j += 1
+        raise ValueError(f"unbalanced S-expression in {pcb_path}")
+
+    drops: list[tuple[int, int]] = []
+    for fm in re.finditer(r'\(footprint\s+"([^"]+)"', text):
+        fp_name = fm.group(1)
+        spec = None
+        for sub, s in rules.items():
+            if sub in fp_name:
+                spec = s
+                break
+        if spec is None:
+            continue
+        fp_start = fm.start()
+        fp_end = block_end(fp_start)
+        for em in re.finditer(r"\((fp_line|fp_rect|fp_poly|fp_circle)(?=[\s(])",
+                              text[fp_start:fp_end]):
+            kind = em.group(1)
+            es = fp_start + em.start()
+            ee = block_end(es)
+            block = text[es:ee]
+            if '"F.SilkS"' not in block and '"B.SilkS"' not in block:
+                continue
+            if spec == "all":
+                drop = True
+            elif isinstance(spec, tuple) and spec[0] == "x_ge":
+                if kind == "fp_circle":
+                    continue
+                xs = [float(x) for x in re.findall(
+                    r"(?:start|end|xy)\s+(-?\d+\.?\d*)\s+-?\d+\.?\d*", block)]
+                drop = bool(xs) and all(x >= spec[1] for x in xs)
+            else:
+                continue
+            if drop:
+                ds = text.rfind("\n", 0, es) + 1
+                de = ee + 1 if ee < n and text[ee] == "\n" else ee
+                drops.append((ds, de))
+
+    if not drops:
+        return 0
+    drops.sort()
+    out: list[str] = []
+    cursor = 0
+    for ds, de in drops:
+        if ds < cursor:
+            ds = cursor
+        if de <= cursor:
+            continue
+        out.append(text[cursor:ds])
+        cursor = de
+    out.append(text[cursor:])
+    pcb_path.write_text("".join(out), encoding="utf-8")
+    return len(drops)
+
+
 def expand_thru_hole_mask_margin(pcb_path: Path, margin: float = 0.05) -> int:
     """Add `(solder_mask_margin <margin>)` to every through-hole pad in
     `pcb_path` that does not already carry one, rewriting in place.

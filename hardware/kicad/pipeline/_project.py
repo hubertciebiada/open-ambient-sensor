@@ -133,6 +133,23 @@ FAB_LAYERS = (
 STRIP_SILK_NEAR_PADS = True
 SILK_PAD_MIN_CLEARANCE_MM = 0.15
 
+# Stage 20: per-footprint silk strip on the gerber export copy.
+# strip_silk_near_pads only reaches body outlines WITHIN
+# SILK_PAD_MIN_CLEARANCE_MM of a pad. These two stock footprints carry
+# silk that is DFM-hostile beyond that reach (JLCPCB DFM "silkscreen to
+# pad"). Empty dict => disabled. See _common.strip_footprint_silk.
+STRIP_FOOTPRINT_SILK = {
+    # SW1 C&K PTS645 tactile button — the stock F.SilkS body-outline
+    # brackets crowd the THT pads and only clutter the board. Dropped
+    # outright; the board-level "SW1" designator label identifies it.
+    "SW_Tactile_SPST_Angled_PTS645": "all",
+    # C1 / C3 / C4 radial electrolytics — the stock CP_Radial polarity
+    # HATCH fill is hundreds of dense silk lines crowding the cathode
+    # pinhole. Drop the hatch (footprint-local x >= 0.5); the "+" mark
+    # (negative local x) and the body circle are kept for polarity.
+    "CP_Radial_D": ("x_ge", 0.5),
+}
+
 # Stage 20: through-hole pad solder-mask expansion on the gerber copy.
 # KiCad's default mask expansion is 0 mm — the mask opening equals the
 # copper pad, which JLCPCB DFM flags as "Negative soldermask expansion".

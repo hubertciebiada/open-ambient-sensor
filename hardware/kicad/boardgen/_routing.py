@@ -1687,14 +1687,19 @@ def _net_code(nets: dict, name: str) -> int | None:
 # clearance, not line width itself), but flagged by JLCPCB's DFM scanner
 # as 50 "Silkscreen line width" warnings at 0.12 mm. The post-process
 # below walks every silk-layer drawing record in the freshly-emitted
-# oas.kicad_pcb and lifts any (stroke (width X)) where X < 0.15 to 0.15.
+# oas.kicad_pcb and lifts any (stroke (width X)) below the floor.
+#
+# v0.44: floor raised 0.15 -> 0.20 mm. JLCPCB DFM rates 0.15 mm as the
+# bare minimum ("Good" is strictly ABOVE 0.15) - lines lifted to exactly
+# 0.15 still landed on the warning boundary. 0.20 mm clears it with
+# margin and is the conventional comfortable JLCPCB silk width.
 #
 # Text (fp_text / gr_text) carries its stroke in (effects (font
 # (thickness T))) and our generators already emit 0.15 there (verified
 # by audit). The post-process touches that field too for safety - if
 # any stock-library footprint emits text at thinner thickness it gets
 # normalized in the same pass.
-SILK_MIN_STROKE_MM = 0.15
+SILK_MIN_STROKE_MM = 0.20
 SILK_DRAWING_KINDS = (
     "fp_line", "fp_arc", "fp_circle", "fp_poly", "fp_rect", "fp_text",
     "gr_line", "gr_arc", "gr_circle", "gr_poly", "gr_rect", "gr_text",
