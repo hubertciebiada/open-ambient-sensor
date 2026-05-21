@@ -98,11 +98,7 @@ def gen_pro() -> str:
                     # 5-prototype quantity.
                     "min_clearance": 0.15,
                     "min_connection": 0.0,
-                    # v0.50 (approach-C): raised 0.3 → 0.35 mm. Freerouting
-                    # placed I2C SCL/SDA B.Cu traces at 0.19 mm from Edge.Cuts
-                    # under the 0.30 mm setting. 0.35 mm matches the .kicad_dru
-                    # "Trace to Outline" rule and forces Freerouting to stay clear.
-                    "min_copper_edge_clearance": 0.35,
+                    "min_copper_edge_clearance": 0.3,
                     "min_groove_width": 0.0,
                     "min_hole_clearance": 0.25,
                     "min_hole_to_hole": 0.5,

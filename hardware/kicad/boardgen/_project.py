@@ -898,38 +898,30 @@ J1_PCB_ROTATION = 180        # Rotation 180° places the cable-entry face
                               # (west).
 
 # -----------------------------------------------------------------------------
-# J9 — Qwiic / Stemma QT JST SH 4-pin horizontal SMD socket (v0.19; relocated v0.50)
+# J9 — Qwiic / Stemma QT JST SH 4-pin horizontal SMD socket (v0.19)
 # -----------------------------------------------------------------------------
-# v0.50: J9 was relocated from the C2 case-wall opening (the RJ45 / Ethernet
-# cutout in the AK-N-94 wall, +Y chord side) to an INTERNAL position east of
-# the J10 recovery header. Rationale: J9 is an optional future-expansion port
-# ("future sensors without PCB respin") — nothing in the v0.4x design uses it.
-# Its old chord-side placement pinned it to the enclosure wall cutout for an
-# external cable, but an external Qwiic cable dangling from the case wall
-# conflicts with design Pillar #2 (aesthetic acceptability) the same way the
-# already-rejected external USB-C does. A Qwiic expansion port is realistically
-# used INTERNALLY (a future sensor mounted inside the enclosure), so J9 does
-# not need the wall cutout. Freeing J9 from the enclosure constraint also
-# de-congests the chord-side power-input band, where the routing rework could
-# not autoroute the J9 signal trio (+3V3 / SDA / SCL).
+# J9 lives in the C2 case-wall opening — the RJ45 / Ethernet-jack cutout in
+# the AK-N-94 wall (X +1.1..+16.8, 15.7 mm wide, clipped at the chord). The
+# C2 X range was mirror-corrected about X=0 — the source DXF is a bottom-of-
+# enclosure view, so J9 / C2 belong on the +X (right) side of the board.
 #
 # Stock JST_SH_SM04B-SRSS-TB footprint: a 1.0 mm-pitch signal pad row
-# (3 mm total width) plus two MP mech-pin tabs; body courtyard ~7.85 mm wide
-# x ~6.62 mm deep. The connector mouth (cable-entry slot) is on the pad side;
-# at rotation 0 it faces +Y (south).
+# (3 mm total width) plus two MP mech-pin tabs anchoring the body; body
+# courtyard ~7.8 mm wide. The connector mouth (cable-entry slot) is on the
+# pad side and faces the chord (+Y) so the cable plugs in from outside the
+# case. J9_PCB_Y and J9_PCB_ROTATION are unaffected by the X mirror.
 #
-# Placement (v0.50): EAST of J10, clear of the "J10 flash" board-silk
-# connector-ID label (which sits east of the J10 pad row, ~X +2.4..+11.4).
-# J9 anchor X +17.0 puts its courtyard at X +13.08..+20.92 — a 1.6 mm gap
-# to that label and 2.3 mm to the SEN66 zone (west edge X +23.22). Anchor
-# Y -19.5 puts the courtyard at Y -22.81..-16.19: 1.36 mm clear of the J5
-# ESP32-socket courtyard south edge (-24.17) and clear south to the AQI LED
-# ring. The connector mouth (rotation 0, +Y) faces the board interior so an
-# internal Qwiic cable routes inward.
-J9_PCB_X = +17.0             # PCB X — anchor; courtyard X +13.08..+20.92
-J9_PCB_Y = -19.5             # PCB Y — v0.50: relocated internal, east of J10
-                              # (was +39.69 in the C2 chord-side wall cutout)
-J9_PCB_ROTATION = 0          # mouth faces +Y (south) — into the board interior
+# Placement: C2 cutout X +1.1..+16.8 → centre the connector on the cutout
+# midpoint X = +8.95. Body courtyard X ~+5.05..+12.85, comfortably inside
+# the 15.7 mm-wide opening. J9_PCB_Y = +39.69 keeps the signal pad row at
+# PCB Y = +41.69, inside the cutout (C2 has allow_pads=True); the chord at
+# Y ≈ +43.52 is ~1 mm beyond the pad outer edge.
+# v0.45 note: the J1.1 <-> J9.1 "tht to smd" clearance was resolved by
+# nudging J1 0.4 mm north (see J1_PCB_Y), NOT by moving J9 — shifting J9
+# east ran its body courtyard into R1's.
+J9_PCB_X = +8.95             # PCB X — centred on the C2 / Ethernet cutout
+J9_PCB_Y = +39.69            # PCB Y — pads at +41.69 (inside the cutout)
+J9_PCB_ROTATION = 0          # orientation unchanged from prior C5 placement
 
 # -----------------------------------------------------------------------------
 # SW1 — side-actuated tactile push-button (v0.42)
