@@ -12,10 +12,12 @@ emits it: rename columns, capitalize 'Top'/'Bottom', keep 4-decimal
 precision (more is rejected, less is fine), drop Val/Package columns
 (JLCPCB ignores them).
 
-ROTATION CORRECTIONS — KiCad footprint "0 deg rotation" reference differs
-from JLCPCB tape-feeder reference for many packages. We load a combined
-list of corrections from `_rotations.load_combined()` (upstream
-JLCKicadTools CSV + OAS-specific gap-fillers) and apply per-row.
+ROTATION + POSITION CORRECTIONS — KiCad's footprint "0 deg" reference
+differs from JLCPCB's tape-feeder reference for many packages, and for a
+few asymmetric packages (TO-263) the KiCad footprint origin differs from
+JLCPCB's too. We load a combined list from `_rotations.load_combined()`
+(upstream JLCKicadTools CSV + OAS-specific gap-fillers) and apply the
+rotation and any X/Y offset per-row.
 
 Excludes DNP footprints (J2 recovery header, J10 native-USB recovery) and
 uses the drill-file origin so CPL coords match the gerbers.
@@ -23,6 +25,7 @@ uses the drill-file origin so CPL coords match the gerbers.
 from __future__ import annotations
 
 import csv
+import math
 import sys
 from pathlib import Path
 
@@ -36,12 +39,16 @@ STAGE_NAME = "export_pos"
 
 
 def apply_rotation_corrections(rows: list[list[str]], st: Stage) -> tuple[int, int, int]:
-    """Modify the rotation column in-place based on footprint-regex matches.
+    """Modify the rotation (and, where needed, the X/Y position) of each
+    CPL row in-place based on footprint-regex matches.
 
     Each kicad-cli CSV row: [Ref, Val, Package, PosX, PosY, Rot, Side].
     `Package` includes the "Lib:Name" prefix; we match the bare name.
-    Lookup precedence enforced by `load_combined()` order: upstream
-    first, OAS-specific second (gap-fillers).
+    A correction is (regex, rotation_deg, dx_mm, dy_mm, source); dx/dy
+    is a position offset (specified for the part at 0 deg, rotated here
+    by the part's own placement angle) for packages whose KiCad origin
+    differs from JLCPCB's. Lookup precedence enforced by `load_combined()`
+    order: upstream first, OAS-specific second (gap-fillers).
     Returns (n_upstream_applied, n_oas_applied, n_unmatched).
     """
     corrections = load_combined()
@@ -55,17 +62,28 @@ def apply_rotation_corrections(rows: list[list[str]], st: Stage) -> tuple[int, i
     for row in rows:
         if len(row) < 7:
             continue
-        ref, _val, pkg, _x, _y, rot, _side = row
+        ref, _val, pkg, x, y, rot, _side = row
         pkg_bare = pkg.split(":", 1)[-1]
 
         matched_src = None
-        for rx, offset, source in corrections:
+        for rx, rot_offset, dx, dy, source in corrections:
             if rx.match(pkg_bare):
-                new_rot = (float(rot) + offset) % 360
-                if offset != 0:
+                orig_rot = float(rot)
+                new_rot = (orig_rot + rot_offset) % 360
+                # Position offset: dx/dy is given for the part at 0 deg;
+                # rotate it by the part's OWN placement rotation before
+                # adding. The rotation correction is a tape-feeder
+                # artefact and must NOT move the part.
+                if dx or dy:
+                    rad = math.radians(orig_rot)
+                    row[3] = f"{float(x) + dx * math.cos(rad) - dy * math.sin(rad):.4f}"
+                    row[4] = f"{float(y) + dx * math.sin(rad) + dy * math.cos(rad):.4f}"
+                if rot_offset or dx or dy:
                     src_tag = "upstream" if source == "upstream" else "OAS"
+                    moved = f", offset {dx:+g},{dy:+g}mm" if (dx or dy) else ""
                     st.info(
-                        f"  [{src_tag}] {ref} ({pkg_bare}) {rot}deg + {offset:+g}deg = {new_rot:g}deg"
+                        f"  [{src_tag}] {ref} ({pkg_bare}) {rot}deg "
+                        f"+ {rot_offset:+g}deg = {new_rot:g}deg{moved}"
                     )
                 row[5] = (
                     str(int(new_rot)) if new_rot == int(new_rot) else f"{new_rot:g}"

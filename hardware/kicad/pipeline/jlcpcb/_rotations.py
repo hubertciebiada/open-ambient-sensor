@@ -16,38 +16,49 @@ is the only artefact that JLCPCB ever sees, and it gets the offsets
 applied at emit time via this module.
 
 KiCad footprint "0 deg rotation" reference != JLCPCB tape-feeder "0 deg rotation"
-reference for many packages. Each pos.csv row needs a per-footprint offset
-applied before upload. This module aggregates two sources:
+reference for many packages — and for a few asymmetric packages (TO-263)
+the KiCad footprint ORIGIN sits at a different point than JLCPCB's. So a
+pos.csv row may need a per-footprint rotation correction AND an X/Y
+position offset before upload. This module aggregates two sources:
 
   1. UPSTREAM:    third_party/JLCKicadTools/jlc_kicad_tools/cpl_rotations_db.csv
                   (Matthew Lai, MIT, ~60 regex entries, community-validated
                   on thousands of boards). Pipeline reads this file from the
                   pinned git submodule — no network access at runtime.
+                  Rows whose pattern is listed in JLCPCB_UPSTREAM_SKIP are
+                  dropped at load time — see that dict.
 
   2. OAS-SPECIFIC: JLCPCB_ROTATIONS_OAS list below. Catches footprints that
                    upstream does NOT match — typically project-local custom
                    footprints (oas:SK6812-SIDE) or packages missing from
-                   upstream coverage (TO-263, SOT-583).
+                   upstream coverage.
 
 Lookup precedence (per `load_combined()`):
-  - Iterate upstream entries FIRST (in CSV order)
+  - Iterate upstream entries FIRST (CSV order, minus JLCPCB_UPSTREAM_SKIP)
   - If no upstream match → iterate OAS-SPECIFIC entries
   - First regex match wins → apply offset, log source
-  - No match → unchanged, log warning
+  - No match → unchanged (the footprint keeps its KiCad rotation)
 
 User intent (2026-05-19): "Zrób oas specific rotations PO tych Z biblioteki.
-Osobny skrypt który domyka to co ucieka bibliotece". → OAS list serves as
-gap-filler for upstream coverage, not an override mechanism.
+Osobny skrypt który domyka to co ucieka bibliotece". → the OAS list is a
+gap-filler (runs AFTER upstream), not an override mechanism. When an
+upstream row is instead provably WRONG for an OAS footprint (not merely
+missing), the fix is to DROP that row via JLCPCB_UPSTREAM_SKIP rather than
+add an override tier — a footprint with no matching rule simply keeps its
+KiCad ground-truth rotation. That is what J3 (JST GH) needed (2026-05-21).
 
 To add an OAS-specific entry:
   1. Reproduce the issue: upload current pos.csv to JLCPCB DFM (manually,
      via tools/jlcdfm_upload.py) and confirm visual mismatch in their
      renderer.
   2. Determine offset empirically (typically 90° / 180° / 270° steps).
-  3. Append entry to JLCPCB_ROTATIONS_OAS with `(regex, offset, rationale)`.
+  3. Append entry to JLCPCB_ROTATIONS_OAS with
+     `(regex, rotation_deg, dx_mm, dy_mm, rationale)`. Most entries need
+     only a rotation (dx = dy = 0); add an X/Y offset only when the KiCad
+     footprint origin differs from JLCPCB's (see the TO-263 entry).
      The rationale MUST cite the observation (which board version, which
      designator, what was wrong) — future developers need to understand
-     why the offset exists.
+     why the correction exists.
   4. Re-run pipeline. Stage 30 log shows the offset applied.
   5. Re-upload to JLCPCB DFM, verify the fix worked.
 """
@@ -66,16 +77,18 @@ UPSTREAM_CSV = KICAD_ROOT / "third_party" / "JLCKicadTools" / "jlc_kicad_tools" 
 # ---------------------------------------------------------------------------
 # OAS-specific entries — gap-fillers for footprints upstream does not match.
 # ---------------------------------------------------------------------------
-# Each tuple: (compiled_regex, offset_deg, rationale_string).
-# Rationale is mandatory and shown in stage 30 log.
+# Each tuple: (compiled_regex, rotation_deg, dx_mm, dy_mm, rationale).
+# dx/dy is a position offset added to the CPL Mid X / Mid Y (mm,
+# specified for the part at 0 deg, rotated by its placement angle) —
+# needed when the KiCad footprint origin differs from JLCPCB's, as for
+# the asymmetric TO-263. Rotation-only entries set dx = dy = 0.
+# Rationale is mandatory and shown in the stage 30 log.
 #
-# Audit-19 (2026-05-19): TO-263 and SOT-583 entries removed. Those were
-# empirical without JLCPCB DFM re-upload validation. KiCad's stock
-# footprint pad geometry for U1 / U2 is verbatim correct (audit-15/16
-# refactor) so absent confirmed JLCPCB tape-feeder offset, no
-# compensation is needed. If DFM upload of a future revision shows
-# U1 or U2 mis-oriented, re-add the entry with the screenshot path
-# in the rationale.
+# History: audit-19 (2026-05-19) removed earlier TO-263 and SOT-583
+# entries as empirical / DFM-unvalidated. The TO-263 entry is now BACK
+# (2026-05-21), re-added WITH JLCPCB DFM confirmation — see the U1
+# entry's rationale below. U2 (SOT-583) still has no entry: it has not
+# been observed mis-placed on DFM; add one only if a DFM upload shows it.
 #
 # The SK6812-SIDE entry is kept at 0 deg deliberately (see the entry's
 # own comment block): the boardgen (90 - theta) LED placement formula
@@ -83,9 +96,9 @@ UPSTREAM_CSV = KICAD_ROOT / "third_party" / "JLCKicadTools" / "jlc_kicad_tools" 
 # pos.csv offset is needed. A stale +180 here — left over from the
 # older (270 - theta) placement — double-compensated and put the AQI
 # ring 180 deg off (emission inward, "pin outer edge") on JLCPCB DFM.
-JLCPCB_ROTATIONS_OAS: list[tuple[re.Pattern, float, str]] = [
+JLCPCB_ROTATIONS_OAS: list[tuple[re.Pattern, float, float, float, str]] = [
     # D11..D18 SK6812-SIDE (oas:SK6812-SIDE custom footprint).
-    # Offset 0 deg — and that is DELIBERATE. Do NOT re-add +180.
+    # Rotation 0 deg — and that is DELIBERATE. Do NOT re-add +180.
     #
     # A +180 entry lived here while the boardgen LED placement used the
     # (270 - theta) formula. v0.41 (2026-05-19) changed that formula to
@@ -95,23 +108,77 @@ JLCPCB_ROTATIONS_OAS: list[tuple[re.Pattern, float, str]] = [
     # compensation. The +180 left here on top of it double-compensated:
     # JLCPCB DFM then rendered the ring emitting INWARD and flagged
     # "pin outer edge" (the asymmetric land 180 deg off its pins).
-    # Offset 0 makes the CPL rotation == boardgen placement == the
+    # Rotation 0 makes the CPL rotation == boardgen placement == the
     # KiCad 3D render: emission outward, pins on pads.
     (
         re.compile(r"^SK6812-SIDE$"),
-        0,
+        0, 0.0, 0.0,
         "SK6812-SIDE: 0 deg by design — the (90 - theta) boardgen placement already carries the 180 deg tape-feeder compensation; an extra +180 double-compensates (JLCPCB DFM: emission inward + pin-outer-edge).",
+    ),
+    # U1 — LM2596S-5.0 in TO-263-5 (KiCad stock TO-263-5_TabPin3).
+    # TO-263 is an ASYMMETRIC package — a 5-lead row on one side, a
+    # large thermal tab on the other — and KiCad vs JLCPCB anchor the
+    # footprint ORIGIN at different points:
+    #   - KiCad origin  = centre of the moulded plastic body.
+    #   - JLCPCB origin = midpoint between the lead row and the tab pad
+    #     (verified from the EasyEDA footprint of LCSC C116713: its
+    #     head.x is the exact lead/tab midpoint).
+    # Two corrections, both confirmed on JLCPCB DFM (jlcdfm.com, v0.43
+    # board, 2026-05-21 — U1 rendered 180 deg off AND ~3 mm east, with
+    # a "Lead area overlapping pad" Danger):
+    #   * Rotation +180 — the KiCad footprint has the leads on -X, the
+    #     EasyEDA footprint on +X; the two are 180 deg apart.
+    #   * Offset dx = -3.075 mm — the KiCad lead row sits at footprint
+    #     local X=-7.65 and the tab pad at X=+1.5, so their midpoint is
+    #     X=(-7.65+1.5)/2 = -3.075. The CPL exports the KiCad origin
+    #     (X=0); JLCPCB wants the midpoint. dy=0 (leads are Y-centred).
+    # Residual after the fix is +/-0.55 mm (KiCad land-pattern lead-tab
+    # span 9.15 mm vs EasyEDA 10.25 mm) — symmetric, within pad tolerance.
+    (
+        re.compile(r"^TO-263-5_TabPin3"),
+        180, -3.075, 0.0,
+        "U1 TO-263-5_TabPin3: KiCad origin = body centre, JLCPCB origin = lead/tab midpoint. +180 rotation and dx=-3.075 mm, both confirmed on JLCPCB DFM (2026-05-21); without them U1 lands 180 deg off and ~3 mm east.",
     ),
 ]
 
 
-def _parse_upstream_csv() -> list[tuple[re.Pattern, float, str]]:
+# ---------------------------------------------------------------------------
+# Upstream rows DROPPED at load time — exceptions, not overrides.
+# ---------------------------------------------------------------------------
+# When an upstream cpl_rotations_db.csv row is provably WRONG for the exact
+# footprint OAS ships (confirmed on JLCPCB DFM), the cheapest correct fix
+# is to simply NOT load that row: the footprint then matches no rule and
+# keeps its KiCad ground-truth rotation. This needs no extra precedence
+# tier — every other SMD part is unaffected and the corrections list is
+# one entry SHORTER, not longer.
+#
+# Key = the EXACT pattern string from the CSV's first column.
+# _parse_upstream_csv() hard-fails if a key here no longer matches any CSV
+# row (the pinned submodule changed → the skip must be re-validated).
+JLCPCB_UPSTREAM_SKIP: dict[str, str] = {
+    # J3 — JST GH SM06B-GHS-TB 6-pin horizontal SMD socket (SEN66 cable).
+    # Upstream `^JST_GH_SM,180`: with J3_ROTATION=0 in oas.kicad_pcb that
+    # gives CPL rotation 180, and JLCPCB DFM (jlcdfm.com, v0.43 board,
+    # 2026-05-21) renders J3 180 deg off the KiCad placement — its 6 pins
+    # + 2 mounting tabs land off the copper ("Pin without pad" Danger x8).
+    # The KiCad-stock JST_GH_SM06B-GHS-TB footprint's 0 deg already
+    # matches JLCPCB's tape-feeder 0 deg (the upstream +180 was calibrated
+    # against an older footprint orientation). Dropping the row leaves J3
+    # unmatched → CPL rotation == KiCad ground truth, which the local
+    # render verifies as the correct physical orientation.
+    "^JST_GH_SM": "J3 JST_GH_SM06B-GHS-TB: upstream +180 verified wrong on JLCPCB DFM (2026-05-21) — J3 rendered 180 deg off, pins off pads; KiCad-stock 0 deg already matches the tape feeder.",
+}
+
+
+def _parse_upstream_csv() -> list[tuple[re.Pattern, float, float, float, str]]:
     """Parse JLCKicadTools cpl_rotations_db.csv from the pinned submodule.
 
-    Schema per row: `<regex>,<rotation_offset>[,<dx>,<dy>]`. Header row
-    skipped. Returns (compiled_regex, offset_deg, source_tag) tuples.
-    Hard FAIL if submodule not initialized — clear error tells the
-    developer the single fix command.
+    Schema per row: `<regex>,<rotation>[,<offset_x>,<offset_y>]`. Header
+    row skipped. Rows whose pattern is in JLCPCB_UPSTREAM_SKIP are
+    dropped. Returns (compiled_regex, rotation_deg, dx_mm, dy_mm,
+    source_tag) tuples. Hard FAIL if the submodule is not initialized,
+    or if a skip key no longer matches any CSV row (the pinned file
+    changed — re-validate).
     """
     if not UPSTREAM_CSV.exists():
         sys.exit(
@@ -119,7 +186,8 @@ def _parse_upstream_csv() -> list[tuple[re.Pattern, float, str]]:
             f"{UPSTREAM_CSV.relative_to(KICAD_ROOT.parent)} — "
             "run: git submodule update --init --recursive"
         )
-    out: list[tuple[re.Pattern, float, str]] = []
+    out: list[tuple[re.Pattern, float, float, float, str]] = []
+    seen_skips: set[str] = set()
     with UPSTREAM_CSV.open(encoding="utf-8") as f:
         reader = csv.reader(f)
         next(reader, None)
@@ -127,25 +195,39 @@ def _parse_upstream_csv() -> list[tuple[re.Pattern, float, str]]:
             if len(row) < 2:
                 continue
             pattern = row[0].strip().strip('"')
+            if pattern in JLCPCB_UPSTREAM_SKIP:
+                seen_skips.add(pattern)          # dropped — see the dict
+                continue
             try:
-                offset = float(row[1])
+                rotation = float(row[1])
             except ValueError:
                 continue
-            out.append((re.compile(pattern), offset, "upstream"))
+            # CSV columns 3-4 (Offset X, Offset Y) are optional
+            dx = float(row[2]) if len(row) > 2 and row[2].strip() else 0.0
+            dy = float(row[3]) if len(row) > 3 and row[3].strip() else 0.0
+            out.append((re.compile(pattern), rotation, dx, dy, "upstream"))
+    stale = set(JLCPCB_UPSTREAM_SKIP) - seen_skips
+    if stale:
+        sys.exit(
+            f"[FAIL] JLCPCB_UPSTREAM_SKIP keys not found in {UPSTREAM_CSV.name}: "
+            f"{sorted(stale)} — the pinned cpl_rotations_db.csv changed; "
+            "re-validate each skip against the new file."
+        )
     return out
 
 
-def load_combined() -> list[tuple[re.Pattern, float, str]]:
+def load_combined() -> list[tuple[re.Pattern, float, float, float, str]]:
     """Return upstream entries + OAS-specific entries as one list.
 
     Order matters: upstream FIRST, OAS SECOND. Stage 30 takes the first
     regex match per footprint, so OAS entries only fire when upstream
-    doesn't match — gap-filler semantics, not override.
+    doesn't match — gap-filler semantics, not override. Upstream rows
+    listed in JLCPCB_UPSTREAM_SKIP are already dropped by the parser.
     """
     upstream = _parse_upstream_csv()
     oas = [
-        (rx, off, f"oas: {rationale}")
-        for (rx, off, rationale) in JLCPCB_ROTATIONS_OAS
+        (rx, rot, dx, dy, f"oas: {rationale}")
+        for (rx, rot, dx, dy, rationale) in JLCPCB_ROTATIONS_OAS
     ]
     return upstream + oas
 
