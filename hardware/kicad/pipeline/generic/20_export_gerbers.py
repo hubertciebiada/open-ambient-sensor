@@ -36,10 +36,14 @@ import tempfile
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
-from _common import Stage, run, find_kicad_cli, strip_silk_near_pads  # noqa: E402
+from _common import (  # noqa: E402
+    Stage, run, find_kicad_cli,
+    strip_silk_near_pads, expand_thru_hole_mask_margin,
+)
 from _project import (  # noqa: E402
     PCB_PATH, FAB_LAYERS, GERBERS_BUILD_DIR,
     STRIP_SILK_NEAR_PADS, SILK_PAD_MIN_CLEARANCE_MM,
+    EXPAND_THT_MASK_MARGIN, THT_MASK_MARGIN_MM,
 )
 
 STAGE_NAME = "export_gerbers"
@@ -60,23 +64,28 @@ def main() -> int:
         st.info(f"wiping {GERBERS_BUILD_DIR}/")
         clean_output_dir()
 
-        # Plot gerbers from a silk-stripped working copy so oas.kicad_pcb
+        # Plot gerbers from a DFM-tuned working copy so oas.kicad_pcb
         # stays library-faithful. The copy keeps the same basename so the
         # emitted gerbers are named oas-*.g* as the downstream stages
         # expect. The .kicad_pro is copied alongside in case kicad-cli
         # looks for project plot settings.
         gerber_src = PCB_PATH
         tmpdir: Path | None = None
-        if STRIP_SILK_NEAR_PADS:
+        if STRIP_SILK_NEAR_PADS or EXPAND_THT_MASK_MARGIN:
             tmpdir = Path(tempfile.mkdtemp(prefix="oas-fab-"))
             gerber_src = tmpdir / PCB_PATH.name
             shutil.copy2(PCB_PATH, gerber_src)
             pro = PCB_PATH.with_suffix(".kicad_pro")
             if pro.exists():
                 shutil.copy2(pro, tmpdir / pro.name)
+        if STRIP_SILK_NEAR_PADS:
             n_silk = strip_silk_near_pads(gerber_src, SILK_PAD_MIN_CLEARANCE_MM)
             st.info(f"stripped {n_silk} body-outline silk elements within "
                     f"{SILK_PAD_MIN_CLEARANCE_MM} mm of a pad (export copy)")
+        if EXPAND_THT_MASK_MARGIN:
+            n_mask = expand_thru_hole_mask_margin(gerber_src, THT_MASK_MARGIN_MM)
+            st.info(f"set {THT_MASK_MARGIN_MM} mm solder-mask margin on "
+                    f"{n_mask} through-hole pads (export copy)")
 
         try:
             st.info("kicad-cli pcb export gerbers (Protel, X2, soldermask subtract)")

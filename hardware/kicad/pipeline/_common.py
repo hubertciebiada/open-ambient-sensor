@@ -251,6 +251,64 @@ def strip_silk_near_pads(pcb_path: Path, min_clearance: float = 0.15) -> int:
     return len(drops)
 
 
+def expand_thru_hole_mask_margin(pcb_path: Path, margin: float = 0.05) -> int:
+    """Add `(solder_mask_margin <margin>)` to every through-hole pad in
+    `pcb_path` that does not already carry one, rewriting in place.
+    Returns the count of pads modified.
+
+    A 0 mm solder-mask expansion (KiCad default) makes the mask opening
+    exactly equal the copper pad — JLCPCB DFM flags it "Negative
+    soldermask expansion". Through-hole pads are generously spaced (no
+    fine-pitch mask-sliver risk), so a small positive margin is always
+    safe there; fine-pitch SMD pads are deliberately left untouched.
+
+    Like `strip_silk_near_pads`, callers run this on a throwaway gerber-
+    export copy so the committed PCB keeps the stock footprints verbatim
+    (an in-place pad edit would trip KiCad's lib_footprint_mismatch).
+
+    Pure deterministic text processing: depth-counted block extraction,
+    source-ordered iteration."""
+    text = pcb_path.read_text(encoding="utf-8")
+    n = len(text)
+    out: list[str] = []
+    cursor = 0
+    count = 0
+    i = 0
+    while True:
+        k = text.find('(pad "', i)
+        if k < 0:
+            break
+        depth = 0
+        j = k
+        while j < n:
+            c = text[j]
+            if c == "(":
+                depth += 1
+            elif c == ")":
+                depth -= 1
+                if depth == 0:
+                    j += 1
+                    break
+            j += 1
+        block = text[k:j]
+        i = j
+        if "thru_hole" not in block or "solder_mask_margin" in block:
+            continue
+        # Insert a new child line just before the block's closing ')'.
+        close_line_start = text.rfind("\n", k, j) + 1
+        close_indent = text[close_line_start:j - 1]  # whitespace before ')'
+        ins = f"{close_indent}\t(solder_mask_margin {margin})\n"
+        out.append(text[cursor:close_line_start])
+        out.append(ins)
+        cursor = close_line_start
+        count += 1
+    if not count:
+        return 0
+    out.append(text[cursor:])
+    pcb_path.write_text("".join(out), encoding="utf-8")
+    return count
+
+
 # Stage reporter ------------------------------------------------------------
 class Stage:
     """Context manager for a single pipeline stage.

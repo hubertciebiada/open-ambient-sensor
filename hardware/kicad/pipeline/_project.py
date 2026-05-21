@@ -133,6 +133,15 @@ FAB_LAYERS = (
 STRIP_SILK_NEAR_PADS = True
 SILK_PAD_MIN_CLEARANCE_MM = 0.15
 
+# Stage 20: through-hole pad solder-mask expansion on the gerber copy.
+# KiCad's default mask expansion is 0 mm — the mask opening equals the
+# copper pad, which JLCPCB DFM flags as "Negative soldermask expansion".
+# Through-hole pads are generously spaced (no fine-pitch mask-sliver
+# risk), so the stage-20 export copy gets a small positive margin on
+# every THT pad; fine-pitch SMD pads are left at the board default.
+EXPAND_THT_MASK_MARGIN = True
+THT_MASK_MARGIN_MM = 0.05
+
 # Stage 24: preflight -----------------------------------------------------
 # Expected drill statistics from boardgen geometry. Update when board
 # mechanicals change (mounting hole count / zip-tie hole count).
