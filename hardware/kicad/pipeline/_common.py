@@ -30,7 +30,9 @@ the terminal and for LLMs grepping logs after the fact.
 from __future__ import annotations
 
 import hashlib
+import math
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -77,6 +79,176 @@ def run(cmd: list[str], *, hide_output: bool = False) -> None:
 
 def sha256(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+# Silkscreen-to-pad strip ---------------------------------------------------
+def strip_silk_near_pads(pcb_path: Path, min_clearance: float = 0.15) -> int:
+    """Drop every footprint-internal F/B.SilkS `fp_line` / `fp_rect` whose
+    nearest edge sits closer than `min_clearance` mm to one of that
+    footprint's own pads, rewriting `pcb_path` in place. Returns the
+    count of silk elements removed.
+
+    JLCPCB (and most fabs) flag silkscreen within ~0.15 mm of a pad in
+    DFM; stock KiCad library footprints routinely draw component body
+    outlines ~0.10 mm off the pads. KiCad's own DRC trusts footprint-
+    internal silk and never flags it — and editing a placed footprint in
+    the committed project PCB would trip `lib_footprint_mismatch`. So
+    callers run this on a throwaway gerber-export copy, never on the
+    committed PCB.
+
+    Scope is limited to `fp_line` / `fp_rect` (component body outlines):
+    `fp_circle` (pin-1 dots) and `fp_poly` (polarity wedges) sit close to
+    pads BY DESIGN and are left intact.
+
+    Pure deterministic text processing: string-aware paren matching,
+    source-ordered iteration."""
+    text = pcb_path.read_text(encoding="utf-8")
+    n = len(text)
+
+    def block_end(i: int) -> int:
+        """Index just past the ')' matching the '(' at `i` (string-aware)."""
+        depth = 0
+        in_str = False
+        j = i
+        while j < n:
+            c = text[j]
+            if in_str:
+                if c == "\\":
+                    j += 2
+                    continue
+                if c == '"':
+                    in_str = False
+            elif c == '"':
+                in_str = True
+            elif c == "(":
+                depth += 1
+            elif c == ")":
+                depth -= 1
+                if depth == 0:
+                    return j + 1
+            j += 1
+        raise ValueError(f"unbalanced S-expression in {pcb_path}")
+
+    def direct_children(start: int, end: int) -> list[tuple[str, int, int]]:
+        """(keyword, child_start, child_end) for each direct child block."""
+        out: list[tuple[str, int, int]] = []
+        i = start + 1
+        in_str = False
+        while i < end - 1:
+            c = text[i]
+            if in_str:
+                if c == "\\":
+                    i += 2
+                    continue
+                if c == '"':
+                    in_str = False
+                i += 1
+                continue
+            if c == '"':
+                in_str = True
+                i += 1
+                continue
+            if c == "(":
+                ce = block_end(i)
+                kw = text[i + 1:ce].split(None, 1)[0]
+                out.append((kw, i, ce))
+                i = ce
+                continue
+            i += 1
+        return out
+
+    def pt_rect_dist(px: float, py: float, rx: float, ry: float,
+                     rhw: float, rhh: float) -> float:
+        dx = max(rx - rhw - px, 0.0, px - rx - rhw)
+        dy = max(ry - rhh - py, 0.0, py - ry - rhh)
+        return math.hypot(dx, dy)
+
+    def seg_rect_dist(ax: float, ay: float, bx: float, by: float,
+                      rx: float, ry: float, rhw: float, rhh: float) -> float:
+        # Distance from a point sliding along the segment to an axis-
+        # aligned rect is convex -> a 65-sample sweep finds the minimum
+        # to within seg_len/64 (silk lines are short; ample resolution).
+        best = float("inf")
+        for k in range(65):
+            t = k / 64.0
+            d = pt_rect_dist(ax + (bx - ax) * t, ay + (by - ay) * t,
+                             rx, ry, rhw, rhh)
+            if d < best:
+                best = d
+        return best
+
+    drops: list[tuple[int, int]] = []
+    for fm in re.finditer(r"\(footprint ", text):
+        fp_start = fm.start()
+        fp_end = block_end(fp_start)
+        kids = direct_children(fp_start, fp_end)
+
+        pads: list[tuple[float, float, float, float]] = []
+        for kw, cs, ce in kids:
+            if kw != "pad":
+                continue
+            at = size = None
+            for skw, scs, sce in direct_children(cs, ce):
+                if skw == "at" and at is None:
+                    at = text[scs:sce]
+                elif skw == "size" and size is None:
+                    size = text[scs:sce]
+            if at is None or size is None:
+                continue
+            anums = re.findall(r"-?\d+\.?\d*", at)
+            snums = re.findall(r"-?\d+\.?\d*", size)
+            if len(anums) < 2 or len(snums) < 2:
+                continue
+            pads.append((float(anums[0]), float(anums[1]),
+                         float(snums[0]) / 2.0, float(snums[1]) / 2.0))
+        if not pads:
+            continue
+
+        for kw, cs, ce in kids:
+            if kw not in ("fp_line", "fp_rect"):
+                continue
+            block = text[cs:ce]
+            if '"F.SilkS"' not in block and '"B.SilkS"' not in block:
+                continue
+            ms = re.search(r"\(start\s+(-?\d+\.?\d*)\s+(-?\d+\.?\d*)\)", block)
+            me = re.search(r"\(end\s+(-?\d+\.?\d*)\s+(-?\d+\.?\d*)\)", block)
+            if not ms or not me:
+                continue
+            sx, sy = float(ms.group(1)), float(ms.group(2))
+            ex, ey = float(me.group(1)), float(me.group(2))
+            mw = re.search(r"\(width\s+(-?\d+\.?\d*)\)", block)
+            half = float(mw.group(1)) / 2.0 if mw else 0.075
+            if kw == "fp_line":
+                segs = [(sx, sy, ex, ey)]
+            else:  # fp_rect -> 4 edges
+                segs = [(sx, sy, ex, sy), (ex, sy, ex, ey),
+                        (ex, ey, sx, ey), (sx, ey, sx, sy)]
+            worst = float("inf")
+            for ax, ay, bx, by in segs:
+                for px, py, phw, phh in pads:
+                    d = seg_rect_dist(ax, ay, bx, by, px, py, phw, phh) - half
+                    if d < worst:
+                        worst = d
+            if worst < min_clearance:
+                ds = text.rfind("\n", 0, cs) + 1
+                de = ce + 1 if ce < n and text[ce] == "\n" else ce
+                drops.append((ds, de))
+
+    if not drops:
+        return 0
+    drops.sort()
+    out: list[str] = []
+    cursor = 0
+    for ds, de in drops:
+        if ds < cursor:
+            ds = cursor
+        if de <= cursor:
+            continue
+        out.append(text[cursor:ds])
+        cursor = de
+    out.append(text[cursor:])
+    pcb_path.write_text("".join(out), encoding="utf-8")
+    return len(drops)
 
 
 # Stage reporter ------------------------------------------------------------

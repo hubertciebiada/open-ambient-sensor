@@ -122,6 +122,17 @@ FAB_LAYERS = (
     "Edge.Cuts"
 )
 
+# Stage 20: silkscreen-to-pad strip on the gerber export copy.
+# JLCPCB DFM "Silkscreen to pad" wants >= 0.15 mm from silk edge to pad
+# edge, but stock KiCad library footprints draw component body outlines
+# ~0.10 mm off the pads. Stage 20 plots gerbers from a silk-stripped
+# WORKING COPY of the PCB — oas.kicad_pcb itself stays library-faithful
+# (an in-place footprint edit would trip KiCad's lib_footprint_mismatch
+# DRC). Only fp_line / fp_rect body outlines are stripped; fp_circle
+# pin-1 dots and fp_poly polarity wedges are left intact.
+STRIP_SILK_NEAR_PADS = True
+SILK_PAD_MIN_CLEARANCE_MM = 0.15
+
 # Stage 24: preflight -----------------------------------------------------
 # Expected drill statistics from boardgen geometry. Update when board
 # mechanicals change (mounting hole count / zip-tie hole count).
