@@ -648,11 +648,25 @@ def _bom_match(page, context):
         save.click()
     except Exception:
         pass  # the wizard tab can close mid-click
-    print("  BOM match: Save & Close - BOM committed, wizard tab closing.")
-    time.sleep(3.0)
+    # The wizard tab closes ITSELF once the BOM/CPL commit POST has
+    # completed server-side. Wait for that self-close as the
+    # commit-landed signal — the old fixed 3 s sleep could force-close
+    # the tab mid-commit, leaving the project with no BOM so SMT DFM
+    # then reports 'no BOM' (intermittent false-empty SMT table).
+    if wizard is not page:
+        try:
+            if not wizard.is_closed():
+                wizard.wait_for_event("close", timeout=60_000)
+            print("  BOM match: wizard tab self-closed - BOM commit landed.")
+        except Exception:
+            print("  BOM match: WARN - wizard tab did not self-close in "
+                  "60 s; force-closing (SMT DFM may report 'no BOM').")
+    else:
+        print("  BOM match: Save & Close clicked (single-tab wizard).")
+        time.sleep(3.0)
 
-    # The wizard tab closes itself; drop any tab that is not the
-    # original viewer so later get_by_role calls stay unambiguous.
+    # Drop any tab that is not the original viewer so later
+    # get_by_role calls stay unambiguous.
     for p in list(context.pages):
         if p is not page:
             try:
@@ -660,6 +674,9 @@ def _bom_match(page, context):
             except Exception:
                 pass
     page.bring_to_front()
+    # Extra settle so the committed BOM fully propagates to the
+    # viewer's SMT-DFM endpoint before the reload below.
+    page.wait_for_timeout(5000)
     # Reload the viewer so the SPA re-fetches project state - the BOM is
     # now attached to pcbUploadFileId server-side. (_run_smt_dfm reloads
     # again if the commit had not landed yet.)
@@ -674,14 +691,24 @@ def _bom_match(page, context):
     return page
 
 
+_SMT_NOBOM_RETRIES = 8
+
+
 def _run_smt_dfm(page) -> list[dict]:
     """Run SMT DFM, handling the two Tip dialogs jlcdfm can raise.
 
       'results exist' -> Confirm (re-analyze, then scrape).
       'no BOM'        -> the match did not propagate to this viewer;
-                         reload it and retry (up to 3x).
+                         reload it and retry.
+
+    The 'no BOM' case is a server-side propagation race: 'Save & Close'
+    commits the BOM, but the viewer's SMT-DFM endpoint can lag tens of
+    seconds before it sees the committed BOM. Retry patiently
+    (_SMT_NOBOM_RETRIES reloads, 12 s settle each ≈ up to ~2 min) — a
+    fixed 3x/8s was too short and intermittently returned a false-empty
+    SMT table.
     """
-    for attempt in range(1, 4):
+    for attempt in range(1, _SMT_NOBOM_RETRIES + 1):
         try:
             page.get_by_role("button", name="SMT DFM").click()
             page.wait_for_timeout(2000)
@@ -699,13 +726,14 @@ def _run_smt_dfm(page) -> list[dict]:
             _click_modal(page, "Confirm")
             page.wait_for_timeout(2500)
         elif kind == "no-bom":
-            print(f"  SMT DFM reports 'no BOM' (attempt {attempt}/3) - "
-                  "reloading the viewer to pick up the BOM match ...")
+            print(f"  SMT DFM reports 'no BOM' (attempt {attempt}/"
+                  f"{_SMT_NOBOM_RETRIES}) - reloading the viewer to pick up "
+                  "the BOM match ...")
             _snap(page, f"smt-nobom-{attempt}")
             _click_modal(page, "Cancel")
             try:
                 page.reload(wait_until="domcontentloaded", timeout=30_000)
-                page.wait_for_timeout(8000)
+                page.wait_for_timeout(12_000)
             except Exception:
                 pass
             _dismiss_cookie_banner(page)
