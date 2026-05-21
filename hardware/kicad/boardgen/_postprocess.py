@@ -668,7 +668,7 @@ FOOTPRINT_HEIGHT: dict[str, float] = {
     "Diode_SMD:D_SOD-323": 1.0,
     "Package_TO_SOT_SMD:SOT-23": 1.1,
     "Package_TO_SOT_SMD:SOT-583-8": 0.85,
-    "Package_TO_SOT_SMD:TO-263-5_TabPin3": 4.83,
+    "oas:TO-263-5_LM2596": 4.83,
     # Note: the TPS62933 SOT-583 footprint property is written as
     # `Package_SO:VSON-8-1EP_2x2mm_P0.5mm_EP0.9x1.6mm` by gen_sot583_pcb_footprint
     "Package_SO:VSON-8-1EP_2x2mm_P0.5mm_EP0.9x1.6mm": 0.85,
@@ -894,7 +894,7 @@ _FOOTPRINT_HALF_EXTENT: dict[str, tuple[float, float]] = {
     "Diode_SMD:D_SOD-323": (1.0, 0.7),
     "Package_TO_SOT_SMD:SOT-23": (1.5, 1.5),
     "Package_TO_SOT_SMD:SOT-583-8": (1.0, 1.0),
-    "Package_TO_SOT_SMD:TO-263-5_TabPin3": (5.3, 5.3),
+    "oas:TO-263-5_LM2596": (5.3, 5.3),
     "Package_SO:VSON-8-1EP_2x2mm_P0.5mm_EP0.9x1.6mm": (1.0, 1.0),
     "Inductor_SMD:L_APV_ANR5040": (2.6, 2.6),
     # v0.40 post-order: CENKER CKCS5040 body half-extent (5.0 / 2 + ~0.3 mm

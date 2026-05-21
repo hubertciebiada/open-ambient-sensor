@@ -1400,7 +1400,7 @@ def _route_hand_v40(em: "_RouteEmitter", nets: dict) -> int:
 
     # ---- D. GND stitching vias for isolated GND pads ----
     # Each via lands ON the pad's centre. Via drill 0.3 mm in pads of:
-    #   - U1 tab (~6×9 mm): no clearance issue.
+    #   - U1 tab (~8.7×10.6 mm): no clearance issue.
     #   - J3 GND mounting pad (~1.6×1 mm): drill 0.3 mm leaves
     #     ample annular ring.
     #   - SK6812-SIDE pad 4 (1.0×0.85 mm): drill 0.3 mm — tight but
@@ -1410,8 +1410,11 @@ def _route_hand_v40(em: "_RouteEmitter", nets: dict) -> int:
     #     just south of pad and add a short stub — see below.
     code = _net_code(nets, "GND")
     if code is not None:
-        # U1 TO-263-5 tab GND at PCB (-42.65, -34). Tab spans
-        # X ∈ [-46.65, -38.65], Y ∈ [-37.5, -30.5] approximately.
+        # U1 oas:TO-263-5_LM2596 tab GND. The via sits at U1's footprint
+        # origin (body centre) = PCB (-42.65, -34); the v0.43 tab pad is
+        # centred at PCB (-40.628, -34) and spans X ∈ [-44.98, -36.28],
+        # Y ∈ [-39.29, -28.71], so the via stays a comfortable
+        # via-in-pad (≥2.3 mm to every tab edge).
         em.via(-42.65, -34.0, code,
                uuid_tag="hand_v40:u1_gnd_stitch")
         # J3 GND mounting pad at PCB (+36.13, +25.15). JST GH MP — small.

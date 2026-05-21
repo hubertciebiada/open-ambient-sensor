@@ -22,7 +22,7 @@ import textwrap
 from pathlib import Path
 
 from boardgen._common import (  # noqa: F401
-    U, fmt,
+    U, fmt, HERE,
     PCB_VERSION, GEN_VERSION,
 )
 from boardgen._project import (  # noqa: F401
@@ -366,12 +366,23 @@ _SOT23_LIB_FOOTPRINT_PATH = (
     _kicad_install_path() / "footprints" / "Package_TO_SOT_SMD.pretty"
     / "SOT-23.kicad_mod"
 )
-# v0.40 audit-16: U1 LM2596S-5.0 TO-263-5 package. Previous generator
-# emitted custom header "TO-263-5_LM2596" — non-canonical. Replace with
-# verbatim stock parsing of Package_TO_SOT_SMD:TO-263-5_TabPin3.
+# U1 LM2596S-5.0 TO-263-5 package.
+#  - `_TO263_5_LIB_FOOTPRINT_PATH`: KiCad stock TO-263-5_TabPin3 — used
+#    ONLY as the silk / courtyard / F.Fab / 3D-model donor for the
+#    project-local land below (see gen_to263_5_lm2596_footprint).
+#  - `_TO263_5_LM2596_LIB_FOOTPRINT_PATH`: the project-local
+#    oas:TO-263-5_LM2596 land emitted by boardgen stage 01. The stock
+#    TO-263-5_TabPin3 land is GENERIC IPC and mismatched the exact
+#    ordered part (LM2596S-5.0/NOPB, LCSC C116713): 9.15 mm lead-tab
+#    pitch vs the part's 10.252 mm → U1's thermal tab only ~25 %
+#    overlapped on JLCPCB DFM. v0.43 replaces it with the verbatim
+#    C116713 land (CLAUDE.md Deviation budget; same precedent as F1).
 _TO263_5_LIB_FOOTPRINT_PATH = (
     _kicad_install_path() / "footprints" / "Package_TO_SOT_SMD.pretty"
     / "TO-263-5_TabPin3.kicad_mod"
+)
+_TO263_5_LM2596_LIB_FOOTPRINT_PATH = (
+    HERE / "libraries" / "oas.pretty" / "TO-263-5_LM2596.kicad_mod"
 )
 # v0.40 audit-16: U2 TPS62933 SOT-583-8 package. Previous generator
 # emitted custom header "SOT-583_TPS62933" — non-canonical. Replace with
@@ -2396,27 +2407,109 @@ def gen_sot23_3pin_pcb_footprint(*, x: float, y: float, rotation: int,
     )
 
 
+def gen_to263_5_lm2596_footprint() -> str:
+    """Project-local oas:TO-263-5_LM2596 footprint (library .kicad_mod).
+
+    The KiCad stock Package_TO_SOT_SMD:TO-263-5_TabPin3 is a GENERIC IPC
+    TO-263-5 land that does NOT match the exact ordered part — LM2596S-5.0/
+    NOPB, LCSC C116713. The EasyEDA footprint of C116713 has the lead row
+    at 3.50 x 1.02 mm and the tab at 8.705 x 10.587 mm with a 10.252 mm
+    lead-to-tab pitch; the stock land uses 4.6 x 1.1 leads, a 9.4 x 10.8
+    tab and a 9.15 mm pitch. That 1.1 mm pitch mismatch left U1's thermal
+    tab only ~25 % overlapped on JLCPCB DFM ("Lead area overlapping pad"
+    Danger, jlcdfm.com, v0.43 board, 2026-05-21).
+
+    This footprint keeps the stock silkscreen, courtyard, F.Fab body
+    outline and 3D model VERBATIM and swaps ONLY the 10 pads — 5 leads,
+    1 tab, 4 tab-paste windowpane apertures — for the verbatim C116713
+    land. JLCPCB DFM then compares the part to a copy of its own land.
+
+    Anchor stays the stock body-centre origin, so U1's PCB placement and
+    the GND-tab via-in-pad need no move. Leads land at X = -8.230, the
+    tab centre at X = +2.022 (lead-tab pitch 10.252, body-centre origin).
+    Same precedent as oas:Fuse_1812L_4532Metric (F1).
+    """
+    stock = _TO263_5_LIB_FOOTPRINT_PATH.read_text(encoding="utf-8")
+    head = stock[:stock.index("\t(pad ")]
+    tail = stock[stock.index("\t(embedded_fonts"):]
+
+    subs = [
+        ('(footprint "TO-263-5_TabPin3"', '(footprint "TO-263-5_LM2596"'),
+        ('(property "Value" "TO-263-5_TabPin3"',
+         '(property "Value" "TO-263-5_LM2596"'),
+        ('\t(descr "TO-263/D2PAK/DDPAK SMD package, '
+         'http://www.infineon.com/cms/en/product/packages/'
+         'PG-TO263/PG-TO263-5-1/")',
+         '\t(descr "TO-263-5 / D2PAK-5 land for LM2596S-5.0 (LCSC C116713) '
+         '— verbatim EasyEDA C116713 pads, lead-tab pitch 10.252 mm; '
+         'silk / courtyard / F.Fab / 3D from KiCad stock TO-263-5_TabPin3.")'),
+        ('\t(tags "D2PAK DDPAK TO-263 D2PAK-5 TO-263-5 SOT-426")',
+         '\t(tags "TO-263 TO-263-5 D2PAK-5 LM2596 oas")'),
+    ]
+    for old, new in subs:
+        assert old in head, (
+            "TO-263-5_TabPin3 stock donor changed — re-validate "
+            f"gen_to263_5_lm2596_footprint; missing: {old[:48]!r}"
+        )
+        head = head.replace(old, new)
+
+    # Verbatim LCSC C116713 land (body-centre origin, KiCad orientation:
+    # leads on -X, tab on +X). Pin order per LM2596 datasheet TI SNVS124N
+    # Table 1: 1=VIN, 2=OUT, 3=GND (tab + pin 3), 4=FB, 5=~ON/OFF.
+    lead_y = (-3.4, -1.7, 0.0, 1.7, 3.4)
+    pads: list[str] = []
+    # 4 tab-paste windowpane apertures (F.Paste only — the tab pad below
+    # carries no paste; the windowpane meters solder volume on the slug).
+    for sx in (-2.10, 2.10):
+        for sy in (-2.575, 2.575):
+            pads.append(
+                f'\t(pad "" smd rect\n'
+                f'\t\t(at {fmt(2.022 + sx)} {fmt(sy)})\n'
+                f'\t\t(size 3.9 4.85)\n'
+                f'\t\t(layers "F.Paste")\n'
+                f'\t)'
+            )
+    # 5 lead pads + the tab pad (both numbered "3" — same GND net).
+    for n, ly in zip("12345", lead_y):
+        pads.append(
+            f'\t(pad "{n}" smd rect\n'
+            f'\t\t(at -8.23 {fmt(ly)})\n'
+            f'\t\t(size 3.5 1.02)\n'
+            f'\t\t(layers "F.Cu" "F.Mask" "F.Paste")\n'
+            f'\t)'
+        )
+        if n == "3":
+            pads.append(
+                '\t(pad "3" smd rect\n'
+                '\t\t(at 2.022 0)\n'
+                '\t\t(size 8.705 10.587)\n'
+                '\t\t(layers "F.Cu" "F.Mask")\n'
+                '\t)'
+            )
+    return head + "\n".join(pads) + "\n" + tail
+
+
 def gen_to263_5_pcb_footprint(*, x: float, y: float, rotation: int,
                                reference: str, value: str, uuid_tag: str,
                                descr: str = "TO-263-5 LM2596S",
                                hide_ref: bool = True) -> str:
-    """TO-263-5 (D2PAK-5) footprint for LM2596S-5.0.
+    """TO-263-5 (D2PAK-5) placed footprint for U1 (LM2596S-5.0).
 
-    v0.40 audit-16: refactored to verbatim KiCad stock parsing of
-    Package_TO_SOT_SMD:TO-263-5_TabPin3. The previous version inline-emitted
-    the pad coordinates BUT used a non-canonical footprint header name
-    "TO-263-5_LM2596" — that mismatch between the in-file (footprint "..."
-    header and the canonical KiCad library name was the v0.40-rejection
-    failure mode. Now the entire footprint (pads + silk + F.Fab body
-    outline + F.CrtYd + paste apertures + pin-1 silk marker) comes from
-    the stock library verbatim, including the canonical header.
+    v0.43: switched from KiCad stock Package_TO_SOT_SMD:TO-263-5_TabPin3
+    to the project-local oas:TO-263-5_LM2596 land (verbatim LCSC C116713
+    geometry) — the generic stock land mismatched the part's lead-tab
+    pitch by 1.1 mm and tripped JLCPCB DFM "Lead area overlapping pad"
+    on U1's thermal tab. See gen_to263_5_lm2596_footprint and CLAUDE.md
+    Deviation budget. This stays Lesson-1 compliant: pad geometry is
+    parsed verbatim from the oas library file (written by boardgen
+    stage 01) via _emit_stock_lib_footprint — no hand-coded pads here.
 
     Pin order per LM2596 datasheet TI lit no SNVS124N Table 1:
       1=VIN, 2=OUT (switch node), 3=GND (tab+pin3), 4=FB, 5=~ON/OFF
     """
     return _emit_stock_lib_footprint(
-        src_path=_TO263_5_LIB_FOOTPRINT_PATH,
-        lib_nickname="Package_TO_SOT_SMD",
+        src_path=_TO263_5_LM2596_LIB_FOOTPRINT_PATH,
+        lib_nickname="oas",
         reference=reference, value=value,
         datasheet="http://www.ti.com/lit/ds/symlink/lm2596.pdf",
         description=descr,

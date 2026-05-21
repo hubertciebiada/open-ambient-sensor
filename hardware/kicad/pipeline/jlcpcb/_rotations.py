@@ -115,29 +115,30 @@ JLCPCB_ROTATIONS_OAS: list[tuple[re.Pattern, float, float, float, str]] = [
         0, 0.0, 0.0,
         "SK6812-SIDE: 0 deg by design — the (90 - theta) boardgen placement already carries the 180 deg tape-feeder compensation; an extra +180 double-compensates (JLCPCB DFM: emission inward + pin-outer-edge).",
     ),
-    # U1 — LM2596S-5.0 in TO-263-5 (KiCad stock TO-263-5_TabPin3).
-    # TO-263 is an ASYMMETRIC package — a 5-lead row on one side, a
-    # large thermal tab on the other — and KiCad vs JLCPCB anchor the
-    # footprint ORIGIN at different points:
-    #   - KiCad origin  = centre of the moulded plastic body.
-    #   - JLCPCB origin = midpoint between the lead row and the tab pad
-    #     (verified from the EasyEDA footprint of LCSC C116713: its
-    #     head.x is the exact lead/tab midpoint).
-    # Two corrections, both confirmed on JLCPCB DFM (jlcdfm.com, v0.43
-    # board, 2026-05-21 — U1 rendered 180 deg off AND ~3 mm east, with
-    # a "Lead area overlapping pad" Danger):
-    #   * Rotation +180 — the KiCad footprint has the leads on -X, the
-    #     EasyEDA footprint on +X; the two are 180 deg apart.
-    #   * Offset dx = -3.075 mm — the KiCad lead row sits at footprint
-    #     local X=-7.65 and the tab pad at X=+1.5, so their midpoint is
-    #     X=(-7.65+1.5)/2 = -3.075. The CPL exports the KiCad origin
-    #     (X=0); JLCPCB wants the midpoint. dy=0 (leads are Y-centred).
-    # Residual after the fix is +/-0.55 mm (KiCad land-pattern lead-tab
-    # span 9.15 mm vs EasyEDA 10.25 mm) — symmetric, within pad tolerance.
+    # U1 — LM2596S-5.0 in oas:TO-263-5_LM2596 (project-local land — the
+    # verbatim LCSC C116713 / EasyEDA geometry; see CLAUDE.md Deviation
+    # budget and gen_to263_5_lm2596_footprint).
+    #
+    # v0.43 replaced the KiCad stock TO-263-5_TabPin3 land here: its
+    # 9.15 mm lead-tab pitch did not match the part's 10.252 mm, so no
+    # CPL offset could seat both the leads and the tab — U1's thermal
+    # tab stayed ~25 % overlapped on JLCPCB DFM ("Lead area overlapping
+    # pad" Danger, jlcdfm.com 2026-05-21). With the matched land the
+    # part now sits on a copy of its own footprint; only the
+    # KiCad-vs-JLCPCB anchor + orientation difference is corrected here:
+    #   * Rotation +180 — our land is drawn in KiCad orientation (leads
+    #     on -X); the EasyEDA C116713 footprint has leads on +X.
+    #   * Offset dx = -3.104 mm — our footprint anchor is the body
+    #     centre (kept from the stock silk/courtyard/F.Fab donor);
+    #     JLCPCB anchors the EasyEDA footprint at the lead/tab-pad
+    #     midpoint, which in our land sits at footprint-local
+    #     X = (-8.230 + 2.022)/2 = -3.104 mm. dy = 0 (leads Y-centred).
+    # No land-geometry residual remains — the footprint now equals the
+    # part's own land.
     (
-        re.compile(r"^TO-263-5_TabPin3"),
-        180, -3.075, 0.0,
-        "U1 TO-263-5_TabPin3: KiCad origin = body centre, JLCPCB origin = lead/tab midpoint. +180 rotation and dx=-3.075 mm, both confirmed on JLCPCB DFM (2026-05-21); without them U1 lands 180 deg off and ~3 mm east.",
+        re.compile(r"^TO-263-5_LM2596"),
+        180, -3.104, 0.0,
+        "U1 oas:TO-263-5_LM2596: project-local land = verbatim LCSC C116713 geometry. +180 (KiCad-vs-EasyEDA orientation) and dx=-3.104 mm (body-centre anchor vs lead/tab-pad midpoint). v0.43 — replaced the mismatched KiCad stock TO-263 land that tripped JLCPCB DFM lead/pad overlap.",
     ),
     # Q1 — AO3401A P-MOSFET, SOT-23 (KiCad stock Package_TO_SOT_SMD:SOT-23).
     # The upstream `^SOT-23,-90` row is dropped via JLCPCB_UPSTREAM_SKIP

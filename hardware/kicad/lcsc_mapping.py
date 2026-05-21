@@ -231,7 +231,7 @@ LCSC_MAPPING = {
         "datasheet": "https://www.lcsc.com/datasheet/C133065.pdf",
         "notes": "Genuine JST GH 6-pin horizontal SMD socket. J3 SEN66 connector — must be genuine JST (not clone) for Sensirion cable compatibility.",
     },
-    ("LM2596S-5.0", "Package_TO_SOT_SMD:TO-263-5_TabPin3"): {
+    ("LM2596S-5.0", "oas:TO-263-5_LM2596"): {
         "lcsc": "C116713",
         "manufacturer": "Texas Instruments",
         "mpn": "LM2596S-5.0/NOPB",

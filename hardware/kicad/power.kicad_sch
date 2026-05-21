@@ -4920,7 +4920,7 @@
 			(justify left)
 		)
 	)
-	(property "Footprint" "Package_TO_SOT_SMD:TO-263-5_TabPin3"
+	(property "Footprint" "oas:TO-263-5_LM2596"
 		(at 171.45 71.12 0)
 		(effects
 			(font

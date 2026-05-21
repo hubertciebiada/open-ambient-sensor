@@ -850,7 +850,7 @@ def _sch_buck_lm2596_5(
         \t\t\t\t(justify left)
         \t\t\t)
         \t\t)
-        \t\t(property "Footprint" "Package_TO_SOT_SMD:TO-263-5_TabPin3"
+        \t\t(property "Footprint" "oas:TO-263-5_LM2596"
         \t\t\t(at {fmt(x + 1.27)} {fmt(y + 6.35)} 0)
         \t\t\t(effects
         \t\t\t\t(font
