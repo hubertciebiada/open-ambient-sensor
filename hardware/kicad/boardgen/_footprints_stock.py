@@ -1652,7 +1652,11 @@ def gen_sk6812_side_pcb_footprint(
     crty_y_min = -body_hh - 0.20
     crty_y_max = SK6812SIDE_PAD_Y + SK6812SIDE_PAD_HEIGHT/2 + 0.20
     pin1_dot_x = SK6812SIDE_PADS[0][0] + SK6812SIDE_PADS[0][1] / 2.0   # pad 1 inner edge
-    pin1_dot_y = SK6812SIDE_PAD_Y + SK6812SIDE_PAD_HEIGHT/2 + 0.35
+    # v0.44: 0.50 mm above pad 1's top edge for JLCPCB "Silkscreen to
+    # pad" clearance — MUST stay in sync with gen_sk6812_side_footprint()
+    # in _footprints_custom.py (the library-file copy of this geometry),
+    # else KiCad flags lib_footprint_mismatch.
+    pin1_dot_y = SK6812SIDE_PAD_Y + SK6812SIDE_PAD_HEIGHT/2 + 0.50
     arrow_tip_y = -body_hh - 0.35
     arrow_base_y = -body_hh + 0.25
     pad_blocks = []
@@ -1681,7 +1685,10 @@ def gen_sk6812_side_pcb_footprint(
     # relative to footprint) because horizontal 2-char @ 1.0 mm wouldn't
     # fit even between two pads at the edge spacing.
     if show_pin_labels:
-        label_y = SK6812SIDE_PAD_Y + SK6812SIDE_PAD_HEIGHT / 2 + 1.30  # 0.26 mm clearance vs pin1 dot (radius 0.15 + stroke 0.04 = bbox top Y=+1.89; label bbox bottom = +2.15)
+        # v0.44: 1.45 mm above pad 1's top edge — follows the pin-1 dot
+        # up (dot centre +1.25, outer edge +1.475 with the lifted 0.15 mm
+        # silk stroke) keeping ~0.225 mm silk clearance to it.
+        label_y = SK6812SIDE_PAD_Y + SK6812SIDE_PAD_HEIGHT / 2 + 1.45
         label_text_rot = (rotation + 90) % 360
         edge_pins = ((1, "Di", SK6812SIDE_PAD_X_OFFSETS[0]),   # pad 1 = DIN
                      (4, "Gd", SK6812SIDE_PAD_X_OFFSETS[3]))   # pad 4 = GND

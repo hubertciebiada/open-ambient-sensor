@@ -793,8 +793,13 @@ def gen_sk6812_side_footprint() -> str:
     # that far out collides with the MIKROE-2462 (MOD2) silk at the
     # theta=135 deg LED (D14). The inner edge keeps the dot next to pad 1
     # while clearing neighbouring daughterboard silk on every ring slot.
-    pin1_dot_x = SK6812SIDE_PADS[0][0] + SK6812SIDE_PADS[0][1] / 2.0   # = -1.30
-    pin1_dot_y = SK6812SIDE_PAD_Y + SK6812SIDE_PAD_HEIGHT/2 + 0.35   # +1.7
+    pin1_dot_x = SK6812SIDE_PADS[0][0] + SK6812SIDE_PADS[0][1] / 2.0
+    # v0.44: dot centre 0.50 mm above pad 1's top edge (was 0.35 mm).
+    # With the silk stroke lifted to the 0.15 mm JLCPCB floor the filled
+    # dot's outer edge reaches 0.225 mm past its centre, so 0.50 mm of
+    # centre clearance leaves silk-edge to pad-edge at ~0.275 mm — clear
+    # of JLCPCB DFM "Silkscreen to pad" (0.35 mm gave only ~0.125 mm).
+    pin1_dot_y = SK6812SIDE_PAD_Y + SK6812SIDE_PAD_HEIGHT / 2 + 0.50
     # Emission-direction arrow on F.SilkS: short line + tip at body-local
     # -Y side. Located on the emission face (-Y).
     arrow_tip_y = -body_hh - 0.35       # -1.35
