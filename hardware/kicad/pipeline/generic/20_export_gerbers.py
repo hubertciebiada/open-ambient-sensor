@@ -21,6 +21,12 @@ kicad-cli flags worth knowing:
   --check-zones         : refills zones before plotting (GND pour solid)
   --use-drill-file-origin : aligns gerber coords with drill file origin
                             so gerbers / drill / pos / BOM share one frame
+  --drill-origin plot   : emits drill coords in that SAME aux-origin frame.
+                          The default ("absolute") puts the drill file in
+                          the page frame — offset from the gerbers by the
+                          aux origin (148.5, 105 mm here), so every THT
+                          hole lands away from its pad and JLCPCB DFM
+                          flags "Missing plated through-hole" board-wide.
 """
 from __future__ import annotations
 
@@ -99,7 +105,10 @@ def main() -> int:
             "--excellon-separate-th",
             "--generate-map",
             "--map-format", "pdf",
-            "--drill-origin", "absolute",
+            # aux origin — MUST match the gerber/CPL --use-drill-file-origin
+            # frame, else holes are offset from pads (JLCPCB DFM "Missing
+            # plated through-hole").
+            "--drill-origin", "plot",
             str(PCB_PATH),
         ], hide_output=True)
         n_d = len(list(GERBERS_BUILD_DIR.glob("*.drl")))
