@@ -537,9 +537,14 @@ def _route_gnd_pour(em: "_RouteEmitter", nets: dict) -> int:
     # F.Cu#9 — J3.2 GND bridge: via-IN-PAD at pad center.
     #   J3.2 is a 0.6x1.7 mm SMD pad on F.Cu only. A 0.6 ⌀ through-via at
     #   the pad's geometric center overlaps the pad fully on F.Cu (same
-    #   net), and on B.Cu it lands 3.09 mm from the nearest non-GND
-    #   B.Cu track (/IO/I2C_SDA) — well inside the main B.Cu GND pour.
-    em.via(+34.125, +25.150, code, uuid_tag="v032:j3_2_in_pad")
+    #   net GND) and lands in the main B.Cu GND pour, stitching J3.2 to
+    #   the GND plane.
+    #   v0.44: re-derived from the CURRENT J3.2 pad centre. J3 was shifted
+    #   +2 mm east after the v0.32 snapshot (J3_X 36 -> 38), leaving this
+    #   via stranded 2 mm west of pad 2 and only 0.15 mm off J3.1 (+3V3) —
+    #   JLCPCB DFM "pad spacing" + "solder mask opening exposing trace".
+    #   J3.2 centre is now project (36.125, 25.150) = PCB (184.625, 130.15).
+    em.via(+36.125, +25.150, code, uuid_tag="v032:j3_2_in_pad")
 
     return 4
 
