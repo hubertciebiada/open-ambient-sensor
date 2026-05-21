@@ -862,7 +862,15 @@ J1_PCB_X = +5.08             # PCB X of pin 1. With rotation 180°, pin 2
                               # left-to-right order PE, GND, +24V when
                               # looking at the south face (cable insert
                               # side).
-J1_PCB_Y = +32.4             # PCB Y of pin row (footprint-local Y = 0).
+J1_PCB_Y = +32.0             # PCB Y of pin row (footprint-local Y = 0).
+                              # v0.45: 0.4 mm north (+32.4 -> +32.0). J1.1,
+                              # the easternmost 24 V THT pad, sat only
+                              # 2.98 mm diagonally from J9.1 (Qwiic SMD
+                              # pad) — a JLCDFM "tht to smd" warning
+                              # (>3.05 mm rule). +0.4 mm north lifts the
+                              # gap to ~3.3 mm. J1 has 7.8 mm of open
+                              # space north (nearest is LED D12), so the
+                              # move is fully unconstrained.
                               # v0.41-followup-2 (2026-05-19): +5 mm south
                               # to widen the no-go rectangle between J1's
                               # mating face and the central cable hole, so
@@ -908,6 +916,9 @@ J1_PCB_ROTATION = 180        # Rotation 180° places the cable-entry face
 # the 15.7 mm-wide opening. J9_PCB_Y = +39.69 keeps the signal pad row at
 # PCB Y = +41.69, inside the cutout (C2 has allow_pads=True); the chord at
 # Y ≈ +43.52 is ~1 mm beyond the pad outer edge.
+# v0.45 note: the J1.1 <-> J9.1 "tht to smd" clearance was resolved by
+# nudging J1 0.4 mm north (see J1_PCB_Y), NOT by moving J9 — shifting J9
+# east ran its body courtyard into R1's.
 J9_PCB_X = +8.95             # PCB X — centred on the C2 / Ethernet cutout
 J9_PCB_Y = +39.69            # PCB Y — pads at +41.69 (inside the cutout)
 J9_PCB_ROTATION = 0          # orientation unchanged from prior C5 placement

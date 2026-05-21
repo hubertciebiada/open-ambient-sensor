@@ -1492,7 +1492,7 @@
 (footprint "Connector_Phoenix_MSTB:PhoenixContact_MSTBA_2,5_3-G-5,08_1x03_P5.08mm_Horizontal"
 	(layer "F.Cu")
 	(uuid "c0bdbe20-14f3-5b36-9e1d-d0a94896a18f")
-	(at 153.58 137.4 180)
+	(at 153.58 137 180)
 (property "Reference" "J1"
 	(at 5.08 -3.2 180)
 	(layer "F.SilkS")
@@ -15110,7 +15110,7 @@
 	)
 )
 (gr_text "J1 (24V)"
-	(at 163.5 137.4 0)
+	(at 163.5 137 0)
 	(layer "F.Fab")
 	(uuid "3f7f871d-604c-5fad-908c-b0a261dba5e2")
 	(effects
@@ -15118,7 +15118,7 @@
 	)
 )
 (gr_text "24V"
-	(at 153.58 136.6 0)
+	(at 153.58 136.2 0)
 	(layer "F.Fab")
 	(uuid "78c6b3ec-f886-5df2-8896-ed64809092ca")
 	(effects
@@ -15126,7 +15126,7 @@
 	)
 )
 (gr_text "GND"
-	(at 148.5 136.6 0)
+	(at 148.5 136.2 0)
 	(layer "F.Fab")
 	(uuid "3aec1083-3eac-54db-bede-d734dc0638dd")
 	(effects
@@ -15134,7 +15134,7 @@
 	)
 )
 (gr_text "PE"
-	(at 143.42 136.6 0)
+	(at 143.42 136.2 0)
 	(layer "F.Fab")
 	(uuid "610c4e55-b8c4-5eca-9f90-71924046205c")
 	(effects

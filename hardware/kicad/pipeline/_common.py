@@ -96,9 +96,13 @@ def strip_silk_near_pads(pcb_path: Path, min_clearance: float = 0.15) -> int:
     callers run this on a throwaway gerber-export copy, never on the
     committed PCB.
 
-    Scope is limited to `fp_line` / `fp_rect` (component body outlines):
-    `fp_circle` (pin-1 dots) and `fp_poly` (polarity wedges) sit close to
-    pads BY DESIGN and are left intact.
+    Scope: `fp_line` / `fp_rect` (component body outlines) and `fp_poly`
+    (filled pin-1 / polarity wedges). `fp_poly` was added v0.45 — JLCDFM
+    flagged the U1 / U2 / Q1 stock pin-1 marker polygons at 0.16-0.20 mm
+    ("Silkscreen to pad"); a marker that close to its pad gets trimmed by
+    the fab anyway, so it is stripped cleanly here. `fp_circle` (pin-1
+    dots) is still left intact — those are small and JLCDFM rates them
+    clear of the pads.
 
     Pure deterministic text processing: string-aware paren matching,
     source-ordered iteration."""
@@ -205,24 +209,39 @@ def strip_silk_near_pads(pcb_path: Path, min_clearance: float = 0.15) -> int:
             continue
 
         for kw, cs, ce in kids:
-            if kw not in ("fp_line", "fp_rect"):
+            if kw not in ("fp_line", "fp_rect", "fp_poly"):
                 continue
             block = text[cs:ce]
             if '"F.SilkS"' not in block and '"B.SilkS"' not in block:
                 continue
-            ms = re.search(r"\(start\s+(-?\d+\.?\d*)\s+(-?\d+\.?\d*)\)", block)
-            me = re.search(r"\(end\s+(-?\d+\.?\d*)\s+(-?\d+\.?\d*)\)", block)
-            if not ms or not me:
-                continue
-            sx, sy = float(ms.group(1)), float(ms.group(2))
-            ex, ey = float(me.group(1)), float(me.group(2))
             mw = re.search(r"\(width\s+(-?\d+\.?\d*)\)", block)
             half = float(mw.group(1)) / 2.0 if mw else 0.075
-            if kw == "fp_line":
-                segs = [(sx, sy, ex, ey)]
-            else:  # fp_rect -> 4 edges
-                segs = [(sx, sy, ex, sy), (ex, sy, ex, ey),
-                        (ex, ey, sx, ey), (sx, ey, sx, sy)]
+            if kw == "fp_poly":
+                # fp_poly carries a (pts (xy x y) ...) ring; treat each
+                # consecutive vertex pair plus the closing edge as a
+                # segment. A filled pin-1 wedge's nearest approach to a
+                # pad is on its boundary, so edge sampling is exact enough.
+                xys = re.findall(
+                    r"\(xy\s+(-?\d+\.?\d*)\s+(-?\d+\.?\d*)\)", block)
+                if len(xys) < 2:
+                    continue
+                poly = [(float(x), float(y)) for x, y in xys]
+                segs = [(poly[i][0], poly[i][1],
+                         poly[(i + 1) % len(poly)][0],
+                         poly[(i + 1) % len(poly)][1])
+                        for i in range(len(poly))]
+            else:
+                ms = re.search(r"\(start\s+(-?\d+\.?\d*)\s+(-?\d+\.?\d*)\)", block)
+                me = re.search(r"\(end\s+(-?\d+\.?\d*)\s+(-?\d+\.?\d*)\)", block)
+                if not ms or not me:
+                    continue
+                sx, sy = float(ms.group(1)), float(ms.group(2))
+                ex, ey = float(me.group(1)), float(me.group(2))
+                if kw == "fp_line":
+                    segs = [(sx, sy, ex, ey)]
+                else:  # fp_rect -> 4 edges
+                    segs = [(sx, sy, ex, sy), (ex, sy, ex, ey),
+                            (ex, ey, sx, ey), (sx, ey, sx, sy)]
             worst = float("inf")
             for ax, ay, bx, by in segs:
                 for px, py, phw, phh in pads:
