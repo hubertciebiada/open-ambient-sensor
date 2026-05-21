@@ -27,6 +27,7 @@ from boardgen._project import (
     fx, fy,
     R_OUTLINE, HALF_CHORD, Y_CHORD,
     PAGE_CENTRE_X, PAGE_CENTRE_Y,
+    CABLE_HOLE_DIAMETER,
 )
 
 
@@ -64,25 +65,21 @@ from boardgen._project import (
 # (v0.28a → v0.28e) so DRC and visual review can catch issues per chunk.
 # Final state (v0.28e) routes every chunk.
 ROUTING_CHUNKS: tuple[str, ...] = (
-    "gnd",         # Chunk 1 — F.Cu + B.Cu GND copper pour. ALWAYS on.
-    # Audit-19 (2026-05-19): "hand_v40" and "autoroute" temporarily
-    # DISABLED. The LED ring rework (12 LEDs at 30 deg -> 8 LEDs at
-    # 45 deg with skip moved from i=3 to i=2) and the placement-formula
-    # fix (LED rotation 270-theta -> 90-theta) collectively moved
-    # every LED pad to a new PCB position. The previously-captured
-    # autoroute snapshot in oas_routes.py references segment endpoints
-    # at the OLD pad positions -- replaying it would emit traces in
-    # mid-air. Same applies to "hand_v40" which stitches GND to the
-    # old D15/D16/C21 pad coords.
-    # TODO: after running Freerouting externally on the new layout and
-    # re-running tools/extract_routes.py, restore the full tuple:
-    #   ROUTING_CHUNKS = ("gnd", "hand_v40", "autoroute")
-    # The GND copper pour reconnects every GND pad automatically;
-    # non-GND signal nets show as WARN-level unconnected pads until
-    # the reroute completes (DRC tolerates -- warning not error).
-    # "hand_v40",
-    # "autoroute",
-    # "io_finalize",      # legacy v0.28 chunk — superseded; not used
+    "gnd",         # Chunk 1 — F.Cu + B.Cu GND copper pour + the
+                   #   _gnd_stitch_via_grid() stitching-via grid. ALWAYS on.
+    "autoroute",   # v0.50 — replays the Freerouting signal-routing snapshot
+                   #   in oas_routes.py (re-extracted by tools/extract_routes.py
+                   #   after the v0.50 reroute: J9 relocated to an internal
+                   #   position east of J10, GND stitching-via grid added).
+                   #   oas_routes.py carries ONLY non-GND nets — GND is the
+                   #   "gnd" chunk's pour + grid. Residual unrouted nets
+                   #   (the J1 reverse-polarity protection cluster, the SW1
+                   #   button net, Earth_Protective, and a few GND-pour
+                   #   fragments) show as WARN-level unconnected pads — DRC
+                   #   tolerates these (warning, not error).
+    # "hand_v40" / "io_finalize": legacy v0.28 / v0.40 routing chunks —
+    # stale pad coordinates, fully superseded by the v0.50 Freerouting
+    # snapshot above. Not used.
 )
 
 
@@ -481,6 +478,175 @@ class _RouteEmitter:
         return "\n".join(all_parts)
 
 
+def _gnd_stitch_via_grid(em: "_RouteEmitter", code: int) -> int:
+    """Emit a uniform grid of GND stitching vias across the D-shape PCB area.
+
+    Via spec: 0.6 mm pad / 0.3 mm drill (standard JLCPCB minimum), GND net.
+    Grid spacing: 8 mm (dense enough to keep every GND pour fragment
+    < 8 mm from the nearest via stitch, preventing orphan islands when
+    signal traces split the pour).
+
+    Placement rules:
+      - Grid candidate (x, y) in PCB-local mm (+Y = down, origin = centre).
+      - Must be inside the D-shape outline (arc R=60 mm + chord at +Y_CHORD).
+      - Clearance from board edge: via_pad/2 + 0.5 mm margin = 0.8 mm.
+        Effective: distance from PCB-local origin ≤ R_OUTLINE - 0.8 mm for
+        arc region; y ≤ Y_CHORD - 0.8 mm for chord region.
+      - Clearance from the central cable hole (Ø12 mm, R=6 mm):
+        via centre must be ≥ 6.0 + 0.8 = 6.8 mm from origin.
+      - Chord-side exclusion: candidate Y ≤ (Y_CHORD - 0.8 mm).
+      - Pad clearance: must be ≥ PAD_KEEP_MM from every pad centre in the
+        PCB (guards against DRC shorts, hole-clearance, and co-location
+        errors when a grid point falls on or near a footprint pad or NPTH).
+      - Mounting hole clearance: must be ≥ NPTH_KEEP_MM from every NPTH
+        hole centre (NPTH holes have large Ø and the drill ring must clear
+        the via's 0.3 mm drill).
+
+    UUIDs use tag "gnd_grid:ix:iy" keyed on integer grid indices so they
+    are stable even if the grid bounds change (no count-dependent tag).
+    """
+    import math
+    import re
+
+    VIA_PAD = 0.6
+    VIA_DRILL = 0.3
+    SPACING = 8.0
+    EDGE_MARGIN = VIA_PAD / 2 + 0.5    # 0.8 mm from edge
+    CABLE_CLEARANCE = CABLE_HOLE_DIAMETER / 2 + EDGE_MARGIN  # 6.8 mm
+    # Minimum centre-to-centre from any PTH or SMD pad (any net).
+    # 2.0 mm gives comfortable clearance: via_radius(0.3) + pad_ring(0.85)
+    # + 0.25 mm hole-clearance rule + 0.6 mm headroom = 2.0 mm.
+    PAD_KEEP_MM = 2.0
+    # Minimum from NPTH hole centres (mounting holes Ø3.8 mm, zip-ties Ø3 mm).
+    # Largest NPTH radius 1.9 mm + via_drill/2 (0.15 mm) + 0.5 mm margin = 2.55 mm.
+    NPTH_KEEP_MM = 2.6
+
+    R_SAFE = R_OUTLINE - EDGE_MARGIN    # 59.2 mm
+    Y_CHORD_SAFE = Y_CHORD - EDGE_MARGIN  # ~42.7 mm
+
+    # Parse the PCB to collect pad centres using the KiCad-correct rotation
+    # convention. KiCad angles are CW-positive in a Y-down screen space:
+    #   gx = fp_x + cos(a)*lx + sin(a)*ly
+    #   gy = fp_y - sin(a)*lx + cos(a)*ly
+    # This differs from the CCW convention in _routing_pad_db (which keeps
+    # existing routing working — we do NOT change that function). Here we
+    # need geometrically correct positions to avoid placing vias on pads.
+    pcb_text = (HERE / "oas.kicad_pcb").read_text(encoding="utf-8")
+    pad_centres: list[tuple[float, float]] = []
+    npth_centres: list[tuple[float, float]] = []
+
+    fp_starts = [m.start() for m in re.finditer(r'\(footprint "', pcb_text)]
+    fp_starts.append(len(pcb_text))
+    for i in range(len(fp_starts) - 1):
+        block = pcb_text[fp_starts[i]:fp_starts[i + 1]]
+        m_at = re.search(
+            r'\(at\s+(-?\d+(?:\.\d+)?)\s+(-?\d+(?:\.\d+)?)(?:\s+(-?\d+(?:\.\d+)?))?\)',
+            block,
+        )
+        if not m_at:
+            continue
+        fp_x = float(m_at.group(1))
+        fp_y = float(m_at.group(2))
+        fp_ang = float(m_at.group(3)) if m_at.group(3) else 0.0
+        # KiCad CW rotation in Y-down screen space:
+        a = math.radians(fp_ang)
+        ca, sa = math.cos(a), math.sin(a)
+
+        # Walk all (pad ...) sub-blocks using depth counting (same as
+        # _routing_pad_db) to avoid false matches inside quoted strings.
+        depth = 0
+        in_str = False
+        esc = False
+        pad_start = None
+        for j, ch in enumerate(block):
+            if in_str:
+                if esc:
+                    esc = False
+                elif ch == "\\":
+                    esc = True
+                elif ch == '"':
+                    in_str = False
+                continue
+            if ch == '"':
+                in_str = True
+                continue
+            if ch == "(":
+                depth += 1
+                if depth == 2 and block[j:j + len("(pad ")] == "(pad ":
+                    pad_start = j
+                continue
+            if ch == ")":
+                if depth == 2 and pad_start is not None:
+                    pad_block = block[pad_start:j + 1]
+                    pad_start = None
+                    # Pad type keyword (smd / thru_hole / np_thru_hole)
+                    m_type = re.search(
+                        r'\(pad\s+"[^"]*"\s+(\S+)', pad_block,
+                    )
+                    if not m_type:
+                        depth -= 1
+                        continue
+                    pad_type = m_type.group(1)
+                    m_pat = re.search(
+                        r'\(at\s+(-?\d+(?:\.\d+)?)\s+(-?\d+(?:\.\d+)?)',
+                        pad_block,
+                    )
+                    if not m_pat:
+                        depth -= 1
+                        continue
+                    lx = float(m_pat.group(1))
+                    ly = float(m_pat.group(2))
+                    # KiCad CW: gx = fp_x + ca*lx + sa*ly
+                    #            gy = fp_y - sa*lx + ca*ly
+                    gx_page = fp_x + ca * lx + sa * ly
+                    gy_page = fp_y - sa * lx + ca * ly
+                    pcb_x = gx_page - PAGE_CENTRE_X
+                    pcb_y = gy_page - PAGE_CENTRE_Y
+                    if pad_type == "np_thru_hole":
+                        npth_centres.append((pcb_x, pcb_y))
+                    else:
+                        pad_centres.append((pcb_x, pcb_y))
+                depth -= 1
+                continue
+
+    # Build integer index range to cover ±R_OUTLINE with SPACING step.
+    i_max = int(math.ceil(R_OUTLINE / SPACING))
+    count = 0
+    for ix in range(-i_max, i_max + 1):
+        x = ix * SPACING
+        for iy in range(-i_max, i_max + 1):
+            y = iy * SPACING
+            # 1. Inside arc region
+            r = math.hypot(x, y)
+            if r > R_SAFE:
+                continue
+            # 2. Chord limit (+Y = down = toward chord)
+            if y > Y_CHORD_SAFE:
+                continue
+            # 3. Cable-hole keep-out
+            if r < CABLE_CLEARANCE:
+                continue
+            # 4. Pad clearance — skip if too close to any pad centre
+            too_close = False
+            for px, py in pad_centres:
+                if math.hypot(x - px, y - py) < PAD_KEEP_MM:
+                    too_close = True
+                    break
+            if too_close:
+                continue
+            # 5. NPTH clearance — skip if too close to any mechanical hole
+            for px, py in npth_centres:
+                if math.hypot(x - px, y - py) < NPTH_KEEP_MM:
+                    too_close = True
+                    break
+            if too_close:
+                continue
+            tag = f"gnd_grid:{ix:+d}:{iy:+d}"
+            em.via(x, y, code, size=VIA_PAD, drill=VIA_DRILL, uuid_tag=tag)
+            count += 1
+    return count
+
+
 def _route_gnd_pour(em: "_RouteEmitter", nets: dict) -> int:
     """Chunk 1 (v0.28a): emit GND copper pours on F.Cu and B.Cu.
 
@@ -499,6 +665,11 @@ def _route_gnd_pour(em: "_RouteEmitter", nets: dict) -> int:
     This single chunk handles ~60 GND pads — 37% of all ratlines — and
     provides the return-current plane for every other net routed in
     subsequent chunks.
+
+    v0.50 (approach-C): a uniform 8 mm via grid is added to stitch F.Cu
+    and B.Cu GND pours together everywhere, eliminating orphan fragments
+    that form when signal traces segment the pour. Previous isolated-pad
+    rescues in _route_io_finalize are superseded by the grid.
     """
     code = _net_code(nets, "GND")
     if code is None:
@@ -506,16 +677,10 @@ def _route_gnd_pour(em: "_RouteEmitter", nets: dict) -> int:
     em.gnd_zone("F.Cu", code)
     em.gnd_zone("B.Cu", code)
 
-    # v0.44: the two v0.32 hand-placed GND-sliver stitch vias (tags
-    # v032:c8_2_bridge / v032:j3_2_in_pad) were removed. They bridged
-    # isolated F.Cu GND-pour fragments around the C8.2 and J3.2 pads to
-    # the B.Cu main pour, but were routing-snapshot artifacts: JLCPCB DFM
-    # flagged them "unconnected via" (a track-less pour-stitch via reads
-    # as floating), and the J3.2 one had been stranded 2 mm off its pad
-    # when J3 moved. With ROUTING_CHUNKS reduced to ("gnd",) the board is
-    # mid-rework anyway (~89 unconnected signal pads); C8.2 and J3.2 GND
-    # simply join that set, and the pending full routing rework
-    # re-establishes every GND stitch from a clean pour.
+    # Approach-C GND stitching: dense via grid ties F.Cu + B.Cu GND planes
+    # everywhere so no pour fragment can become isolated by signal routing.
+    _gnd_stitch_via_grid(em, code)
+
     return 2
 
 

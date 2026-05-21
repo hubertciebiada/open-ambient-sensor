@@ -186,15 +186,21 @@ def main() -> None:
     seg_blocks = _find_balanced_blocks(text, "(segment")
     via_blocks = _find_balanced_blocks(text, "(via")
 
+    # GND is realized as a copper pour plus a deterministic stitching-via
+    # grid emitted by the boardgen "gnd" chunk (_route_gnd_pour /
+    # _gnd_stitch_via_grid). It must NOT also be captured into the routing
+    # snapshot, or the "autoroute" chunk would re-emit every GND grid via
+    # on top of the "gnd" chunk's copy. Skip every GND segment/via here;
+    # oas_routes.py carries only the non-GND signal routing.
     segments: list[dict] = []
     for b in seg_blocks:
         rec = _parse_segment(b)
-        if rec is not None:
+        if rec is not None and rec["net_name"] != "GND":
             segments.append(rec)
     vias: list[dict] = []
     for b in via_blocks:
         rec = _parse_via(b)
-        if rec is not None:
+        if rec is not None and rec["net_name"] != "GND":
             vias.append(rec)
 
     # Sort for determinism — net name, then geometry. Same net_name in
