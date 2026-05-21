@@ -139,6 +139,24 @@ JLCPCB_ROTATIONS_OAS: list[tuple[re.Pattern, float, float, float, str]] = [
         180, -3.075, 0.0,
         "U1 TO-263-5_TabPin3: KiCad origin = body centre, JLCPCB origin = lead/tab midpoint. +180 rotation and dx=-3.075 mm, both confirmed on JLCPCB DFM (2026-05-21); without them U1 lands 180 deg off and ~3 mm east.",
     ),
+    # Q1 — AO3401A P-MOSFET, SOT-23 (KiCad stock Package_TO_SOT_SMD:SOT-23).
+    # The upstream `^SOT-23,-90` row is dropped via JLCPCB_UPSTREAM_SKIP
+    # (see that dict) because it placed Q1 90 deg off on JLCPCB DFM. This
+    # gap-filler supplies the correct correction. The EasyEDA footprint of
+    # LCSC C15127 (the exact ordered part) is the KiCad-stock SOT-23
+    # rotated EXACTLY 180 deg — its pads sit at footprint-local
+    # (+1.15,+/-0.95) / (-1.15,0) vs KiCad's (-0.9375,-/+0.95) /
+    # (+0.9375,0). Both footprints anchor the origin at the geometric
+    # centre of the three pads, so a pure +180 rotation aligns the part —
+    # no X/Y offset (unlike the asymmetric TO-263 above). Q1 was observed
+    # 90 deg off (CPL rotation 270, 2/3 pins off pads, "Pin without pad"
+    # Danger x2) on JLCPCB DFM (jlcdfm.com, v0.43 board, 2026-05-21);
+    # +180 is derived from the EasyEDA pad geometry above.
+    (
+        re.compile(r"^SOT-23$"),
+        180, 0.0, 0.0,
+        "Q1 SOT-23: upstream -90 dropped (JLCPCB_UPSTREAM_SKIP) — EasyEDA C15127 footprint is the KiCad-stock SOT-23 rotated 180 deg, both origins centred, so a pure +180 (no offset) aligns it. Upstream -90 left Q1 90 deg off on JLCPCB DFM (2026-05-21).",
+    ),
 ]
 
 
@@ -167,6 +185,19 @@ JLCPCB_UPSTREAM_SKIP: dict[str, str] = {
     # unmatched → CPL rotation == KiCad ground truth, which the local
     # render verifies as the correct physical orientation.
     "^JST_GH_SM": "J3 JST_GH_SM06B-GHS-TB: upstream +180 verified wrong on JLCPCB DFM (2026-05-21) — J3 rendered 180 deg off, pins off pads; KiCad-stock 0 deg already matches the tape feeder.",
+    # Q1 — AO3401A P-MOSFET in SOT-23 (KiCad stock Package_TO_SOT_SMD:SOT-23).
+    # Upstream `^SOT-23,-90`: with Q1's KiCad placement rotation 0 that
+    # gives CPL rotation 270, and JLCPCB DFM (jlcdfm.com, v0.43 board,
+    # 2026-05-21) renders Q1 90 deg off — 2 of its 3 pins land off the
+    # copper ("Pin without pad" Danger x2). The EasyEDA footprint of LCSC
+    # C15127 (the exact ordered AO3401A) is the KiCad-stock SOT-23 rotated
+    # exactly 180 deg (pads at local (+1.15,+/-0.95) / (-1.15,0) vs
+    # KiCad's (-0.9375,-/+0.95) / (+0.9375,0); both origins centred), so
+    # the correct CPL rotation is +180, NOT -90. Dropping this row leaves
+    # SOT-23 unmatched by upstream → the OAS gap-filler entry above
+    # applies the +180. (Skip alone would give 0 deg, also wrong — Q1
+    # genuinely needs +180, not the KiCad ground-truth rotation.)
+    "^SOT-23": "Q1 SOT-23: upstream -90 verified wrong on JLCPCB DFM (2026-05-21) — Q1 rendered 90 deg off, 2/3 pins off pads. EasyEDA C15127 footprint is the KiCad-stock SOT-23 rotated 180 deg; the OAS gap-filler entry applies +180 instead.",
 }
 
 
