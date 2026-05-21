@@ -1390,6 +1390,15 @@ def gen_silk_labels() -> str:
             # terminal-block silk rect (east edge +8.73) and the reverse-
             # polarity cluster to the east (Q1 courtyard starts ~X +12.07).
             tx, ty = +10.4, +34.5
+        elif name == "USBC":
+            # USBC hosts SW1. J1's terminal-block silk body rect reaches
+            # PCB Y=+34.51 (south edge) and spans X -8.73..+8.73 — the
+            # cutout centre (cx=-7.5, cy=+35.35) sits inside that X shadow,
+            # leaving only 0.14 mm to J1's silk once every stroke is lifted
+            # to the 0.15 mm JLCPCB floor (silk_overlap DRC). Drop the
+            # label ~0.45 mm further south into clear space — still ~5 mm
+            # north of the SW1 button body — to restore margin.
+            tx, ty = cx, +35.8
         else:
             tx, ty = cx, cy
         parts.append(_silk(
