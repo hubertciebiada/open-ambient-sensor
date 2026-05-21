@@ -2420,9 +2420,10 @@ def gen_to263_5_lm2596_footprint() -> str:
     Danger, jlcdfm.com, v0.43 board, 2026-05-21).
 
     This footprint keeps the stock silkscreen, courtyard, F.Fab body
-    outline and 3D model VERBATIM and swaps ONLY the 10 pads — 5 leads,
-    1 tab, 4 tab-paste windowpane apertures — for the verbatim C116713
-    land. JLCPCB DFM then compares the part to a copy of its own land.
+    outline and 3D model VERBATIM and swaps ONLY the 6 pads — 5 leads +
+    1 tab, all with full F.Paste (single tab aperture, no windowpane) —
+    for the verbatim C116713 land. JLCPCB DFM then compares the part to
+    a copy of its own land.
 
     Anchor stays the stock body-centre origin, so U1's PCB placement and
     the GND-tab via-in-pad need no move. Leads land at X = -8.230, the
@@ -2456,19 +2457,16 @@ def gen_to263_5_lm2596_footprint() -> str:
     # Verbatim LCSC C116713 land (body-centre origin, KiCad orientation:
     # leads on -X, tab on +X). Pin order per LM2596 datasheet TI SNVS124N
     # Table 1: 1=VIN, 2=OUT, 3=GND (tab + pin 3), 4=FB, 5=~ON/OFF.
+    #
+    # PASTE: all 6 pads carry full F.Paste — the EasyEDA C116713
+    # footprint gives the thermal tab a SINGLE full-coverage paste
+    # aperture, NOT a windowpane. JLCPCB DFM "Lead area overlapping pad"
+    # pairs the tab lead with a paste aperture; an earlier 4-window
+    # windowpane here left no single window covering >=75% of the slug
+    # (jlcdfm.com 2026-05-21, value 0.23). A single full aperture that
+    # equals the part's own land clears it.
     lead_y = (-3.4, -1.7, 0.0, 1.7, 3.4)
     pads: list[str] = []
-    # 4 tab-paste windowpane apertures (F.Paste only — the tab pad below
-    # carries no paste; the windowpane meters solder volume on the slug).
-    for sx in (-2.10, 2.10):
-        for sy in (-2.575, 2.575):
-            pads.append(
-                f'\t(pad "" smd rect\n'
-                f'\t\t(at {fmt(2.022 + sx)} {fmt(sy)})\n'
-                f'\t\t(size 3.9 4.85)\n'
-                f'\t\t(layers "F.Paste")\n'
-                f'\t)'
-            )
     # 5 lead pads + the tab pad (both numbered "3" — same GND net).
     for n, ly in zip("12345", lead_y):
         pads.append(
@@ -2483,7 +2481,7 @@ def gen_to263_5_lm2596_footprint() -> str:
                 '\t(pad "3" smd rect\n'
                 '\t\t(at 2.022 0)\n'
                 '\t\t(size 8.705 10.587)\n'
-                '\t\t(layers "F.Cu" "F.Mask")\n'
+                '\t\t(layers "F.Cu" "F.Mask" "F.Paste")\n'
                 '\t)'
             )
     return head + "\n".join(pads) + "\n" + tail

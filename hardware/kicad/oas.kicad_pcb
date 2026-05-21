@@ -10686,26 +10686,6 @@
 				)
 			)
 		)
-	(pad "" smd rect
-			(at -0.078 -2.575)
-			(size 3.9 4.85)
-			(layers "F.Paste")
-		)
-	(pad "" smd rect
-			(at -0.078 2.575)
-			(size 3.9 4.85)
-			(layers "F.Paste")
-		)
-	(pad "" smd rect
-			(at 4.122 -2.575)
-			(size 3.9 4.85)
-			(layers "F.Paste")
-		)
-	(pad "" smd rect
-			(at 4.122 2.575)
-			(size 3.9 4.85)
-			(layers "F.Paste")
-		)
 	(pad "1" smd rect
 			(at -8.23 -3.4)
 			(size 3.5 1.02)
@@ -10727,7 +10707,7 @@
 	(pad "3" smd rect
 			(at 2.022 0)
 			(size 8.705 10.587)
-			(layers "F.Cu" "F.Mask")
+			(layers "F.Cu" "F.Mask" "F.Paste")
 			(net 17 "GND")
 		)
 	(pad "4" smd rect
