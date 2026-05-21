@@ -5,8 +5,10 @@ Drives jlcdfm.com end-to-end with Playwright and dumps the result as two
 tables (PCB DFM + SMT DFM) so an agent does not have to click through the
 SPA by hand:
 
-  1. log in to JLCPCB (reuses a saved session; --login to (re)create it)
-  2. upload hardware/output/jlcpcb/oas-jlcpcb.zip       -> the viewer
+  1. log in to JLCPCB (reuses the persistent-profile session, or signs
+     in automatically when it has expired)
+  2. upload hardware/output/jlcpcb/oas-jlcpcb.zip -> the viewer
+     (or, with --resume, re-attach to the previous upload)
   3. run the PCB DFM check
   4. BOM match: upload oas-BOM.csv + oas-top-CPL.csv, process, save
   5. run the SMT DFM check
@@ -40,9 +42,17 @@ Auth - fully automatic, no manual step
   The script detects whether the saved session is still valid and, if
   not, signs in by itself: it opens the JLCPCB passport form, types the
   credentials (human-paced so reCAPTCHA v3 - invisible, score-based -
-  passes), and persists the resulting httpOnly session cookies to
-  .cache/dfm/auth_state.json. Later runs reuse that token; a login only
-  happens again once it expires (~30-90 days).
+  passes). The session lives in the persistent Chromium profile under
+  .cache/dfm/profile/; later runs reuse it and a login only happens
+  again once it expires.
+
+------------------------------------------------------------
+Re-running without a fresh upload
+------------------------------------------------------------
+  `--resume` re-attaches to the viewer of the previous upload (URL
+  cached in .cache/dfm/last-viewer.json) instead of uploading the ZIP
+  again - JLCPCB tracks upload volume per IP, and it lets the BOM /
+  SMT-DFM flow be iterated without spending an upload each time.
 
 ------------------------------------------------------------
 Outputs (all under hardware/kicad/.cache/dfm/, gitignored)
@@ -50,6 +60,8 @@ Outputs (all under hardware/kicad/.cache/dfm/, gitignored)
   dfm-results.json   - structured PCB + SMT findings
   dfm-pcb.png        - full-page screenshot, PCB DFM tab
   dfm-smt.png        - full-page screenshot, SMT DFM tab
+  debug/NN-*.png     - per-step screenshots of the BOM-match / SMT flow
+  last-viewer.json   - viewer URL of the last upload (for --resume)
 
 Exit 0 on success, 1 on any error.
 """
@@ -86,6 +98,12 @@ CREDENTIALS = OUT_DIR / "credentials.json"
 
 UPLOAD_URL = "https://jlcdfm.com/"
 RESULTS_JSON = OUT_DIR / "dfm-results.json"
+# Numbered debug screenshots + tab dumps for every BOM-match / SMT step.
+DEBUG_DIR = OUT_DIR / "debug"
+# Viewer URL of the last upload. A --resume run re-attaches to this
+# jlcdfm project instead of re-uploading the ZIP (JLCPCB tracks upload
+# volume per IP; this also lets the BOM/SMT flow be iterated quickly).
+LAST_VIEWER = OUT_DIR / "last-viewer.json"
 
 
 # ---------------------------------------------------------------------------
@@ -96,6 +114,100 @@ def _rsleep(lo: float = 0.0, hi: float = 1.0) -> None:
     reCAPTCHA v3 (score-based, invisible) does not flag the run as a bot -
     instant scripted clicks score badly and trip a challenge / block."""
     time.sleep(random.uniform(lo, hi))
+
+
+_DBG_SEQ = 0
+
+
+def _snap(page, tag: str) -> str:
+    """Numbered full-page debug screenshot + active-URL / open-tabs dump.
+
+    Unattended automation needs artifacts when a step misbehaves - every
+    BOM-match and SMT step drops one of these into .cache/dfm/debug/ so a
+    bad run can be diagnosed (and the flow code fixed) without spending a
+    fresh live upload to reproduce it."""
+    global _DBG_SEQ
+    _DBG_SEQ += 1
+    name = f"{_DBG_SEQ:02d}-{tag}"
+    try:
+        DEBUG_DIR.mkdir(parents=True, exist_ok=True)
+        page.screenshot(path=str(DEBUG_DIR / f"{name}.png"), full_page=True)
+    except Exception:
+        pass
+    try:
+        tabs = " | ".join(
+            f"[{i}]{(p.url or '')[:90]}"
+            for i, p in enumerate(page.context.pages))
+    except Exception:
+        tabs = "?"
+    print(f"  [dbg {name}] active={page.url}")
+    print(f"           tabs: {tabs}")
+    return name
+
+
+def _save_resume_url(url: str) -> None:
+    """Cache the viewer URL of a fresh upload so --resume can re-attach."""
+    try:
+        LAST_VIEWER.write_text(
+            json.dumps({"url": url,
+                        "zip_mtime": ZIP_PATH.stat().st_mtime,
+                        "saved": datetime.now().isoformat(timespec="seconds")},
+                       indent=2),
+            encoding="utf-8",
+        )
+    except OSError:
+        pass
+
+
+def _load_resume_url() -> str | None:
+    """Return the cached viewer URL for --resume, or None if unusable."""
+    if not LAST_VIEWER.exists():
+        return None
+    try:
+        data = json.loads(LAST_VIEWER.read_text(encoding="utf-8"))
+    except (ValueError, OSError):
+        return None
+    url = data.get("url")
+    if not url or "/viewer" not in url:
+        return None
+    if data.get("zip_mtime") != ZIP_PATH.stat().st_mtime:
+        print("  --resume: WARNING - the ZIP changed since this viewer was "
+              "uploaded; resumed results may be stale.")
+    return str(url)
+
+
+def _click_modal(page, label: str) -> bool:
+    """Click a button (Confirm / Cancel) inside a jlcdfm 'Tip' dialog."""
+    try:
+        page.get_by_role(
+            "button", name=label, exact=True).first.click(timeout=4000)
+        page.wait_for_timeout(700)
+        return True
+    except Exception:
+        return False
+
+
+def _dfm_modal_kind(page) -> str:
+    """Classify the jlcdfm 'Tip' dialog that can pop up after a DFM check.
+
+      'no-bom' - SMT tab: BOM / coordinate files not uploaded yet
+      'exists' - DFM results already exist, re-analyze? (Confirm runs it)
+      'none'   - no dialog on screen
+    """
+    for needle, kind in (
+        ("unable to perform", "no-bom"),
+        ("not uploaded the BOM", "no-bom"),
+        ("Re-analyzing", "exists"),
+        ("results exist", "exists"),
+        ("produce the same", "exists"),
+    ):
+        try:
+            if page.get_by_text(
+                    needle, exact=False).first.is_visible(timeout=800):
+                return kind
+        except Exception:
+            continue
+    return "none"
 
 
 def _load_credentials() -> dict | None:
@@ -334,13 +446,18 @@ def _ensure_logged_in(page, creds: dict | None) -> None:
 # ---------------------------------------------------------------------------
 # analysis flow
 # ---------------------------------------------------------------------------
-def _wait_results(page, timeout_ms: int = 180_000) -> None:
-    """Wait until a DFM check has produced results in the active tab."""
+def _wait_results(page, timeout_ms: int = 120_000) -> None:
+    """Wait until a DFM check has produced results in the active tab.
+
+    'Done' == no 'Unanalyzed' / 'Analyzing' text left AND at least one
+    enabled 'Details' button (a check that found something). A genuinely
+    all-good tab never enables a Details button, so the wait times out -
+    that is fine, the caller just scrapes the (empty) result."""
     try:
         page.wait_for_function(
             """() => {
                 const t = document.body.innerText || '';
-                if (t.includes('Unanalyzed')) return false;
+                if (/Unanalyzed|Analyzing/i.test(t)) return false;
                 const btns = [...document.querySelectorAll('button')]
                     .filter(b => (b.innerText || '').trim() === 'Details');
                 return btns.length > 0 && btns.some(b => !b.disabled);
@@ -431,83 +548,174 @@ def _collect_tab(page) -> list[dict]:
 
 
 def _bom_match(page, context):
-    """Run the BOM match flow: upload BOM + CPL in the spawned tab.
+    """Upload BOM + CPL through jlcdfm's BOM-match wizard.
 
-    Returns the viewer page that now carries the matched BOM. 'BOM match'
-    opens a second tab; after 'Save & Close' THAT tab navigates to the
-    viewer with the BOM associated, while the original viewer tab stays
-    BOM-less. So this returns the post-save tab and drops the stale one.
+    'BOM match' spawns a second tab for the wizard, which opens in one
+    of two states:
+      (a) fresh project - an 'Add BOM File' / 'Add CPL File' upload
+          step followed by 'Process BOM & CPL';
+      (b) a project that already carries a committed BOM - the matched
+          BOM table directly (happens on a --resume re-attach).
+    Both converge on 'Next' (-> Component Placements) then 'Save &
+    Close', which commits the BOM to the project (keyed by the
+    pcbUploadFileId the viewer and wizard share) and closes the wizard
+    tab itself. Returns the original viewer page, reloaded so the SPA
+    re-fetches project state with the BOM now attached.
 
-    Each step waits for the NEXT control to appear rather than sleeping
-    a fixed time - 'Process BOM & CPL' can take well over the old 4 s
-    budget, and a too-early click left the BOM unsaved.
+    Every step drops a numbered debug screenshot via _snap() so a run
+    that comes back with an empty SMT table can be diagnosed offline.
     """
-    print("  BOM match: uploading BOM + CPL ...")
-    with context.expect_page(timeout=20_000) as new_info:
-        page.get_by_role("button", name="BOM match").click()
-    bom = new_info.value
-    bom.wait_for_load_state("domcontentloaded")
-    bom.wait_for_timeout(2000)
+    print("  BOM match: opening the wizard ...")
+    _snap(page, "bom-00-before")
+    btn = page.get_by_role("button", name="BOM match")
+    btn.wait_for(state="visible", timeout=15_000)
+    # the wizard usually opens in a new tab; tolerate same-tab too
+    wizard = page
+    try:
+        with context.expect_page(timeout=15_000) as new_info:
+            btn.click()
+        wizard = new_info.value
+    except Exception:
+        print("  (BOM match did not spawn a tab - using the current one)")
+    wizard.wait_for_load_state("domcontentloaded")
+    wizard.wait_for_timeout(2500)
+    _snap(wizard, "bom-01-wizard-open")
     _rsleep()
-    _attach_file(bom, lambda: bom.get_by_role("button", name="Add BOM File"),
-                 BOM_PATH, "BOM")
-    _rsleep()
-    _attach_file(bom, lambda: bom.get_by_role("button", name="Add CPL File"),
-                 CPL_PATH, "CPL")
-    _rsleep()
-    proc = bom.get_by_role("button", name="Process BOM & CPL")
-    proc.wait_for(state="visible", timeout=10_000)
-    proc.click()
-    print("  processing BOM/CPL match ...")
-    # the matched-parts view is reached once 'Next' shows up
-    nxt = bom.get_by_role("button", name="Next")
-    nxt.wait_for(state="visible", timeout=90_000)
+
+    # state (a) shows an 'Add BOM File' upload button; state (b) opens
+    # straight on the already-matched BOM table (no upload button)
+    try:
+        fresh = wizard.get_by_role(
+            "button", name="Add BOM File").is_visible(timeout=4000)
+    except Exception:
+        fresh = False
+
+    if fresh:
+        _attach_file(wizard,
+                     lambda: wizard.get_by_role("button", name="Add BOM File"),
+                     BOM_PATH, "BOM")
+        _snap(wizard, "bom-02-bom-added")
+        _rsleep()
+        _attach_file(wizard,
+                     lambda: wizard.get_by_role("button", name="Add CPL File"),
+                     CPL_PATH, "CPL")
+        _snap(wizard, "bom-03-cpl-added")
+        _rsleep()
+        proc = wizard.get_by_role("button", name="Process BOM & CPL")
+        proc.wait_for(state="visible", timeout=10_000)
+        proc.click()
+        print("  processing BOM/CPL match ...")
+    else:
+        print("  wizard already shows a matched BOM - reusing it.")
+
+    # Both states must reach a POPULATED matched-BOM table before
+    # advancing. 'Process BOM & CPL' matches the parts against the JLC
+    # catalogue over the network, and the 'Next' button renders BEFORE
+    # the table fills - clicking Next too early commits an empty
+    # ('No Data') BOM, and SMT DFM then reports 'no BOM'. Wait for the
+    # 'N parts detected / N Parts confirmed' summary to appear.
+    try:
+        wizard.wait_for_function(
+            """() => {
+                const t = document.body.innerText || '';
+                if (/No Data/i.test(t)) return false;
+                return /parts?\\s+(detected|confirmed)/i.test(t);
+            }""",
+            timeout=120_000,
+            polling=1500,
+        )
+        print("  BOM/CPL parts matched.")
+    except Exception:
+        print("  WARN: BOM-match table did not populate in time.")
+    wizard.wait_for_timeout(2000)
+    _snap(wizard, "bom-04-matched")
+
+    # advance: matched-BOM view -> Component Placements
+    nxt = wizard.get_by_role("button", name="Next")
+    nxt.wait_for(state="visible", timeout=30_000)
     _rsleep(0.8, 1.5)
     nxt.click()
-    # the Component Placements view is reached once 'Save & Close' shows up
-    save = bom.get_by_role("button", name="Save & Close")
-    save.wait_for(state="visible", timeout=45_000)
+    # the Component Placements view is reached once 'Save & Close' shows
+    save = wizard.get_by_role("button", name="Save & Close")
+    save.wait_for(state="visible", timeout=60_000)
+    _snap(wizard, "bom-05-placements")
     _rsleep(0.8, 1.5)
-    save.click()
-    # After 'Save & Close' the BOM-match tab navigates to the viewer that
-    # now carries the BOM. Poll for that navigation, then adopt that tab
-    # (a context.pages scan also catches a freshly spawned viewer tab).
-    for _ in range(24):
-        bom.wait_for_timeout(1000)
-        try:
-            if not bom.is_closed() and "/viewer" in (bom.url or ""):
-                try:
-                    page.close()
-                except Exception:
-                    pass
-                bom.bring_to_front()
-                print("  BOM match saved (adopted post-save viewer tab).")
-                return bom
-        except Exception:
-            break
-        # also check for any other viewer tab the save may have opened
-        for other in list(context.pages):
+    # Save & Close commits the BOM/CPL to the project (keyed by the
+    # pcbUploadFileId that the viewer and the wizard share) and then
+    # closes the wizard tab itself - the `wizard` handle goes dead here,
+    # so it must not be touched afterwards.
+    try:
+        save.click()
+    except Exception:
+        pass  # the wizard tab can close mid-click
+    print("  BOM match: Save & Close - BOM committed, wizard tab closing.")
+    time.sleep(3.0)
+
+    # The wizard tab closes itself; drop any tab that is not the
+    # original viewer so later get_by_role calls stay unambiguous.
+    for p in list(context.pages):
+        if p is not page:
             try:
-                if (other not in (page, bom) and not other.is_closed()
-                        and "/viewer" in (other.url or "")):
-                    print("  BOM match saved (adopted spawned viewer tab).")
-                    other.bring_to_front()
-                    return other
+                p.close()
             except Exception:
                 pass
-        if bom.is_closed():
-            break
-    # fallback: reload the original viewer
+    page.bring_to_front()
+    # Reload the viewer so the SPA re-fetches project state - the BOM is
+    # now attached to pcbUploadFileId server-side. (_run_smt_dfm reloads
+    # again if the commit had not landed yet.)
     try:
-        if not bom.is_closed():
-            bom.close()
+        page.reload(wait_until="domcontentloaded", timeout=30_000)
+        page.wait_for_timeout(7000)
     except Exception:
         pass
-    page.bring_to_front()
-    page.reload(wait_until="domcontentloaded", timeout=30_000)
-    page.wait_for_timeout(3000)
-    print("  BOM match saved (reloaded original viewer).")
+    _dismiss_cookie_banner(page)
+    _snap(page, "bom-06-viewer-reloaded")
+    print(f"  BOM match done - SMT viewer: {page.url}")
     return page
+
+
+def _run_smt_dfm(page) -> list[dict]:
+    """Run SMT DFM, handling the two Tip dialogs jlcdfm can raise.
+
+      'results exist' -> Confirm (re-analyze, then scrape).
+      'no BOM'        -> the match did not propagate to this viewer;
+                         reload it and retry (up to 3x).
+    """
+    for attempt in range(1, 4):
+        try:
+            page.get_by_role("button", name="SMT DFM").click()
+            page.wait_for_timeout(2000)
+        except Exception:
+            pass
+        _rsleep()
+        try:
+            page.get_by_role("button", name="DFM check").first.click()
+        except Exception:
+            pass
+        page.wait_for_timeout(3500)
+        kind = _dfm_modal_kind(page)
+        if kind == "exists":
+            print("  SMT DFM: 'results exist' dialog - confirming re-analysis.")
+            _click_modal(page, "Confirm")
+            page.wait_for_timeout(2500)
+        elif kind == "no-bom":
+            print(f"  SMT DFM reports 'no BOM' (attempt {attempt}/3) - "
+                  "reloading the viewer to pick up the BOM match ...")
+            _snap(page, f"smt-nobom-{attempt}")
+            _click_modal(page, "Cancel")
+            try:
+                page.reload(wait_until="domcontentloaded", timeout=30_000)
+                page.wait_for_timeout(8000)
+            except Exception:
+                pass
+            _dismiss_cookie_banner(page)
+            continue
+        _wait_results(page)
+        _rsleep()
+        return _collect_tab(page)
+    print("  ERROR: SMT DFM never picked up the BOM match - see debug shots.")
+    _snap(page, "smt-failed")
+    return []
 
 
 def _format_table(title: str, findings: list[dict]) -> str:
@@ -552,13 +760,17 @@ def _format_table(title: str, findings: list[dict]) -> str:
     return "\n".join(out)
 
 
-def run(headless: bool) -> int:
+def run(headless: bool, resume: bool) -> int:
     from playwright.sync_api import sync_playwright
 
     creds = _load_credentials()
     print(f"  ZIP: {ZIP_PATH.name} ({ZIP_PATH.stat().st_size // 1024} kB)")
     print(f"  BOM: {BOM_PATH.name}   CPL: {CPL_PATH.name}")
     PROFILE_DIR.mkdir(parents=True, exist_ok=True)
+
+    resume_url = _load_resume_url() if resume else None
+    if resume and not resume_url:
+        print("  --resume: no usable saved viewer URL - doing a fresh upload.")
 
     with sync_playwright() as p:
         # Persistent context: the profile dir holds the JLCPCB session
@@ -577,22 +789,37 @@ def run(headless: bool) -> int:
         _dismiss_cookie_banner(page)
         # detect the session and sign in automatically if it is missing
         _ensure_logged_in(page, creds)
-        page.goto(UPLOAD_URL, wait_until="domcontentloaded", timeout=30_000)
-        _dismiss_cookie_banner(page)
-        _rsleep(0.5, 1.0)
 
-        # upload the gerber ZIP -> viewer
-        print("  uploading gerber ZIP ...")
-        _attach_file(page, lambda: page.get_by_role("button", name="Upload file"),
-                     ZIP_PATH, "ZIP")
-        page.wait_for_url("**/viewer**", timeout=60_000)
-        page.wait_for_timeout(6000)
+        if resume_url:
+            print(f"  --resume: re-attaching to {resume_url}")
+            page.goto(resume_url, wait_until="domcontentloaded", timeout=45_000)
+            page.wait_for_timeout(7000)
+            _dismiss_cookie_banner(page)
+            if "/viewer" not in (page.url or ""):
+                print("  --resume: saved viewer expired - falling back to upload.")
+                resume_url = None
+        if not resume_url:
+            page.goto(UPLOAD_URL, wait_until="domcontentloaded", timeout=30_000)
+            _dismiss_cookie_banner(page)
+            _rsleep(0.5, 1.0)
+            # upload the gerber ZIP -> viewer
+            print("  uploading gerber ZIP ...")
+            _attach_file(page, lambda: page.get_by_role("button", name="Upload file"),
+                         ZIP_PATH, "ZIP")
+            page.wait_for_url("**/viewer**", timeout=60_000)
+            page.wait_for_timeout(6000)
+            _save_resume_url(page.url)
         print(f"  viewer: {page.url}")
         _rsleep()
 
         # ---- PCB DFM ----
         print("  running PCB DFM check ...")
         page.get_by_role("button", name="DFM check").first.click()
+        page.wait_for_timeout(3500)
+        if _dfm_modal_kind(page) == "exists":
+            print("  PCB DFM: 'results exist' dialog - confirming re-analysis.")
+            _click_modal(page, "Confirm")
+            page.wait_for_timeout(2500)
         _wait_results(page)
         _rsleep()
         pcb = _collect_tab(page)
@@ -608,15 +835,9 @@ def run(headless: bool) -> int:
         _rsleep()
         page = _bom_match(page, context)
         _dismiss_cookie_banner(page)
-        page.wait_for_timeout(6000)
-        print("  running SMT DFM check ...")
-        page.get_by_role("button", name="SMT DFM").click()
         page.wait_for_timeout(2500)
-        _rsleep()
-        page.get_by_role("button", name="DFM check").first.click()
-        _wait_results(page)
-        _rsleep()
-        smt = _collect_tab(page)
+        print("  running SMT DFM check ...")
+        smt = _run_smt_dfm(page)
         try:
             page.screenshot(path=str(OUT_DIR / "dfm-smt.png"), full_page=True)
         except Exception:
@@ -652,11 +873,15 @@ def main() -> int:
                         help="Run with no visible browser window. Only safe "
                              "once a fresh session token exists - reCAPTCHA "
                              "scores headless logins poorly.")
+    parser.add_argument("--resume", action="store_true",
+                        help="Re-attach to the viewer of the previous upload "
+                             "(URL cached in .cache/dfm/last-viewer.json) "
+                             "instead of uploading the ZIP again.")
     args = parser.parse_args()
 
     banner()
     preflight()
-    return run(headless=args.headless)
+    return run(headless=args.headless, resume=args.resume)
 
 
 if __name__ == "__main__":
