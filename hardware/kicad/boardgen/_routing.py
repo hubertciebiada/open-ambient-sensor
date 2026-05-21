@@ -499,54 +499,17 @@ def _route_gnd_pour(em: "_RouteEmitter", nets: dict) -> int:
     em.gnd_zone("F.Cu", code)
     em.gnd_zone("B.Cu", code)
 
-    # v0.32: close the last 2 F.Cu GND zone-island unconnected_items that
-    # v0.31 could not bridge with through-vias. Each fragment requires a
-    # different treatment:
-    #
-    #   F.Cu #5 (0.20 mm²) at (-0.876, -45.935) — sliver around C8.2 pad.
-    #     Bridge: short F.Cu track from C8.2 pad west to a clear spot at
-    #     (-2.0, -46.0), then a through-via there to B.Cu main GND pour.
-    #     Cannot use via-in-pad (0402 pad 0.62x0.70 mm; via 0.6 ⌀ just
-    #     barely fits on F.Cu but the via's B.Cu side at (-1.15, -46.0)
-    #     sits only 0.39 mm from a B.Cu Net-(U2-FB) diagonal track — FAIL).
-    #     Cannot use keepout alone (would strand C8.2's only GND path).
-    #
-    #   F.Cu #9 (0.40 mm²) at (+34.125, +24.738) — sliver around J3.2
-    #     (SEN66 GND pin). Bridge: via-IN-PAD at J3.2 center (34.125,
-    #     25.15). J3.2 is 0.6x1.7 mm SMD pad; 0.6 ⌀ via fits inside on
-    #     F.Cu (same-net so no clearance issue with the pad copper).
-    #     B.Cu under J3.2: nearest non-GND track is /IO/I2C_SDA at
-    #     3.09 mm — comfortable margin. Via lands on B.Cu main GND
-    #     pour, joining J3.2 to the GND network.
-
-    # F.Cu#5 — C8.2 GND bridge: via overlapping C8.2 pad on F.Cu.
-    #   C8.2 is an 0805 cap with pads sized 0.95×0.95, pitch 0.85 → C8.2
-    #   covers PCB X∈[-1.625, -0.675], Y∈[-46.475, -45.525]. A 0.6 ⌀ via
-    #   centred at (-1.8, -46.0) sits with its east half (radius 0.3 →
-    #   east edge X=-1.5) INSIDE C8.2's west extent (-1.625..-0.675), so
-    #   the via's F.Cu copper merges with the pad's F.Cu copper (same
-    #   net GND, no clearance violation).
-    #   Clearances verified at (-1.8, -46.0):
-    #     C8.1 pad (Net-(U2-SS)) at (-2.85, -46.0) east edge X=-2.375:
-    #       via west edge X=-2.1 → 0.275 mm gap (need 0.15, OK).
-    #     U2-BST F.Cu horizontal Y=-46.846: 0.846 mm clear (OK).
-    #     U2-FB B.Cu diagonal (-1.564,-45.028)→(1.74,-48.332): 0.854 mm
-    #       perpendicular distance to via centre (OK).
-    em.via(-1.800, -46.000, code, uuid_tag="v032:c8_2_bridge")
-
-    # F.Cu#9 — J3.2 GND bridge: via-IN-PAD at pad center.
-    #   J3.2 is a 0.6x1.7 mm SMD pad on F.Cu only. A 0.6 ⌀ through-via at
-    #   the pad's geometric center overlaps the pad fully on F.Cu (same
-    #   net GND) and lands in the main B.Cu GND pour, stitching J3.2 to
-    #   the GND plane.
-    #   v0.44: re-derived from the CURRENT J3.2 pad centre. J3 was shifted
-    #   +2 mm east after the v0.32 snapshot (J3_X 36 -> 38), leaving this
-    #   via stranded 2 mm west of pad 2 and only 0.15 mm off J3.1 (+3V3) —
-    #   JLCPCB DFM "pad spacing" + "solder mask opening exposing trace".
-    #   J3.2 centre is now project (36.125, 25.150) = PCB (184.625, 130.15).
-    em.via(+36.125, +25.150, code, uuid_tag="v032:j3_2_in_pad")
-
-    return 4
+    # v0.44: the two v0.32 hand-placed GND-sliver stitch vias (tags
+    # v032:c8_2_bridge / v032:j3_2_in_pad) were removed. They bridged
+    # isolated F.Cu GND-pour fragments around the C8.2 and J3.2 pads to
+    # the B.Cu main pour, but were routing-snapshot artifacts: JLCPCB DFM
+    # flagged them "unconnected via" (a track-less pour-stitch via reads
+    # as floating), and the J3.2 one had been stranded 2 mm off its pad
+    # when J3 moved. With ROUTING_CHUNKS reduced to ("gnd",) the board is
+    # mid-rework anyway (~89 unconnected signal pads); C8.2 and J3.2 GND
+    # simply join that set, and the pending full routing rework
+    # re-establishes every GND stitch from a clean pour.
+    return 2
 
 
 def _route_local_decoupling(em: "_RouteEmitter", nets: dict) -> int:

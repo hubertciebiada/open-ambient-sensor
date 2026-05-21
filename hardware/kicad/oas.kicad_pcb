@@ -15957,22 +15957,6 @@
 		)
 	)
 )
-	(via
-		(at 146.7 59)
-		(size 0.6)
-		(drill 0.3)
-		(layers "F.Cu" "B.Cu")
-		(net 17)
-		(uuid "8ba3cd56-c087-5c7f-afe2-ed928ae9964a")
-	)
-	(via
-		(at 184.625 130.15)
-		(size 0.6)
-		(drill 0.3)
-		(layers "F.Cu" "B.Cu")
-		(net 17)
-		(uuid "b6559136-8827-57ff-ba12-0575be991038")
-	)
 	(zone
 		(net 17)
 		(net_name "GND")
