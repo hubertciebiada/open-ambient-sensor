@@ -378,8 +378,15 @@ class _RouteEmitter:
             for x, y in pts
         )
         u = str(uuid.uuid5(_OAS_NS, f"oas-zone:gnd:{layer}"))
-        # Use 0.15 mm clearance, 0.25 mm min thickness, automatic thermal
-        # reliefs. Standard JLCPCB-compatible fill parameters.
+        # 0.30 mm pad clearance (connect_pads), 0.25 mm min thickness,
+        # automatic thermal reliefs. v0.45: pad clearance raised 0.20 ->
+        # 0.30 mm. The stage-20 export copy widens every THT pad's solder-
+        # mask opening by THT_MASK_MARGIN_MM (0.05 mm); at the old 0.20 mm
+        # pour clearance the mask-opening edge ended only 0.15 mm from the
+        # GND pour, tripping JLCDFM "Solder mask opening exposing trace"
+        # (0.14-0.15 mm, 20 W). 0.30 mm leaves a 0.25 mm mask web
+        # (0.30 - 0.05) — clear of the check. GND-net pads are unaffected
+        # (they connect through thermal reliefs, not this clearance).
         # `priority 0` is the default; if other zones are added later
         # higher-priority ones fill first.
         self._zones.append(
@@ -390,7 +397,7 @@ class _RouteEmitter:
             f'\t\t(uuid "{u}")\n'
             f'\t\t(hatch edge 0.5)\n'
             f'\t\t(connect_pads\n'
-            f'\t\t\t(clearance 0.2)\n'
+            f'\t\t\t(clearance 0.3)\n'
             f'\t\t)\n'
             f'\t\t(min_thickness 0.25)\n'
             f'\t\t(filled_areas_thickness no)\n'
@@ -1694,14 +1701,19 @@ def _net_code(nets: dict, name: str) -> int | None:
 # 0.15 still landed on the warning boundary. 0.20 mm clears it with
 # margin and is the conventional comfortable JLCPCB silk width.
 #
-# Text (fp_text / gr_text) carries its stroke in (effects (font
-# (thickness T))) and our generators already emit 0.15 there (verified
-# by audit). The post-process touches that field too for safety - if
-# any stock-library footprint emits text at thinner thickness it gets
-# normalized in the same pass.
+# Text carries its stroke in (effects (font (thickness T))). Three text
+# kinds reach the silk layer: fp_text / gr_text (free text + labels) and
+# property (footprint Reference / Value designators). Our generators emit
+# all three at 0.15 mm thickness, so every one must appear in the kinds
+# list below — v0.45 added "property" after JLCDFM flagged 3 VISIBLE
+# footprint Reference designators at 0.15 mm ("Silkscreen line width",
+# 3 W) that the pre-v0.45 list (fp_text / gr_text only) silently skipped.
+# (Hidden Reference / Value properties never plot to the gerber, but they
+# are lifted too — harmless and keeps the silk stroke field uniform.)
 SILK_MIN_STROKE_MM = 0.20
 SILK_DRAWING_KINDS = (
     "fp_line", "fp_arc", "fp_circle", "fp_poly", "fp_rect", "fp_text",
+    "property",
     "gr_line", "gr_arc", "gr_circle", "gr_poly", "gr_rect", "gr_text",
 )
 
@@ -1711,8 +1723,9 @@ def _lift_silk_line_widths(min_mm: float = SILK_MIN_STROKE_MM) -> int:
     rewrite any `(stroke (width X))` / `(thickness T)` clause whose
     value is below `min_mm`. Returns the count of lifted strokes.
 
-    Uses depth-counting parse for block extraction (same pattern as
-    `_apply_schematic_footprints`). Layer detection is by the FIRST
+    Uses a string-aware depth-counting parse for block extraction — parens
+    inside a quoted property value (e.g. a Description string) do not
+    perturb the depth count. Layer detection is by the FIRST
     `(layer "...")` inside the block - drawing records have at most one
     layer clause and it's always at the same depth as the geometry."""
     import re
@@ -1741,9 +1754,20 @@ def _lift_silk_line_widths(min_mm: float = SILK_MIN_STROKE_MM) -> int:
         out_parts.append(text[cursor:idx])
         depth = 0
         j = idx
+        in_str = False
+        esc = False
         while j < n:
             ch = text[j]
-            if ch == "(":
+            if in_str:
+                if esc:
+                    esc = False
+                elif ch == "\\":
+                    esc = True
+                elif ch == '"':
+                    in_str = False
+            elif ch == '"':
+                in_str = True
+            elif ch == "(":
                 depth += 1
             elif ch == ")":
                 depth -= 1

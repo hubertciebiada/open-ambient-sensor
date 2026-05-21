@@ -773,10 +773,10 @@ def gen_power_pcb_footprints() -> str:
     # +20.05 → C11 body north edge +21.1 clears by 1.05 mm. Frees
     # the LD2410 west strip for routing.
     parts.append(gen_capacitor_0603_pcb_footprint(
-        x=-52.5, y=+14.5, rotation=270,
+        x=-52.5, y=+14.0, rotation=270,
         reference="C11", value="100nF",
         uuid_tag="c11-ld2410-decoupling-pcb",
-        descr="100 nF local decoupling for LD2410 (J4 pin 5 / +5V). v0.44: vertical, placed at the 11-o'clock of J4's west end — west of the LD2410 body (LDR1, X>=97.4) in open copper. Every pad >3.6 mm (Good) from the J4 THT pad row — clears the JLCPCB DFM 'tht to smd' >3.05 mm rule.",
+        descr="100 nF local decoupling for LD2410 (J4 pin 5 / +5V). v0.45: vertical, placed at the 11-o'clock of J4's west end — west of the LD2410 body (LDR1, X>=97.4) in open copper. Nudged 0.5 mm north of the v0.44 spot (Y +14.5 -> +14.0) — the v0.44 position left C11.1 only 2.98 mm from the nearest J4 THT pad (JLCDFM 'tht to smd' warning); +0.5 mm lifts that to ~3.4 mm, clear of the >3.05 mm rule. North field is open (no neighbour within 4 mm).",
     ))
     # NFC J7/J8 socket: pin 7 (+3V3) at row A position. Row A at PCB X=-14.03.
     # Pin 7 is the 7th from pin 1; pin 1 at PCB Y=+38.10, going north (LIB +Y → PCB -Y).
@@ -1598,7 +1598,7 @@ def gen_silk_labels() -> str:
         "C8":  (-2, -43.5),
         "C2":  (-21, -30.8),
         "C10": (+32, -47),
-        "C11": (-52.5, +14.5),
+        "C11": (-52.5, +14.0),
         "C12": (-25, +23),
         "J2":  (J2_PCB_X, J2_PCB_Y),
     }

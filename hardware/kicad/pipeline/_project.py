@@ -123,15 +123,19 @@ FAB_LAYERS = (
 )
 
 # Stage 20: silkscreen-to-pad strip on the gerber export copy.
-# JLCPCB DFM "Silkscreen to pad" wants >= 0.15 mm from silk edge to pad
-# edge, but stock KiCad library footprints draw component body outlines
-# ~0.10 mm off the pads. Stage 20 plots gerbers from a silk-stripped
-# WORKING COPY of the PCB — oas.kicad_pcb itself stays library-faithful
-# (an in-place footprint edit would trip KiCad's lib_footprint_mismatch
-# DRC). Only fp_line / fp_rect body outlines are stripped; fp_circle
-# pin-1 dots and fp_poly polarity wedges are left intact.
+# JLCDFM "Silkscreen to pad" rates silk-edge-to-pad-edge below ~0.18 mm
+# as a warning; stock KiCad library footprints draw component body
+# outlines ~0.10 mm off the pads, and the v0.44 silk-width lift (0.20 mm
+# strokes) pushed every silk EDGE ~0.04 mm closer still — leaving
+# 0.16-0.17 mm survivors at the old 0.15 mm strip threshold (40 W).
+# v0.45 raises the threshold to 0.22 mm so every silk edge that survives
+# the strip clears 0.20 mm with margin. Stage 20 plots gerbers from a
+# silk-stripped WORKING COPY of the PCB — oas.kicad_pcb itself stays
+# library-faithful (an in-place footprint edit would trip KiCad's
+# lib_footprint_mismatch DRC). Only fp_line / fp_rect body outlines are
+# stripped; fp_circle pin-1 dots and fp_poly polarity wedges are kept.
 STRIP_SILK_NEAR_PADS = True
-SILK_PAD_MIN_CLEARANCE_MM = 0.15
+SILK_PAD_MIN_CLEARANCE_MM = 0.22
 
 # Stage 20: per-footprint silk strip on the gerber export copy.
 # strip_silk_near_pads only reaches body outlines WITHIN

@@ -175,7 +175,7 @@
 		(layer "F.SilkS")
 		(hide yes)
 		(uuid "6c410d26-ed63-5867-aa18-cda1148e2be4")
-		(effects (font (size 1 1) (thickness 0.15)))
+		(effects (font (size 1 1) (thickness 0.2)))
 	)
 	(property "Value" "MountingHole_3.8mm_M3_NPTH"
 		(at 0 0 0)
@@ -241,7 +241,7 @@
 		(layer "F.SilkS")
 		(hide yes)
 		(uuid "12fdacb7-8ec1-51bc-be95-2e9790530e37")
-		(effects (font (size 1 1) (thickness 0.15)))
+		(effects (font (size 1 1) (thickness 0.2)))
 	)
 	(property "Value" "MountingHole_3.8mm_M3_NPTH"
 		(at 0 0 0)
@@ -307,7 +307,7 @@
 		(layer "F.SilkS")
 		(hide yes)
 		(uuid "09fbae68-2c22-5778-9fda-a59a2e165d62")
-		(effects (font (size 1 1) (thickness 0.15)))
+		(effects (font (size 1 1) (thickness 0.2)))
 	)
 	(property "Value" "MountingHole_3.8mm_M3_NPTH"
 		(at 0 0 0)
@@ -373,7 +373,7 @@
 		(layer "F.SilkS")
 		(hide yes)
 		(uuid "be6b6008-4fb0-5687-8a49-8f009b7f7465")
-		(effects (font (size 1 1) (thickness 0.15)))
+		(effects (font (size 1 1) (thickness 0.2)))
 	)
 	(property "Value" "SEN66_Mechanical_Reference"
 		(at 27.6 27.1 0)
@@ -506,7 +506,7 @@
 		(layer "F.SilkS")
 		(hide yes)
 		(uuid "dda351b2-1462-5ec2-82df-dfee097bc996")
-		(effects (font (size 1 1) (thickness 0.15)))
+		(effects (font (size 1 1) (thickness 0.2)))
 	)
 	(property "Value" "LD2410_Mechanical_Reference"
 		(at 17.78 9.12 0)
@@ -593,7 +593,7 @@
         			(layer "F.SilkS")
         			(hide yes)
         			(uuid "d9d34fbf-0e7d-5c15-81a0-c0236b7c5c6d")
-        			(effects (font (size 1 1) (thickness 0.15)))
+        			(effects (font (size 1 1) (thickness 0.2)))
         		)
         		(property "Value" "ZipTieHole_3mm_NPTH"
         			(at 0 0 0)
@@ -673,7 +673,7 @@
         			(layer "F.SilkS")
         			(hide yes)
         			(uuid "9504c291-3c0e-5dca-800d-10e94d02b20d")
-        			(effects (font (size 1 1) (thickness 0.15)))
+        			(effects (font (size 1 1) (thickness 0.2)))
         		)
         		(property "Value" "ZipTieHole_3mm_NPTH"
         			(at 0 0 0)
@@ -753,7 +753,7 @@
         			(layer "F.SilkS")
         			(hide yes)
         			(uuid "d8025f8d-0e45-5001-a899-e9d1b4def7b2")
-        			(effects (font (size 1 1) (thickness 0.15)))
+        			(effects (font (size 1 1) (thickness 0.2)))
         		)
         		(property "Value" "ZipTieHole_3mm_NPTH"
         			(at 0 0 0)
@@ -833,7 +833,7 @@
         			(layer "F.SilkS")
         			(hide yes)
         			(uuid "c9b5da4b-70c7-59f3-9064-85c542084d7d")
-        			(effects (font (size 1 1) (thickness 0.15)))
+        			(effects (font (size 1 1) (thickness 0.2)))
         		)
         		(property "Value" "ZipTieHole_3mm_NPTH"
         			(at 0 0 0)
@@ -910,7 +910,7 @@
 	(at 0 -3.9 0)
 	(layer "F.SilkS")
 	(uuid "8ac2be3a-5e45-5fbd-a4c8-12f50fcb0fdf")
-	(effects (font (size 1 1) (thickness 0.15)))
+	(effects (font (size 1 1) (thickness 0.2)))
 )
 (property "Value" "JST SM06B-GHS-TB (SEN66 connector)"
 	(at 0 3.9 0)
@@ -1274,7 +1274,7 @@
 	(at 0 -1.9 90)
 	(layer "F.SilkS")
 	(uuid "6e70e07e-b45a-53dc-8a21-d9073deacde6")
-	(effects (font (size 1 1) (thickness 0.15)))
+	(effects (font (size 1 1) (thickness 0.2)))
 )
 (property "Value" "1x5 P1.27mm header (HLK-LD2410B)"
 	(at 0 6.98 90)
@@ -1498,7 +1498,7 @@
 	(layer "F.SilkS")
 	(hide yes)
 	(uuid "bd665860-3ccc-583a-a702-0a229a2560a8")
-	(effects (font (size 1 1) (thickness 0.15)))
+	(effects (font (size 1 1) (thickness 0.2)))
 )
 (property "Value" "Phoenix_MSTBA_2,5/3-G-5,08 (24V input)"
 	(at 5.08 11.2 180)
@@ -1765,7 +1765,7 @@
 	(layer "F.SilkS")
 			(hide yes)
 	(uuid "b67cea36-bd96-56ad-a15f-42305597950a")
-	(effects (font (size 1 1) (thickness 0.15)))
+	(effects (font (size 1 1) (thickness 0.2)))
 )
 (property "Value" "JST SM04B-SRSS-TB (Qwiic / Stemma QT)"
 	(at 0 4.6 0)
@@ -2117,7 +2117,7 @@
 	(layer "F.SilkS")
 			(hide yes)
 	(uuid "7d211d43-9e5b-5d07-99b7-a157cab404d7")
-	(effects (font (size 1 1) (thickness 0.15)))
+	(effects (font (size 1 1) (thickness 0.2)))
 )
 (property "Value" "Native-USB recovery (DNP)"
 	(at 2.5 15 90)
@@ -2334,7 +2334,7 @@
 	(layer "F.SilkS")
 			(hide yes)
 	(uuid "be8c6da3-bd4a-5c70-9262-01bbe1a6c012")
-	(effects (font (size 1 1) (thickness 0.15)))
+	(effects (font (size 1 1) (thickness 0.2)))
 )
 (property "Value" "C&K PTS645VK392LFS"
 	(at 2.25 6 180)
@@ -2730,7 +2730,7 @@
 		(layer "F.SilkS")
 		(hide yes)
 		(uuid "6c28086d-31c7-53a6-817d-97361a81443d")
-		(effects (font (size 1 1) (thickness 0.15)))
+		(effects (font (size 1 1) (thickness 0.2)))
 	)
 	(property "Value" "oas:ESP32-C6-DevKitM-1_Reference"
 		(at 12.7 49.76 0)
@@ -3021,7 +3021,7 @@
 		(layer "F.SilkS")
 		(hide yes)
 		(uuid "ab72c2ab-4f9d-5af2-85fe-32a425e5236b")
-		(effects (font (size 1 1) (thickness 0.15)))
+		(effects (font (size 1 1) (thickness 0.2)))
 	)
 	(property "Value" "oas:MIKROE-2462_Reference"
 		(at 12.7 58.65 0)
@@ -3198,7 +3198,7 @@
 	(layer "F.SilkS")
 	(hide yes)
 	(uuid "dd0c8c97-e89a-5aa7-9c43-ccdee319f7fd")
-	(effects (font (size 1 1) (thickness 0.15)))
+	(effects (font (size 1 1) (thickness 0.2)))
 )
 (property "Value" "ESP32 row A (pins 1..15, antenna-side row)"
 	(at 0 37.06 90)
@@ -3513,7 +3513,7 @@
 	(layer "F.SilkS")
 	(hide yes)
 	(uuid "8c5c558c-3f2f-565b-af84-a22063fffb19")
-	(effects (font (size 1 1) (thickness 0.15)))
+	(effects (font (size 1 1) (thickness 0.2)))
 )
 (property "Value" "ESP32 row B (pins 16..30, USB-side row)"
 	(at 0 37.06 90)
@@ -3828,7 +3828,7 @@
 	(layer "F.SilkS")
 	(hide yes)
 	(uuid "2fab4acb-810d-5fe7-ace0-5aa7fea320a4")
-	(effects (font (size 1 1) (thickness 0.15)))
+	(effects (font (size 1 1) (thickness 0.2)))
 )
 (property "Value" "MIKROE mikroBUS pins 1..8 (AN/RST/CS/SCK/MISO/MOSI/+3V3/GND)"
 	(at 0 19.28 0)
@@ -4087,7 +4087,7 @@
 	(layer "F.SilkS")
 	(hide yes)
 	(uuid "dc7983e4-d09b-56c6-b138-5381e4221eed")
-	(effects (font (size 1 1) (thickness 0.15)))
+	(effects (font (size 1 1) (thickness 0.2)))
 )
 (property "Value" "MIKROE mikroBUS pins 9..16 (PWM/INT/RX/TX/SCL/SDA/+5V/GND)"
 	(at 0 19.28 0)
@@ -4348,7 +4348,7 @@
         			(layer "F.SilkS")
 			(hide yes)
         			(uuid "d76dc15b-6843-5604-bd1e-97f7072ff6bc")
-        			(effects (font (size 1.0 1.0) (thickness 0.15)))
+        			(effects (font (size 1.0 1.0) (thickness 0.2)))
         		)
         		(property "Value" "SK6812-SIDE"
         			(at 0 2.5 90)
@@ -4478,7 +4478,7 @@
 	(layer "F.SilkS")
 			(hide yes)
 	(uuid "b3337227-9302-51aa-9b25-68319ee7e16e")
-	(effects (font (size 1 1) (thickness 0.15)))
+	(effects (font (size 1 1) (thickness 0.2)))
 )
 (property "Value" "100nF"
 	(at 0 1.4 90)
@@ -4596,7 +4596,7 @@
         			(layer "F.SilkS")
 			(hide yes)
         			(uuid "f376c554-3d7f-5709-b640-24704a8a60e0")
-        			(effects (font (size 1.0 1.0) (thickness 0.15)))
+        			(effects (font (size 1.0 1.0) (thickness 0.2)))
         		)
         		(property "Value" "SK6812-SIDE"
         			(at 0 2.5 45)
@@ -4714,7 +4714,7 @@
 	(layer "F.SilkS")
 			(hide yes)
 	(uuid "6175c8ee-a300-59ac-a766-b26e14e68dee")
-	(effects (font (size 1 1) (thickness 0.15)))
+	(effects (font (size 1 1) (thickness 0.2)))
 )
 (property "Value" "100nF"
 	(at 0 1.4 45)
@@ -4832,7 +4832,7 @@
         			(layer "F.SilkS")
 			(hide yes)
         			(uuid "0092c1ac-66c4-5eb6-a0b3-33f737d96c7f")
-        			(effects (font (size 1.0 1.0) (thickness 0.15)))
+        			(effects (font (size 1.0 1.0) (thickness 0.2)))
         		)
         		(property "Value" "SK6812-SIDE"
         			(at 0 2.5 315)
@@ -4950,7 +4950,7 @@
 	(layer "F.SilkS")
 			(hide yes)
 	(uuid "f03b01c3-75ac-52a3-b311-7b3192b7eab6")
-	(effects (font (size 1 1) (thickness 0.15)))
+	(effects (font (size 1 1) (thickness 0.2)))
 )
 (property "Value" "100nF"
 	(at 0 1.4 315)
@@ -5068,7 +5068,7 @@
         			(layer "F.SilkS")
 			(hide yes)
         			(uuid "386cc6b0-dcbd-559b-be62-9fd0e8bedcb5")
-        			(effects (font (size 1.0 1.0) (thickness 0.15)))
+        			(effects (font (size 1.0 1.0) (thickness 0.2)))
         		)
         		(property "Value" "SK6812-SIDE"
         			(at 0 2.5 270)
@@ -5186,7 +5186,7 @@
 	(layer "F.SilkS")
 			(hide yes)
 	(uuid "01f4f18b-8893-59c2-a709-c24844923312")
-	(effects (font (size 1 1) (thickness 0.15)))
+	(effects (font (size 1 1) (thickness 0.2)))
 )
 (property "Value" "100nF"
 	(at 0 1.4 270)
@@ -5304,7 +5304,7 @@
         			(layer "F.SilkS")
 			(hide yes)
         			(uuid "e4dc61d6-9f0d-5bf3-baaf-e0e7d1f7a475")
-        			(effects (font (size 1.0 1.0) (thickness 0.15)))
+        			(effects (font (size 1.0 1.0) (thickness 0.2)))
         		)
         		(property "Value" "SK6812-SIDE"
         			(at 0 2.5 225)
@@ -5422,7 +5422,7 @@
 	(layer "F.SilkS")
 			(hide yes)
 	(uuid "93c0de8c-6e8a-5797-a802-fe8e95977571")
-	(effects (font (size 1 1) (thickness 0.15)))
+	(effects (font (size 1 1) (thickness 0.2)))
 )
 (property "Value" "100nF"
 	(at 0 1.4 225)
@@ -5540,7 +5540,7 @@
         			(layer "F.SilkS")
 			(hide yes)
         			(uuid "de3ac00c-9050-5260-93b6-a522feefdbbd")
-        			(effects (font (size 1.0 1.0) (thickness 0.15)))
+        			(effects (font (size 1.0 1.0) (thickness 0.2)))
         		)
         		(property "Value" "SK6812-SIDE"
         			(at 0 2.5 180)
@@ -5658,7 +5658,7 @@
 	(layer "F.SilkS")
 			(hide yes)
 	(uuid "10afd4a6-5928-59b0-b6f6-ee09581df2ff")
-	(effects (font (size 1 1) (thickness 0.15)))
+	(effects (font (size 1 1) (thickness 0.2)))
 )
 (property "Value" "100nF"
 	(at 0 1.4 180)
@@ -5776,7 +5776,7 @@
         			(layer "F.SilkS")
 			(hide yes)
         			(uuid "e3621223-caa0-5bc9-8221-f2404ad03c2a")
-        			(effects (font (size 1.0 1.0) (thickness 0.15)))
+        			(effects (font (size 1.0 1.0) (thickness 0.2)))
         		)
         		(property "Value" "SK6812-SIDE"
         			(at 0 2.5 135)
@@ -5894,7 +5894,7 @@
 	(layer "F.SilkS")
 			(hide yes)
 	(uuid "625157ce-30f4-5b1b-9acb-df0736c2851f")
-	(effects (font (size 1 1) (thickness 0.15)))
+	(effects (font (size 1 1) (thickness 0.2)))
 )
 (property "Value" "100nF"
 	(at 0 1.4 135)
@@ -6010,7 +6010,7 @@
 	(layer "F.SilkS")
 			(hide yes)
 	(uuid "c33324dc-0183-5dfc-946f-6239a61989bd")
-	(effects (font (size 1 1) (thickness 0.15)))
+	(effects (font (size 1 1) (thickness 0.2)))
 )
 (property "Value" "SMBJ24A"
 	(at 0 3.1 180)
@@ -6286,7 +6286,7 @@
 	(layer "F.SilkS")
 			(hide yes)
 	(uuid "80ead5c3-b689-50e0-842a-834c1790079e")
-	(effects (font (size 1 1) (thickness 0.15)))
+	(effects (font (size 1 1) (thickness 0.2)))
 )
 (property "Value" "AO3401A"
 	(at 0 2.4 0)
@@ -6600,7 +6600,7 @@
 	(layer "F.SilkS")
 			(hide yes)
 	(uuid "d5be502b-866f-5ae5-8bc7-0401558448cd")
-	(effects (font (size 1 1) (thickness 0.15)))
+	(effects (font (size 1 1) (thickness 0.2)))
 )
 (property "Value" "10V Zener 200mW"
 	(at 0 1.5 0)
@@ -6878,7 +6878,7 @@
         			(layer "F.SilkS")
 			(hide yes)
         			(uuid "69d03112-b1ee-5660-a459-504663ed17a5")
-        			(effects (font (size 1.0 1.0) (thickness 0.15)))
+        			(effects (font (size 1.0 1.0) (thickness 0.2)))
         		)
         		(property "Value" "1812L075/33DR"
         			(at 0 2.62 0)
@@ -6973,7 +6973,7 @@
 	(layer "F.SilkS")
 			(hide yes)
 	(uuid "5625dbfd-93d3-587b-90f0-d4b9892bc77b")
-	(effects (font (size 1 1) (thickness 0.15)))
+	(effects (font (size 1 1) (thickness 0.2)))
 )
 (property "Value" "100k 1%"
 	(at 0 1.45 0)
@@ -7089,7 +7089,7 @@
 	(layer "F.SilkS")
 			(hide yes)
 	(uuid "9fcc8a28-5ca3-587b-8d51-5948e9fe13ed")
-	(effects (font (size 1 1) (thickness 0.15)))
+	(effects (font (size 1 1) (thickness 0.2)))
 )
 (property "Value" "1k"
 	(at 0 1.45 0)
@@ -7205,7 +7205,7 @@
 	(layer "F.SilkS")
 			(hide yes)
 	(uuid "88465eb7-f73e-5efd-8802-30e9f1df6a74")
-	(effects (font (size 1 1) (thickness 0.15)))
+	(effects (font (size 1 1) (thickness 0.2)))
 )
 (property "Value" "100uF/50V"
 	(at 1.75 4.6 0)
@@ -8591,7 +8591,7 @@
 	(layer "F.SilkS")
 			(hide yes)
 	(uuid "549882d8-bdc4-5a79-8459-a9671065188b")
-	(effects (font (size 1 1) (thickness 0.15)))
+	(effects (font (size 1 1) (thickness 0.2)))
 )
 (property "Value" "100uF/50V"
 	(at 1.75 4.6 0)
@@ -9977,7 +9977,7 @@
 	(layer "F.SilkS")
 			(hide yes)
 	(uuid "8bf0fa74-d891-5c20-804e-37806cfabe99")
-	(effects (font (size 1 1) (thickness 0.15)))
+	(effects (font (size 1 1) (thickness 0.2)))
 )
 (property "Value" "LM2596S-5.0"
 	(at 0 6.65 0)
@@ -10310,7 +10310,7 @@
 	(layer "F.SilkS")
 			(hide yes)
 	(uuid "00863e45-a578-56de-851a-0e8874a6f8e4")
-	(effects (font (size 1 1) (thickness 0.15)))
+	(effects (font (size 1 1) (thickness 0.2)))
 )
 (property "Value" "SS14"
 	(at 0 2.6 0)
@@ -10586,7 +10586,7 @@
 	(layer "F.SilkS")
 			(hide yes)
 	(uuid "b2c89e0a-9e7d-543c-9a25-49d6705c0a2d")
-	(effects (font (size 1 1) (thickness 0.15)))
+	(effects (font (size 1 1) (thickness 0.2)))
 )
 (property "Value" "33uH"
 	(at 0 3.6 0)
@@ -10832,7 +10832,7 @@
 	(layer "F.SilkS")
 			(hide yes)
 	(uuid "796ce1d4-496e-5441-a818-75157d776535")
-	(effects (font (size 1 1) (thickness 0.15)))
+	(effects (font (size 1 1) (thickness 0.2)))
 )
 (property "Value" "220uF/10V"
 	(at 1.25 3.75 0)
@@ -12050,7 +12050,7 @@
 	(layer "F.SilkS")
 			(hide yes)
 	(uuid "25fdcb72-2a41-56aa-9671-32ca276d0b32")
-	(effects (font (size 1 1) (thickness 0.15)))
+	(effects (font (size 1 1) (thickness 0.2)))
 )
 (property "Value" "TPS62933"
 	(at 0 1.8 0)
@@ -12335,7 +12335,7 @@
 	(layer "F.SilkS")
 			(hide yes)
 	(uuid "2c10da44-9317-554b-b9fa-380c407dd83b")
-	(effects (font (size 1 1) (thickness 0.15)))
+	(effects (font (size 1 1) (thickness 0.2)))
 )
 (property "Value" "2.2uH"
 	(at 0 3.6 0)
@@ -12581,7 +12581,7 @@
 	(layer "F.SilkS")
 			(hide yes)
 	(uuid "0d4d1b09-2207-5d59-bc75-ce3e28cb7b0f")
-	(effects (font (size 1 1) (thickness 0.15)))
+	(effects (font (size 1 1) (thickness 0.2)))
 )
 (property "Value" "100k"
 	(at 0 1.45 0)
@@ -12697,7 +12697,7 @@
 	(layer "F.SilkS")
 			(hide yes)
 	(uuid "12ce7821-e0b6-55c1-93a0-94d5263a28fa")
-	(effects (font (size 1 1) (thickness 0.15)))
+	(effects (font (size 1 1) (thickness 0.2)))
 )
 (property "Value" "30.9k"
 	(at 0 1.45 0)
@@ -12813,7 +12813,7 @@
 	(layer "F.SilkS")
 			(hide yes)
 	(uuid "dffb34dd-e096-533f-956f-41e74f0aeece")
-	(effects (font (size 1 1) (thickness 0.15)))
+	(effects (font (size 1 1) (thickness 0.2)))
 )
 (property "Value" "100nF"
 	(at 0 1.45 0)
@@ -12929,7 +12929,7 @@
 	(layer "F.SilkS")
 			(hide yes)
 	(uuid "188f8833-d443-522f-9fb0-7317deeac9d5")
-	(effects (font (size 1 1) (thickness 0.15)))
+	(effects (font (size 1 1) (thickness 0.2)))
 )
 (property "Value" "100nF"
 	(at 0 1.45 0)
@@ -13045,7 +13045,7 @@
 	(layer "F.SilkS")
 			(hide yes)
 	(uuid "69c44a68-91eb-5503-8494-7603e92a9abb")
-	(effects (font (size 1 1) (thickness 0.15)))
+	(effects (font (size 1 1) (thickness 0.2)))
 )
 (property "Value" "10uF"
 	(at 0 1.75 0)
@@ -13161,7 +13161,7 @@
 	(layer "F.SilkS")
 			(hide yes)
 	(uuid "1152d1dc-66be-5b51-a9a3-14e2052a6bb7")
-	(effects (font (size 1 1) (thickness 0.15)))
+	(effects (font (size 1 1) (thickness 0.2)))
 )
 (property "Value" "100nF"
 	(at 0 1.45 0)
@@ -13277,7 +13277,7 @@
 	(layer "F.SilkS")
 			(hide yes)
 	(uuid "e37293f6-95b4-5b2a-a4af-b806a42b1cc1")
-	(effects (font (size 1 1) (thickness 0.15)))
+	(effects (font (size 1 1) (thickness 0.2)))
 )
 (property "Value" "4.7k"
 	(at 0 1.45 0)
@@ -13393,7 +13393,7 @@
 	(layer "F.SilkS")
 			(hide yes)
 	(uuid "9b390767-9afc-5590-8e93-4e95ea2e4561")
-	(effects (font (size 1 1) (thickness 0.15)))
+	(effects (font (size 1 1) (thickness 0.2)))
 )
 (property "Value" "4.7k"
 	(at 0 1.45 0)
@@ -13509,7 +13509,7 @@
 	(layer "F.SilkS")
 			(hide yes)
 	(uuid "73b481b2-c87f-5bed-b4d7-9e37c80d78a8")
-	(effects (font (size 1 1) (thickness 0.15)))
+	(effects (font (size 1 1) (thickness 0.2)))
 )
 (property "Value" "10k"
 	(at 0 1.45 0)
@@ -13625,7 +13625,7 @@
 	(layer "F.SilkS")
 			(hide yes)
 	(uuid "2e641e27-cbf5-59c2-88c3-886328b6c662")
-	(effects (font (size 1 1) (thickness 0.15)))
+	(effects (font (size 1 1) (thickness 0.2)))
 )
 (property "Value" "10uF"
 	(at 0 1.75 0)
@@ -13741,7 +13741,7 @@
 	(layer "F.SilkS")
 			(hide yes)
 	(uuid "0de52907-4689-5ae7-ace0-35c4614be129")
-	(effects (font (size 1 1) (thickness 0.15)))
+	(effects (font (size 1 1) (thickness 0.2)))
 )
 (property "Value" "100nF"
 	(at 0 1.45 0)
@@ -13857,7 +13857,7 @@
 	(layer "F.SilkS")
 			(hide yes)
 	(uuid "b5ccb051-6020-53f9-b7c0-6c9d234192e8")
-	(effects (font (size 1 1) (thickness 0.15)))
+	(effects (font (size 1 1) (thickness 0.2)))
 )
 (property "Value" "22uF"
 	(at 0 1.75 0)
@@ -13973,7 +13973,7 @@
 	(layer "F.SilkS")
 			(hide yes)
 	(uuid "b37cc718-98b6-5783-b262-1e4f9debeb5b")
-	(effects (font (size 1 1) (thickness 0.15)))
+	(effects (font (size 1 1) (thickness 0.2)))
 )
 (property "Value" "100nF"
 	(at 0 1.45 0)
@@ -14089,7 +14089,7 @@
 	(layer "F.SilkS")
 			(hide yes)
 	(uuid "9fa2539a-40e1-58d8-b1cd-34930275fc9a")
-	(effects (font (size 1 1) (thickness 0.15)))
+	(effects (font (size 1 1) (thickness 0.2)))
 )
 (property "Value" "100nF"
 	(at 0 1.45 0)
@@ -14205,7 +14205,7 @@
 	(layer "F.SilkS")
 			(hide yes)
 	(uuid "59ba8cb8-1491-5376-90e4-d6eb79d3e263")
-	(effects (font (size 1 1) (thickness 0.15)))
+	(effects (font (size 1 1) (thickness 0.2)))
 )
 (property "Value" "47nF"
 	(at 0 1.45 0)
@@ -14321,7 +14321,7 @@
 	(layer "F.SilkS")
 			(hide yes)
 	(uuid "ec4757b4-8035-5aed-8d95-d32cf6abea9b")
-	(effects (font (size 1 1) (thickness 0.15)))
+	(effects (font (size 1 1) (thickness 0.2)))
 )
 (property "Value" "10nF Y2"
 	(at 0 1.75 0)
@@ -14437,7 +14437,7 @@
 	(layer "F.SilkS")
 			(hide yes)
 	(uuid "f3565abb-b3f9-5036-91db-bf28269b7230")
-	(effects (font (size 1 1) (thickness 0.15)))
+	(effects (font (size 1 1) (thickness 0.2)))
 )
 (property "Value" "100nF"
 	(at 0 1.45 0)
@@ -14547,13 +14547,13 @@
 (footprint "Capacitor_SMD:C_0603_1608Metric"
 	(layer "F.Cu")
 	(uuid "6fb84b63-355a-5fe0-ad31-35d37b24981a")
-	(at 96 119.5 270)
+	(at 96 119 270)
 (property "Reference" "C11"
 	(at 0 -1.45 270)
 	(layer "F.SilkS")
 			(hide yes)
 	(uuid "922b5d05-f9e2-5a2a-87ed-ddc91c0be496")
-	(effects (font (size 1 1) (thickness 0.15)))
+	(effects (font (size 1 1) (thickness 0.2)))
 )
 (property "Value" "100nF"
 	(at 0 1.45 270)
@@ -14576,7 +14576,7 @@
 	(uuid "ab363464-1cec-59ac-99fa-20b6d9921108")
 	(effects (font (size 1.27 1.27)))
 )
-(property "Description" "100 nF local decoupling for LD2410 (J4 pin 5 / +5V). v0.44: vertical, placed at the 11-o'clock of J4's west end — west of the LD2410 body (LDR1, X>=97.4) in open copper. Every pad >3.6 mm (Good) from the J4 THT pad row — clears the JLCPCB DFM 'tht to smd' >3.05 mm rule."
+(property "Description" "100 nF local decoupling for LD2410 (J4 pin 5 / +5V). v0.45: vertical, placed at the 11-o'clock of J4's west end — west of the LD2410 body (LDR1, X>=97.4) in open copper. Nudged 0.5 mm north of the v0.44 spot (Y +14.5 -> +14.0) — the v0.44 position left C11.1 only 2.98 mm from the nearest J4 THT pad (JLCDFM 'tht to smd' warning); +0.5 mm lifts that to ~3.4 mm, clear of the >3.05 mm rule. North field is open (no neighbour within 4 mm)."
 	(at 0 0 0)
 	(layer "F.Fab")
 	(hide yes)
@@ -14669,7 +14669,7 @@
 	(layer "F.SilkS")
 			(hide yes)
 	(uuid "36a6ebdf-8e35-554d-942f-e846de659788")
-	(effects (font (size 1 1) (thickness 0.15)))
+	(effects (font (size 1 1) (thickness 0.2)))
 )
 (property "Value" "100nF"
 	(at 0 1.45 0)
@@ -14785,7 +14785,7 @@
 	(layer "F.SilkS")
 			(hide yes)
 	(uuid "04013c22-7236-5856-a862-c668cb9e7528")
-	(effects (font (size 1 1) (thickness 0.15)))
+	(effects (font (size 1 1) (thickness 0.2)))
 )
 (property "Value" "UART/Boot Recovery (DNP)"
 	(at 2.5 15 90)
@@ -15518,7 +15518,7 @@
 	)
 )
 (gr_text "C11"
-	(at 96 117.5 0)
+	(at 96 117 0)
 	(layer "F.Fab")
 	(uuid "0ed8b8e0-68aa-5a93-a87e-43b9804f1b98")
 	(effects
@@ -15964,7 +15964,7 @@
 		(uuid "9ca5b500-120b-5064-9912-1375d46b88ec")
 		(hatch edge 0.5)
 		(connect_pads
-			(clearance 0.2)
+			(clearance 0.3)
 		)
 		(min_thickness 0.25)
 		(filled_areas_thickness no)
@@ -16082,7 +16082,7 @@
 		(uuid "9bc0deab-10bd-5cb3-a9e0-64dd2f22bbe3")
 		(hatch edge 0.5)
 		(connect_pads
-			(clearance 0.2)
+			(clearance 0.3)
 		)
 		(min_thickness 0.25)
 		(filled_areas_thickness no)
