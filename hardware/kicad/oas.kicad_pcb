@@ -14547,16 +14547,16 @@
 (footprint "Capacitor_SMD:C_0603_1608Metric"
 	(layer "F.Cu")
 	(uuid "6fb84b63-355a-5fe0-ad31-35d37b24981a")
-	(at 105.5 127 0)
+	(at 96 119.5 270)
 (property "Reference" "C11"
-	(at 0 -1.45 0)
+	(at 0 -1.45 270)
 	(layer "F.SilkS")
 			(hide yes)
 	(uuid "922b5d05-f9e2-5a2a-87ed-ddc91c0be496")
 	(effects (font (size 1 1) (thickness 0.15)))
 )
 (property "Value" "100nF"
-	(at 0 1.45 0)
+	(at 0 1.45 270)
 	(layer "F.Fab")
 			(hide yes)
 	(uuid "2fc5a5d3-2dfd-5bc5-a328-374a96c3b3ca")
@@ -14576,7 +14576,7 @@
 	(uuid "ab363464-1cec-59ac-99fa-20b6d9921108")
 	(effects (font (size 1.27 1.27)))
 )
-(property "Description" "100 nF local decoupling for LD2410 (J4 pin 5 / +5V). Stays ~2.1 mm (Warning) from the J4 / J7 THT pads — the pocket (J4 N / J7 E / H2 mounting-hole SW / J4 pin-label row) is geometrically too tight for full clearance, and JLCPCB DFM 'tht to smd' Warning is a solder-wicking caution, not a defect."
+(property "Description" "100 nF local decoupling for LD2410 (J4 pin 5 / +5V). v0.44: vertical, placed at the 11-o'clock of J4's west end — west of the LD2410 body (LDR1, X>=97.4) in open copper. Every pad >3.6 mm (Good) from the J4 THT pad row — clears the JLCPCB DFM 'tht to smd' >3.05 mm rule."
 	(at 0 0 0)
 	(layer "F.Fab")
 	(hide yes)
@@ -14635,14 +14635,14 @@
 			)
 		)
 	(pad "1" smd roundrect
-			(at -0.775 0)
+			(at -0.775 0 270)
 			(size 0.9 0.95)
 			(layers "F.Cu" "F.Mask" "F.Paste")
 			(roundrect_rratio 0.25)
 			(net 2 "+5V")
 		)
 	(pad "2" smd roundrect
-			(at 0.775 0)
+			(at 0.775 0 270)
 			(size 0.9 0.95)
 			(layers "F.Cu" "F.Mask" "F.Paste")
 			(roundrect_rratio 0.25)
@@ -15518,7 +15518,7 @@
 	)
 )
 (gr_text "C11"
-	(at 105.5 125 0)
+	(at 96 117.5 0)
 	(layer "F.Fab")
 	(uuid "0ed8b8e0-68aa-5a93-a87e-43b9804f1b98")
 	(effects

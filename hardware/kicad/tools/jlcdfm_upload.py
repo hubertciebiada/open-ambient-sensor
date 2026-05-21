@@ -788,7 +788,7 @@ def _format_table(title: str, findings: list[dict]) -> str:
     return "\n".join(out)
 
 
-def run(headless: bool, resume: bool) -> int:
+def run(headless: bool, resume: bool, pcb_only: bool = False) -> int:
     from playwright.sync_api import sync_playwright
 
     creds = _load_credentials()
@@ -857,19 +857,23 @@ def run(headless: bool, resume: bool) -> int:
             pass
 
         # ---- SMT DFM ----
-        print("  switching to SMT DFM ...")
-        page.get_by_role("button", name="SMT DFM").click()
-        page.wait_for_timeout(1500)
-        _rsleep()
-        page = _bom_match(page, context)
-        _dismiss_cookie_banner(page)
-        page.wait_for_timeout(2500)
-        print("  running SMT DFM check ...")
-        smt = _run_smt_dfm(page)
-        try:
-            page.screenshot(path=str(OUT_DIR / "dfm-smt.png"), full_page=True)
-        except Exception:
-            pass
+        smt: list[dict] = []
+        if pcb_only:
+            print("  --pcb-only: skipping SMT DFM (no BOM / CPL upload).")
+        else:
+            print("  switching to SMT DFM ...")
+            page.get_by_role("button", name="SMT DFM").click()
+            page.wait_for_timeout(1500)
+            _rsleep()
+            page = _bom_match(page, context)
+            _dismiss_cookie_banner(page)
+            page.wait_for_timeout(2500)
+            print("  running SMT DFM check ...")
+            smt = _run_smt_dfm(page)
+            try:
+                page.screenshot(path=str(OUT_DIR / "dfm-smt.png"), full_page=True)
+            except Exception:
+                pass
 
         context.close()
 
@@ -905,11 +909,15 @@ def main() -> int:
                         help="Re-attach to the viewer of the previous upload "
                              "(URL cached in .cache/dfm/last-viewer.json) "
                              "instead of uploading the ZIP again.")
+    parser.add_argument("--pcb-only", action="store_true",
+                        help="Run the PCB DFM check only — skip the SMT DFM "
+                             "stage (no BOM / CPL upload, no BOM match).")
     args = parser.parse_args()
 
     banner()
     preflight()
-    return run(headless=args.headless, resume=args.resume)
+    return run(headless=args.headless, resume=args.resume,
+               pcb_only=args.pcb_only)
 
 
 if __name__ == "__main__":
