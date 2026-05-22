@@ -126,7 +126,7 @@
 )
 (gr_circle
 	(center 148.5 105)
-	(end 154.5 105)
+	(end 153.5 105)
 	(stroke (width 0.1) (type solid))
 	(fill no)
 	(layer "Edge.Cuts")
@@ -21005,14 +21005,6 @@
 		(layers "F.Cu" "B.Cu")
 		(net 17)
 		(uuid "068a9369-734c-5f59-980f-842c7756ee52")
-	)
-	(via
-		(at 167.45 64.3)
-		(size 0.7)
-		(drill 0.3)
-		(layers "F.Cu" "B.Cu")
-		(net 17)
-		(uuid "0a724cc0-0028-5663-ae99-83921a6e8ebf")
 	)
 	(via
 		(at 170.5 125.35)

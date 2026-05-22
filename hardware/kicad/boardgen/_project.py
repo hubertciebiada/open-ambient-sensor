@@ -139,7 +139,7 @@ EXTERNAL_MODULES = {
         ),
         "derived_dimensions": (
             "PCB Ø120 D-shape, 3x M3 mounting (Ø3.8 NPTH) on Ø110 pitch, "
-            "Ø12 central cable pass-through, 17 mm front clearance / "
+            "Ø10 central cable pass-through, 17 mm front clearance / "
             "22 mm in SEN66 zone, 5 mm back."
         ),
     },
@@ -209,7 +209,7 @@ Mechanical envelope:
     the bottom edge).
   - Mounting holes: 3 x M3 (Ø3.8 mm NPTH) on Ø110 mm pitch circle at
     +/-47.631, +27.500 and 0, -55.000 (PCB-local coords, +Y = down).
-  - Central cable pass-through: Ø12 mm.
+  - Central cable pass-through: Ø10 mm.
 
 When the enclosure DXF / manufacturer documentation evolves, re-verify each
 constant above against a fresh physical sample before locking the next
@@ -311,9 +311,12 @@ COURTYARD_RADIUS = HOLE_DIAMETER * 0.75   # ~1.5× hole diameter
 # the front side of the PCB. Keeping the entry inside the PCB outline
 # physically shields the bare wires — they are inaccessible from outside the
 # enclosure, even though 24 V DC is nominally SELV.
-# Sized for 3× 1.5 mm² conductors (e.g. YDY 3×1.5, outer Ø ≈ 8-9 mm) with
-# ample margin for strain-relief / grommet if desired.
-CABLE_HOLE_DIAMETER = 12.0
+# Sized for a 3× 1.5 mm² supply cable (e.g. YDY 3×1.5, outer Ø ≈ 8-9 mm).
+# v0.50: reduced Ø12 → Ø10 — the cable still passes, and the smaller hole
+# lifts the board-edge clearance of the LED-ring decoupling caps clear of
+# JLCDFM's "Component to board edge distance" check (0.75 mm W at Ø12 —
+# C20/C24/C25/C26/C27 sit at cap radius 7.0 mm; Ø10 gives ~1.7 mm).
+CABLE_HOLE_DIAMETER = 10.0
 
 # -----------------------------------------------------------------------------
 # Connector cutouts in the enclosure wall along the flat chord
