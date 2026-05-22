@@ -417,7 +417,7 @@ def gen_power_pcb_footprints() -> str:
     # pad 1 (cathode, KiCad D_SMB KLC) on the EAST physical side, facing
     # the Q1 source.
     parts.append(gen_diode_smb_pcb_footprint(
-        x=+14, y=+17, rotation=180,
+        x=+20, y=+22.5, rotation=90,
         reference="D1", value="SMBJ24A",
         uuid_tag="d1-tvs-smbj24a",
         descr="SMBJ24A TVS surge clamp, 24 V standoff, 38.9 V clamp.",
@@ -457,29 +457,22 @@ def gen_power_pcb_footprints() -> str:
     # 3=D). PCB pads stay verbatim stock SOT-23 with names "1"/"2"/"3" —
     # no remap needed. Removes the previous lib_footprint_mismatch
     # warning that required `rule_severities` override.
-    # Routing rework (cluster spread): Q1 in the north band at (+19.5, +21)
-    # — east of F1, west of the SEN66 zone, north of the C2 cutout. Rotation
-    # 180 so the SOT-23 pad fan presents each net toward its neighbour:
-    # pad 3 (D) -> W centre, facing F1; pad 2 (S) -> NE corner, facing D1
-    # and the D3 anode on the protected rail; pad 1 (G) -> SE corner,
-    # facing the R4 gate resistor in the east strip below. Courtyard
-    # ~3.9 x 3.4 mm -> X +17.55..+21.45, Y +19.3..+22.7. Gap to D1 south
-    # edge (+19.3) — Q1 sits east of D1, X-disjoint; F1 east edge (+15.85)
-    # -> 1.7 mm.
+    # v0.50 placement rework: Q1 joins the single vertical protection-
+    # cluster column at X=+20 (directly under ZT1), between F1 (north)
+    # and D1 (south). F1/Q1/D1/D3/R4/R1 now stack in ONE column so the
+    # cluster stops forming a wall of F.Cu traces across the J1 corner.
     parts.append(gen_sot23_3pin_pcb_footprint(
-        x=+19.438, y=+23.5, rotation=180,
+        x=+20, y=+15.5, rotation=90,
         reference="Q1", value="AO3401A",
         uuid_tag="q1-pmos",
         descr="P-MOSFET reverse-polarity protection. SOT-23. AO3401A: Vds=-30 V, Vgs=±12 V, RDS(on)=60 mΩ @ Vgs=-10 V.",
     ))
-    # D3 — Q1 gate-source Zener clamp. Routing rework: top of the gate-
-    # network column in the east strip at (+20, +28), rotated 90 (vertical).
-    # D3.1 (anode side, Net-(D1-K)) faces NORTH toward the Q1 source / D1;
-    # D3.2 (cathode, gate-junction net D3-A) faces SOUTH toward R4 / R1.
-    # Courtyard ~1.9 x 3.2 mm -> X +19.05..+20.95, Y +26.4..+29.6 — fully
-    # inside the east strip (X +16.8..+23.22), clear of the C2 cutout.
+    # D3 — Q1 gate-source Zener clamp. v0.50 placement rework: part of the
+    # single vertical protection-cluster column at X=+20 (under ZT1),
+    # rotated 90. D3.1 (anode, Net-(D1-K)) faces NORTH toward Q1 source /
+    # D1; D3.2 (cathode, gate-junction net D3-A) faces SOUTH toward R4/R1.
     parts.append(gen_diode_sod323_pcb_footprint(
-        x=+20, y=+28, rotation=90,
+        x=+20, y=+30, rotation=90,
         reference="D3", value="10V Zener 200mW",
         uuid_tag="d3-zener",
         descr="10 V Zener clamp on Q1 gate-source to keep |Vgs| ≤ 10 V (v0.37 — was 18V pre-fix; AO3401A Vgs_max=±12V).",
@@ -490,36 +483,29 @@ def gen_power_pcb_footprints() -> str:
     # `oas:Fuse_1812L_4532Metric` — the stock generic IPC land (pad gap
     # 3.15 mm) mismatched this part's terminal geometry (gap 2.30 mm),
     # tripping JLCPCB DFM "pin inner edge". See gen_fuse_1812l_pcb_footprint.
-    # Body 4.55 x 3.24 mm, courtyard ~5.6 x 3.9 mm. Routing rework: F1 in
-    # the north band at (+13, +23.5), west of Q1. F1.1 (+24V) faces WEST
-    # toward J1; F1.2 (Net-(Q1-D)) faces EAST toward the Q1 drain.
-    # Courtyard X +10.15..+15.85, Y +21.55..+25.45. Gap to D1 south edge
-    # (+19.3) = 2.25 mm; J1 east edge (+9.15) -> 1.0 mm; Q1 west edge
-    # (+17.55) -> 1.7 mm.
+    # Body 4.55 x 3.24 mm, courtyard ~5.6 x 3.9 mm. v0.50 placement
+    # rework: F1 is the NORTH end of the vertical protection-cluster
+    # column at X=+20 (under ZT1); F1/Q1/D1/D3/R4/R1 stack in one
+    # column to stop the F.Cu trace wall across the J1 corner.
     parts.append(gen_fuse_1812l_pcb_footprint(
-        x=+13, y=+23.5, rotation=0,
+        x=+20, y=+9.5, rotation=90,
         reference="F1", value="1812L075/33DR",
         uuid_tag="f1-ptc",
         descr="PTC polyfuse 750 mA hold / 1.5 A trip / 33 V (Littelfuse 1812L075/33DR, LCSC C151170, 1812 SMD).",
     ))
-    # Routing rework: R4 (gate series) and R1 (gate pulldown) continue the
-    # gate-network column in the east strip below D3, both rotated 90
-    # (vertical). The gate-junction net D3-A is the column axis at X +20:
-    # D3.2 -- R4.2 -- R1.1 all sit on X +20 for a near-straight trace.
-    # R4.1 (NORTH) carries Net-(Q1-G) up to the Q1 gate; R1.2 (SOUTH) is
-    # the GND pulldown leg (pour). 0603 rotated courtyard ~1.5 x 3.0 mm.
-    # R4 at (+20, +33): X +19.25..+20.75, Y +31.5..+34.5; R1 at (+20, +38):
-    # X +19.25..+20.75, Y +36.5..+39.5. Gaps: D3 south edge (+29.6) -> R4
-    # = 1.9 mm; R4 south (+34.5) -> R1 = 2.0 mm; PCB chord (+43.5) -> R1
-    # = 4.0 mm clear. Both fully inside the east strip (X +16.8..+23.22).
+    # R4 (gate series) and R1 (gate pulldown) are the SOUTH end of the
+    # vertical protection-cluster column at X=+20 (under ZT1), both
+    # rotated 90. The gate-junction net D3-A runs the column axis X=+20
+    # (D3.2 -- R4.2 -- R1.1 align). R4.1 (north) carries Net-(Q1-G) up to
+    # the Q1 gate; R1.2 (south) is the GND pulldown leg (pour).
     parts.append(gen_resistor_0603_pcb_footprint(
-        x=+20, y=+33, rotation=90,
+        x=+20, y=+35, rotation=90,
         reference="R4", value="1k",
         uuid_tag="r4-gate-series",
         descr="1 kΩ gate series resistor between Q1.G and Vgs clamp junction.",
     ))
     parts.append(gen_resistor_0603_pcb_footprint(
-        x=+20, y=+38, rotation=90,
+        x=+20, y=+40, rotation=90,
         reference="R1", value="100k 1%",
         uuid_tag="r1-gate-pulldown",
         descr="100 kΩ 1% gate-GND pulldown for Q1 (P-MOSFET reverse-polarity).",
@@ -1526,7 +1512,7 @@ def gen_silk_labels() -> str:
         #   - Q1: F.Fab text SOUTH of the body, in the Q1<->D3 gap.
         #   - D3 / R4 / R1: F.Fab text EAST of each body, in the strip
         #     between the east column and the SEN66 zone (+23.22).
-        ("D1",  0.0, +3.4, "F.SilkS"),
+        ("D1",  +3.5, 0.0, "F.Fab"),
         ("F1",  +3.7, 0.0, "F.Fab", 90.0),
         ("Q1",  0.0, +3.0, "F.Fab"),
         ("D3",  +2.3,  0.0, "F.Fab"),
@@ -1608,12 +1594,12 @@ def gen_silk_labels() -> str:
     # Component anchors mirror the placements in gen_power_pcb_footprints().
     # Keep this dict in lock-step with that function.
     COMPONENT_ANCHORS = {
-        "D1":  (+14, +17),
-        "F1":  (+13, +23.5),
-        "Q1":  (+19.438, +23.5),
-        "D3":  (+20, +28),
-        "R4":  (+20, +33),
-        "R1":  (+20, +38),
+        "D1":  (+20, +22.5),
+        "F1":  (+20, +9.5),
+        "Q1":  (+20, +15.5),
+        "D3":  (+20, +30),
+        "R4":  (+20, +35),
+        "R1":  (+20, +40),
         "C1":  (+35.75, -39),
         "C3":  (+25.75, -39),
         "U1":  (-38.03, -34.014),

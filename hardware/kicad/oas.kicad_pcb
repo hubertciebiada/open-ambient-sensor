@@ -5988,16 +5988,16 @@
 (footprint "Diode_SMD:D_SMB"
 	(layer "F.Cu")
 	(uuid "b592b8bd-36da-5190-b9bd-3e6c8df8d207")
-	(at 162.5 122 180)
+	(at 168.5 127.5 90)
 (property "Reference" "D1"
-	(at 0 -3.1 180)
+	(at 0 -3.1 90)
 	(layer "F.SilkS")
 			(hide yes)
 	(uuid "c33324dc-0183-5dfc-946f-6239a61989bd")
 	(effects (font (size 1 1) (thickness 0.2)))
 )
 (property "Value" "SMBJ24A"
-	(at 0 3.1 180)
+	(at 0 3.1 90)
 	(layer "F.Fab")
 			(hide yes)
 	(uuid "7b54995e-7552-5358-80e5-b77cd1ee7ee8")
@@ -6234,7 +6234,7 @@
 			)
 		)
 	(pad "1" smd roundrect
-			(at -2.15 0 180)
+			(at -2.15 0 90)
 			(size 2.5 2.3)
 			(layers "F.Cu" "F.Mask" "F.Paste")
 			(roundrect_rratio 0.1086956522)
@@ -6242,7 +6242,7 @@
 			(net 18 "Net-(D1-K)")
 		)
 	(pad "2" smd roundrect
-			(at 2.15 0 180)
+			(at 2.15 0 90)
 			(size 2.5 2.3)
 			(layers "F.Cu" "F.Mask" "F.Paste")
 			(roundrect_rratio 0.1086956522)
@@ -6264,16 +6264,16 @@
 (footprint "Package_TO_SOT_SMD:SOT-23"
 	(layer "F.Cu")
 	(uuid "11285b0b-fd6a-58c0-9ff9-df963c386c25")
-	(at 167.938 128.5 180)
+	(at 168.5 120.5 90)
 (property "Reference" "Q1"
-	(at 0 -2.4 180)
+	(at 0 -2.4 90)
 	(layer "F.SilkS")
 			(hide yes)
 	(uuid "80ead5c3-b689-50e0-842a-834c1790079e")
 	(effects (font (size 1 1) (thickness 0.2)))
 )
 (property "Value" "AO3401A"
-	(at 0 2.4 180)
+	(at 0 2.4 90)
 	(layer "F.Fab")
 			(hide yes)
 	(uuid "81109b9d-e97c-5a9f-a412-dfeca7117eaf")
@@ -6543,21 +6543,21 @@
 			)
 		)
 	(pad "1" smd roundrect
-			(at -0.9375 -0.95 180)
+			(at -0.9375 -0.95 90)
 			(size 1.475 0.6)
 			(layers "F.Cu" "F.Mask" "F.Paste")
 			(roundrect_rratio 0.25)
 			(net 28 "Net-(Q1-G)")
 		)
 	(pad "2" smd roundrect
-			(at -0.9375 0.95 180)
+			(at -0.9375 0.95 90)
 			(size 1.475 0.6)
 			(layers "F.Cu" "F.Mask" "F.Paste")
 			(roundrect_rratio 0.25)
 			(net 18 "Net-(D1-K)")
 		)
 	(pad "3" smd roundrect
-			(at 0.9375 0 180)
+			(at 0.9375 0 90)
 			(size 1.475 0.6)
 			(layers "F.Cu" "F.Mask" "F.Paste")
 			(roundrect_rratio 0.25)
@@ -6578,7 +6578,7 @@
 (footprint "Diode_SMD:D_SOD-323"
 	(layer "F.Cu")
 	(uuid "39df49f7-0438-57b5-bf7a-9ebfceb8ccf0")
-	(at 168.5 133 90)
+	(at 168.5 135 90)
 (property "Reference" "D3"
 	(at 0 -1.5 90)
 	(layer "F.SilkS")
@@ -6854,18 +6854,18 @@
         	(footprint "oas:Fuse_1812L_4532Metric"
         		(layer "F.Cu")
         		(uuid "c4743922-4c9e-5f76-be7b-33a0edb7b266")
-        		(at 161.5 128.5 0)
+        		(at 168.5 114.5 90)
         		(descr "PTC polyfuse 750 mA hold / 1.5 A trip / 33 V (Littelfuse 1812L075/33DR, LCSC C151170, 1812 SMD).")
         		(attr smd)
         		(property "Reference" "F1"
-        			(at 0 -2.62 0)
+        			(at 0 -2.62 90)
         			(layer "F.SilkS")
 			(hide yes)
         			(uuid "69d03112-b1ee-5660-a459-504663ed17a5")
         			(effects (font (size 1.0 1.0) (thickness 0.2)))
         		)
         		(property "Value" "1812L075/33DR"
-        			(at 0 2.62 0)
+        			(at 0 2.62 90)
         			(layer "F.Fab")
         			(hide yes)
         			(uuid "cc7f9d4e-8579-5557-9b84-6f2ccb0eee36")
@@ -6901,7 +6901,7 @@
         			(uuid "bdea717c-3b1f-5dd1-a7c0-cc6c571dfedd")
         		)
         		(fp_text user "F1"
-        			(at 0 0 0)
+        			(at 0 0 90)
         			(layer "F.Fab")
         			(uuid "bfd0b68c-8a16-5b93-a7e8-e4933af7dc85")
         			(effects (font (size 1 1) (thickness 0.15)))
@@ -6929,14 +6929,14 @@
         			(uuid "44b0e616-09cb-5a10-8209-ef96ea47c34b")
         		)
 (pad "1" smd rect
-	(at -1.8534 0)
+	(at -1.8534 0 90)
 	(size 1.4067 3.4992)
 	(layers "F.Cu" "F.Mask" "F.Paste")
 	(uuid "6f3fe2c3-9fec-5e26-83cb-f48e0a3f0264")
 	(net 3 "+24V")
 )
 (pad "2" smd rect
-	(at 1.8534 0)
+	(at 1.8534 0 90)
 	(size 1.4067 3.4992)
 	(layers "F.Cu" "F.Mask" "F.Paste")
 	(uuid "264332e5-3b98-58ed-b8b1-98c59a6ccdb7")
@@ -6951,7 +6951,7 @@
 (footprint "Resistor_SMD:R_0603_1608Metric"
 	(layer "F.Cu")
 	(uuid "5d1af38c-1c28-575f-98ae-5dbf62de8fa0")
-	(at 168.5 138 90)
+	(at 168.5 140 90)
 (property "Reference" "R4"
 	(at 0 -1.45 90)
 	(layer "F.SilkS")
@@ -7067,7 +7067,7 @@
 (footprint "Resistor_SMD:R_0603_1608Metric"
 	(layer "F.Cu")
 	(uuid "5341af7a-68d5-5410-9781-cb4642bab77e")
-	(at 168.5 143 90)
+	(at 168.5 145 90)
 (property "Reference" "R1"
 	(at 0 -1.45 90)
 	(layer "F.SilkS")
@@ -15254,15 +15254,15 @@
 	)
 )
 (gr_text "D1"
-	(at 162.5 125.4 0)
-	(layer "F.SilkS")
+	(at 172 127.5 0)
+	(layer "F.Fab")
 	(uuid "03713f03-7912-54fa-b1ef-4ee07db084a6")
 	(effects
-		(font (size 1 1) (thickness 0.2))
+		(font (size 1 1) (thickness 0.15))
 	)
 )
 (gr_text "F1"
-	(at 165.2 128.5 90)
+	(at 172.2 114.5 90)
 	(layer "F.Fab")
 	(uuid "50e74881-d8fe-51f5-97c6-40a04bcad359")
 	(effects
@@ -15270,7 +15270,7 @@
 	)
 )
 (gr_text "Q1"
-	(at 167.938 131.5 0)
+	(at 168.5 123.5 0)
 	(layer "F.Fab")
 	(uuid "636d0008-4c86-5526-a00e-1407bbfc623d")
 	(effects
@@ -15278,7 +15278,7 @@
 	)
 )
 (gr_text "D3"
-	(at 170.8 133 0)
+	(at 170.8 135 0)
 	(layer "F.Fab")
 	(uuid "bb47053a-2ba3-5b69-b06f-6ab75b5aa8a8")
 	(effects
@@ -15286,7 +15286,7 @@
 	)
 )
 (gr_text "R4"
-	(at 170.8 138 0)
+	(at 170.8 140 0)
 	(layer "F.Fab")
 	(uuid "0d5e6702-ec89-5084-9f59-40436e6d3ea9")
 	(effects
@@ -15294,7 +15294,7 @@
 	)
 )
 (gr_text "R1"
-	(at 170.8 143 0)
+	(at 170.8 145 0)
 	(layer "F.Fab")
 	(uuid "c12143ad-9c35-5c1f-bdfe-37a57af66824")
 	(effects
