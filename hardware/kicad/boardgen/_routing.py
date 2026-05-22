@@ -59,30 +59,22 @@ from boardgen._project import (
 # "oas-via:<idx>" / "oas-zone:<layer>") keeps the file bit-identical
 # across runs.
 
-# Which chunks of the v0.28 routing plan are enabled. Each chunk adds
-# tracks for one functional subsystem; chunks are turned on incrementally
-# (v0.28a → v0.28e) so DRC and visual review can catch issues per chunk.
-# Final state (v0.28e) routes every chunk.
+# Which chunks of the routing plan are enabled. Each chunk adds tracks
+# for one functional subsystem.
+#
+# v0.50 (2026-05-22): "autoroute" RE-ENABLED. The captured snapshot in
+# oas_routes.py was re-extracted (tools/extract_routes.py) from a FRESH
+# Freerouting 2.2.4 pass run against the CURRENT committed placement
+# (the v0.50 buck re-spread / Task 3). Freerouting reached full 89/89
+# coverage (0 unrouted nets) with JLCDFM-strict rules (0.20 mm
+# clearance, 0.70/0.30 mm vias, 0.25 mm track) — 384 segments + 16
+# vias. The previous snapshot was stale: it had been extracted against
+# a pre-Task-3 buck placement, so replaying it shorted the buck
+# section. "hand_v40" stays disabled — superseded by the autoroute
+# snapshot. The GND copper pour reconnects every GND pad automatically.
 ROUTING_CHUNKS: tuple[str, ...] = (
     "gnd",         # Chunk 1 — F.Cu + B.Cu GND copper pour. ALWAYS on.
-    # Audit-19 (2026-05-19): "hand_v40" and "autoroute" temporarily
-    # DISABLED. The LED ring rework (12 LEDs at 30 deg -> 8 LEDs at
-    # 45 deg with skip moved from i=3 to i=2) and the placement-formula
-    # fix (LED rotation 270-theta -> 90-theta) collectively moved
-    # every LED pad to a new PCB position. The previously-captured
-    # autoroute snapshot in oas_routes.py references segment endpoints
-    # at the OLD pad positions -- replaying it would emit traces in
-    # mid-air. Same applies to "hand_v40" which stitches GND to the
-    # old D15/D16/C21 pad coords.
-    # TODO: after running Freerouting externally on the new layout and
-    # re-running tools/extract_routes.py, restore the full tuple:
-    #   ROUTING_CHUNKS = ("gnd", "hand_v40", "autoroute")
-    # The GND copper pour reconnects every GND pad automatically;
-    # non-GND signal nets show as WARN-level unconnected pads until
-    # the reroute completes (DRC tolerates -- warning not error).
-    # "hand_v40",
-    # "autoroute",
-    # "io_finalize",      # legacy v0.28 chunk — superseded; not used
+    "autoroute",   # Chunk 2 — Freerouting 89/89 snapshot replay.
 )
 
 

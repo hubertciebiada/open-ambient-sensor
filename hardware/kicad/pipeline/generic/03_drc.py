@@ -57,27 +57,20 @@ def main() -> int:
             st.fail(f"{n_viol} DRC violation(s) — see {drc_report}")
         st.ok(f"{n_viol} violations")
 
-        # Unconnected-pad baseline: with the routing rework still pending
-        # (CLAUDE.md TODO; ROUTING_CHUNKS = ("gnd",) only), the design
-        # carries exactly EXPECTED_UNCONNECTED non-GND pads that the GND
-        # pour cannot resolve. Hard-fail on ANY deviation — drop (routing
-        # progresses) or rise (regression) — so the harness notices the
-        # second a chunk gets added or removed from ROUTING_CHUNKS.
-        #
-        # When the routing rework lands, set EXPECTED_UNCONNECTED = 0 and
-        # delete this comment.
-        # v0.42: 88 -> 89 — the new SW1 push-button BTN net (SW1.1 ↔
-        # ESP32-C6 GPIO 1) adds one unrouted ratsnest; it gets routed in
-        # the pending routing-rework task. SW1.2 connects via the GND pour.
-        EXPECTED_UNCONNECTED = 89
+        # Unconnected-pad baseline: the v0.50 routing rework is complete
+        # (ROUTING_CHUNKS = ("gnd", "autoroute") — Freerouting 89/89 +
+        # hand-finished GND stitching). The board is fully routed, so the
+        # expectation is ZERO unconnected pads. Hard-fail on ANY deviation
+        # so the harness catches a routing regression immediately.
+        EXPECTED_UNCONNECTED = 0
         if n_unc != EXPECTED_UNCONNECTED:
             st.fail(
                 f"{n_unc} unconnected pads — expected exactly "
-                f"{EXPECTED_UNCONNECTED} pre-routing-rework. "
-                f"If routing has progressed, update EXPECTED_UNCONNECTED "
-                f"in pipeline/generic/03_drc.py."
+                f"{EXPECTED_UNCONNECTED} (the board is fully routed). "
+                f"A non-zero count is a routing regression — see "
+                f"{drc_report}."
             )
-        st.ok(f"{n_unc} unconnected pads (matches pre-routing baseline)")
+        st.ok(f"{n_unc} unconnected pads — fully routed")
     return 0
 
 
