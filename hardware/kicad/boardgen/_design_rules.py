@@ -12,10 +12,14 @@ upstream targets KiCad 7 but the DRU syntax has been stable since v7.
 Verified manually against KiCad 10 documentation.
 
 OAS profile: 2-layer, 1oz copper, standard JLCPCB (no special service).
-That maps to track width / clearance min 0.127 mm, via 0.5 mm / 0.3 mm,
-edge clearance 0.3 mm. Default OAS routing uses 0.25 mm tracks (well
-above the minimum); these rules catch any future regression below the
-JLCPCB-acceptable floor.
+Rules are tuned so JLCPCB's DFM scanner reports ZERO warnings (not just
+zero hard errors): track width / clearance floor 0.20 mm, via 0.70 mm /
+0.30 mm drill (= 0.20 mm annular ring), edge clearance 0.30 mm. JLCPCB's
+raw fab capability is lower (0.127 mm track/space, 0.15 mm annular) but
+its DFM scanner emits yield-hint warnings below ~0.20 mm (observed in
+the v0.34 audit — 4 sub-0.20 mm clearances flagged). These floors sit
+at/above every such warning threshold. Default OAS routing uses 0.25 mm
+signal tracks; the floors below catch any regression toward a warning.
 """
 from __future__ import annotations
 
@@ -33,9 +37,12 @@ def gen_kicad_dru() -> str:
         "# Profile: JLCPCB 2-layer, 1oz copper, standard service.",
         "",
         "# --- Minimum trace width and clearance (2-layer, 1oz) ---",
+        "# 0.20 mm floor: JLCPCB's DFM scanner warns below ~0.20 mm even",
+        "# though the raw fab capability is 0.127 mm. Routing targets",
+        "# 0.25 mm signal / 0.40-0.50 mm power, all clear of this floor.",
         '(rule "Minimum Trace Width and Spacing"',
-        "\t(constraint track_width (min 0.127mm))",
-        "\t(constraint clearance (min 0.127mm))",
+        "\t(constraint track_width (min 0.20mm))",
+        "\t(constraint clearance (min 0.20mm))",
         "\t(condition \"A.Type == 'track'\"))",
         "",
         "# --- Drill / hole size (mechanical NPTH range) ---",
@@ -43,9 +50,13 @@ def gen_kicad_dru() -> str:
         "\t(constraint hole_size (min 0.15mm) (max 6.3mm)))",
         "",
         "# --- Via diameter and hole size (2-layer standard) ---",
+        "# 0.70 mm diameter / 0.30 mm drill = 0.20 mm annular ring. JLCPCB",
+        "# accepts 0.15 mm annular but the DFM scanner emits yield hints",
+        "# below 0.20 mm; 0.70/0.30 clears it with no warning.",
         '(rule "Minimum Via Diameter and Hole Size"',
         "\t(constraint hole_size (min 0.3mm))",
-        "\t(constraint via_diameter (min 0.5mm))",
+        "\t(constraint via_diameter (min 0.70mm))",
+        "\t(constraint annular_width (min 0.20mm))",
         "\t(constraint disallow buried_via)",
         "\t(condition \"A.Type == 'via'\"))",
         "",

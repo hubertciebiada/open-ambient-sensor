@@ -4,9 +4,12 @@
 # Profile: JLCPCB 2-layer, 1oz copper, standard service.
 
 # --- Minimum trace width and clearance (2-layer, 1oz) ---
+# 0.20 mm floor: JLCPCB's DFM scanner warns below ~0.20 mm even
+# though the raw fab capability is 0.127 mm. Routing targets
+# 0.25 mm signal / 0.40-0.50 mm power, all clear of this floor.
 (rule "Minimum Trace Width and Spacing"
-	(constraint track_width (min 0.127mm))
-	(constraint clearance (min 0.127mm))
+	(constraint track_width (min 0.20mm))
+	(constraint clearance (min 0.20mm))
 	(condition "A.Type == 'track'"))
 
 # --- Drill / hole size (mechanical NPTH range) ---
@@ -14,9 +17,13 @@
 	(constraint hole_size (min 0.15mm) (max 6.3mm)))
 
 # --- Via diameter and hole size (2-layer standard) ---
+# 0.70 mm diameter / 0.30 mm drill = 0.20 mm annular ring. JLCPCB
+# accepts 0.15 mm annular but the DFM scanner emits yield hints
+# below 0.20 mm; 0.70/0.30 clears it with no warning.
 (rule "Minimum Via Diameter and Hole Size"
 	(constraint hole_size (min 0.3mm))
-	(constraint via_diameter (min 0.5mm))
+	(constraint via_diameter (min 0.70mm))
+	(constraint annular_width (min 0.20mm))
 	(constraint disallow buried_via)
 	(condition "A.Type == 'via'"))
 

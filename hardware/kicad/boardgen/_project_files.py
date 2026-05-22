@@ -89,14 +89,16 @@ def gen_pro() -> str:
                     "allow_blind_buried_vias": False,
                     "allow_microvias": False,
                     "max_error": 0.005,
-                    # v0.39: kept at 0.15 mm (KiCad-clean). JLCPCB's DFM
-                    # scanner warned about 4 sub-0.20 mm clearances in v0.34,
-                    # but their fab capability IS 0.15 mm - the warning is a
-                    # yield hint, not a defect. Bumping to 0.20 mm would
-                    # trigger 121 DRC violations + require re-routing every
-                    # autoroute-packed trace. Cost is not justified for the
-                    # 5-prototype quantity.
-                    "min_clearance": 0.15,
+                    # v0.50: raised 0.15 -> 0.20 mm. JLCPCB's DFM scanner
+                    # warned about 4 sub-0.20 mm clearances in v0.34; their
+                    # raw fab capability IS 0.15 mm but the scanner emits a
+                    # yield-hint warning below 0.20 mm. v0.39 kept 0.15 mm
+                    # because bumping then would have meant re-routing every
+                    # autoroute-packed trace. With the v0.50 routing rework
+                    # the board is a clean slate (ROUTING_CHUNKS = ("gnd",),
+                    # zero signal traces) -- so 0.20 mm now costs nothing and
+                    # the whole re-route lands DFM-warning-free by design.
+                    "min_clearance": 0.2,
                     "min_connection": 0.0,
                     "min_copper_edge_clearance": 0.3,
                     "min_groove_width": 0.0,
@@ -125,8 +127,21 @@ def gen_pro() -> str:
                     "min_text_height": 1.0,
                     "min_text_thickness": 0.15,
                     "min_through_hole_diameter": 0.3,
-                    "min_track_width": 0.15,
-                    "min_via_annular_width": 0.1,
+                    # v0.50: track-width floor 0.15 -> 0.20 mm (JLCPCB's
+                    # DFM scanner warns below ~0.20 mm). Via diameter and
+                    # annular stay at the LOOSE board-level floor (0.5 /
+                    # 0.15 mm): KiCad applies these board-level via limits
+                    # to PTH PADS too, and J4 (stock fine-pitch LD2410
+                    # hand-solder connector) carries a 0.175 mm pad annular
+                    # ring — JLCDFM-clean, but a 0.20 mm board floor would
+                    # false-flag it. The STRICT via geometry (0.70 mm dia /
+                    # 0.20 mm annular) is enforced instead by the via-only
+                    # rule in oas.kicad_dru (condition "A.Type == 'via'"),
+                    # which leaves J4's pads untouched. Real vias still land
+                    # DFM-warning-free; routing targets 0.25 mm signal /
+                    # 0.40-0.50 mm power tracks and 0.70 mm / 0.30 mm vias.
+                    "min_track_width": 0.2,
+                    "min_via_annular_width": 0.15,
                     "min_via_diameter": 0.5,
                     "solder_mask_to_copper_clearance": 0.0,
                     "use_height_for_length_calcs": True,
@@ -175,7 +190,8 @@ def gen_pro() -> str:
                 {
                     "name": "Default",
                     "bus_width": 12,
-                    "clearance": 0.15,
+                    # v0.50: 0.15 -> 0.20 mm to clear JLCPCB DFM yield hints.
+                    "clearance": 0.2,
                     "diff_pair_gap": 0.25,
                     "diff_pair_via_gap": 0.25,
                     "diff_pair_width": 0.2,
@@ -186,7 +202,10 @@ def gen_pro() -> str:
                     "schematic_color": "rgba(0, 0, 0, 0.000)",
                     "pcb_color": "rgba(0, 0, 0, 0.000)",
                     "track_width": 0.25,
-                    "via_diameter": 0.6,
+                    # v0.50: 0.6 -> 0.70 mm. With 0.30 mm drill that is a
+                    # 0.20 mm annular ring -- above the JLCPCB DFM warning
+                    # threshold (0.15 mm is accepted but flagged as a hint).
+                    "via_diameter": 0.7,
                     "via_drill": 0.3,
                     "wire_width": 6,
                 },

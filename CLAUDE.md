@@ -452,6 +452,12 @@ The boardgen walker lives at `pipeline/generic/01_emit_sources.py` (stage 01 of 
 - **JLCPCB-specific tape-feeder rotation offsets live in `pipeline/jlcpcb/_rotations.py` and apply only in stage `30_export_pos`.** `oas.kicad_pcb` and every 3D / 2D / preflight render show KiCad's natural rotation — visual verification reflects placement intent, not JLCPCB's tape geometry. Only `hardware/output/jlcpcb/oas-top-CPL.csv` (the file uploaded to JLCPCB) carries the compensated rotations. Same separation applies to gerbers (which don't encode component rotation at all).
 - **Vendor isolation.** The KiCad project is vendor-neutral. JLCPCB-specific tweaks (rotation offsets, CPL header reformat, BOM template with LCSC + library tier, ZIP bundle naming) live ONLY under `pipeline/jlcpcb/` and ONLY write into `hardware/output/jlcpcb/`. The vendor folder under `hardware/output/<vendor>/` carries EXACTLY 4 files: ZIP + BOM + 2× CPL — nothing else. Adding a new fabricator = create `pipeline/<vendor>/` sibling to `generic/`, `oas/`, `jlcpcb/` + a new `hardware/output/<vendor>/` folder. Zero edits to `generic/` or `oas/` stages. NEVER compensate for a fabricator quirk by deforming `oas.kicad_pcb` or any schematic — the project's KiCad ground truth must match the datasheet, and the per-vendor stage compensates at export emit time.
 
+### Freerouting (autorouter) — JRE runs in Docker
+
+The host JDK is Java 1.8 — too old for Freerouting 2.x (needs Java 21+). Run Java from a container instead: `eclipse-temurin:25-jre` (and `:21-jre`) are pulled locally as Docker images. Mount `hardware/kicad/` into the container and invoke `java -jar freerouting.jar …` there. `freerouting.jar` is gitignored (`hardware/kicad/freerouting.jar`) — not committed.
+
+Freerouting is used as a congestion **diagnostic**, not as the routing source of truth — see the v0.50 revert (commit `dd98a8b`, reverted): a raw autoroute snapshot must never be committed as the final routing. The autorouter's failures (nets it cannot close, via blow-ups, long detours) point to where placement is too tight; placement is then fixed by hand and re-transcribed into `boardgen/_project.py`.
+
 ---
 
 ## Working conventions for the assistant

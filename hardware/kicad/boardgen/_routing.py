@@ -44,9 +44,9 @@ from boardgen._project import (
 #       0.5 mm — 24 V power chain (J1 → D1 → Q1 → F1 → C1 → U1.VIN)
 #       0.5 mm — +5 V rail (U1.OUT → C4 → U2.VIN, LED ring)
 #       0.4 mm — +3.3 V rail (U2.OUT → all chip VDDs)
-#       0.2 mm — every signal (I2C, UART, GPIO, WS2812, USB, EN, BOOT)
-#   - Clearance: 0.15 mm (KiCad default)
-#   - Vias: 0.6 mm diameter, 0.3 mm drill (standard JLCPCB)
+#       0.25 mm — every signal (I2C, UART, GPIO, WS2812, USB, EN, BOOT)
+#   - Clearance: 0.20 mm (v0.50 — JLCPCB DFM-warning-free floor)
+#   - Vias: 0.70 mm diameter, 0.30 mm drill (0.20 mm annular ring)
 #
 # Layer strategy: F.Cu primary, B.Cu used for crossovers and GND return.
 # Both layers carry a GND zone pour over the full PCB outline (D-shape +
@@ -87,7 +87,7 @@ ROUTING_CHUNKS: tuple[str, ...] = (
 
 
 # Track width selectors (mm). The cascade through `_track_width_for_net`
-# picks 0.5 mm for known power rails, 0.4 mm for +3V3, else 0.2 mm.
+# picks 0.5 mm for known power rails, 0.4 mm for +3V3, else 0.25 mm.
 _NET_TRACK_WIDTH: dict[str, float] = {
     "+24V": 0.5,
     "+5V": 0.5,
@@ -101,7 +101,7 @@ _NET_TRACK_WIDTH: dict[str, float] = {
 
 def _track_width_for_net(net_name: str) -> float:
     """Return track width in mm for a given net name."""
-    return _NET_TRACK_WIDTH.get(net_name, 0.2)
+    return _NET_TRACK_WIDTH.get(net_name, 0.25)
 
 
 def _routing_pad_db() -> tuple[dict, dict]:
@@ -278,7 +278,7 @@ class _RouteEmitter:
         )
 
     def via(self, x: float, y: float, net_code: int,
-            size: float = 0.6, drill: float = 0.3,
+            size: float = 0.7, drill: float = 0.3,
             *, layers: tuple[str, ...] = ("F.Cu", "B.Cu"),
             uuid_tag: str | None = None) -> None:
         """Emit a (via ...) entry.
