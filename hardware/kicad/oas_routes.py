@@ -658,7 +658,6 @@ ROUTES_VIAS = [
     {"net_name": 'GND', "at": (13, -3.5), "size": 0.7, "drill": 0.3, "layers": ('F.Cu', 'B.Cu'), "uuid_tag": "via:0027"},
     {"net_name": 'GND', "at": (15, 24.5), "size": 0.7, "drill": 0.3, "layers": ('F.Cu', 'B.Cu'), "uuid_tag": "via:0029"},
     {"net_name": 'GND', "at": (17.5, 15.5), "size": 0.7, "drill": 0.3, "layers": ('F.Cu', 'B.Cu'), "uuid_tag": "via:0030"},
-    {"net_name": 'GND', "at": (22, 20.35), "size": 0.7, "drill": 0.3, "layers": ('F.Cu', 'B.Cu'), "uuid_tag": "via:0032"},
     {"net_name": 'GND', "at": (34, 25.825), "size": 0.7, "drill": 0.3, "layers": ('F.Cu', 'B.Cu'), "uuid_tag": "via:0034"},
     {"net_name": 'Net-(D1-K)', "at": (6.8689, 27.514), "size": 0.7, "drill": 0.3, "layers": ('F.Cu', 'B.Cu'), "uuid_tag": "via:0035"},
     {"net_name": 'Net-(D11-DOUT)', "at": (9.4239, 13.8262), "size": 0.7, "drill": 0.3, "layers": ('F.Cu', 'B.Cu'), "uuid_tag": "via:0036"},
