@@ -4456,7 +4456,7 @@
 (footprint "Capacitor_SMD:C_0402_1005Metric"
 	(layer "F.Cu")
 	(uuid "dc5af28c-0416-5fea-b2bc-59fbba8bc228")
-	(at 156.1 105 90)
+	(at 155.5 105 90)
 (property "Reference" "C20"
 	(at 0 -1.4 90)
 	(layer "F.SilkS")
@@ -5164,7 +5164,7 @@
 (footprint "Capacitor_SMD:C_0402_1005Metric"
 	(layer "F.Cu")
 	(uuid "5eb0ba8e-3b21-5ec1-b5d5-57766543bc31")
-	(at 140.9 105 270)
+	(at 141.5 105 270)
 (property "Reference" "C24"
 	(at 0 -1.4 270)
 	(layer "F.SilkS")
@@ -5400,7 +5400,7 @@
 (footprint "Capacitor_SMD:C_0402_1005Metric"
 	(layer "F.Cu")
 	(uuid "7b6cb8a2-86d1-5b8d-aa6e-d914251f7194")
-	(at 141.711775 98.211775 225)
+	(at 143.550253 100.050253 225)
 (property "Reference" "C25"
 	(at 0 -1.4 225)
 	(layer "F.SilkS")
@@ -5636,7 +5636,7 @@
 (footprint "Capacitor_SMD:C_0402_1005Metric"
 	(layer "F.Cu")
 	(uuid "07128cca-3777-574a-a256-1632b3a11055")
-	(at 148.5 95.4 180)
+	(at 148.5 98 180)
 (property "Reference" "C26"
 	(at 0 -1.4 180)
 	(layer "F.SilkS")
@@ -5872,7 +5872,7 @@
 (footprint "Capacitor_SMD:C_0402_1005Metric"
 	(layer "F.Cu")
 	(uuid "4f2d0e44-3c6a-5384-9c8e-62d1b22d113f")
-	(at 155.288225 98.211775 135)
+	(at 153.449747 100.050253 135)
 (property "Reference" "C27"
 	(at 0 -1.4 135)
 	(layer "F.SilkS")

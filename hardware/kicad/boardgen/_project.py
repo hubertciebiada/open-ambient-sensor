@@ -1196,13 +1196,24 @@ LED_RING_SKIP_INDICES = (2,)         # i=2 → D13 (and C22) at θ=90°
 # to the cable hole at R = 6. The cap's "north" pad lands directly under
 # the LED's VDD pad row.
 LED_RING_CAP_RADIAL_OFFSET = 3.4
-# Per-LED override: smaller offset means cap is closer to LED body (further
-# from ring centre). v0.41-followup-2: D12 (i=1) and D14 (i=3) get a smaller
-# offset so their decoupling caps (C21, C23) sit OUTSIDE the J1 mating-plug
-# no-go zone (silk rectangle PCB X ∈ [-8.73, +8.73]). With LED R=16.5 and
-# offset=2.6, cap radius = 13.9 → cap PCB X = ±9.83, comfortably clearing
+# Per-LED override: a LARGER offset pulls the cap toward the ring centre
+# (closer to the Ø12 cable hole); a SMALLER offset keeps it near the LED.
+#
+# i=1 (C21) / i=3 (C23): SMALLER offset 2.6 — D12/D14 sit closest to the
+# J1 24 V terminal on the chord side; their caps must stay OUTSIDE the J1
+# mating-plug no-go zone (silk rect PCB X ∈ [-8.73, +8.73]). With LED
+# R=16.5 and offset 2.6, cap radius = 13.9 → cap PCB X = ±9.83, clear of
 # the no-go silk + cap mask + DRC silk_clearance budget.
-LED_RING_CAP_RADIAL_OFFSET_OVERRIDE = {1: 2.6, 3: 2.6}
+#
+# i=0,4,5,6,7 (C20/C24/C25/C26/C27): v0.50 routing rework — LARGER offset
+# so every one of these five caps lands at cap radius 7.0 mm (inner edge
+# ~6.66 mm, ~0.66 mm clear of the Ø12 cable hole at R=6). Pulling them in
+# toward the hole vacates the annulus just inside the LED ring, giving the
+# SK6812 data-chain hops a clear lane — the autorouter could not close
+# D14-DOUT / D16-DOUT in the v0.50 87/89 run. C20/C24 LED R=11 → offset
+# 4.0; C25/C26/C27 LED R=13 → offset 6.0. C21/C23 stay out (J1 no-go).
+LED_RING_CAP_RADIAL_OFFSET_OVERRIDE = {0: 4.0, 1: 2.6, 3: 2.6,
+                                       4: 4.0, 5: 6.0, 6: 6.0, 7: 6.0}
 
 # SK6812-SIDE package + pad geometry (body-local frame; +X = long-axis,
 # +Y = short-axis pointing toward the pad-row face; emission face at -Y).
