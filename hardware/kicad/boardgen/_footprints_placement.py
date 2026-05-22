@@ -808,18 +808,18 @@ def gen_power_pcb_footprints() -> str:
         uuid_tag="c11-ld2410-decoupling-pcb",
         descr="100 nF local decoupling for LD2410 (J4 pin 5 / +5V). v0.45: vertical, placed at the 11-o'clock of J4's west end — west of the LD2410 body (LDR1, X>=97.4) in open copper. Nudged 0.5 mm north of the v0.44 spot (Y +14.5 -> +14.0) — the v0.44 position left C11.1 only 2.98 mm from the nearest J4 THT pad (JLCDFM 'tht to smd' warning); +0.5 mm lifts that to ~3.4 mm, clear of the >3.05 mm rule. North field is open (no neighbour within 4 mm).",
     ))
-    # NFC J7/J8 socket: pin 7 (+3V3) at row A position. Row A at PCB X=-14.03.
-    # Pin 7 is the 7th from pin 1; pin 1 at PCB Y=+38.10, going north (LIB +Y → PCB -Y).
-    # So pin 7 at PCB Y = +38.10 - 6*2.54 = +22.86. C12 just below pin 7.
-    # C12 next to NFC pin 7 (+3.3V). NFC J7 row A at PCB X=-14.03,
-    # Y=+38.10 (pin 1) ... Y=+20.32 (pin 8). Pin 7 = pin 1 - 6 = PCB Y=+22.86.
-    # Place C12 BETWEEN J7 (X=-14.03) and J8 (X=-36.89), at Y near pin 7
-    # height. Under the NFC body shadow (7 mm clearance available).
+    # C12 — NFC (NT3H1101) +3V3 decoupling. It belongs next to the NFC
+    # power-entry pin: J7 pin 7 (+3V3) at PCB (-38.89, +35.56), with
+    # J7 pin 8 (GND) just south at +38.10. Pin 1 is the NORTH end
+    # (Y=+20.32) after the v0.43 J7/J8 180-deg flip; the pre-v0.50
+    # comment miscounted from the south end and parked C12 ~13 mm away
+    # at the INT-pin level. Placed vertical in the open copper just
+    # east of J7's +3V3/GND label pair, under the MIKROE body shadow.
     parts.append(gen_capacitor_0603_pcb_footprint(
-        x=-25, y=+23, rotation=0,
+        x=-31.3, y=+36.5, rotation=90,
         reference="C12", value="100nF",
         uuid_tag="c12-nfc-decoupling",
-        descr="100 nF local decoupling for MIKROE-2462 NFC (mikroBUS pin 7 / +3V3).",
+        descr="100 nF local decoupling for MIKROE-2462 NFC (mikroBUS pin 7 / +3V3). v0.50: re-placed next to J7 pin 7 (+3V3) — was ~13 mm away at the INT-pin level.",
     ))
 
     # J2 — DNP recovery pin header. v0.43: relocated from the cramped NW
@@ -1578,7 +1578,7 @@ def gen_silk_labels() -> str:
         # moved to F.Fab to avoid silk_overlap.
         ("C11", 0.0, -2.0, "F.Fab"),
         # C12 INSIDE MIKROE shadow (X=-38.16..-12.76, Y=-16.51..+40.64,
-        # C12 anchor (-25, +23) is inside) → F.Fab
+        # C12 anchor (-31.3, +36.5) is inside) → F.Fab
         ("C12", 0.0, -2.0, "F.Fab"),
         # J2 DNP recovery — v0.43: relocated horizontal north of the
         # LD2410. Designator sits just EAST of the pad row, in the pocket
@@ -1621,7 +1621,7 @@ def gen_silk_labels() -> str:
         "C2":  (+18.0, -40.7),
         "C10": (+32, -47),
         "C11": (-52.5, +14.0),
-        "C12": (-25, +23),
+        "C12": (-31.3, +36.5),
         "J2":  (J2_PCB_X, J2_PCB_Y),
     }
     for entry in POWER_LABELS:
