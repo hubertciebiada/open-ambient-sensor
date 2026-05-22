@@ -604,19 +604,26 @@ def gen_power_pcb_footprints() -> str:
         uuid_tag="u1-lm2596",
         descr="LM2596S-5.0 5 V 3 A asynchronous step-down buck (TI), TO-263-5. v0.50-routing-rework: hand-placed in KiCad — rotated 180° and shifted ~3 mm west to (-38.03, -34.014) to relieve buck fan-out congestion. The 180° flip points the 5-lead row east toward the ESP32 fan-out zone; the compensating westward shift keeps the body clear of the LD2410 east edge.",
     ))
-    # D2, L1 stay inside ESP32 shadow (both <4 mm tall, comfortably within
-    # the 5.5 mm budget). Switch-node trace from U1.OUT (pin 2 at PCB
-    # (-32.3, -30.55)) to L1 (+9, -34.5) is ~42 mm — long but routable for
-    # this 150 kHz / 3A node on inner-layer copper. Document accepted in
-    # the v0.26 changelog.
+    # ---- v0.50 Task-3 re-spread: buck section under the ESP32 ----
+    # The 20 SMD power-section parts are re-placed into a clean 2-row
+    # grid inside the user rectangle (PCB-local X[-27.5,+20.5],
+    # Y[-44.5,-30] -- the gap between the ESP32 J5 and J6 pin rows).
+    # Row N at Y=-33.5, Row S at Y=-40.7 leave a ~5.7 mm horizontal
+    # routing corridor; every courtyard clears the J5 row (north) and
+    # the J6 row (south) by >=3.6 mm. West->east follows the power
+    # flow: buck1 (D2/L1) west, buck2 (U2 cluster) centre, ESP32 +3V3
+    # decoupling + I2C pull-ups east. U1/C1/C3/C4/C10 out of scope.
+    #   Row S (Y=-40.7): L1 C14 C5 C15 U2 C7 L2 C6 C9 C2
+    #   Row N (Y=-33.5): D2 C13 C8 R2 R3 C16 C17 R5 R6 R7
+    # D2 -- buck1 freewheel diode (Row N west, above L1).
     parts.append(gen_diode_sma_pcb_footprint(
-        x=+2, y=-34.5, rotation=0,
+        x=-23.1, y=-33.5, rotation=0,
         reference="D2", value="SS14",
         uuid_tag="d2-schottky",
         descr="SS14 Schottky diode 40 V / 1 A, SMA, freewheeling for U1 buck.",
     ))
     parts.append(gen_inductor_smd_5x5_pcb_footprint(
-        x=+9, y=-34.5, rotation=0,
+        x=-23.1, y=-40.7, rotation=0,
         reference="L1", value="33uH",
         uuid_tag="l1-buck1",
         descr="33 µH ≥2 A SMD shielded power inductor (Wurth WE-PD-S or eq).",
@@ -632,60 +639,58 @@ def gen_power_pcb_footprints() -> str:
         descr="220 µF / 10 V radial electrolytic output bulk on +5V rail. v0.43: hand-tuned into the NE radial cluster (body centre +25.568, -48).",
     ))
 
-    # ---- Row Y=-40.5: Buck2 (5V→3.3V) main components ----
-    # v0.44: row moved +3.5 mm toward the ESP32 centreline (was -44, U2 -43.5)
-    # so L2's 6.0x5.5 mm courtyard clears the J6 pin-header THT pad row —
-    # JLCPCB DFM "tht to smd" flagged L2 at 1.88 mm (Danger). U2 / L2 / R2 / R3
-    # now share Y=-40.5; U2 sits 3.0 mm clear of the C8 0603 courtyard at -43.5.
+    # ---- Buck2 (TPS62933) cluster ----
+    # U2 + the power chain on Row S; the BST/SS caps and the FB divider
+    # (R2/R3) on Row N directly above. Row S order U2 -> C7(BST) ->
+    # L2(SW) keeps the switch node compact.
     parts.append(gen_sot583_pcb_footprint(
-        x=-6.76, y=-39.25, rotation=0,
+        x=-5.8, y=-40.7, rotation=0,
         reference="U2", value="TPS62933",
         uuid_tag="u2-tps62933",
         descr="TPS62933 5 V→3.3 V synchronous buck (TI), SOT-583/VSON-8.",
     ))
     parts.append(gen_inductor_smd_5x5_pcb_footprint(
-        x=+5.438, y=-40.5, rotation=0,
+        x=+3.3, y=-40.7, rotation=0,
         reference="L2", value="2.2uH",
         uuid_tag="l2-buck2",
         descr="2.2 µH ≥2 A SMD shielded power inductor for U2 buck.",
     ))
     parts.append(gen_resistor_0603_pcb_footprint(
-        x=-1.5, y=-38.0, rotation=0,
+        x=-8.05, y=-33.5, rotation=0,
         reference="R2", value="100k",
         uuid_tag="r2-fb-top",
         descr="FB top divider for TPS62933 (sets +3.3V).",
     ))
     parts.append(gen_resistor_0603_pcb_footprint(
-        x=-1.5, y=-40.5, rotation=0,
+        x=-3.65, y=-33.5, rotation=0,
         reference="R3", value="30.9k",
         uuid_tag="r3-fb-bot",
         descr="FB bottom divider for TPS62933 (sets +3.3V).",
     ))
 
-    # ---- Row Y=-30.8: north flank — HF bypass caps for buck stages + I²C pullups + R7 ----
-    # v0.44: row moved -0.8 mm toward the ESP32 centreline (was -30) so every
-    # pad clears the J5 pin-header THT pad row — JLCPCB DFM "tht to smd"
-    # flagged this row at 2.46-3.04 mm (Warning).
+    # ---- HF bypass + bulk caps ----
+    # C13 (U1 VIN HF) Row N; C14 (+5V HF) Row S; C9 (ESP32 +3V3 bulk)
+    # Row S east; C17 (ESP32 +3V3 HF) Row N east by the I2C pull-ups.
     parts.append(gen_capacitor_0603_pcb_footprint(
-        x=-14, y=-30.8, rotation=0,
+        x=-16.85, y=-33.5, rotation=0,
         reference="C13", value="100nF",
         uuid_tag="c13-u1-vin-hf",
         descr="100 nF input HF ceramic bypass at U1.VIN (paired with C3).",
     ))
     parts.append(gen_capacitor_0603_pcb_footprint(
-        x=-6, y=-30.8, rotation=0,
+        x=-17.7, y=-40.7, rotation=0,
         reference="C14", value="100nF",
         uuid_tag="c14-u1-vout-hf",
         descr="100 nF HF ceramic bypass on +5V rail (paired with C4).",
     ))
     parts.append(gen_capacitor_0805_pcb_footprint(
-        x=+0, y=-30.8, rotation=0,
+        x=+13.5, y=-40.7, rotation=0,
         reference="C9", value="10uF",
         uuid_tag="c9-esp32-bulk",
         descr="10 µF 0805 ceramic bulk on ESP32 +3V3.",
     ))
     parts.append(gen_capacitor_0603_pcb_footprint(
-        x=+4, y=-30.8, rotation=0,
+        x=+5.15, y=-33.5, rotation=0,
         reference="C17", value="100nF",
         uuid_tag="c17-esp32-hf",
         descr="100 nF HF ceramic decoupling on ESP32 +3V3.",
@@ -698,13 +703,13 @@ def gen_power_pcb_footprints() -> str:
     # datasheet §3.1 *recommends* 10 kΩ but does not mandate it; lower
     # values are explicitly allowed.
     parts.append(gen_resistor_0603_pcb_footprint(
-        x=+8, y=-30.8, rotation=0,
+        x=+9.55, y=-33.5, rotation=0,
         reference="R5", value="4.7k",
         uuid_tag="r5-i2c-sda-pullup",
         descr="I²C SDA 4.7 kΩ pull-up to +3V3 (v0.22 spec — sized for bus rise time at realized ~60-100 mm bus length, see CLAUDE.md M1).",
     ))
     parts.append(gen_resistor_0603_pcb_footprint(
-        x=+11, y=-30.8, rotation=0,
+        x=+14.0, y=-33.5, rotation=0,
         reference="R6", value="4.7k",
         uuid_tag="r6-i2c-scl-pullup",
         descr="I²C SCL 4.7 kΩ pull-up to +3V3 (v0.22 spec — see R5).",
@@ -712,42 +717,36 @@ def gen_power_pcb_footprints() -> str:
     # R7 — GPIO 8 boot-strap 10 kΩ pull-up to +3V3 (v0.22, Task #18 M2).
     # See R7 schematic block for rationale.
     parts.append(gen_resistor_0603_pcb_footprint(
-        x=+14, y=-30.8, rotation=0,
+        x=+18.4, y=-33.5, rotation=0,
         reference="R7", value="10k",
         uuid_tag="r7-gpio8-bootstrap-pullup",
         descr="GPIO 8 boot-strap 10 kΩ pull-up to +3V3 (v0.22, see CLAUDE.md M2). Replaces the DevKitM-1's onboard pull-up that doesn't work in OAS (VCC_5V unpowered).",
     ))
 
-    # ---- Row Y=-43.5: south flank — Buck2 HF/feedback caps + Buck2 bulk ----
-    # v0.44: row moved +2.5 mm toward the ESP32 centreline (was -46) to clear
-    # the J6 pin-header THT pad row — JLCPCB DFM "tht to smd" flagged this
-    # row at 1.26-1.76 mm (Danger). C5 stays at X=-25 (clear of the NE radial
-    # cluster, which C1 / C3 / C4 vacated this strip for in v0.43).
+    # ---- Buck2 VIN/VOUT caps ----
+    # C5/C15 (VIN, Row S west of U2), C6/C16 (VOUT, +3.3V rail),
+    # C7 (BST, Row S between U2 and L2), C8 (SS, Row N above U2).
     parts.append(gen_capacitor_0805_pcb_footprint(
-        x=-25, y=-43.5, rotation=0,
+        x=-13.6, y=-40.7, rotation=0,
         reference="C5", value="10uF",
         uuid_tag="c5-u2-vin-bulk",
         descr="10 µF 0805 ceramic input bulk for U2.VIN (+5V).",
     ))
-    # v0.40 post-order: stock C_0805 has courtyard half-width 1.7 mm
-    # (vs old custom 1.575 mm). C15 (0603, half-width 1.48 mm) + C6
-    # (0805, half-width 1.7 mm) at 3 mm separation = 0.18 mm overlap.
-    # C15 X shifted from -17 to -18.5 so C15 east edge at -17.02 is
-    # 1.32 mm west of C6 west edge at -15.70.
+    # C15 -- buck2 VIN HF bypass, Row S between C5 and U2.
     parts.append(gen_capacitor_0603_pcb_footprint(
-        x=-18.5, y=-43.5, rotation=0,
+        x=-9.5, y=-40.7, rotation=0,
         reference="C15", value="100nF",
         uuid_tag="c15-u2-vin-hf",
         descr="100 nF input HF ceramic bypass at U2.VIN.",
     ))
     parts.append(gen_capacitor_0805_pcb_footprint(
-        x=-14, y=-43.5, rotation=0,
+        x=+9.05, y=-40.7, rotation=0,
         reference="C6", value="22uF",
         uuid_tag="c6-u2-vout-bulk",
         descr="22 µF 0805 ceramic output bulk on +3.3V rail.",
     ))
     parts.append(gen_capacitor_0603_pcb_footprint(
-        x=-10, y=-43.5, rotation=0,
+        x=+0.75, y=-33.5, rotation=0,
         reference="C16", value="100nF",
         uuid_tag="c16-u2-vout-hf",
         descr="100 nF HF ceramic bypass on +3.3V rail.",
@@ -759,28 +758,27 @@ def gen_power_pcb_footprints() -> str:
     # (without it the high-side gate driver supply is undersized and the
     # converter cannot start). Aligning PCB-generator to the schematic.
     parts.append(gen_capacitor_0603_pcb_footprint(
-        x=-6, y=-43.5, rotation=0,
+        x=-2.1, y=-40.7, rotation=0,
         reference="C7", value="100nF",
         uuid_tag="c7-u2-bst",
         descr="Bootstrap cap C(BST) between U2.SW and U2.BST. REQUIRED.",
     ))
     parts.append(gen_capacitor_0603_pcb_footprint(
-        x=-2, y=-43.5, rotation=0,
+        x=-12.45, y=-33.5, rotation=0,
         reference="C8", value="47nF",
         uuid_tag="c8-u2-ss",
         descr="Soft-start cap C(SS) between U2.SS and GND. Sets ramp time.",
     ))
 
-    # ---- C2 (Y2 safety cap) — under the ESP32, in the Y=-30.8 SMD row ----
-    # v0.43: relocated from (-46, -25) — that spot is inside the new J2
-    # zone (J2 moved to the LD2410-north pocket). C2 is a low 0805 SMD, so
-    # it may sit under the ESP32 daughterboard shadow. Placed in the empty
-    # west stretch of the Y=-30.8 power-cap row, west of C13 (-14, -30.8).
+    # ---- C2 (Y2 safety cap) ----
+    # v0.50 Task-3: re-placed at the east end of Row S (+18.0, -40.7),
+    # under the ESP32 shadow. C2 bridges GND <-> Earth_Protective; its
+    # Earth_Protective trace runs back to J1.3 (24 V terminal block).
     parts.append(gen_capacitor_0805_pcb_footprint(
-        x=-21, y=-30.8, rotation=0,
+        x=+18.0, y=-40.7, rotation=0,
         reference="C2", value="10nF Y2",
         uuid_tag="c2-y2",
-        descr="10 nF Y2 safety class — GND ↔ Earth_Protective EMI bridge. v0.43: relocated to (-21, -30.8) under the ESP32 (Y=-30.8 SMD row) — the prior spot is now occupied by J2.",
+        descr="10 nF Y2 safety class — GND ↔ Earth_Protective EMI bridge. v0.50 Task-3: re-placed at the east end of Row S (+18.0, -40.7).",
     ))
 
     # Sensor decoupling caps: C10 (SEN66 +3V3), C11 (LD2410 +5V), C12 (NFC +3V3).
@@ -1226,14 +1224,10 @@ def gen_silk_labels() -> str:
     esp32_body_cy = ESP32_ANCHOR_Y - ESP32_BODY_W / 2.0
     parts.append(_silk("ESP32-C6 DevKitM-1", esp32_body_cx, esp32_body_cy,
                        "esp32-body", size=1.0, layer="F.Fab"))
-    # ESP32 antenna ("ant") and USB-C ("USB") short-edge hints. LIB
-    # (body_w/2, 2.5) and (body_w/2, body_l - 6.0). After rotation 90.
-    # "ant" label sits at body edge (no SMD), can stay on F.SilkS.
-    # "USB" label sits over C4 (radial cap pad) — move to F.Fab.
-    esp32_ant_cx = ESP32_ANCHOR_X + 2.5
-    esp32_ant_cy = ESP32_ANCHOR_Y - ESP32_BODY_W / 2.0
-    parts.append(_silk("ant", esp32_ant_cx, esp32_ant_cy,
-                       "esp32-antenna", size=1.0))
+    # ESP32 USB-C ("USB") short-edge hint on F.Fab. The "ant" antenna-
+    # edge hint was removed in v0.50 Task-3 (not needed, and the buck
+    # re-spread put L1 in that spot). LIB (body_w/2, body_l - 6.0)
+    # after rotation 90.
     esp32_usb_cx = ESP32_ANCHOR_X + (ESP32_BODY_L - 6.0)
     esp32_usb_cy = ESP32_ANCHOR_Y - ESP32_BODY_W / 2.0
     parts.append(_silk("USB", esp32_usb_cx, esp32_usb_cy,
@@ -1537,35 +1531,36 @@ def gen_silk_labels() -> str:
         # C13 north). That row holds C13/C14/C9/C17/R5/R6/R7; their
         # courtyards extend ~1.5 mm, so Y=-27 leaves ~2.3 mm clear.
         ("U1",  0.0, +7.0,  "F.Fab"),
-        # D2, L1 INSIDE ESP32 shadow → F.Fab
-        ("D2",  0.0, -3.0, "F.Fab"),
-        ("L1",  0.0, -4.0, "F.Fab"),
+        # v0.50 Task-3 re-spread: the 20 buck-section designators sit
+        # ON each body (dx=dy=0) on F.Fab. At ~3.5 mm part pitch an
+        # offset label would collide with its neighbour in the 2D-top
+        # render; an on-body F.Fab designator is unambiguous and
+        # collision-free. All sit under the ESP32 shadow -> F.Fab
+        # (exempt from silk DRC). C2 moves F.SilkS -> F.Fab as it is
+        # now under the shadow too.
+        ("D2",  0.0, 0.0, "F.Fab"),
+        ("L1",  0.0, 0.0, "F.Fab"),
         # C4 — NE radial cluster. F.SilkS designator NORTH of the body,
         # in the open strip toward the board arc.
         ("C4",  0.0, -5.0, "F.SilkS"),
-        # Buck2 cluster INSIDE ESP32 shadow → F.Fab
-        ("U2",  0.0, -2.5, "F.Fab"),
-        ("L2",  0.0, -4.0, "F.Fab"),
-        ("R2",  0.0, -2.0, "F.Fab"),
-        ("R3",  0.0, -2.0, "F.Fab"),
-        # north-flank row Y=-30 INSIDE ESP32 shadow → F.Fab
-        ("C9",  0.0, -2.0, "F.Fab"),
-        ("C13", 0.0, -2.0, "F.Fab"),
-        ("C14", 0.0, -2.0, "F.Fab"),
-        ("C17", 0.0, -2.0, "F.Fab"),
-        ("R5",  0.0, -2.0, "F.Fab"),
-        ("R6",  0.0, -2.0, "F.Fab"),
-        ("R7",  0.0, -2.0, "F.Fab"),
-        # south-flank row Y=-46 INSIDE ESP32 shadow → F.Fab.
-        # Labels EAST of each body so the F.Fab text doesn't pile up.
-        ("C5",  2.5,  0.0, "F.Fab"),
-        ("C15", 2.0,  0.0, "F.Fab"),
-        ("C6",  2.0,  0.0, "F.Fab"),
-        ("C16", 2.0,  0.0, "F.Fab"),
-        ("C7",  2.0,  0.0, "F.Fab"),
-        ("C8",  2.0,  0.0, "F.Fab"),
-        # C2 west of ESP32 (X=-46 outside shadow) → F.SilkS
-        ("C2",  0.0, -2.0, "F.SilkS"),
+        ("U2",  0.0, 0.0, "F.Fab"),
+        ("L2",  0.0, 0.0, "F.Fab"),
+        ("R2",  0.0, 0.0, "F.Fab"),
+        ("R3",  0.0, 0.0, "F.Fab"),
+        ("C9",  0.0, 0.0, "F.Fab"),
+        ("C13", 0.0, 0.0, "F.Fab"),
+        ("C14", 0.0, 0.0, "F.Fab"),
+        ("C17", 0.0, 0.0, "F.Fab"),
+        ("R5",  0.0, 0.0, "F.Fab"),
+        ("R6",  0.0, 0.0, "F.Fab"),
+        ("R7",  0.0, 0.0, "F.Fab"),
+        ("C5",  0.0, 0.0, "F.Fab"),
+        ("C15", 0.0, 0.0, "F.Fab"),
+        ("C6",  0.0, 0.0, "F.Fab"),
+        ("C16", 0.0, 0.0, "F.Fab"),
+        ("C7",  0.0, 0.0, "F.Fab"),
+        ("C8",  0.0, 0.0, "F.Fab"),
+        ("C2",  0.0, 0.0, "F.Fab"),
         # sensor decoupling caps
         # C10 0603 in NE corner cluster (C4 west, C1 east) with very
         # little silk room — C1 8 mm radial body silk sits 0.6 mm north
@@ -1603,27 +1598,27 @@ def gen_silk_labels() -> str:
         "C1":  (+35.75, -39),
         "C3":  (+25.75, -39),
         "U1":  (-38.03, -34.014),
-        "D2":  (+2, -34.5),
-        "L1":  (+9, -34.5),
+        "D2":  (-23.1, -33.5),
+        "L1":  (-23.1, -40.7),
         "C4":  (+25.568, -48),
-        "U2":  (-6.76, -39.25),
-        "L2":  (+5.438, -40.5),
-        "R2":  (-1.5, -38.0),
-        "R3":  (-1.5, -40.5),
-        "C9":  (+0, -30.8),
-        "C13": (-14, -30.8),
-        "C14": (-6, -30.8),
-        "C17": (+4, -30.8),
-        "R5":  (+8, -30.8),
-        "R6":  (+11, -30.8),
-        "R7":  (+14, -30.8),
-        "C5":  (-25, -43.5),
-        "C15": (-18.5, -43.5),
-        "C6":  (-14, -43.5),
-        "C16": (-10, -43.5),
-        "C7":  (-6, -43.5),
-        "C8":  (-2, -43.5),
-        "C2":  (-21, -30.8),
+        "U2":  (-5.8, -40.7),
+        "L2":  (+3.3, -40.7),
+        "R2":  (-8.05, -33.5),
+        "R3":  (-3.65, -33.5),
+        "C9":  (+13.5, -40.7),
+        "C13": (-16.85, -33.5),
+        "C14": (-17.7, -40.7),
+        "C17": (+5.15, -33.5),
+        "R5":  (+9.55, -33.5),
+        "R6":  (+14.0, -33.5),
+        "R7":  (+18.4, -33.5),
+        "C5":  (-13.6, -40.7),
+        "C15": (-9.5, -40.7),
+        "C6":  (+9.05, -40.7),
+        "C16": (+0.75, -33.5),
+        "C7":  (-2.1, -40.7),
+        "C8":  (-12.45, -33.5),
+        "C2":  (+18.0, -40.7),
         "C10": (+32, -47),
         "C11": (-52.5, +14.0),
         "C12": (-25, +23),
