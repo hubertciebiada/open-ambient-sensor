@@ -133,22 +133,6 @@
 	(uuid "e8f878cf-90a9-5001-9bea-45dd089aaa09")
 )
 (gr_rect
-	(start 149.6 132.198)
-	(end 165.3 148.497798)
-	(stroke (width 0.1) (type solid))
-	(fill no)
-	(layer "Dwgs.User")
-	(uuid "3d2a16b2-1d74-5099-94d5-6e69ee9f8726")
-)
-(gr_text "C2\n15.7×16.3"
-	(at 157.45 140.347899)
-	(layer "Dwgs.User")
-	(uuid "219d7139-c245-56bf-a291-6a6b98d57e08")
-	(effects
-		(font (size 0.8 0.8) (thickness 0.12))
-	)
-)
-(gr_rect
 	(start 135.5 132.198)
 	(end 146.5 148.497798)
 	(stroke (width 0.1) (type solid))
@@ -1759,7 +1743,7 @@
 (footprint "Connector_JST:JST_SH_SM04B-SRSS-TB_1x04-1MP_P1.00mm_Horizontal"
 	(layer "F.Cu")
 	(uuid "0f1ee8d3-e388-507e-9ba1-1b6b45863158")
-	(at 157.45 144.69 0)
+	(at 165.5 85.5 0)
 (property "Reference" "J9"
 	(at 0 -3.6 0)
 	(layer "F.SilkS")
@@ -6004,7 +5988,7 @@
 (footprint "Diode_SMD:D_SMB"
 	(layer "F.Cu")
 	(uuid "b592b8bd-36da-5190-b9bd-3e6c8df8d207")
-	(at 167.5 114.5 180)
+	(at 162.5 122 180)
 (property "Reference" "D1"
 	(at 0 -3.1 180)
 	(layer "F.SilkS")
@@ -6280,16 +6264,16 @@
 (footprint "Package_TO_SOT_SMD:SOT-23"
 	(layer "F.Cu")
 	(uuid "11285b0b-fd6a-58c0-9ff9-df963c386c25")
-	(at 162.5 138 0)
+	(at 168 126 180)
 (property "Reference" "Q1"
-	(at 0 -2.4 0)
+	(at 0 -2.4 180)
 	(layer "F.SilkS")
 			(hide yes)
 	(uuid "80ead5c3-b689-50e0-842a-834c1790079e")
 	(effects (font (size 1 1) (thickness 0.2)))
 )
 (property "Value" "AO3401A"
-	(at 0 2.4 0)
+	(at 0 2.4 180)
 	(layer "F.Fab")
 			(hide yes)
 	(uuid "81109b9d-e97c-5a9f-a412-dfeca7117eaf")
@@ -6559,21 +6543,21 @@
 			)
 		)
 	(pad "1" smd roundrect
-			(at -0.9375 -0.95)
+			(at -0.9375 -0.95 180)
 			(size 1.475 0.6)
 			(layers "F.Cu" "F.Mask" "F.Paste")
 			(roundrect_rratio 0.25)
 			(net 28 "Net-(Q1-G)")
 		)
 	(pad "2" smd roundrect
-			(at -0.9375 0.95)
+			(at -0.9375 0.95 180)
 			(size 1.475 0.6)
 			(layers "F.Cu" "F.Mask" "F.Paste")
 			(roundrect_rratio 0.25)
 			(net 18 "Net-(D1-K)")
 		)
 	(pad "3" smd roundrect
-			(at 0.9375 0)
+			(at 0.9375 0 180)
 			(size 1.475 0.6)
 			(layers "F.Cu" "F.Mask" "F.Paste")
 			(roundrect_rratio 0.25)
@@ -6594,16 +6578,16 @@
 (footprint "Diode_SMD:D_SOD-323"
 	(layer "F.Cu")
 	(uuid "39df49f7-0438-57b5-bf7a-9ebfceb8ccf0")
-	(at 168.5 138 0)
+	(at 168.5 133 90)
 (property "Reference" "D3"
-	(at 0 -1.5 0)
+	(at 0 -1.5 90)
 	(layer "F.SilkS")
 			(hide yes)
 	(uuid "d5be502b-866f-5ae5-8bc7-0401558448cd")
 	(effects (font (size 1 1) (thickness 0.2)))
 )
 (property "Value" "10V Zener 200mW"
-	(at 0 1.5 0)
+	(at 0 1.5 90)
 	(layer "F.Fab")
 			(hide yes)
 	(uuid "e29e7ee7-140f-5a14-bcc8-9bb9ec7103b8")
@@ -6840,7 +6824,7 @@
 			)
 		)
 	(pad "1" smd roundrect
-			(at -1.05 0)
+			(at -1.05 0 90)
 			(size 0.6 0.45)
 			(layers "F.Cu" "F.Mask" "F.Paste")
 			(roundrect_rratio 0.25)
@@ -6848,7 +6832,7 @@
 			(net 18 "Net-(D1-K)")
 		)
 	(pad "2" smd roundrect
-			(at 1.05 0)
+			(at 1.05 0 90)
 			(size 0.6 0.45)
 			(layers "F.Cu" "F.Mask" "F.Paste")
 			(roundrect_rratio 0.25)
@@ -6870,7 +6854,7 @@
         	(footprint "oas:Fuse_1812L_4532Metric"
         		(layer "F.Cu")
         		(uuid "c4743922-4c9e-5f76-be7b-33a0edb7b266")
-        		(at 163.5 130 0)
+        		(at 161.5 128.5 0)
         		(descr "PTC polyfuse 750 mA hold / 1.5 A trip / 33 V (Littelfuse 1812L075/33DR, LCSC C151170, 1812 SMD).")
         		(attr smd)
         		(property "Reference" "F1"
@@ -6966,133 +6950,17 @@
 	)
 (footprint "Resistor_SMD:R_0603_1608Metric"
 	(layer "F.Cu")
-	(uuid "5341af7a-68d5-5410-9781-cb4642bab77e")
-	(at 162.5 142 0)
-(property "Reference" "R1"
-	(at 0 -1.45 0)
-	(layer "F.SilkS")
-			(hide yes)
-	(uuid "5625dbfd-93d3-587b-90f0-d4b9892bc77b")
-	(effects (font (size 1 1) (thickness 0.2)))
-)
-(property "Value" "100k 1%"
-	(at 0 1.45 0)
-	(layer "F.Fab")
-			(hide yes)
-	(uuid "2ebb3701-99f2-5b59-8e20-1d122527f8af")
-	(effects (font (size 1 1) (thickness 0.15)))
-)
-(property "Footprint" "Resistor_SMD:R_0603_1608Metric"
-	(at 0 0 0)
-	(layer "F.Fab")
-	(hide yes)
-	(uuid "38856703-37b2-5ba1-a1f4-e7303bb6e18c")
-	(effects (font (size 1.27 1.27)))
-)
-(property "Datasheet" ""
-	(at 0 0 0)
-	(layer "F.Fab")
-	(hide yes)
-	(uuid "98e0e22a-8400-5afa-9082-ed5d5fade787")
-	(effects (font (size 1.27 1.27)))
-)
-(property "Description" "100 kΩ 1% gate-GND pulldown for Q1 (P-MOSFET reverse-polarity)."
-	(at 0 0 0)
-	(layer "F.Fab")
-	(hide yes)
-	(uuid "9556f6c3-f171-58be-ac79-0305c82b49e2")
-	(effects (font (size 1.27 1.27)))
-)
-	(layer "F.Cu")
-	(descr "Resistor SMD 0603 (1608 Metric), square (rectangular) end terminal, IPC-7351 nominal, (Body size source: IPC-SM-782 page 72, https://www.pcb-3d.com/wordpress/wp-content/uploads/ipc-sm-782a_amendment_1_and_2.pdf)")
-	(tags "resistor")
-	(attr smd)
-	(duplicate_pad_numbers_are_jumpers no)
-	(fp_line
-			(start -0.237258 -0.5225)
-			(end 0.237258 -0.5225)
-			(stroke (width 0.2)
-				(type solid)
-			)
-			(layer "F.SilkS")
-		)
-	(fp_line
-			(start -0.237258 0.5225)
-			(end 0.237258 0.5225)
-			(stroke (width 0.2)
-				(type solid)
-			)
-			(layer "F.SilkS")
-		)
-	(fp_rect
-			(start -1.48 -0.73)
-			(end 1.48 0.73)
-			(stroke
-				(width 0.05)
-				(type solid)
-			)
-			(fill no)
-			(layer "F.CrtYd")
-		)
-	(fp_rect
-			(start -0.8 -0.4125)
-			(end 0.8 0.4125)
-			(stroke
-				(width 0.1)
-				(type solid)
-			)
-			(fill no)
-			(layer "F.Fab")
-		)
-	(fp_text user "R1"
-			(at 0 0 0)
-			(layer "F.Fab")
-			(effects
-				(font
-					(size 0.4 0.4)
-					(thickness 0.06)
-				)
-			)
-		)
-	(pad "1" smd roundrect
-			(at -0.825 0)
-			(size 0.8 0.95)
-			(layers "F.Cu" "F.Mask" "F.Paste")
-			(roundrect_rratio 0.25)
-			(net 20 "Net-(D3-A)")
-		)
-	(pad "2" smd roundrect
-			(at 0.825 0)
-			(size 0.8 0.95)
-			(layers "F.Cu" "F.Mask" "F.Paste")
-			(roundrect_rratio 0.25)
-			(net 17 "GND")
-		)
-	(model "${KICAD10_3DMODEL_DIR}/Resistor_SMD.3dshapes/R_0603_1608Metric.step"
-			(offset
-				(xyz 0 0 0)
-			)
-			(scale
-				(xyz 1 1 1)
-			)
-			(rotate
-				(xyz 0 0 0)
-			)
-		)
-	)
-(footprint "Resistor_SMD:R_0603_1608Metric"
-	(layer "F.Cu")
 	(uuid "5d1af38c-1c28-575f-98ae-5dbf62de8fa0")
-	(at 168.5 142 0)
+	(at 168.5 138 90)
 (property "Reference" "R4"
-	(at 0 -1.45 0)
+	(at 0 -1.45 90)
 	(layer "F.SilkS")
 			(hide yes)
 	(uuid "9fcc8a28-5ca3-587b-8d51-5948e9fe13ed")
 	(effects (font (size 1 1) (thickness 0.2)))
 )
 (property "Value" "1k"
-	(at 0 1.45 0)
+	(at 0 1.45 90)
 	(layer "F.Fab")
 			(hide yes)
 	(uuid "e17c76a6-1c84-5603-b037-5da5755caa58")
@@ -7171,18 +7039,134 @@
 			)
 		)
 	(pad "1" smd roundrect
-			(at -0.825 0)
+			(at -0.825 0 90)
 			(size 0.8 0.95)
 			(layers "F.Cu" "F.Mask" "F.Paste")
 			(roundrect_rratio 0.25)
 			(net 28 "Net-(Q1-G)")
 		)
 	(pad "2" smd roundrect
-			(at 0.825 0)
+			(at 0.825 0 90)
 			(size 0.8 0.95)
 			(layers "F.Cu" "F.Mask" "F.Paste")
 			(roundrect_rratio 0.25)
 			(net 20 "Net-(D3-A)")
+		)
+	(model "${KICAD10_3DMODEL_DIR}/Resistor_SMD.3dshapes/R_0603_1608Metric.step"
+			(offset
+				(xyz 0 0 0)
+			)
+			(scale
+				(xyz 1 1 1)
+			)
+			(rotate
+				(xyz 0 0 0)
+			)
+		)
+	)
+(footprint "Resistor_SMD:R_0603_1608Metric"
+	(layer "F.Cu")
+	(uuid "5341af7a-68d5-5410-9781-cb4642bab77e")
+	(at 168.5 143 90)
+(property "Reference" "R1"
+	(at 0 -1.45 90)
+	(layer "F.SilkS")
+			(hide yes)
+	(uuid "5625dbfd-93d3-587b-90f0-d4b9892bc77b")
+	(effects (font (size 1 1) (thickness 0.2)))
+)
+(property "Value" "100k 1%"
+	(at 0 1.45 90)
+	(layer "F.Fab")
+			(hide yes)
+	(uuid "2ebb3701-99f2-5b59-8e20-1d122527f8af")
+	(effects (font (size 1 1) (thickness 0.15)))
+)
+(property "Footprint" "Resistor_SMD:R_0603_1608Metric"
+	(at 0 0 0)
+	(layer "F.Fab")
+	(hide yes)
+	(uuid "38856703-37b2-5ba1-a1f4-e7303bb6e18c")
+	(effects (font (size 1.27 1.27)))
+)
+(property "Datasheet" ""
+	(at 0 0 0)
+	(layer "F.Fab")
+	(hide yes)
+	(uuid "98e0e22a-8400-5afa-9082-ed5d5fade787")
+	(effects (font (size 1.27 1.27)))
+)
+(property "Description" "100 kΩ 1% gate-GND pulldown for Q1 (P-MOSFET reverse-polarity)."
+	(at 0 0 0)
+	(layer "F.Fab")
+	(hide yes)
+	(uuid "9556f6c3-f171-58be-ac79-0305c82b49e2")
+	(effects (font (size 1.27 1.27)))
+)
+	(layer "F.Cu")
+	(descr "Resistor SMD 0603 (1608 Metric), square (rectangular) end terminal, IPC-7351 nominal, (Body size source: IPC-SM-782 page 72, https://www.pcb-3d.com/wordpress/wp-content/uploads/ipc-sm-782a_amendment_1_and_2.pdf)")
+	(tags "resistor")
+	(attr smd)
+	(duplicate_pad_numbers_are_jumpers no)
+	(fp_line
+			(start -0.237258 -0.5225)
+			(end 0.237258 -0.5225)
+			(stroke (width 0.2)
+				(type solid)
+			)
+			(layer "F.SilkS")
+		)
+	(fp_line
+			(start -0.237258 0.5225)
+			(end 0.237258 0.5225)
+			(stroke (width 0.2)
+				(type solid)
+			)
+			(layer "F.SilkS")
+		)
+	(fp_rect
+			(start -1.48 -0.73)
+			(end 1.48 0.73)
+			(stroke
+				(width 0.05)
+				(type solid)
+			)
+			(fill no)
+			(layer "F.CrtYd")
+		)
+	(fp_rect
+			(start -0.8 -0.4125)
+			(end 0.8 0.4125)
+			(stroke
+				(width 0.1)
+				(type solid)
+			)
+			(fill no)
+			(layer "F.Fab")
+		)
+	(fp_text user "R1"
+			(at 0 0 0)
+			(layer "F.Fab")
+			(effects
+				(font
+					(size 0.4 0.4)
+					(thickness 0.06)
+				)
+			)
+		)
+	(pad "1" smd roundrect
+			(at -0.825 0 90)
+			(size 0.8 0.95)
+			(layers "F.Cu" "F.Mask" "F.Paste")
+			(roundrect_rratio 0.25)
+			(net 20 "Net-(D3-A)")
+		)
+	(pad "2" smd roundrect
+			(at 0.825 0 90)
+			(size 0.8 0.95)
+			(layers "F.Cu" "F.Mask" "F.Paste")
+			(roundrect_rratio 0.25)
+			(net 17 "GND")
 		)
 	(model "${KICAD10_3DMODEL_DIR}/Resistor_SMD.3dshapes/R_0603_1608Metric.step"
 			(offset
@@ -10000,7 +9984,7 @@
 	(uuid "f7d3b00f-c6f5-5aec-a7e4-460bb505d022")
 	(effects (font (size 1.27 1.27)))
 )
-(property "Description" "LM2596S-5.0 5 V 3 A asynchronous step-down buck (TI), TO-263-5. Rework 5: +1 mm east (was -36 → -35). U1 body half_x=5.3 so body now spans X ∈ [-40.3, -29.7]: 3.17 mm gap to LD2410 east edge (-43.47), 1.94 mm gap to ESP32 west edge (-27.76)."
+(property "Description" "LM2596S-5.0 5 V 3 A asynchronous step-down buck (TI), TO-263-5. Rework 5: +1 mm east (was -36 → -35). U1 body half_x=5.3 so body now spans X ∈ [-40.3, -29.7]: 3.17 mm gap to LD2410 east edge (-43.47), 1.94 mm gap to ESP32 west edge (-27.76). v0.50-rework: a 180° rotation was evaluated to relieve buck fan-out congestion but does not fit — the flip swings the 5-lead row ~8.2 mm east into the ESP32 (MOD1) body silk, and the compensating westward shift would collide with LD2410. The LD2410↔ESP32 corridor (15.7 mm) is too tight; kept at rotation 0."
 	(at 0 0 0)
 	(layer "F.Fab")
 	(hide yes)
@@ -15190,11 +15174,19 @@
 	)
 )
 (gr_text "J9 GND"
-	(at 158.95 144.69 0)
+	(at 167 85.5 0)
 	(layer "F.Fab")
 	(uuid "7576b624-1ff4-5202-ba09-939643eb627b")
 	(effects
 		(font (size 0.8 0.8) (thickness 0.15))
+	)
+)
+(gr_text "J9"
+	(at 165.5 90.5 0)
+	(layer "F.SilkS")
+	(uuid "c880ef6b-a2b7-5978-a516-d5086891b35a")
+	(effects
+		(font (size 1 1) (thickness 0.2))
 	)
 )
 (gr_text "GND"
@@ -15253,14 +15245,6 @@
 		(font (size 1 1) (thickness 0.2))
 	)
 )
-(gr_text "J9"
-	(at 158.9 139.5 0)
-	(layer "F.SilkS")
-	(uuid "05cfd0c6-ab1e-5c34-9b12-ddd1444365da")
-	(effects
-		(font (size 1 1) (thickness 0.2))
-	)
-)
 (gr_text "SW1"
 	(at 141 140.8 0)
 	(layer "F.SilkS")
@@ -15270,7 +15254,7 @@
 	)
 )
 (gr_text "D1"
-	(at 167.5 111.5 0)
+	(at 162.5 125.4 0)
 	(layer "F.SilkS")
 	(uuid "03713f03-7912-54fa-b1ef-4ee07db084a6")
 	(effects
@@ -15278,15 +15262,15 @@
 	)
 )
 (gr_text "F1"
-	(at 163.5 125.5 0)
-	(layer "F.SilkS")
+	(at 165.2 128.5 90)
+	(layer "F.Fab")
 	(uuid "50e74881-d8fe-51f5-97c6-40a04bcad359")
 	(effects
-		(font (size 1 1) (thickness 0.2))
+		(font (size 1 1) (thickness 0.15))
 	)
 )
 (gr_text "Q1"
-	(at 164.75 138 90)
+	(at 168 129 0)
 	(layer "F.Fab")
 	(uuid "636d0008-4c86-5526-a00e-1407bbfc623d")
 	(effects
@@ -15294,25 +15278,25 @@
 	)
 )
 (gr_text "D3"
-	(at 171 138 0)
+	(at 170.8 133 0)
 	(layer "F.Fab")
 	(uuid "bb47053a-2ba3-5b69-b06f-6ab75b5aa8a8")
 	(effects
 		(font (size 1 1) (thickness 0.15))
 	)
 )
-(gr_text "R1"
-	(at 159.5 142 0)
+(gr_text "R4"
+	(at 170.8 138 0)
 	(layer "F.Fab")
-	(uuid "c12143ad-9c35-5c1f-bdfe-37a57af66824")
+	(uuid "0d5e6702-ec89-5084-9f59-40436e6d3ea9")
 	(effects
 		(font (size 1 1) (thickness 0.15))
 	)
 )
-(gr_text "R4"
-	(at 171.5 142 0)
+(gr_text "R1"
+	(at 170.8 143 0)
 	(layer "F.Fab")
-	(uuid "0d5e6702-ec89-5084-9f59-40436e6d3ea9")
+	(uuid "c12143ad-9c35-5c1f-bdfe-37a57af66824")
 	(effects
 		(font (size 1 1) (thickness 0.15))
 	)
@@ -15883,42 +15867,6 @@
 	(uuid "5129ec94-f152-50c0-b21e-dfacebb6a942")
 	(effects
 		(font (size 1 1) (thickness 0.15))
-	)
-)
-(zone
-	(net 0)
-	(net_name "")
-	(layers "F.Cu" "B.Cu")
-	(uuid "e5b1a561-6518-5130-a8c5-3549e318b7aa")
-	(name "Connector_Cutout_C2")
-	(hatch edge 0.508)
-	(connect_pads
-		(clearance 0.508)
-	)
-	(min_thickness 0.254)
-	(filled_areas_thickness no)
-	(keepout
-		(tracks allowed)
-		(vias allowed)
-		(pads allowed)
-		(copperpour allowed)
-		(footprints allowed)
-	)
-	(placement
-		(enabled no)
-		(sheetname "")
-	)
-	(fill
-		(thermal_gap 0.508)
-		(thermal_bridge_width 0.508)
-	)
-	(polygon
-		(pts
-			(xy 149.6 132.198)
-			(xy 165.3 132.198)
-			(xy 165.3 148.497798)
-			(xy 149.6 148.497798)
-		)
 	)
 )
 (zone

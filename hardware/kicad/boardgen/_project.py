@@ -339,8 +339,13 @@ CABLE_HOLE_DIAMETER = 12.0
 # opening).
 CUTOUTS = [
     # name, x_min, x_max, y_min, y_max, allow_pads  (PCB-local mm, +Y = toward chord)
-    ("C2", +1.100, +16.800, +27.198, +Y_CHORD, True),    # RJ45 / Ethernet opening (15.7 mm wide) — hosts J9 Qwiic / Stemma QT
-    # USB-C opening — immediately LEFT (-X) of the C2 / RJ45 opening in the
+    # v0.50-rework: the C2 cutout (RJ45 / Ethernet wall opening) is
+    # removed. It only ever hosted J9 (Qwiic), now relocated INTERNAL
+    # (see J9_PCB_* above). An empty case-wall keepout only sterilises
+    # routing space — and exported to Freerouting as a HARD keepout that
+    # trapped the J1 reverse-polarity protection cluster's pads — so the
+    # opening is dropped from CUTOUTS entirely.
+    # USB-C opening — immediately LEFT (-X) of the (removed) RJ45 opening in the
     # top-of-enclosure view (chord order: round | two-round | USB-C | RJ45 |
     # square). Hosts SW1, the side-actuated tactile push-button. The X range
     # is an ESTIMATE — the AK-N-94 manufacturer DXF is third-party (Rule 6)
@@ -911,16 +916,20 @@ J1_PCB_ROTATION = 180        # Rotation 180° places the cable-entry face
 # pad side and faces the chord (+Y) so the cable plugs in from outside the
 # case. J9_PCB_Y and J9_PCB_ROTATION are unaffected by the X mirror.
 #
-# Placement: C2 cutout X +1.1..+16.8 → centre the connector on the cutout
-# midpoint X = +8.95. Body courtyard X ~+5.05..+12.85, comfortably inside
-# the 15.7 mm-wide opening. J9_PCB_Y = +39.69 keeps the signal pad row at
-# PCB Y = +41.69, inside the cutout (C2 has allow_pads=True); the chord at
-# Y ≈ +43.52 is ~1 mm beyond the pad outer edge.
-# v0.45 note: the J1.1 <-> J9.1 "tht to smd" clearance was resolved by
-# nudging J1 0.4 mm north (see J1_PCB_Y), NOT by moving J9 — shifting J9
-# east ran its body courtyard into R1's.
-J9_PCB_X = +8.95             # PCB X — centred on the C2 / Ethernet cutout
-J9_PCB_Y = +39.69            # PCB Y — pads at +41.69 (inside the cutout)
+# Placement (routing-rework relocation): J9 moved OFF the C2 chord-side
+# wall cutout and INTERNAL, east of the J10 recovery header. An external
+# Qwiic cable threaded through the AK-N-94 wall cutout conflicts with
+# design Pillar #2 (aesthetic acceptability — no exposed wiring); the
+# Qwiic / Stemma QT expansion port is realistically an INTERNAL header
+# used only when a future daughterboard is added inside the enclosure, so
+# the connector belongs internal. The former cutout position also left
+# the J9 +3V3 / SDA / SCL trio unroutable (Freerouting could not escape
+# the chord-edge corridor). New anchor (+17.0, -19.5): courtyard spans
+# X +13.08..+20.92, Y -22.81..-16.19 — 1.6 mm clear of the "J10 flash"
+# board-silk label, 2.3 mm to the SEN66 zone west edge, 1.36 mm to the
+# J5 courtyard. Recovers the J9 +3V3/SDA/SCL trio for the autoroute.
+J9_PCB_X = +17.0             # PCB X — internal, east of the J10 header
+J9_PCB_Y = -19.5             # PCB Y — internal row, north of the J5 socket
 J9_PCB_ROTATION = 0          # orientation unchanged from prior C5 placement
 
 # -----------------------------------------------------------------------------

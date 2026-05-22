@@ -377,15 +377,36 @@ def gen_power_pcb_footprints() -> str:
     # snapshot would short Net-(D1-A1) into D1 pad 2 = GND. The cathode bar
     # on F.SilkS naturally follows the rotated footprint and ends up on the
     # east side, marking the cathode-on-VIN convention.
-    # Pre-routing rework 3: D1 shifted +3 mm east (was +16 → now +19) to
-    # widen the central north-south routing corridor between J1 (X=+5.08)
-    # and D1. ZT1 at PCB (+20.5, 0) bbox X ∈ [+19, +22] — D1 body at
-    # +19 anchor with half_x=3.0 extends X ∈ [+16, +22], which touches
-    # ZT1 body in X but is Y-disjoint (D1 Y ∈ [+7.7, +11.3] vs ZT1
-    # Y ∈ [-1.5, +1.5]). SEN66 west courtyard at +23.25: D1 east +22 →
-    # 1.25 mm clear.
+    # Routing rework (cluster spread): the J1 / Q1 reverse-polarity
+    # protection cluster (D1 / F1 / Q1 / D3 / R1 / R4) was jammed
+    # courtyard-to-courtyard in the corner east of J1, leaving no room
+    # for traces to escape the pads — ~7 signal nets were unroutable
+    # across three independent Freerouting attempts.
+    #
+    # The corridor east of J1 is bounded X +9.15..+23.22 (J1 east edge ..
+    # SEN66 zone west edge), Y +8..+43.5 (chord). HOWEVER the C2 case-wall
+    # cutout occupies X +1.1..+16.8, Y +27.2..+43.5 and is exported to
+    # Freerouting as a HARD copper keepout (a keepout-type zone exports as
+    # a Specctra DSN keepout regardless of its `tracks allowed` sub-rule).
+    # Any component placed inside that box has UNROUTABLE pads — this is
+    # the real reason Freerouting could never close the cluster nets.
+    #
+    # Fix: spread the six parts entirely within the ROUTABLE region:
+    #   - north band  : X +9.15..+23.22, Y +12..+27.2 (clear; the AQI LED
+    #     ring — D12 at (+11.67,+11.67) — eats the SW corner up to ~Y +14)
+    #   - east strip  : X +16.8..+23.22, Y +27.2..+42 (east of the C2
+    #     cutout, so the keepout does not apply)
+    # D1 / F1 / Q1 go in the north band; the gate network D3 / R4 / R1
+    # forms a vertical column in the east strip. Generous courtyard gaps
+    # (>=1.7 mm) give every pad a clear escape lane.
+    #
+    # D1 (SMBJ24A TVS, SMB ~7.4 x 4.6 courtyard) — north band, top row at
+    # (+14, +17). Courtyard X +10.3..+17.7, Y +14.7..+19.3 — north edge
+    # +14.7 clears the D12 LED courtyard top (~+14.2). Rotation 180 keeps
+    # pad 1 (cathode, KiCad D_SMB KLC) on the EAST physical side, facing
+    # the Q1 source.
     parts.append(gen_diode_smb_pcb_footprint(
-        x=+19, y=+9.5, rotation=180,
+        x=+14, y=+17, rotation=180,
         reference="D1", value="SMBJ24A",
         uuid_tag="d1-tvs-smbj24a",
         descr="SMBJ24A TVS surge clamp, 24 V standoff, 38.9 V clamp.",
@@ -425,25 +446,29 @@ def gen_power_pcb_footprints() -> str:
     # 3=D). PCB pads stay verbatim stock SOT-23 with names "1"/"2"/"3" —
     # no remap needed. Removes the previous lib_footprint_mismatch
     # warning that required `rule_severities` override.
-    # Pre-routing rework 3: Q1 cluster (Q1 / D3 / R1 / R4) relocated to
-    # the column south of F1 (anchor +15, +25). The C3 / C4 chord cutouts
-    # were removed, opening ~178 mm² of routing / placement space south
-    # of F1. New Q1 anchor (+15, +30) sits 5 mm south of F1 along the
-    # +24V_OUT path: F1 east pad → short link → Q1.S. Q1.D returns north
-    # to D1 (+19, +9.5) along a 20 mm diagonal route in open space.
+    # Routing rework (cluster spread): Q1 in the north band at (+19.5, +21)
+    # — east of F1, west of the SEN66 zone, north of the C2 cutout. Rotation
+    # 180 so the SOT-23 pad fan presents each net toward its neighbour:
+    # pad 3 (D) -> W centre, facing F1; pad 2 (S) -> NE corner, facing D1
+    # and the D3 anode on the protected rail; pad 1 (G) -> SE corner,
+    # facing the R4 gate resistor in the east strip below. Courtyard
+    # ~3.9 x 3.4 mm -> X +17.55..+21.45, Y +19.3..+22.7. Gap to D1 south
+    # edge (+19.3) — Q1 sits east of D1, X-disjoint; F1 east edge (+15.85)
+    # -> 1.7 mm.
     parts.append(gen_sot23_3pin_pcb_footprint(
-        x=+14, y=+33, rotation=0,
+        x=+19.5, y=+21, rotation=180,
         reference="Q1", value="AO3401A",
         uuid_tag="q1-pmos",
         descr="P-MOSFET reverse-polarity protection. SOT-23. AO3401A: Vds=-30 V, Vgs=±12 V, RDS(on)=60 mΩ @ Vgs=-10 V.",
     ))
-    # D3 — Q1 gate-source Zener clamp. Pre-routing rework 3: moved to
-    # the F1-south cluster (was +27, +28 near SEN66). New anchor (+19,
-    # +30): same Y row as Q1 (+15, +30), 4 mm east → Q1.G/S pads can
-    # reach D3 anode without crossing F1 body. SEN66 west courtyard
-    # at +23.25; D3 east body +20 → 3.25 mm clear.
+    # D3 — Q1 gate-source Zener clamp. Routing rework: top of the gate-
+    # network column in the east strip at (+20, +28), rotated 90 (vertical).
+    # D3.1 (anode side, Net-(D1-K)) faces NORTH toward the Q1 source / D1;
+    # D3.2 (cathode, gate-junction net D3-A) faces SOUTH toward R4 / R1.
+    # Courtyard ~1.9 x 3.2 mm -> X +19.05..+20.95, Y +26.4..+29.6 — fully
+    # inside the east strip (X +16.8..+23.22), clear of the C2 cutout.
     parts.append(gen_diode_sod323_pcb_footprint(
-        x=+20, y=+33, rotation=0,
+        x=+20, y=+28, rotation=90,
         reference="D3", value="10V Zener 200mW",
         uuid_tag="d3-zener",
         descr="10 V Zener clamp on Q1 gate-source to keep |Vgs| ≤ 10 V (v0.37 — was 18V pre-fix; AO3401A Vgs_max=±12V).",
@@ -454,29 +479,39 @@ def gen_power_pcb_footprints() -> str:
     # `oas:Fuse_1812L_4532Metric` — the stock generic IPC land (pad gap
     # 3.15 mm) mismatched this part's terminal geometry (gap 2.30 mm),
     # tripping JLCPCB DFM "pin inner edge". See gen_fuse_1812l_pcb_footprint.
-    # Body 4.55 x 3.24 mm, courtyard ~5.5 x 3.9 mm centered at (+15, +25)
-    # leaves comfortable clearance vs J1 east edge (+9.12) and SEN66 west
-    # courtyard (+23.50).
+    # Body 4.55 x 3.24 mm, courtyard ~5.6 x 3.9 mm. Routing rework: F1 in
+    # the north band at (+13, +23.5), west of Q1. F1.1 (+24V) faces WEST
+    # toward J1; F1.2 (Net-(Q1-D)) faces EAST toward the Q1 drain.
+    # Courtyard X +10.15..+15.85, Y +21.55..+25.45. Gap to D1 south edge
+    # (+19.3) = 2.25 mm; J1 east edge (+9.15) -> 1.0 mm; Q1 west edge
+    # (+17.55) -> 1.7 mm.
     parts.append(gen_fuse_1812l_pcb_footprint(
-        x=+15, y=+25, rotation=0,
+        x=+13, y=+23.5, rotation=0,
         reference="F1", value="1812L075/33DR",
         uuid_tag="f1-ptc",
         descr="PTC polyfuse 750 mA hold / 1.5 A trip / 33 V (Littelfuse 1812L075/33DR, LCSC C151170, 1812 SMD).",
     ))
-    # Pre-routing rework 3: R1 / R4 moved into the Q1 cluster south of
-    # F1. Row Y=+33 (3 mm south of Q1/D3 row at Y=+30). R1 below Q1,
-    # R4 below D3.
+    # Routing rework: R4 (gate series) and R1 (gate pulldown) continue the
+    # gate-network column in the east strip below D3, both rotated 90
+    # (vertical). The gate-junction net D3-A is the column axis at X +20:
+    # D3.2 -- R4.2 -- R1.1 all sit on X +20 for a near-straight trace.
+    # R4.1 (NORTH) carries Net-(Q1-G) up to the Q1 gate; R1.2 (SOUTH) is
+    # the GND pulldown leg (pour). 0603 rotated courtyard ~1.5 x 3.0 mm.
+    # R4 at (+20, +33): X +19.25..+20.75, Y +31.5..+34.5; R1 at (+20, +38):
+    # X +19.25..+20.75, Y +36.5..+39.5. Gaps: D3 south edge (+29.6) -> R4
+    # = 1.9 mm; R4 south (+34.5) -> R1 = 2.0 mm; PCB chord (+43.5) -> R1
+    # = 4.0 mm clear. Both fully inside the east strip (X +16.8..+23.22).
     parts.append(gen_resistor_0603_pcb_footprint(
-        x=+14, y=+37, rotation=0,
-        reference="R1", value="100k 1%",
-        uuid_tag="r1-gate-pulldown",
-        descr="100 kΩ 1% gate-GND pulldown for Q1 (P-MOSFET reverse-polarity).",
-    ))
-    parts.append(gen_resistor_0603_pcb_footprint(
-        x=+20, y=+37, rotation=0,
+        x=+20, y=+33, rotation=90,
         reference="R4", value="1k",
         uuid_tag="r4-gate-series",
         descr="1 kΩ gate series resistor between Q1.G and Vgs clamp junction.",
+    ))
+    parts.append(gen_resistor_0603_pcb_footprint(
+        x=+20, y=+38, rotation=90,
+        reference="R1", value="100k 1%",
+        uuid_tag="r1-gate-pulldown",
+        descr="100 kΩ 1% gate-GND pulldown for Q1 (P-MOSFET reverse-polarity).",
     ))
 
     # v0.26 POWER SECTION LAYOUT
@@ -570,7 +605,7 @@ def gen_power_pcb_footprints() -> str:
         x=-35, y=-34, rotation=0,
         reference="U1", value="LM2596S-5.0",
         uuid_tag="u1-lm2596",
-        descr="LM2596S-5.0 5 V 3 A asynchronous step-down buck (TI), TO-263-5. Rework 5: +1 mm east (was -36 → -35). U1 body half_x=5.3 so body now spans X ∈ [-40.3, -29.7]: 3.17 mm gap to LD2410 east edge (-43.47), 1.94 mm gap to ESP32 west edge (-27.76).",
+        descr="LM2596S-5.0 5 V 3 A asynchronous step-down buck (TI), TO-263-5. Rework 5: +1 mm east (was -36 → -35). U1 body half_x=5.3 so body now spans X ∈ [-40.3, -29.7]: 3.17 mm gap to LD2410 east edge (-43.47), 1.94 mm gap to ESP32 west edge (-27.76). v0.50-rework: a 180° rotation was evaluated to relieve buck fan-out congestion but does not fit — the flip swings the 5-lead row ~8.2 mm east into the ESP32 (MOD1) body silk, and the compensating westward shift would collide with LD2410. The LD2410↔ESP32 corridor (15.7 mm) is too tight; kept at rotation 0.",
     ))
     # D2, L1 stay inside ESP32 shadow (both <4 mm tall, comfortably within
     # the 5.5 mm budget). Switch-node trace from U1.OUT (pin 2 at PCB
@@ -1313,11 +1348,17 @@ def gen_silk_labels() -> str:
     # J9 — Qwiic JST SH 4-pin at 1.0 mm pitch: too fine for four separate
     # readable per-pin texts. The connector is mechanically keyed (the
     # Qwiic cable mates one way only) and follows the universal Qwiic
-    # pinout, so a single pin-1 marker is sufficient. Pad 1 (GND) sits at
-    # PCB X = J9_PCB_X + 1.5, pad row at PCB Y = J9_PCB_Y + 2.0; the F.Fab
-    # hint is placed just north of the pad row.
+    # pinout, so a single pin-1 marker is sufficient. Routing rework: J9
+    # relocated INTERNAL (east of J10) — the F.Fab pin-1 hint tracks the
+    # new J9_PCB_* anchor automatically.
     parts.append(_silk("J9 GND", J9_PCB_X + 1.5, J9_PCB_Y, "j9-p1-gnd",
                        size=0.8, layer="F.Fab"))
+    # v0.50-rework: J9 lost its F.SilkS identity when the C2 cutout (whose
+    # silk label named it) was removed. Add a direct "J9" F.SilkS label
+    # south of the connector body so the connector stays identified per
+    # the silkscreen convention.
+    parts.append(_silk("J9", J9_PCB_X, J9_PCB_Y + 5.0, "j9-id",
+                       size=1.0, layer="F.SilkS"))
 
     # J10 — native-USB recovery header, 1x06 P2.54 mm, rotation 90° (pad
     # row along PCB +X, pad 1 at the origin). v0.43: per-pin signal labels
@@ -1363,17 +1404,13 @@ def gen_silk_labels() -> str:
     SILK_TEXT_MIN_HORIZONTAL_FIT = 5.0   # mm — width needed to keep label
                                           # at 1.0 mm horizontal inside the rect
     CUTOUT_LABELS = {
-        # Short "J9" — the C2 opening sits in a tight silk corridor
-        # between J1 (terminal block, east) and the MIKROE NFC cluster
-        # (MOD2 / J7, west); a longer label trips silk_overlap DRC.
-        "C2": "J9",
         # USB-C opening hosts SW1 (side-actuated tactile push-button).
         "USBC": "SW1",
     }
-    # Cutouts that host a connector (with its own body silk) — skip the
-    # cutout silk rect to avoid silk_overlap DRC violations. The text
-    # label still emits, positioned just NORTH of the connector body.
-    CUTOUTS_WITHOUT_RECT = {"C2", "USBC"}
+    # Cutouts whose silk rect is skipped to avoid silk_overlap DRC. USBC
+    # hosts SW1 (its own body silk), so its rect is dropped — only the
+    # text label emits.
+    CUTOUTS_WITHOUT_RECT = {"USBC"}
     for name, x1, x2, y1, y2, allow_pads in CUTOUTS:
         rx1, rx2 = x1 + SILK_EDGE_INSET, x2 - SILK_EDGE_INSET
         ry1, ry2 = y1 + SILK_EDGE_INSET, y2 - SILK_EDGE_INSET
@@ -1399,13 +1436,7 @@ def gen_silk_labels() -> str:
         # the connector body shadow (into the PCB interior, away from the
         # case-wall edge) so it doesn't clash with the connector silk.
         # Other cutouts use the cutout centre.
-        if name == "C2":
-            # C2 hosts J9 (body at PCB X=+5.05..+12.85, Y=+36.41..+42.47).
-            # Place the label in the silk corridor at Y=+34.5 between J1's
-            # terminal-block silk rect (east edge +8.73) and the reverse-
-            # polarity cluster to the east (Q1 courtyard starts ~X +12.07).
-            tx, ty = +10.4, +34.5
-        elif name == "USBC":
+        if name == "USBC":
             # USBC hosts SW1. J1's terminal-block silk body rect reaches
             # PCB Y=+34.51 (south edge) and spans X -8.73..+8.73 — the
             # cutout centre (cx=-7.5, cy=+35.35) sits inside that X shadow,
@@ -1472,25 +1503,24 @@ def gen_silk_labels() -> str:
         tuple[str, float, float, str]
         | tuple[str, float, float, str, float]
     ] = [
-        # input-protection cluster (NOT under any daughterboard shadow)
-        ("D1",  0.0, -3.0, "F.SilkS"),
-        ("F1",  0.0, -4.5, "F.SilkS"),
-        # Pre-routing rework 3: Q1 / D3 / R1 / R4 cluster relocated to
-        # the F1-south column (Q1 at +15,+30 — D3 at +19,+30 — R1 at
-        # +15,+33 — R4 at +19,+33). Every body is in a tight 7×4 mm
-        # block; F.Fab labels placed in the small gaps between bodies.
-        #   - Q1: vertical text east of Q1 body, between Q1 east silk
-        #     (+16.5) and D3 west body (+18). 1.5 mm strip.
-        #   - D3: horizontal text east of D3 body, between D3 east
-        #     (+20) and SEN66 west courtyard (+23.25). 3.25 mm strip.
-        #   - R1: horizontal text west of R1 body, between J1 east
-        #     courtyard (+9.12) and R1 west body (+14). ~5 mm strip.
-        #   - R4: horizontal text east of R4 body, between R4 east
-        #     (+20) and SEN66 west courtyard (+23.25). 3.25 mm strip.
-        ("Q1",  +2.25, 0.0, "F.Fab", 90.0),
-        ("D3",  +2.5,  0.0, "F.Fab"),
-        ("R1",  -3.0,  0.0, "F.Fab"),
-        ("R4",  +3.0,  0.0, "F.Fab"),
+        # input-protection cluster (NOT under any daughterboard shadow).
+        # Routing rework (cluster spread): the six parts sit in the
+        # routable region — D1 (+14,+17) / F1 (+13,+23.5) / Q1 (+19.5,+21)
+        # in the north band, and the gate network D3 (+20,+28) / R4
+        # (+20,+33) / R1 (+20,+38, all rotated 90 / vertical) as a column
+        # in the east strip.
+        #   - D1: F.SilkS label SOUTH of the body, in the D1<->F1 gap.
+        #   - F1: F.Fab vertical text EAST of the body, in the F1<->Q1
+        #     gap (J1 crowds the west side).
+        #   - Q1: F.Fab text SOUTH of the body, in the Q1<->D3 gap.
+        #   - D3 / R4 / R1: F.Fab text EAST of each body, in the strip
+        #     between the east column and the SEN66 zone (+23.22).
+        ("D1",  0.0, +3.4, "F.SilkS"),
+        ("F1",  +3.7, 0.0, "F.Fab", 90.0),
+        ("Q1",  0.0, +3.0, "F.Fab"),
+        ("D3",  +2.3,  0.0, "F.Fab"),
+        ("R4",  +2.3,  0.0, "F.Fab"),
+        ("R1",  +2.3,  0.0, "F.Fab"),
         # Buck1 cluster — NE radial caps (C1, C3, C4, C10).
         # v0.43: printed F.SilkS designators so each cap is identifiable
         # on the assembled board (the cap body covers its own footprint).
@@ -1567,12 +1597,12 @@ def gen_silk_labels() -> str:
     # Component anchors mirror the placements in gen_power_pcb_footprints().
     # Keep this dict in lock-step with that function.
     COMPONENT_ANCHORS = {
-        "D1":  (+19, +9.5),
-        "F1":  (+15, +25),
-        "Q1":  (+14, +33),
-        "D3":  (+20, +33),
-        "R1":  (+14, +37),
-        "R4":  (+20, +37),
+        "D1":  (+14, +17),
+        "F1":  (+13, +23.5),
+        "Q1":  (+19.5, +21),
+        "D3":  (+20, +28),
+        "R4":  (+20, +33),
+        "R1":  (+20, +38),
         "C1":  (+35.75, -39),
         "C3":  (+25.75, -39),
         "U1":  (-35, -34),
