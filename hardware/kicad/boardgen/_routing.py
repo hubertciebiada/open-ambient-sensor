@@ -65,23 +65,12 @@ from boardgen._project import (
 # Final state (v0.28e) routes every chunk.
 ROUTING_CHUNKS: tuple[str, ...] = (
     "gnd",         # Chunk 1 — F.Cu + B.Cu GND copper pour. ALWAYS on.
-    # Audit-19 (2026-05-19): "hand_v40" and "autoroute" temporarily
-    # DISABLED. The LED ring rework (12 LEDs at 30 deg -> 8 LEDs at
-    # 45 deg with skip moved from i=3 to i=2) and the placement-formula
-    # fix (LED rotation 270-theta -> 90-theta) collectively moved
-    # every LED pad to a new PCB position. The previously-captured
-    # autoroute snapshot in oas_routes.py references segment endpoints
-    # at the OLD pad positions -- replaying it would emit traces in
-    # mid-air. Same applies to "hand_v40" which stitches GND to the
-    # old D15/D16/C21 pad coords.
-    # TODO: after running Freerouting externally on the new layout and
-    # re-running tools/extract_routes.py, restore the full tuple:
-    #   ROUTING_CHUNKS = ("gnd", "hand_v40", "autoroute")
-    # The GND copper pour reconnects every GND pad automatically;
-    # non-GND signal nets show as WARN-level unconnected pads until
-    # the reroute completes (DRC tolerates -- warning not error).
-    # "hand_v40",
-    # "autoroute",
+    "autoroute",   # Chunk 2 — Freerouting snapshot replay (oas_routes.py).
+    # v0.50-routing-rework (2026-05-22): full re-route on the de-congested
+    # placement baseline. Freerouting routed 87/89 nets; the 2 it left
+    # (/IO/BTN, Earth_Protective) were closed by a grid A* router. The
+    # snapshot in oas_routes.py was captured by tools/extract_routes.py
+    # and is replayed verbatim here.
     # "io_finalize",      # legacy v0.28 chunk — superseded; not used
 )
 

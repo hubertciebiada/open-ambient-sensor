@@ -57,27 +57,16 @@ def main() -> int:
             st.fail(f"{n_viol} DRC violation(s) — see {drc_report}")
         st.ok(f"{n_viol} violations")
 
-        # Unconnected-pad baseline: with the routing rework still pending
-        # (CLAUDE.md TODO; ROUTING_CHUNKS = ("gnd",) only), the design
-        # carries exactly EXPECTED_UNCONNECTED non-GND pads that the GND
-        # pour cannot resolve. Hard-fail on ANY deviation — drop (routing
-        # progresses) or rise (regression) — so the harness notices the
-        # second a chunk gets added or removed from ROUTING_CHUNKS.
-        #
-        # When the routing rework lands, set EXPECTED_UNCONNECTED = 0 and
-        # delete this comment.
-        # v0.42: 88 -> 89 — the new SW1 push-button BTN net (SW1.1 ↔
-        # ESP32-C6 GPIO 1) adds one unrouted ratsnest; it gets routed in
-        # the pending routing-rework task. SW1.2 connects via the GND pour.
-        EXPECTED_UNCONNECTED = 89
+        # v0.50: routing rework complete — full Freerouting autoroute +
+        # grid-A* closure of the 2 hard nets + GND pour island stitching.
+        # The board is fully connected; any unconnected pad is now a real
+        # regression and must hard-fail.
+        EXPECTED_UNCONNECTED = 0
         if n_unc != EXPECTED_UNCONNECTED:
             st.fail(
-                f"{n_unc} unconnected pads — expected exactly "
-                f"{EXPECTED_UNCONNECTED} pre-routing-rework. "
-                f"If routing has progressed, update EXPECTED_UNCONNECTED "
-                f"in pipeline/generic/03_drc.py."
+                f"{n_unc} unconnected pad(s) — expected 0 (routing complete)."
             )
-        st.ok(f"{n_unc} unconnected pads (matches pre-routing baseline)")
+        st.ok(f"{n_unc} unconnected pads")
     return 0
 
 

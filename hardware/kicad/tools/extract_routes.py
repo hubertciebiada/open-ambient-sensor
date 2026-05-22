@@ -88,16 +88,33 @@ def _f(s: str) -> float:
     return float(s)
 
 
-def _parse_segment(block: str) -> dict | None:
+def _net_name(block: str, code2name: dict[int, str]) -> str | None:
+    """Resolve a track/via net name from its `(net ...)` clause.
+
+    Handles BOTH formats: KiCad's compact `(net N "name")` and boardgen's
+    bare `(net N)` (integer code only) — the latter is resolved through
+    `code2name`, built from the PCB header `(net N "name")` table. Prior
+    to this, the bare form silently failed and extract emitted 0 records.
+    """
+    m = re.search(r'\(net\s+(\d+)(?:\s+"([^"]*)")?\s*\)', block)
+    if m:
+        if m.group(2):
+            return m.group(2)
+        return code2name.get(int(m.group(1)))
+    m2 = re.search(r'\(net\s+"([^"]*)"\s*\)', block)
+    return m2.group(1) if m2 else None
+
+
+def _parse_segment(block: str, code2name: dict[int, str]) -> dict | None:
     m_start = re.search(rf'\(start\s+{_FLOAT}\s+{_FLOAT}\s*\)', block)
     m_end = re.search(rf'\(end\s+{_FLOAT}\s+{_FLOAT}\s*\)', block)
     m_w = re.search(rf'\(width\s+{_FLOAT}\s*\)', block)
     m_layer = re.search(r'\(layer\s+"([^"]+)"\s*\)', block)
-    m_net = re.search(r'\(net\s+(?:\d+\s+)?"([^"]*)"\s*\)', block)
-    if not (m_start and m_end and m_w and m_layer and m_net):
+    net_name = _net_name(block, code2name)
+    if not (m_start and m_end and m_w and m_layer and net_name):
         return None
     return {
-        "net_name": m_net.group(1),
+        "net_name": net_name,
         "layer": m_layer.group(1),
         "start": (_f(m_start.group(1)) - PAGE_CENTRE_X,
                   _f(m_start.group(2)) - PAGE_CENTRE_Y),
@@ -107,17 +124,17 @@ def _parse_segment(block: str) -> dict | None:
     }
 
 
-def _parse_via(block: str) -> dict | None:
+def _parse_via(block: str, code2name: dict[int, str]) -> dict | None:
     m_at = re.search(rf'\(at\s+{_FLOAT}\s+{_FLOAT}\s*\)', block)
     m_size = re.search(rf'\(size\s+{_FLOAT}\s*\)', block)
     m_drill = re.search(rf'\(drill\s+{_FLOAT}\s*\)', block)
     m_layers = re.search(r'\(layers\s+((?:"[^"]+"\s*)+)\)', block)
-    m_net = re.search(r'\(net\s+(?:\d+\s+)?"([^"]*)"\s*\)', block)
-    if not (m_at and m_size and m_drill and m_layers and m_net):
+    net_name = _net_name(block, code2name)
+    if not (m_at and m_size and m_drill and m_layers and net_name):
         return None
     layers = re.findall(r'"([^"]+)"', m_layers.group(1))
     return {
-        "net_name": m_net.group(1),
+        "net_name": net_name,
         "at": (_f(m_at.group(1)) - PAGE_CENTRE_X,
                _f(m_at.group(2)) - PAGE_CENTRE_Y),
         "size": _f(m_size.group(1)),
@@ -183,17 +200,22 @@ def _emit_via_repr(rec: dict, idx: int) -> str:
 
 def main() -> None:
     text = PCB.read_text(encoding="utf-8")
+    # Build the net code -> name map from the PCB header `(net N "name")`
+    # table so bare `(net N)` clauses on boardgen-emitted tracks resolve.
+    code2name: dict[int, str] = {}
+    for m in re.finditer(r'\(net\s+(\d+)\s+"([^"]*)"\)', text):
+        code2name.setdefault(int(m.group(1)), m.group(2))
     seg_blocks = _find_balanced_blocks(text, "(segment")
     via_blocks = _find_balanced_blocks(text, "(via")
 
     segments: list[dict] = []
     for b in seg_blocks:
-        rec = _parse_segment(b)
+        rec = _parse_segment(b, code2name)
         if rec is not None:
             segments.append(rec)
     vias: list[dict] = []
     for b in via_blocks:
-        rec = _parse_via(b)
+        rec = _parse_via(b, code2name)
         if rec is not None:
             vias.append(rec)
 
