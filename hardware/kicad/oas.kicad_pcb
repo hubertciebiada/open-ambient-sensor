@@ -6264,7 +6264,7 @@
 (footprint "Package_TO_SOT_SMD:SOT-23"
 	(layer "F.Cu")
 	(uuid "11285b0b-fd6a-58c0-9ff9-df963c386c25")
-	(at 168 126 180)
+	(at 167.938 128.5 180)
 (property "Reference" "Q1"
 	(at 0 -2.4 180)
 	(layer "F.SilkS")
@@ -9955,16 +9955,16 @@
 (footprint "oas:TO-263-5_LM2596"
 	(layer "F.Cu")
 	(uuid "4be6064c-33eb-5059-b8b4-c5951fa6f8c4")
-	(at 113.5 71 0)
+	(at 110.47 70.986 180)
 (property "Reference" "U1"
-	(at 0 -6.65 0)
+	(at 0 -6.65 180)
 	(layer "F.SilkS")
 			(hide yes)
 	(uuid "8bf0fa74-d891-5c20-804e-37806cfabe99")
 	(effects (font (size 1 1) (thickness 0.2)))
 )
 (property "Value" "LM2596S-5.0"
-	(at 0 6.65 0)
+	(at 0 6.65 180)
 	(layer "F.Fab")
 			(hide yes)
 	(uuid "6a347814-5887-5768-93da-5507f8172942")
@@ -9984,7 +9984,7 @@
 	(uuid "f7d3b00f-c6f5-5aec-a7e4-460bb505d022")
 	(effects (font (size 1.27 1.27)))
 )
-(property "Description" "LM2596S-5.0 5 V 3 A asynchronous step-down buck (TI), TO-263-5. Rework 5: +1 mm east (was -36 → -35). U1 body half_x=5.3 so body now spans X ∈ [-40.3, -29.7]: 3.17 mm gap to LD2410 east edge (-43.47), 1.94 mm gap to ESP32 west edge (-27.76). v0.50-rework: a 180° rotation was evaluated to relieve buck fan-out congestion but does not fit — the flip swings the 5-lead row ~8.2 mm east into the ESP32 (MOD1) body silk, and the compensating westward shift would collide with LD2410. The LD2410↔ESP32 corridor (15.7 mm) is too tight; kept at rotation 0."
+(property "Description" "LM2596S-5.0 5 V 3 A asynchronous step-down buck (TI), TO-263-5. v0.50-routing-rework: hand-placed in KiCad — rotated 180° and shifted ~3 mm west to (-38.03, -34.014) to relieve buck fan-out congestion. The 180° flip points the 5-lead row east toward the ESP32 fan-out zone; the compensating westward shift keeps the body clear of the LD2410 east edge."
 	(at 0 0 0)
 	(layer "F.Fab")
 	(hide yes)
@@ -10238,37 +10238,37 @@
 			)
 		)
 	(pad "1" smd rect
-			(at -8.23 -3.4)
+			(at -8.23 -3.4 180)
 			(size 3.5 1.02)
 			(layers "F.Cu" "F.Mask" "F.Paste")
 			(net 3 "+24V")
 		)
 	(pad "2" smd rect
-			(at -8.23 -1.7)
+			(at -8.23 -1.7 180)
 			(size 3.5 1.02)
 			(layers "F.Cu" "F.Mask" "F.Paste")
 			(net 19 "Net-(D2-K)")
 		)
 	(pad "3" smd rect
-			(at -8.23 0)
+			(at -8.23 0 180)
 			(size 3.5 1.02)
 			(layers "F.Cu" "F.Mask" "F.Paste")
 			(net 17 "GND")
 		)
 	(pad "3" smd rect
-			(at 2.022 0)
+			(at 2.022 0 180)
 			(size 8.705 10.587)
 			(layers "F.Cu" "F.Mask" "F.Paste")
 			(net 17 "GND")
 		)
 	(pad "4" smd rect
-			(at -8.23 1.7)
+			(at -8.23 1.7 180)
 			(size 3.5 1.02)
 			(layers "F.Cu" "F.Mask" "F.Paste")
 			(net 2 "+5V")
 		)
 	(pad "5" smd rect
-			(at -8.23 3.4)
+			(at -8.23 3.4 180)
 			(size 3.5 1.02)
 			(layers "F.Cu" "F.Mask" "F.Paste")
 			(net 17 "GND")
@@ -12028,7 +12028,7 @@
 (footprint "Package_TO_SOT_SMD:SOT-583-8"
 	(layer "F.Cu")
 	(uuid "adbf2e23-6cc7-5e56-bd40-4e28cb002585")
-	(at 146.5 64.5 0)
+	(at 141.74 65.75 0)
 (property "Reference" "U2"
 	(at 0 -1.8 0)
 	(layer "F.SilkS")
@@ -12313,7 +12313,7 @@
 (footprint "Inductor_SMD:L_Cenker_CKCS5040"
 	(layer "F.Cu")
 	(uuid "a41f647b-914e-5d96-943d-9b5901425a20")
-	(at 152.5 64.5 0)
+	(at 153.938 64.5 0)
 (property "Reference" "L2"
 	(at 0 -3.6 0)
 	(layer "F.SilkS")
@@ -12559,7 +12559,7 @@
 (footprint "Resistor_SMD:R_0603_1608Metric"
 	(layer "F.Cu")
 	(uuid "e4ad2d06-07fd-52ec-9463-e03292e32d4d")
-	(at 158.5 64.5 0)
+	(at 147 67 0)
 (property "Reference" "R2"
 	(at 0 -1.45 0)
 	(layer "F.SilkS")
@@ -12675,7 +12675,7 @@
 (footprint "Resistor_SMD:R_0603_1608Metric"
 	(layer "F.Cu")
 	(uuid "ada76f38-5f61-5935-9f59-d14af1cde3b2")
-	(at 161.5 64.5 0)
+	(at 147 64.5 0)
 (property "Reference" "R3"
 	(at 0 -1.45 0)
 	(layer "F.SilkS")
@@ -15270,7 +15270,7 @@
 	)
 )
 (gr_text "Q1"
-	(at 168 129 0)
+	(at 167.938 131.5 0)
 	(layer "F.Fab")
 	(uuid "636d0008-4c86-5526-a00e-1407bbfc623d")
 	(effects
@@ -15318,7 +15318,7 @@
 	)
 )
 (gr_text "U1"
-	(at 113.5 78 0)
+	(at 110.47 77.986 0)
 	(layer "F.Fab")
 	(uuid "eaf150c0-d3f0-521a-83de-19d81c4289fa")
 	(effects
@@ -15350,7 +15350,7 @@
 	)
 )
 (gr_text "U2"
-	(at 146.5 62 0)
+	(at 141.74 63.25 0)
 	(layer "F.Fab")
 	(uuid "6f6bd055-1206-5cfb-9d38-7ec2b9983f34")
 	(effects
@@ -15358,7 +15358,7 @@
 	)
 )
 (gr_text "L2"
-	(at 152.5 60.5 0)
+	(at 153.938 60.5 0)
 	(layer "F.Fab")
 	(uuid "5aed69d8-8dbb-5cdf-8839-7708c9f3be21")
 	(effects
@@ -15366,7 +15366,7 @@
 	)
 )
 (gr_text "R2"
-	(at 158.5 62.5 0)
+	(at 147 65 0)
 	(layer "F.Fab")
 	(uuid "26452ac3-684c-5279-9cf0-4c551c139644")
 	(effects
@@ -15374,7 +15374,7 @@
 	)
 )
 (gr_text "R3"
-	(at 161.5 62.5 0)
+	(at 147 62.5 0)
 	(layer "F.Fab")
 	(uuid "5385d42c-94b0-5196-b6a9-4b3a17e68bbd")
 	(effects

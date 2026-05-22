@@ -456,7 +456,7 @@ def gen_power_pcb_footprints() -> str:
     # edge (+19.3) — Q1 sits east of D1, X-disjoint; F1 east edge (+15.85)
     # -> 1.7 mm.
     parts.append(gen_sot23_3pin_pcb_footprint(
-        x=+19.5, y=+21, rotation=180,
+        x=+19.438, y=+23.5, rotation=180,
         reference="Q1", value="AO3401A",
         uuid_tag="q1-pmos",
         descr="P-MOSFET reverse-polarity protection. SOT-23. AO3401A: Vds=-30 V, Vgs=±12 V, RDS(on)=60 mΩ @ Vgs=-10 V.",
@@ -602,10 +602,10 @@ def gen_power_pcb_footprints() -> str:
 
     # ---- v0.26: U1 in west-of-ESP32 strip ----
     parts.append(gen_to263_5_pcb_footprint(
-        x=-35, y=-34, rotation=0,
+        x=-38.03, y=-34.014, rotation=180,
         reference="U1", value="LM2596S-5.0",
         uuid_tag="u1-lm2596",
-        descr="LM2596S-5.0 5 V 3 A asynchronous step-down buck (TI), TO-263-5. Rework 5: +1 mm east (was -36 → -35). U1 body half_x=5.3 so body now spans X ∈ [-40.3, -29.7]: 3.17 mm gap to LD2410 east edge (-43.47), 1.94 mm gap to ESP32 west edge (-27.76). v0.50-rework: a 180° rotation was evaluated to relieve buck fan-out congestion but does not fit — the flip swings the 5-lead row ~8.2 mm east into the ESP32 (MOD1) body silk, and the compensating westward shift would collide with LD2410. The LD2410↔ESP32 corridor (15.7 mm) is too tight; kept at rotation 0.",
+        descr="LM2596S-5.0 5 V 3 A asynchronous step-down buck (TI), TO-263-5. v0.50-routing-rework: hand-placed in KiCad — rotated 180° and shifted ~3 mm west to (-38.03, -34.014) to relieve buck fan-out congestion. The 180° flip points the 5-lead row east toward the ESP32 fan-out zone; the compensating westward shift keeps the body clear of the LD2410 east edge.",
     ))
     # D2, L1 stay inside ESP32 shadow (both <4 mm tall, comfortably within
     # the 5.5 mm budget). Switch-node trace from U1.OUT (pin 2 at PCB
@@ -641,25 +641,25 @@ def gen_power_pcb_footprints() -> str:
     # JLCPCB DFM "tht to smd" flagged L2 at 1.88 mm (Danger). U2 / L2 / R2 / R3
     # now share Y=-40.5; U2 sits 3.0 mm clear of the C8 0603 courtyard at -43.5.
     parts.append(gen_sot583_pcb_footprint(
-        x=-2, y=-40.5, rotation=0,
+        x=-6.76, y=-39.25, rotation=0,
         reference="U2", value="TPS62933",
         uuid_tag="u2-tps62933",
         descr="TPS62933 5 V→3.3 V synchronous buck (TI), SOT-583/VSON-8.",
     ))
     parts.append(gen_inductor_smd_5x5_pcb_footprint(
-        x=+4, y=-40.5, rotation=0,
+        x=+5.438, y=-40.5, rotation=0,
         reference="L2", value="2.2uH",
         uuid_tag="l2-buck2",
         descr="2.2 µH ≥2 A SMD shielded power inductor for U2 buck.",
     ))
     parts.append(gen_resistor_0603_pcb_footprint(
-        x=+10, y=-40.5, rotation=0,
+        x=-1.5, y=-38.0, rotation=0,
         reference="R2", value="100k",
         uuid_tag="r2-fb-top",
         descr="FB top divider for TPS62933 (sets +3.3V).",
     ))
     parts.append(gen_resistor_0603_pcb_footprint(
-        x=+13, y=-40.5, rotation=0,
+        x=-1.5, y=-40.5, rotation=0,
         reference="R3", value="30.9k",
         uuid_tag="r3-fb-bot",
         descr="FB bottom divider for TPS62933 (sets +3.3V).",
@@ -1599,20 +1599,20 @@ def gen_silk_labels() -> str:
     COMPONENT_ANCHORS = {
         "D1":  (+14, +17),
         "F1":  (+13, +23.5),
-        "Q1":  (+19.5, +21),
+        "Q1":  (+19.438, +23.5),
         "D3":  (+20, +28),
         "R4":  (+20, +33),
         "R1":  (+20, +38),
         "C1":  (+35.75, -39),
         "C3":  (+25.75, -39),
-        "U1":  (-35, -34),
+        "U1":  (-38.03, -34.014),
         "D2":  (+2, -34.5),
         "L1":  (+9, -34.5),
         "C4":  (+25.568, -48),
-        "U2":  (-2, -40.5),
-        "L2":  (+4, -40.5),
-        "R2":  (+10, -40.5),
-        "R3":  (+13, -40.5),
+        "U2":  (-6.76, -39.25),
+        "L2":  (+5.438, -40.5),
+        "R2":  (-1.5, -38.0),
+        "R3":  (-1.5, -40.5),
         "C9":  (+0, -30.8),
         "C13": (-14, -30.8),
         "C14": (-6, -30.8),
