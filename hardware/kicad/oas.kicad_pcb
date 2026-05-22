@@ -15869,42 +15869,7 @@
 		(font (size 1 1) (thickness 0.15))
 	)
 )
-(zone
-	(net 0)
-	(net_name "")
-	(layers "F.Cu" "B.Cu")
-	(uuid "c7af80d7-1365-568c-824a-9a2da9cdbd42")
-	(name "Connector_Cutout_USBC")
-	(hatch edge 0.508)
-	(connect_pads
-		(clearance 0.508)
-	)
-	(min_thickness 0.254)
-	(filled_areas_thickness no)
-	(keepout
-		(tracks allowed)
-		(vias allowed)
-		(pads allowed)
-		(copperpour allowed)
-		(footprints allowed)
-	)
-	(placement
-		(enabled no)
-		(sheetname "")
-	)
-	(fill
-		(thermal_gap 0.508)
-		(thermal_bridge_width 0.508)
-	)
-	(polygon
-		(pts
-			(xy 135.5 132.198)
-			(xy 146.5 132.198)
-			(xy 146.5 148.497798)
-			(xy 135.5 148.497798)
-		)
-	)
-)
+
 	(zone
 		(net 17)
 		(net_name "GND")

@@ -180,7 +180,7 @@ def gen_cutouts() -> tuple[str, str]:
         # GND) connect through thermal spokes and signal pads stay
         # isolated by the 0.2 mm clearance ring.
         copperpour_rule = "(copperpour allowed)" if allow_pads else "(copperpour not_allowed)"
-        keepouts.append(textwrap.dedent(f"""\
+        keepout_zone = textwrap.dedent(f"""\
             \t(zone
             \t\t(net 0)
             \t\t(net_name "")
@@ -216,7 +216,18 @@ def gen_cutouts() -> tuple[str, str]:
             \t\t\t\t(xy {X1} {Y2})
             \t\t\t)
             \t\t)
-            \t)"""))
+            \t)""")
+
+        # v0.50: emit the keepout zone ONLY for cutouts that truly block
+        # copper (allow_pads=False). An allow_pads=True cutout has every
+        # keepout flag set to "allowed" — the zone is inert inside KiCad,
+        # but KiCad's Specctra DSN export STILL turns it into a HARD
+        # keepout that walls Freerouting out of fully-routable case-wall-
+        # opening space (the USB-C opening hosting SW1). Skipping the zone
+        # keeps the Dwgs.User marker (documentation) without the phantom
+        # autoroute obstacle.
+        if not allow_pads:
+            keepouts.append(keepout_zone)
 
         # Dwgs.User marker: rectangle outline + label
         markers.append(textwrap.dedent(f"""\
