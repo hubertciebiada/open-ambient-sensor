@@ -6578,7 +6578,7 @@
 (footprint "Diode_SMD:D_SOD-323"
 	(layer "F.Cu")
 	(uuid "39df49f7-0438-57b5-bf7a-9ebfceb8ccf0")
-	(at 168.5 135 90)
+	(at 163.5 121.5 90)
 (property "Reference" "D3"
 	(at 0 -1.5 90)
 	(layer "F.SilkS")
@@ -6951,7 +6951,7 @@
 (footprint "Resistor_SMD:R_0603_1608Metric"
 	(layer "F.Cu")
 	(uuid "5d1af38c-1c28-575f-98ae-5dbf62de8fa0")
-	(at 168.5 140 90)
+	(at 163.5 126.5 90)
 (property "Reference" "R4"
 	(at 0 -1.45 90)
 	(layer "F.SilkS")
@@ -7067,7 +7067,7 @@
 (footprint "Resistor_SMD:R_0603_1608Metric"
 	(layer "F.Cu")
 	(uuid "5341af7a-68d5-5410-9781-cb4642bab77e")
-	(at 168.5 145 90)
+	(at 163.5 131.5 90)
 (property "Reference" "R1"
 	(at 0 -1.45 90)
 	(layer "F.SilkS")
@@ -15278,7 +15278,7 @@
 	)
 )
 (gr_text "D3"
-	(at 170.8 135 0)
+	(at 161 121.5 0)
 	(layer "F.Fab")
 	(uuid "bb47053a-2ba3-5b69-b06f-6ab75b5aa8a8")
 	(effects
@@ -15286,7 +15286,7 @@
 	)
 )
 (gr_text "R4"
-	(at 170.8 140 0)
+	(at 161 126.5 0)
 	(layer "F.Fab")
 	(uuid "0d5e6702-ec89-5084-9f59-40436e6d3ea9")
 	(effects
@@ -15294,7 +15294,7 @@
 	)
 )
 (gr_text "R1"
-	(at 170.8 145 0)
+	(at 161 131.5 0)
 	(layer "F.Fab")
 	(uuid "c12143ad-9c35-5c1f-bdfe-37a57af66824")
 	(effects

@@ -457,22 +457,22 @@ def gen_power_pcb_footprints() -> str:
     # 3=D). PCB pads stay verbatim stock SOT-23 with names "1"/"2"/"3" —
     # no remap needed. Removes the previous lib_footprint_mismatch
     # warning that required `rule_severities` override.
-    # v0.50 placement rework: Q1 joins the single vertical protection-
-    # cluster column at X=+20 (directly under ZT1), between F1 (north)
-    # and D1 (south). F1/Q1/D1/D3/R4/R1 now stack in ONE column so the
-    # cluster stops forming a wall of F.Cu traces across the J1 corner.
+    # v0.50 placement rework: Q1 sits in the RIGHT protection-cluster
+    # column at X=+20 (under ZT1), between F1 (north) and D1 (south).
+    # The cluster is two side-by-side columns (right: F1/Q1/D1; left at
+    # X=+15: gate network D3/R4/R1) instead of one tall stack.
     parts.append(gen_sot23_3pin_pcb_footprint(
         x=+20, y=+15.5, rotation=90,
         reference="Q1", value="AO3401A",
         uuid_tag="q1-pmos",
         descr="P-MOSFET reverse-polarity protection. SOT-23. AO3401A: Vds=-30 V, Vgs=±12 V, RDS(on)=60 mΩ @ Vgs=-10 V.",
     ))
-    # D3 — Q1 gate-source Zener clamp. v0.50 placement rework: part of the
-    # single vertical protection-cluster column at X=+20 (under ZT1),
-    # rotated 90. D3.1 (anode, Net-(D1-K)) faces NORTH toward Q1 source /
-    # D1; D3.2 (cathode, gate-junction net D3-A) faces SOUTH toward R4/R1.
+    # D3 — Q1 gate-source Zener clamp. v0.50 placement rework: NORTH end
+    # of the LEFT protection-cluster column at X=+15 (gate network
+    # D3/R4/R1), rotated 90; the right column at X=+20 carries F1/Q1/D1.
+    # D3.2 (cathode, gate-junction net D3-A) faces SOUTH toward R4/R1.
     parts.append(gen_diode_sod323_pcb_footprint(
-        x=+20, y=+30, rotation=90,
+        x=+15, y=+16.5, rotation=90,
         reference="D3", value="10V Zener 200mW",
         uuid_tag="d3-zener",
         descr="10 V Zener clamp on Q1 gate-source to keep |Vgs| ≤ 10 V (v0.37 — was 18V pre-fix; AO3401A Vgs_max=±12V).",
@@ -484,28 +484,28 @@ def gen_power_pcb_footprints() -> str:
     # 3.15 mm) mismatched this part's terminal geometry (gap 2.30 mm),
     # tripping JLCPCB DFM "pin inner edge". See gen_fuse_1812l_pcb_footprint.
     # Body 4.55 x 3.24 mm, courtyard ~5.6 x 3.9 mm. v0.50 placement
-    # rework: F1 is the NORTH end of the vertical protection-cluster
-    # column at X=+20 (under ZT1); F1/Q1/D1/D3/R4/R1 stack in one
-    # column to stop the F.Cu trace wall across the J1 corner.
+    # rework: F1 is the NORTH end of the RIGHT protection-cluster column
+    # at X=+20 (F1/Q1/D1, under ZT1); the gate network D3/R4/R1 forms the
+    # left column at X=+15 -- two columns instead of one tall stack.
     parts.append(gen_fuse_1812l_pcb_footprint(
         x=+20, y=+9.5, rotation=90,
         reference="F1", value="1812L075/33DR",
         uuid_tag="f1-ptc",
         descr="PTC polyfuse 750 mA hold / 1.5 A trip / 33 V (Littelfuse 1812L075/33DR, LCSC C151170, 1812 SMD).",
     ))
-    # R4 (gate series) and R1 (gate pulldown) are the SOUTH end of the
-    # vertical protection-cluster column at X=+20 (under ZT1), both
-    # rotated 90. The gate-junction net D3-A runs the column axis X=+20
-    # (D3.2 -- R4.2 -- R1.1 align). R4.1 (north) carries Net-(Q1-G) up to
-    # the Q1 gate; R1.2 (south) is the GND pulldown leg (pour).
+    # R4 (gate series) and R1 (gate pulldown) continue the LEFT
+    # protection-cluster column at X=+15, below D3, both rotated 90. The
+    # gate-junction net D3-A runs the column axis X=+15 (D3.2 -- R4.2 --
+    # R1.1 align). R4.1 (north) carries Net-(Q1-G) across to the Q1 gate
+    # in the right column; R1.2 (south) is the GND pulldown leg (pour).
     parts.append(gen_resistor_0603_pcb_footprint(
-        x=+20, y=+35, rotation=90,
+        x=+15, y=+21.5, rotation=90,
         reference="R4", value="1k",
         uuid_tag="r4-gate-series",
         descr="1 kΩ gate series resistor between Q1.G and Vgs clamp junction.",
     ))
     parts.append(gen_resistor_0603_pcb_footprint(
-        x=+20, y=+40, rotation=90,
+        x=+15, y=+26.5, rotation=90,
         reference="R1", value="100k 1%",
         uuid_tag="r1-gate-pulldown",
         descr="100 kΩ 1% gate-GND pulldown for Q1 (P-MOSFET reverse-polarity).",
@@ -1515,9 +1515,9 @@ def gen_silk_labels() -> str:
         ("D1",  +3.5, 0.0, "F.Fab"),
         ("F1",  +3.7, 0.0, "F.Fab", 90.0),
         ("Q1",  0.0, +3.0, "F.Fab"),
-        ("D3",  +2.3,  0.0, "F.Fab"),
-        ("R4",  +2.3,  0.0, "F.Fab"),
-        ("R1",  +2.3,  0.0, "F.Fab"),
+        ("D3",  -2.5,  0.0, "F.Fab"),
+        ("R4",  -2.5,  0.0, "F.Fab"),
+        ("R1",  -2.5,  0.0, "F.Fab"),
         # Buck1 cluster — NE radial caps (C1, C3, C4, C10).
         # v0.43: printed F.SilkS designators so each cap is identifiable
         # on the assembled board (the cap body covers its own footprint).
@@ -1597,9 +1597,9 @@ def gen_silk_labels() -> str:
         "D1":  (+20, +22.5),
         "F1":  (+20, +9.5),
         "Q1":  (+20, +15.5),
-        "D3":  (+20, +30),
-        "R4":  (+20, +35),
-        "R1":  (+20, +40),
+        "D3":  (+15, +16.5),
+        "R4":  (+15, +21.5),
+        "R1":  (+15, +26.5),
         "C1":  (+35.75, -39),
         "C3":  (+25.75, -39),
         "U1":  (-38.03, -34.014),
