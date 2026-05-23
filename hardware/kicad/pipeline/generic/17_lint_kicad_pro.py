@@ -34,6 +34,17 @@ def main() -> int:
         if not KICAD_PRO_PATH.exists():
             st.fail(f"{KICAD_PRO_PATH} not found — run build.py first")
 
+        # kicad-cli stages run earlier in build.py (pcb export svg, etc.)
+        # re-save oas.kicad_pro with KiCad's *default* rule_severities
+        # populated — not user-authored suppressions, just defaults. That
+        # would trip this lint as a false positive. boardgen's gen_pro()
+        # is the source of truth for the project file (always emits empty
+        # rule_severities); re-emit it here so the check sees the
+        # canonical state, not whatever kicad-cli last left behind.
+        sys.path.insert(0, str(KICAD_ROOT))
+        from boardgen._project_files import gen_pro  # noqa: E402
+        KICAD_PRO_PATH.write_text(gen_pro(), encoding="utf-8")
+
         data = json.loads(KICAD_PRO_PATH.read_text(encoding="utf-8"))
 
         board_sev = (
