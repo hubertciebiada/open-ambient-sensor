@@ -122,6 +122,38 @@ Fix: the lint re-emits `oas.kicad_pro` from `boardgen._project_files.gen_pro()` 
 
 ---
 
+## Lessons learned (v0.51 CI expansion)
+
+Four patterns from the post-v0.50 CI expansion (pipeline grew 29 → 35 stages; +5 new OAS checks + cascade extension to stage 08).
+
+### 16. Worst-case SPICE deck for ONE question ≠ realistic deck for another
+
+Stage 27 surge runs TWO simulations in one stage. **Sim 1 (worst-case for Q1)**: C1=1 µF, F1 omitted, drain isolated — stresses Vds(Q1), got 2.77 V vs 30 V limit (comfortable PASS). **Sim 2 (realistic for LM2596)**: C1=100 µF with 50 mΩ ESR + F1 cold-R=0.1 Ω + C5+C6=32 µF input bypass — got vlm_peak=27.0 V vs 40 V abs max. The drain spike from Sim 1 (67.6 V) was **mostly model artifact** — 40 V of it absorbed by the realistic bulk caps + F1 in Sim 2.
+
+When a SPICE finding looks alarming, re-check whether the parameters were deliberately stressed in a direction orthogonal to the new question. If yes: write a second sim with parameters tuned to the new question — don't trust the worst-case numbers across question boundaries.
+
+### 17. TypedDict + NotRequired for shared metadata dicts
+
+`POWER_BUDGET: list[PowerBudgetEntry]` (TypedDict in `boardgen/_project.py`) with `NotRequired[str]` on optional keys (`note`, `radio_group`). Consumers import via `if TYPE_CHECKING: from boardgen._project import PowerBudgetEntry` to keep static typing without runtime import cycles.
+
+Without TypedDict, mypy treats dict values as `object` → consumer-site coercions (`float(e["peak_ma"])`, `setdefault(rail, [])`) trip `arg-type` errors. Stage 15 mypy lint (`--check-untyped-defs --warn-unreachable`) is the enforcer. Side effect: defensive runtime `not isinstance(entry, dict)` checks become statically unreachable — delete them; the TypedDict enforces structure at type-check time.
+
+### 18. Shared SPICE infrastructure goes in `pipeline/oas/_spice.py` (underscore-prefixed)
+
+The `_` prefix excludes it from `build.py::discover_stages` glob `*/[0-9][0-9]_*.py` (same trick `pipeline/jlcpcb/_rotations.py` uses). Generic ngspice helpers extracted there — `ensure_ngspice()`, `_download()`, `parse_meas()`, `CheckResult`, `run_ngspice()`, `write_spice_init()` — now consumed by stages 08, 27, 28. Topology-/model-specific code (LM2596 model fetch, render functions, acceptance windows) stays in the consuming stage.
+
+Pattern for any future ngspice consumer: import from `_spice.py` first; if a helper is genuinely cross-stage, it belongs there. ONE cross-stage primitive per concern — no kitchen-sink module.
+
+### 19. Behavioural fallback when TI PSpice models don't fit ngspice
+
+Stage 08 cascade buck simulation needed TPS62933 on the 3V3 rail. TI's encrypted `slum790.zip` (the actual fixed-SS variant we use, U2 = TPS62933DRLR) does not load in ngspice — encrypted PSpice. The plaintext `slum818.zip` (TPS62933**P** ext-SS variant) loads via `set ngbehavior=ps`, but **timestep-collapses around 60 µs of sim time** under ngspice 46 — the internal SS state machine triggers step explosion before useful output.
+
+Fallback: behavioural averaged model (~40 SPICE lines) with datasheet-derived parameters — SS τ=1.4 ms, UVLO=3.0 V, η=95 %, Vref=0.8 V, LC filter 22 µF / 2.2 µH. Document the proxy clearly in the stage docstring. The cascade dynamics question (does 3V3 dip during LM2596 ramp?) is identical for both real and behavioural; the model is approximate, but the answer is robust.
+
+The same trick applies the other direction: stage 08's LM2596-alone check uses the REAL TI PSpice model (small 3 ms window — converges fine); the cascade portion switches to a behavioural LM2596 too (60 ms window with switching detail = millions of timesteps, exceeds the 300 s ngspice timeout).
+
+---
+
 ## 🔴 Public repository rules
 
 **This is a PUBLIC repository.** Every committed file MUST follow these rules. No exceptions.
@@ -144,7 +176,7 @@ Fix: the lint re-emits `oas.kicad_pro` from `boardgen._project_files.gen_pro()` 
 
 **v0.40 boards in flight at JLCPCB** (first prototype run, 5 units, full SMT assembly, ordered post-audit-16 — awaiting delivery). Schematic + PCB layout closed. Every placed footprint header uses canonical `<lib>:<name>` from KiCad stock or `oas:<name>` from the project-local library — zero bare names. Custom `oas:` geometry is used only where a stock entry is absent OR geometrically wrong for the exact ordered part; every such case is enumerated in the "Deviation budget" with a technical reason.
 
-**v0.50 routing — COMPLETE.** The board is fully routed and DRC-clean: `ROUTING_CHUNKS = ("gnd", "autoroute")`, `build.py` **30/30 PASS**, DRC **0 violations / 0 unconnected pads**. The signal routing was re-run with Freerouting 2.2.4 (Docker) against the *current* committed placement — full **89/89** coverage, 0 unrouted nets — then imported, and the fragmented F.Cu GND pour was hand-stitched in KiCad (GND pour fragments reconnected to the continuous B.Cu pour by stitching vias + short GND tracks). Final snapshot in `oas_routes.py`: **613 segments + 44 vias** (`tools/extract_routes.py`). `EXPECTED_UNCONNECTED` in `pipeline/generic/03_drc.py` is now `0` (the board is fully routed; any non-zero count is a regression).
+**v0.50 routing — COMPLETE.** The board is fully routed and DRC-clean: `ROUTING_CHUNKS = ("gnd", "autoroute")`, `build.py` **35/35 PASS** (post-v0.51 CI expansion), DRC **0 violations / 0 unconnected pads**. The signal routing was re-run with Freerouting 2.2.4 (Docker) against the *current* committed placement — full **89/89** coverage, 0 unrouted nets — then imported, and the fragmented F.Cu GND pour was hand-stitched in KiCad (GND pour fragments reconnected to the continuous B.Cu pour by stitching vias + short GND tracks). Final snapshot in `oas_routes.py`: **613 segments + 44 vias** (`tools/extract_routes.py`). `EXPECTED_UNCONNECTED` in `pipeline/generic/03_drc.py` is now `0` (the board is fully routed; any non-zero count is a regression).
 
 Note on the GND pour: Freerouting sees GND as an idealised `plane` (every pad on the plane = connected), so it never routes GND stitches. The F.Cu pour only fragments later, when KiCad re-fills the zone around all 89 signal nets — a zone-fill artifact downstream of Freerouting. Hand-stitching the fragments is the standard remedy and does not degrade the GND plane (the stitches are supplementary to the pour).
 
@@ -387,14 +419,21 @@ open-ambient-sensor/
     │   │   │   ├── 22_export_ibom.py     # InteractiveHtmlBom -> hardware/output/oas-ibom.html
     │   │   │   └── 24_preflight_gerbers.py  # pygerber integrity + drill stats + composite render
     │   │   ├── oas/                # OAS-only verification (hardcoded to this circuit)
+    │   │   │   ├── _spice.py             # SHARED ngspice harness — consumed by 08 / 27 / 28 (Lesson 18)
     │   │   │   ├── 05_check_dc.py        # DC voltage propagation analytical model
     │   │   │   ├── 06_check_boot.py      # ESP32-C6 strap + signal pin audit
     │   │   │   ├── 07_check_ampacity.py  # IPC-2221 trace width verifier
-    │   │   │   ├── 08_check_switching.py # ngspice LM2596 soft-start (auto-downloads model; hard FAIL on download / py7zr failure)
+    │   │   │   ├── 08_check_switching.py # ngspice LM2596 soft-start + cascade 24V→5V→3V3 (behavioural TPS62933 — Lesson 19)
     │   │   │   ├── 09_check_semantic.py  # I2C pull-ups, GPIO 8 pull-up, no_connect coverage (kicad-skip)
     │   │   │   ├── 14_check_refdes_unique.py  # designator uniqueness across schematic
     │   │   │   ├── 18_lint_no_hand_pads.py    # forbid hand-coded pad geometry (Lesson 1)
-    │   │   │   └── 19_check_oas_metadata.py   # EXTERNAL_MODULES + lcsc_mapping schema lint
+    │   │   │   ├── 19_check_oas_metadata.py   # EXTERNAL_MODULES + lcsc_mapping + POWER_BUDGET schema lint
+    │   │   │   ├── 21_check_polarity_silk.py  # radial-cap polarity-band silk audit
+    │   │   │   ├── 23_check_power_budget.py   # per-rail current sum vs derated protector limits
+    │   │   │   ├── 25_check_thermal.py        # LM2596 Tj from POWER_BUDGET Iout + extrapolated RthJA
+    │   │   │   ├── 26_check_i2c_rise_time.py  # SDA/SCL t_r + C_bus per UM10204 Standard-mode
+    │   │   │   ├── 27_check_surge.py          # ngspice IEC 61000-4-5 — TWO sims (Q1 Vds + LM2596 Vin — Lesson 16)
+    │   │   │   └── 28_check_reverse_polarity.py  # ngspice reverse-polarity Vgs clamp (sustained + arc transient)
     │   │   └── jlcpcb/             # VENDOR — JLCPCB-specific stages; deliverables -> hardware/output/jlcpcb/
     │   │       ├── _rotations.py             # tape-feeder rotation offsets (upstream + OAS gap-fillers)
     │   │       ├── 29_check_bom_consistency.py  # LCSC# bijection check
@@ -460,7 +499,8 @@ The boardgen walker lives at `pipeline/generic/01_emit_sources.py` (stage 01 of 
    - `02_determinism` — re-runs `01_emit_sources.py` in a fresh subprocess and checks 18 source files are bit-identical (fresh interpreter so `PYTHONHASHSEED` randomization exposes any dict-order leak).
    - `03_drc` — `kicad-cli pcb drc` strict (`--severity-error --severity-warning --refill-zones`). Auto-loads `oas.kicad_dru` (custom JLCPCB-tuned rules emitted by boardgen stage 14).
    - `04_erc` — `kicad-cli sch erc` strict (`--severity-error --severity-warning --exit-code-violations`).
-   - `05_check_dc` / `06_check_boot` / `07_check_ampacity` / `08_check_switching` — DC voltage propagation, boot-strap audit, trace ampacity, ngspice transient (auto-downloads ngspice + the LM2596 PSpice model into `.tmp/spice/` on first run; hard-fails on any download / `py7zr` extraction failure — no soft-skip).
+   - `05_check_dc` / `06_check_boot` / `07_check_ampacity` — DC voltage propagation, boot-strap audit, trace ampacity. Pure-Python analytical.
+   - `08_check_switching` — ngspice LM2596 soft-start (real TI PSpice model, ~3 ms window) + cascade 24V→LM2596→5V→TPS62933→3V3 soft-start (behavioural averaged models for both bucks — see Lesson 19). Auto-downloads ngspice + LM2596 + TPS62933P into `.tmp/spice/` on first run via the shared `pipeline/oas/_spice.py` harness (Lesson 18); hard-fails on any download / `py7zr` failure.
    - `09_check_semantic` — schematic semantic invariants via `kicad-skip` (I²C pull-ups R5/R6 = 4.7 kΩ, GPIO 8 pull-up R7 = 10 kΩ, no_connect coverage). Hard-fails if the kicad-skip submodule isn't initialized.
    - `10_render_2d` / `11_render_sch` / `12_render_png` / `13_render_3d` — re-renders SVG + PNG + 3D into `renders/`. `12_render_png` hard-fails if `cairosvg` is not importable (committed PNGs must never silently drift from their SVGs).
    - `14_check_refdes_unique` — designator uniqueness across the schematic.
@@ -468,10 +508,16 @@ The boardgen walker lives at `pipeline/generic/01_emit_sources.py` (stage 01 of 
    - `16_lint_compileall` — `python -m compileall` over `boardgen/` + `pipeline/` + `tools/` (catches syntax errors in modules not on the happy path).
    - `17_lint_kicad_pro` — Lesson 3 enforcement: `board.design_settings.rule_severities` and `erc.rule_severities` MUST be empty in `oas.kicad_pro`. Hard-fails on any suppression entry.
    - `18_lint_no_hand_pads` — Lesson 1 enforcement: every `gen_*_pcb_footprint` delegates to `_emit_stock_lib_footprint` or parses a `_*_lib_footprint_path` file. Whitelist: 10 documented OAS custom footprints in CLAUDE.md "Deviation budget".
-   - `19_check_oas_metadata` — Lesson 10 + Gap H: every `EXTERNAL_MODULES` entry has at least one identifier (`mpn` / `ean` / `material` / `supplier_*`); every `lcsc_mapping` entry matches the expected schema (LCSC# `^C\d+$`, library tier ∈ {Basic, Extended, N/A}, manufacturer + MPN non-empty).
+   - `19_check_oas_metadata` — Lesson 10 + Gap H + Lesson 6: every `EXTERNAL_MODULES` entry has at least one identifier (`mpn` / `ean` / `material` / `supplier_*`); every `lcsc_mapping` entry matches the expected schema (LCSC# `^C\d+$`, library tier ∈ {Basic, Extended, N/A}, manufacturer + MPN non-empty); every `POWER_BUDGET` entry has a non-empty HTTP(S) datasheet URL.
    - `20_export_gerbers` — vendor-neutral raw fab data (Protel gerbers + Excellon drill + drill_map PDFs) written to `hardware/build/gerbers/` (gitignored, intermediate).
+   - `21_check_polarity_silk` — radial-cap polarity-band silk audit (catches missing "+" or wrong-side wedge on electrolytic caps).
    - `22_export_ibom` — InteractiveHtmlBom HTML artefact `hardware/output/oas-ibom.html`. Vendor-neutral; primary use is the JLCPCB Assembly XLS pre-payment cross-check (Lesson 5). Hard-fails if InteractiveHtmlBom submodule or KiCad-bundled python missing.
+   - `23_check_power_budget` — reads `POWER_BUDGET` from `boardgen/_project.py` (TypedDict; Lesson 17); per-rail typ + peak current sum (radio-group-aware for ESP32-C6 Wi-Fi/BLE Coex time-share); checks each rail vs `POWER_BUDGET_SAFETY_DERATING × POWER_BUDGET_RAIL_LIMITS_MA` (LM2596 3 A / TPS62933 2 A / F1 750 mA hold).
    - `24_preflight_gerbers` — pygerber integrity + drill statistics + composite renders (smoke test on the raw fab data, vendor-neutral).
+   - `25_check_thermal` — LM2596 junction temperature `Tj = Tamb + Pdiss × RthJA`. RthJA piecewise-linear-extrapolated from TI SNVS124N anchors at the actual U1 tab Cu area (92 mm² parsed from `oas.kicad_pcb`). Pdiss derived from POWER_BUDGET 5V rail Iout via `Pdiss ≈ Vout × Iout × (1/η - 1)`. Hard-fail at Tj > 125 °C, warn at > 110 °C.
+   - `26_check_i2c_rise_time` — t_r and C_bus on shared I²C (SEN66 + NT3H1101 + Qwiic). Parses SDA/SCL track lengths from `oas_routes.py`; budgets device input C per UM10204 ceiling. Hard-fail on `t_r > 1000 ns` (Standard-mode 100 kHz) or `C_bus > 400 pF`.
+   - `27_check_surge` — ngspice IEC 61000-4-5 1.2/50 µs voltage / 8/20 µs current combination wave, 200 V peak, 2 Ω source. TWO sims (Lesson 16): Sim 1 worst-case Q1 (1 µF C1, no F1) checks `vds_peak ≤ 30 V` (AO3401A abs max); Sim 2 realistic LM2596 (100 µF C1 + 0.1 Ω F1 + 32 µF input bypass) checks `vlm_peak ≤ 40 V` (LM2596 SNVS124N Vin abs max). Each sim sweeps L_trace = 12.5 / 25 / 37.5 nH.
+   - `28_check_reverse_polarity` — ngspice reverse-polarity transients: sustained −24 V (100 ns edge, 5 ms hold) + arc-during-mating pulse (−60 V / 1 µs). Verifies BZT52C10S Zener + R4 + R1 hold `|Vgs(Q1)| ≤ 11 V` (1 V buffer under AO3401A 12 V hard max per Lesson 6).
    - `29_check_bom_consistency` — LCSC# bijection check across `lcsc_mapping.py` (catches copy-paste bugs before any vendor export).
    - `30_export_pos` / `31_export_bom` / `32_bundle` (in `pipeline/jlcpcb/`) — JLCPCB-specific deliverables: CPL header `Designator, Mid X, Mid Y, Layer, Rotation` + rotation offsets; BOM with LCSC mapping + range expansion + THT detection; ZIP bundle. All four output files land in `hardware/output/jlcpcb/`.
    - `33_check_dnp_consistency` — DNP attribute audit: PCB attrs `dnp` + `exclude_from_bom` + `exclude_from_pos_files` must travel together; DNP refdes must not leak into BOM or CPL files.
@@ -573,6 +619,16 @@ Freerouting is used as a congestion **diagnostic**, not as the routing source of
 ## Changelog summary
 
 Full historical detail lives in `git log --tags`. Highlights of the most recent milestones:
+
+### Tag naming policy
+
+Tags MUST be plain semver: `v<major>.<minor>` (e.g. `v0.51`) — or `v<major>.<minor>.<patch>` if it really is a patch (e.g. `v0.51.1`). **NO descriptive suffixes.** Forbidden: `v0.50-dfm-clean`, `v0.50-routing-rework`, `v0.40-validation-tighten`, etc. — those were legacy mistakes. A tag is an immutable version label, not a commit message; the description belongs in the changelog entry and the commit body. If it's a patch, it's `v0.51.1`. If it's a minor, it's `v0.52`. Nothing else.
+
+The legacy suffixed tags listed below stay as-is (rewriting history is worse than the original mistake), but every new tag MUST be plain semver.
+
+### Recent milestones
+
+- **v0.51** (2026-05-23): CI expansion — pipeline grew 29 → 35 stages (+5 new OAS checks + cascade extension to stage 08, ~58 s added to build time, no PCB design change). Stages added: **23** `check_power_budget` (per-rail current vs derated limits, single source of truth `POWER_BUDGET` TypedDict in `boardgen/_project.py` — Lesson 17); **25** `check_thermal` (LM2596 Tj=72.7 °C in 45 °C ambient — comfortable, 52 °C margin under TI Tj_max=125 °C); **26** `check_i2c_rise_time` (t_r=306/305 ns vs 1000 ns Standard-mode ceiling, ×3.3 margin); **27** `check_surge` (TWO ngspice IEC 61000-4-5 sims — Lesson 16: Sim 1 worst-case Q1 Vds=2.77 V vs 30 V, Sim 2 realistic LM2596 Vin=27.0 V vs 40 V abs max, with C1+F1+input bypass absorbing 40 V of the conservative-deck spike — confirms the alarming 67.6 V drain peak from Sim 1 was MODEL ARTIFACT); **28** `check_reverse_polarity` (D3 BZT52C10S forward-biased clamp holds |Vgs|=0.5 V vs 11 V threshold — 1 V buffer under AO3401A 12 V hard max). Stage **08** refactored to import from new shared `pipeline/oas/_spice.py` harness (Lesson 18); cascade 24V→5V→3V3 soft-start sim added (behavioural fallback for TPS62933 — Lesson 19). Implementation: 7 Opus agents in 3 dependency-ordered batches via the multi-agent dispatch pattern (POWER_BUDGET → thermal; `_spice.py` → surge/reverse-pol/cascade); each agent strictly scoped to one file to avoid conflicts. Board passes every new check on first run — no design changes triggered. 35/35 PASS in ~173 s.
 
 - **v0.50-routing-rework** (2026-05-22): Placement + routing rework on a clean baseline (the bad raw-autoroute `dd98a8b` had been reverted). **Placement** (all committed, DRC 0, build 30/30): (1) USB-C case-wall cutout made non-blocking for the autorouter — `gen_cutouts()` emits a keepout only for pad-less cutouts; (2) input-protection cluster (D1/F1/Q1/D3/R4/R1) rotated into two vertical columns under ZT1; (3) the 20-part buck section under the ESP32 re-spread from 3 cramped bands into a clean 2-row grid in the J5↔J6 gap — west→east power flow, ~5.7 mm routing corridor between rows, courtyards ≥3.6 mm from the THT pin rows (the old layout tripped a JLCPCB-DFM Danger at 1.26 mm); (4) C12 NFC decoupling moved next to J7 pin 7 (+3V3) — it had been ~13 mm away at the INT-pin level (a stale-comment pin-numbering bug from the v0.43 J7/J8 flip); (5) five LED-ring decoupling caps (C20/C24/C25/C26/C27) pulled to cap-radius 7.0 mm to free the inner annulus. JLCDFM-strict design rules (0.20 mm clearance, 0.70/0.30 mm vias, 0.25 mm track). **Routing — COMPLETED**: the earlier checkpoint snapshot (405 seg + 22 via) turned out **stale** — it had been extracted against a pre-Task-3 buck placement, so replaying it onto the committed placement shorted the buck section (87 DRC violations). The routing was re-run from scratch: Freerouting 2.2.4 (Docker `eclipse-temurin:25-jre`) against the *current* committed placement, on a DSN patched to JLCDFM-strict rules (clearance 0.20 mm, via 0.70/0.30 mm) — full **89/89 coverage, 0 unrouted nets**. After SES import, the F.Cu GND pour (which KiCad's zone-fill fragments into ~19 islands around the 89 signal nets — an artifact downstream of Freerouting, which sees GND as an idealised plane) was hand-stitched in KiCad: stitching vias + short GND tracks reconnecting every fragment to the continuous B.Cu pour. Final snapshot `oas_routes.py` = **613 seg + 44 via**; `ROUTING_CHUNKS = ("gnd", "autoroute")`; `pipeline/generic/03_drc.py` `EXPECTED_UNCONNECTED = 0`; `build.py` **30/30 PASS**, DRC **0 violations / 0 unconnected**.
 

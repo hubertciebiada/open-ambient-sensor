@@ -14993,7 +14993,7 @@
 		(font (size 1 1) (thickness 0.2))
 	)
 )
-(gr_text "v0.50"
+(gr_text "v0.51"
 	(at 189 142 0)
 	(layer "F.SilkS")
 	(uuid "6b845a78-f7a8-5f0a-947f-d4bc53c6c10f")
