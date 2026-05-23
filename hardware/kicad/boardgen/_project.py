@@ -3,13 +3,11 @@
 This module holds everything that DEFINES the OAS board as a specific
 electronic product:
 
-  - Project identity (name, repo, license, revision)
+  - Project identity (PROJECT_NAME, PROJECT_SHORTNAME)
   - External-module metadata (EXTERNAL_MODULES — Espressif devkit, SEN66,
     LD2410, MIKROE-2462, AK-N-94 enclosure)
   - ESP32-C6 GPIO pin assignments (GPIO_ASSIGNMENTS, GPIO_RESERVED,
     GPIO_SPARE — single source of truth for the pinout)
-  - Assembly + verification metadata (ASSEMBLY_INSTRUCTIONS,
-    CASE_VERIFICATION_CHECKLIST, LOCALLY_SOURCED_PARTS)
   - PCB geometry (Ø120 mm D-shape outline, mounting holes, cable hole,
     case-wall cutouts)
   - Daughterboard placements: SEN66 + zip-tie holes + J3 socket;
@@ -43,35 +41,20 @@ class PowerBudgetEntry(TypedDict):
 # =============================================================================
 # PROJECT METADATA
 # =============================================================================
-# Single source of truth for project identity, external modules, GPIO map,
-# and board revision. Consumed by:
+# Single source of truth for project identity, external modules, and GPIO
+# map. Consumed by:
 #   - boardgen stages themselves (title block / silk text; legacy
 #     constants like OAS_VERSION_LINE still drive existing renders today)
 #   - pipeline/oas/06_check_boot.py (could cross-check GPIO_ASSIGNMENTS)
 #   - downstream documentation (CLAUDE.md references constants by name)
 #
-# Update HERE FIRST when changing identity / revision / pinout / external
-# modules. Other places (CLAUDE.md quick-reference tables, schematic
-# generators) follow this dict.
+# Update HERE FIRST when changing identity / pinout / external modules.
+# Other places (CLAUDE.md quick-reference tables, schematic generators)
+# follow this dict.
 
 # Project identity --------------------------------------------------------
 PROJECT_NAME = "Open Ambient Sensor"
 PROJECT_SHORTNAME = "OAS"
-PROJECT_DESCRIPTION = (
-    "DIY multi-sensor environmental monitor for indoor spaces. "
-    "Measures air quality (CO2, PM, VOC, NOx, T, RH via SEN66) and presence "
-    "(LD2410 mmWave). 24 V DC input, ESPHome firmware, Home Assistant "
-    "integration. Mounts on a standard wall-recessed electrical box "
-    "(60 mm screw pitch)."
-)
-PROJECT_REPO = "https://github.com/hubertciebiada/open-ambient-sensor"
-PROJECT_LICENSE_HW = "CERN-OHL-S v2"
-PROJECT_LICENSE_FW = "MIT"
-
-# Board revision (manual update on significant geometry / netlist changes).
-# Also drives existing OAS_VERSION_LINE silk text in _common.py.
-BOARD_REVISION = "v0.40"
-BOARD_RELEASE_DATE = "2026-05-17"
 
 # External modules (manual-source / 3rd-party — NOT in lcsc-mapping.csv
 # because they go through THT hand-solder, separate procurement, or are
@@ -184,86 +167,6 @@ GPIO_RESERVED = {
 
 # Safe-non-strap spare GPIOs for future expansion.
 GPIO_SPARE = [0, 14, 18, 19, 20, 21, 22, 23]
-
-# Assembly + post-fab procedures (assembler-facing SOP) ------------------
-ASSEMBLY_INSTRUCTIONS = """\
-High-level assembly order:
-  1. Receive PCB (JLCPCB SMT-assembled with Basic + Extended Library parts).
-  2. Hand-solder THT parts that JLCPCB cannot stock — Phoenix terminal J1,
-     pin sockets J4..J8, radial bulk capacitors C1/C3/C4. See
-     LOCALLY_SOURCED_PARTS below.
-  3. Connect SEN66 module to PCB via JST GH 6-pin cable (~50 cm; ordered
-     separately, Sensirion ships SEN66 without cable).
-  4. Snap PCB into SZOMK AK-N-94 enclosure (PCB rests on cover screws / posts,
-     M3 with 2 mm washers under each screw).
-  5. Wire 24 V DC SELV to input terminal J1; mount the unit on a standard
-     wall-recessed electrical box (60 mm screw pitch).
-  6. Power on; flash via either DevKitM-1 USB-C port (see firmware/README.md).
-
-Tools: soldering iron (THT), Phillips M3 screwdriver, USB-C cable for first flash.
-
-Safety:
-  - 24 V DC SELV only — never connect mains directly to J1.
-  - TVS (D1 SMBJ24A) + PTC (F1 2920L075/60MR) on the input protect against
-    transients and reverse polarity; do NOT bypass.
-"""
-
-CASE_VERIFICATION_CHECKLIST = """\
-Verified at v0.40 against the physical AK-N-94 sample (SZOMK).
-
-Mechanical envelope:
-  - Front-side component height: 17 mm default, 22 mm allowed in the SEN66
-    zone (per physical-sample measurement).
-  - Back-side height: 5 mm max (with 2 mm washers under each M3 mounting screw
-    lifting the PCB off the bosses).
-  - PCB outline: Ø120 mm D-shape (arc R = 60 mm, flat chord 82.6545 mm at
-    the bottom edge).
-  - Mounting holes: 3 x M3 (Ø3.8 mm NPTH) on Ø110 mm pitch circle at
-    +/-47.631, +27.500 and 0, -55.000 (PCB-local coords, +Y = down).
-  - Central cable pass-through: Ø10 mm.
-
-When the enclosure DXF / manufacturer documentation evolves, re-verify each
-constant above against a fresh physical sample before locking the next
-board revision.
-"""
-
-# Locally-sourced parts (NOT in lcsc_mapping.py; not JLCPCB-assemblable) ---
-LOCALLY_SOURCED_PARTS = {
-    "SZOMK AK-N-94 enclosure": {
-        "qty_per_unit": 1,
-        "source": "https://www.chinaenclosure.com",
-        "notes": "Ø128 mm perforated white ABS, smoke-detector form factor.",
-    },
-    "Sensirion SEN66-SIN-T module": {
-        "qty_per_unit": 1,
-        "source": "Sensirion direct / Mouser / Digi-Key",
-        "notes": (
-            "Combo air-quality sensor (CO2, PM, VOC, NOx, T, RH). See "
-            "EXTERNAL_MODULES['SEN66-SIN-T'] for material code + accessory note."
-        ),
-    },
-    "Hi-Link HLK-LD2410B module": {
-        "qty_per_unit": 1,
-        "source": "AliExpress / HiLink direct / TME",
-        "notes": (
-            "mmWave presence radar. Specifically -B variant. See "
-            "EXTERNAL_MODULES['HLK-LD2410B']."
-        ),
-    },
-    "JST GH 6-pin cable (50 cm AWG26)": {
-        "qty_per_unit": 1,
-        "source": "Sensirion accessory or generic AWG26 JST GH",
-        "notes": (
-            "Connects SEN66 module to PCB J3 socket. Reference length 50 cm; "
-            "actual run length inside AK-N-94 is <100 mm."
-        ),
-    },
-    "24 V DC PSU": {
-        "qty_per_unit": "1 shared across deployment",
-        "source": "generic",
-        "notes": "Bus power for multi-unit deployments.",
-    },
-}
 
 # =============================================================================
 # (geometry / footprints / schematic generators follow)
@@ -1071,7 +974,6 @@ J2_PCB_ROTATION = 90         # LIB +Y → PCB +X (horizontal pad row east).
 J1_PIN_MAP: dict[int, str] = {1: "24V", 2: "GND", 3: "PE"}
 J2_PIN_MAP: dict[int, str] = {1: "+3V3", 2: "GND", 3: "TX", 4: "RX",
                               5: "EN", 6: "BOOT"}
-J9_PIN_MAP: dict[int, str] = {1: "GND", 2: "+3V3", 3: "SDA", 4: "SCL"}
 J10_PIN_MAP: dict[int, str] = {1: "GND", 2: "+3V3", 3: "USB-", 4: "USB+",
                                5: "EN", 6: "BOOT"}
 # J7/J8 — MIKROE-2462 mikroBUS socket, full per-pin names (mikroBUS Standard
