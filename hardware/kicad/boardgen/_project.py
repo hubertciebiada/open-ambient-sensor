@@ -26,8 +26,19 @@ sub-sheet IDs, KiCad format versions) live in `boardgen/_common.py`.
 from __future__ import annotations
 
 import math
+from typing import NotRequired, TypedDict
 
 from boardgen._common import fmt
+
+
+class PowerBudgetEntry(TypedDict):
+    name: str
+    rail: str
+    typ_ma: float
+    peak_ma: float
+    datasheet: str
+    note: NotRequired[str]
+    radio_group: NotRequired[str]
 
 # =============================================================================
 # PROJECT METADATA
@@ -1364,3 +1375,182 @@ def _led_local_to_pcb(index: int, lx: float, ly: float) -> tuple[float, float]:
     rx =  cos_a * lx + sin_a * ly
     ry = -sin_a * lx + cos_a * ly
     return (px + rx, py + ry)
+
+
+# =============================================================================
+# POWER BUDGET — per-rail load enumeration (single source of truth)
+# =============================================================================
+# Consumed by:
+#   - pipeline/oas/23_check_power_budget.py  — sums + 80% derating check
+#                                              against LM2596 / TPS62933 / F1.
+#   - pipeline/oas/25_check_thermal.py       — couples Iout(LM2596) to Pdiss
+#                                              (planned, see .tmp research).
+#   - pipeline/oas/19_check_oas_metadata.py  — lints that every entry has a
+#                                              non-empty `datasheet` URL
+#                                              (Lesson 6 — don't hallucinate
+#                                              datasheet values).
+#
+# Schema for each entry:
+#   - "name":      human-readable load identifier (designator class is fine)
+#   - "rail":      one of "3V3" / "5V" / "24V"
+#   - "typ_ma":    typical continuous current draw (mA) — best-effort avg
+#                  during normal Modem-sleep + I²C polling operation.
+#   - "peak_ma":   datasheet-spec peak current (mA). For radios this is the
+#                  TX peak; for switching converters' downstream loads this
+#                  is the inrush / startup peak.
+#   - "datasheet": authoritative URL where the values were sourced from.
+#                  MUST be a real HTTP/HTTPS URL (stage 19 enforces).
+#   - "note":      optional rationale / sourcing nuance.
+#
+# Radio concurrency rule: ESP32-C6 WiFi and BLE TIME-SHARE the single radio
+# (Coex feature). Stage 23 takes max(WiFi_TX_peak, BLE_TX_peak), NOT sum.
+# The two entries below are tagged with a shared "radio_group" key so the
+# summing logic can de-duplicate.
+#
+# SK6812-SIDE numbers reflect 4020 SIDE-A part (5 mA × 3 channels = 15 mA
+# full-white per LED), NOT WS2812B 5050 (20 mA × 3 = 60 mA). 7 active LEDs
+# on the OAS ring (1 of 8 slots vacated for J1 24V terminal). See OPSCO /
+# Normand SK6812 SIDE-A datasheet.
+POWER_BUDGET: list[PowerBudgetEntry] = [
+    {
+        "name": "ESP32-C6 idle (Modem-sleep)",
+        "rail": "3V3",
+        "typ_ma": 20.0,
+        "peak_ma": 20.0,
+        "datasheet": (
+            "https://www.espressif.com/sites/default/files/documentation/"
+            "esp32-c6_datasheet_en.pdf"
+        ),
+        "note": (
+            "ESP32-C6 DS §5.6 — Modem-sleep current, RTC running, "
+            "Wi-Fi/BT radios off. Baseline for typ_ma."
+        ),
+    },
+    {
+        "name": "ESP32-C6 WiFi TX @ 21 dBm",
+        "rail": "3V3",
+        "typ_ma": 0.0,
+        "peak_ma": 354.0,
+        "datasheet": (
+            "https://www.espressif.com/sites/default/files/documentation/"
+            "esp32-c6_datasheet_en.pdf"
+        ),
+        "radio_group": "esp32_radio",
+        "note": (
+            "ESP32-C6 DS Table 5-7 — peak TX current at 21 dBm output. "
+            "Shares 'esp32_radio' time-slice with BLE TX (max of the two, "
+            "not sum). typ_ma=0 because typ_ma of idle row already counts "
+            "the SoC baseline."
+        ),
+    },
+    {
+        "name": "ESP32-C6 BLE TX @ 20 dBm",
+        "rail": "3V3",
+        "typ_ma": 0.0,
+        "peak_ma": 315.0,
+        "datasheet": (
+            "https://www.espressif.com/sites/default/files/documentation/"
+            "esp32-c6_datasheet_en.pdf"
+        ),
+        "radio_group": "esp32_radio",
+        "note": (
+            "ESP32-C6 DS Table 5-8 — peak TX current at 20 dBm. Shares "
+            "'esp32_radio' with WiFi TX (Coex)."
+        ),
+    },
+    {
+        "name": "SEN66 air-quality combo",
+        "rail": "3V3",
+        "typ_ma": 90.0,
+        "peak_ma": 150.0,
+        "datasheet": "https://sensirion.com/resource/datasheet/SEN66",
+        "note": (
+            "Sensirion product page lists 'Avg supply current 90,000 µA'. "
+            "Peak ~150 mA during startup (laser PM module + fan spin-up "
+            "transient)."
+        ),
+    },
+    {
+        "name": "NT3H1101 NFC (active)",
+        "rail": "3V3",
+        "typ_ma": 10.0,
+        "peak_ma": 10.0,
+        "datasheet": (
+            "https://www.nxp.com/docs/en/data-sheet/NT3H1101_1201.pdf"
+        ),
+        "note": (
+            "NXP NT3H1101 DS — I²C-active current ≈10 mA. Sits on the "
+            "MIKROE-2462 NFC Tag 2 Click daughterboard."
+        ),
+    },
+    {
+        "name": "DevKitM-1 onboard power LED",
+        "rail": "3V3",
+        "typ_ma": 4.0,
+        "peak_ma": 5.0,
+        "datasheet": (
+            "https://docs.espressif.com/projects/esp-dev-kits/en/latest/"
+            "esp32c6/esp32-c6-devkitm-1/user_guide.html"
+        ),
+        "note": (
+            "DevKitM-1 schematic — power LED via series R to +3V3. "
+            "≈3-5 mA, lit whenever board powered."
+        ),
+    },
+    {
+        "name": "HLK-LD2410B mmWave radar",
+        "rail": "5V",
+        "typ_ma": 65.0,
+        "peak_ma": 80.0,
+        "datasheet": "https://www.hlktech.net (search LD2410B)",
+        "note": (
+            "Hi-Link LD2410B datasheet — typical ~65 mA, peak ~80 mA "
+            "during active radar sweep."
+        ),
+    },
+    {
+        "name": "SK6812-SIDE x7 (full-white)",
+        "rail": "5V",
+        "typ_ma": 35.0,
+        "peak_ma": 105.0,
+        "datasheet": (
+            "https://cdn-shop.adafruit.com/product-files/3777/3777_SK6812.pdf"
+        ),
+        "note": (
+            "OPSCO / Normand SK6812 SIDE-A (4020) — 5 mA per channel × "
+            "3 channels = 15 mA full-white per LED. 7 active LEDs × "
+            "15 mA = 105 mA peak. typ_ma 35 mA assumes avg ring colour "
+            "approx ⅓ duty during AQI breathing animation. NOT to be "
+            "confused with WS2812B 5050 at 60 mA/LED."
+        ),
+    },
+]
+
+# Stage 23 derating budget against absolute spec maxima of the chain
+# protectors. SAFETY_DERATING = 0.80 means "treat 80% of nominal as the
+# usable budget" — a typical industrial-grade margin. User may relax to
+# 0.85 (DIY) or tighten to 0.70 (long-life industrial); change here in
+# one place.
+POWER_BUDGET_SAFETY_DERATING = 0.80
+
+# Spec maxima per rail (mA) — driven by chain protection:
+#   - 5V:  LM2596S-5.0 datasheet I_out_max = 3000 mA.
+#   - 3V3: TPS62933 datasheet I_out_max = 3000 mA (conservative 2000 mA
+#          used here — the part can do 3 A but the package thermal-curve
+#          knee at 25 °C ambient + still air sits ≈ 2 A).
+#   - 24V: F1 Littelfuse 1812L075/33DR hold current = 750 mA (trip at
+#          1.5 A). Treat hold current as the budget upper bound — a load
+#          that drives F1 into trip would brown out the system.
+POWER_BUDGET_RAIL_LIMITS_MA = {
+    "5V":  3000.0,
+    "3V3": 2000.0,
+    "24V": 750.0,
+}
+
+# Min LM2596 efficiency used when projecting downstream rail power back
+# onto the 24V input. The LM2596 datasheet SNVS124N efficiency curves
+# show η drops to ~50% at light load (~100-200 mA) and peaks at ~80%
+# near full load. Stage 23 uses the conservative min(η) = 0.50 when
+# computing I(24V) from (P_5V + P_3V3) — this overestimates I_24V,
+# giving worst-case margin against F1 hold.
+POWER_BUDGET_BUCK_ETA_MIN = 0.50

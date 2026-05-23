@@ -1,6 +1,6 @@
 """Stage 19: metadata integrity checks on OAS source-of-truth dicts.
 
-Two checks, one stage:
+Three checks, one stage:
 
 A. `boardgen._project.EXTERNAL_MODULES` (Lesson 10): every dev-module /
    dev-board / breakout entry MUST carry at least one canonical part
@@ -21,6 +21,14 @@ B. `lcsc_mapping.LCSC_MAPPING` self-consistency (Gap H + Lesson 5):
    These guard against copy-paste typos like `C2302` vs `C23022` where
    one digit off lands on a completely different part (Lesson 5 R3
    near-miss: C23022 = 30.9 kΩ vs C23116 = 806 Ω).
+
+C. `boardgen._project.POWER_BUDGET` schema (Lesson 6 — don't hallucinate
+   datasheet values): every entry MUST carry
+     - `name`, `rail`, `typ_ma`, `peak_ma`, `datasheet`,
+   and the `datasheet` MUST be a non-empty HTTP/HTTPS URL. This forces
+   anyone touching the power budget to cite a real datasheet — caught
+   the same class of "I remember the AO3401A is ±20 V Vgs" error
+   audit-16 caught (actually ±12 V) before it can land in the budget.
 """
 from __future__ import annotations
 
@@ -35,6 +43,15 @@ STAGE_NAME = "check_oas_metadata"
 
 LCSC_PATTERN = re.compile(r"^C\d+$")
 LIBRARY_TIERS = {"Basic", "Extended", "N/A"}
+
+# POWER_BUDGET entries must cite a real datasheet URL (Lesson 6 — don't
+# hallucinate datasheet values). Empty / placeholder / "TBD" strings are
+# rejected. We require the value to START with an http(s):// URL token;
+# anything after (e.g. " (search LD2410B)") is descriptive and tolerated
+# because some manufacturer datasheet roots have no direct deep-link.
+DATASHEET_URL_PATTERN = re.compile(r"^https?://\S+")
+POWER_BUDGET_REQUIRED_KEYS = ("name", "rail", "typ_ma", "peak_ma", "datasheet")
+POWER_BUDGET_VALID_RAILS = {"3V3", "5V", "24V"}
 
 # At least one of these keys (case-sensitive) must be present in every
 # EXTERNAL_MODULES entry. Suffix match counts (so "supplier_pl",
@@ -100,11 +117,64 @@ def _check_lcsc_mapping(errors: list[str]) -> int:
     return len(LCSC_MAPPING)
 
 
+def _check_power_budget(errors: list[str]) -> int:
+    sys.path.insert(0, str(KICAD_ROOT))
+    from boardgen._project import POWER_BUDGET  # noqa: E402
+
+    for idx, entry in enumerate(POWER_BUDGET):
+        # PowerBudgetEntry is a TypedDict (statically enforced by mypy on
+        # boardgen/_project.py). Runtime is always a dict here; the legacy
+        # `isinstance(entry, dict)` defensive branch was unreachable.
+        loc = f"POWER_BUDGET[{idx}]"
+        if entry.get("name"):
+            loc = f"POWER_BUDGET[{idx}] ({entry['name']!r})"
+
+        for k in POWER_BUDGET_REQUIRED_KEYS:
+            if k not in entry:
+                errors.append(f"{loc} missing required key {k!r}")
+
+        rail = entry.get("rail", "")
+        if rail and rail not in POWER_BUDGET_VALID_RAILS:
+            errors.append(
+                f"{loc}['rail'] = {rail!r} — must be one of "
+                f"{sorted(POWER_BUDGET_VALID_RAILS)}"
+            )
+
+        for field in ("typ_ma", "peak_ma"):
+            v = entry.get(field)
+            if v is None:
+                continue  # already reported by required-keys loop
+            if not isinstance(v, (int, float)) or isinstance(v, bool):
+                errors.append(
+                    f"{loc}[{field!r}] = {v!r} — must be int/float (mA)"
+                )
+            elif v < 0:
+                errors.append(
+                    f"{loc}[{field!r}] = {v!r} — must be non-negative"
+                )
+
+        datasheet = entry.get("datasheet", "")
+        if not isinstance(datasheet, str) or not datasheet.strip():
+            errors.append(
+                f"{loc}['datasheet'] missing or empty — Lesson 6 requires "
+                f"a real datasheet URL for every power-budget entry"
+            )
+        elif not DATASHEET_URL_PATTERN.match(datasheet.strip()):
+            errors.append(
+                f"{loc}['datasheet'] = {datasheet!r} — must be a real "
+                f"http(s):// URL (Lesson 6: don't hallucinate datasheet "
+                f"values)"
+            )
+
+    return len(POWER_BUDGET)
+
+
 def main() -> int:
     with Stage(STAGE_NAME) as st:
         errors: list[str] = []
         n_modules = _check_external_modules(errors)
         n_lcsc = _check_lcsc_mapping(errors)
+        n_budget = _check_power_budget(errors)
 
         if errors:
             for e in errors:
@@ -113,7 +183,8 @@ def main() -> int:
 
         st.ok(
             f"{n_modules} EXTERNAL_MODULES entries have valid identifiers; "
-            f"{n_lcsc} LCSC_MAPPING entries match expected schema"
+            f"{n_lcsc} LCSC_MAPPING entries match expected schema; "
+            f"{n_budget} POWER_BUDGET entries have valid datasheet URLs"
         )
     return 0
 
