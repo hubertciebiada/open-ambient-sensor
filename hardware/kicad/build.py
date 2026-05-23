@@ -18,26 +18,41 @@ numeric order, aggregates exit codes, and prints a final SUMMARY table.
 Stage layout (numbered for visible ordering — gaps reserved for future
 checks per the per-subdir number budget in CLAUDE.md):
 
-  01 emit_sources       rebuild every KiCad source file via boardgen/
-  02 determinism        hash + re-run + diff (bit-identity guardrail)
-  03 drc                kicad-cli pcb drc strict (errors + warnings)
-  04 erc                kicad-cli sch erc strict (errors + warnings)
-  05 check_dc           DC voltage propagation analytical model
-  06 check_boot         ESP32-C6 strap + signal pin audit
-  07 check_ampacity     IPC-2221 trace width verifier
-  08 check_switching    ngspice LM2596 soft-start transient
-  10 render_2d          PCB top / cutouts / bottom SVG
-  11 render_sch         Schematic root + 4 sub-sheets SVG
-  12 render_png         cairosvg batch SVG → PNG
-  13 render_3d          3D top + iso renders via kicad-cli
-  14 check_refdes       designator uniqueness across schematic
-  20 export_gerbers     Protel gerbers + Excellon drill (raw fab data)
-  24 preflight_gerbers  pygerber integrity + drill stats
-  29 check_bom_consistency  LCSC# bijection
-  30 export_pos         JLCPCB CPL header + rotation offsets
-  31 export_bom         BOM with LCSC mapping + library tier
-  32 bundle             ZIP gerbers + drill -> oas-jlcpcb.zip
-  33 check_dnp_consistency  DNP refdes leak audit
+  01 emit_sources           rebuild every KiCad source file via boardgen/
+  02 determinism            hash + re-run + diff (bit-identity guardrail)
+  03 drc                    kicad-cli pcb drc strict (errors + warnings, auto-loads oas.kicad_dru)
+  04 erc                    kicad-cli sch erc strict (errors + warnings)
+  05 check_dc               DC voltage propagation analytical model
+  06 check_boot             ESP32-C6 strap + signal pin audit
+  07 check_ampacity         IPC-2221 trace width verifier
+  08 check_switching        ngspice LM2596 soft-start transient
+  09 check_semantic         schematic semantic invariants via kicad-skip (I2C / GPIO 8 pull-ups, no_connect)
+  10 render_2d              PCB top / cutouts / bottom SVG
+  11 render_sch             Schematic root + 4 sub-sheets SVG
+  12 render_png             cairosvg batch SVG -> PNG
+  13 render_3d              3D top + iso renders via kicad-cli
+  14 check_refdes_unique    designator uniqueness across schematic
+  15 lint_typecheck         mypy on boardgen/ + pipeline/ (real-bug flags)
+  16 lint_compileall        python -m compileall over boardgen/ + pipeline/ + tools/
+  17 lint_kicad_pro         rule_severities=={} enforcement (Lesson 3)
+  18 lint_no_hand_pads      forbid hand-coded pad geometry (Lesson 1, whitelist for OAS customs)
+  19 check_oas_metadata     EXTERNAL_MODULES + lcsc_mapping schema lint (Lesson 10 + Gap H)
+  20 export_gerbers         Protel gerbers + Excellon drill (raw fab data, vendor-neutral)
+  21 check_polarity_silk    polarized component silk orientation audit
+  22 export_ibom            InteractiveHtmlBom -> hardware/output/oas-ibom.html
+  23 check_power_budget     per-rail current draw vs LDO / buck capacity
+  24 preflight_gerbers      pygerber integrity + drill stats + composite render
+  25 check_thermal          buck / LDO thermal dissipation analytical model
+  26 check_i2c_rise_time    SDA/SCL rise-time vs bus length and pull-up value
+  27 check_surge            input TVS / PTC surge-energy budget
+  28 check_reverse_polarity P-MOSFET reverse-polarity Vgs / Vds margin audit
+  29 check_bom_consistency  LCSC# bijection across lcsc_mapping.py
+  30 export_pos             JLCPCB CPL header + rotation offsets
+  31 export_bom             BOM with LCSC mapping + library tier + THT detection
+  32 bundle                 ZIP gerbers + drill -> oas-jlcpcb.zip
+  33 check_dnp_consistency  DNP refdes leak audit (BOM + CPL)
+  34 check_lcsc_offline     LCSC# class/value match vs jlcparts SQLite cache (Lesson 5)
+  35 audit_zip_content      oas-jlcpcb.zip inventory + non-empty assert
 
 Usage:  python build.py
 """

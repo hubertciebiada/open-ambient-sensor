@@ -57,6 +57,11 @@ No soft-skip anywhere. Missing py7zr -> raise with `pip install py7zr`.
 HTTP download failure -> raise. Size mismatch -> raise. ngspice exit
 code != 0 -> raise. Consumers wrap calls in `try` only when they want
 to add stage-specific context to the message before re-raising.
+
+Implements Lesson 18 (CLAUDE.md) — leading underscore in the filename
+excludes this module from the `build.py` `pipeline/<subdir>/NN_*.py`
+glob, so the shared ngspice infrastructure is imported (never executed)
+by stages 08 / 27 / 28.
 """
 from __future__ import annotations
 

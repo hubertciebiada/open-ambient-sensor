@@ -1,7 +1,6 @@
 """boardgen/_sch_helpers.py - shared schematic primitives."""
 from __future__ import annotations
 
-import math
 import textwrap
 
 from boardgen._common import (
@@ -1944,5 +1943,3 @@ def _sch_sk6812_side(
         \t\t)
         \t)""")
 
-
-from boardgen._lib_symbols import SENSORS_LIB_SYMBOLS

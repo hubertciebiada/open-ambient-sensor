@@ -10,13 +10,12 @@ from __future__ import annotations
 import textwrap
 
 from boardgen._common import (
-    U, fmt, sheet_context,
+    U, fmt,
     SCH_VERSION, GEN_VERSION,
     ROOT_SHEET_UUID, SHEET_BLOCK_UUIDS, SHEET_FILE_UUIDS,
     SUBSHEET_DISPLAY_NAMES, SUBSHEET_POSITIONS, SUBSHEET_SIZE,
     SUBSHEETS,
 )
-from boardgen._project import fx, fy
 
 
 SUBSHEET_PINS: dict[str, list[tuple[str, str, float, float, int]]] = {

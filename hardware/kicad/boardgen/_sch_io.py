@@ -1,7 +1,6 @@
 """boardgen/_sch_io.py - io.kicad_sch generator."""
 from __future__ import annotations
 
-import math
 import textwrap
 
 from boardgen._common import U, fmt, sheet_context, SCH_VERSION, GEN_VERSION, SHEET_FILE_UUIDS, ROOT_SHEET_UUID, SUBSHEET_DISPLAY_NAMES
@@ -298,56 +297,3 @@ def gen_io_sch() -> str:
         )
         """)
 
-
-from boardgen._project_files import (
-    gen_pro,
-    gen_fp_lib_table,
-    gen_sym_lib_table,
-    gen_oas_symbol_library,
-)
-
-# -----------------------------------------------------------------------------
-# Netlist post-processor (Option A from pre-routing-review v0.19 / C1)
-# -----------------------------------------------------------------------------
-#
-# After boardgen emits oas.kicad_pcb (with every pad on net 0), we re-run
-# `kicad-cli sch export netlist` to produce a KiCad-flavoured S-expression
-# netlist describing every electrical net in the just-written schematic.
-# We then parse that netlist and rewrite oas.kicad_pcb in-place so that
-# every pad whose (footprint_reference, pad_number) appears in the netlist
-# gets the matching (net <code> "<name>") clause. The net dictionary is
-# also added to the PCB header so KiCad can reference net codes by ID.
-#
-# This is the script-driven equivalent of the user opening pcbnew and
-# pressing F8 (Tools → Update PCB from Schematic). After this pass the
-# PCB has full electrical linkage for every PCB-side footprint that has a
-# matching schematic symbol — making the next-step copper routing
-# meaningful.
-#
-# Footprints WITHOUT a matching schematic reference (mechanical-only
-# refs like SENS1 / LDR1 / MOD1 / MOD2 / H1..H3 / ZT1..ZT4, plus any
-# orphan socket footprints) keep their pads on net 0. Those refs are
-# expected to remain mechanical and are excluded from the BOM (attr
-# board_only / exclude_from_bom).
-
-
-from boardgen._postprocess import (
-    sync_pcb_nets_from_schematic,
-    _parse_footprint_placements,
-    check_z_clearance_violations,
-    _build_pcb_ref_to_footprint,
-    _build_lcsc_metadata_map,
-    _apply_schematic_footprints,
-    _apply_schematic_lcsc_metadata,
-)
-
-
-from boardgen._routing import (
-    ROUTING_CHUNKS,
-    apply_routing_to_pcb,
-)
-
-
-# -----------------------------------------------------------------------------
-# Write everything
-# -----------------------------------------------------------------------------

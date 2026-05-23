@@ -1,7 +1,6 @@
 """boardgen/_sch_sensors.py - sensors.kicad_sch generator."""
 from __future__ import annotations
 
-import math
 import textwrap
 
 from boardgen._common import U, fmt, sheet_context, SCH_VERSION, GEN_VERSION, SHEET_FILE_UUIDS, ROOT_SHEET_UUID, SUBSHEET_DISPLAY_NAMES
@@ -821,8 +820,3 @@ def gen_sensors_sch() -> str:
         )
         """)
 
-
-# -----------------------------------------------------------------------------
-# 3e) IO sub-sheet — chord-east case-wall connectors (v0.19)
-# -----------------------------------------------------------------------------
-from boardgen._lib_symbols import IO_LIB_SYMBOLS

@@ -20,7 +20,7 @@ from pathlib import Path
 
 import textwrap
 
-from boardgen._common import fmt, U
+from boardgen._common import fmt
 from boardgen._footprints import _read_kicad_lib_symbol
 
 
@@ -583,6 +583,7 @@ ESP32C6_DEVKITM1_SIGNAL_PIN: dict[str, int] = {
     # OAS-routed GPIOs
     "LD2410_OUT" : 3,   # J1.3 = GPIO2 — safe non-strap input
     "NFC_FD"     : 4,   # J1.4 = GPIO3 — safe non-strap input
+    "BTN"        : 8,   # J1.8 = GPIO1 — SW1 push-button, safe non-strap input
     "WS2812_DIN" : 9,   # J1.9 = GPIO8 — drives SK6812-SIDE AQI ring DIN
                         # (v0.16). Same GPIO as the DevKitM-1's onboard
                         # NeoPixel; the onboard NeoPixel is unreachable in
@@ -625,7 +626,6 @@ ESP32C6_DEVKITM1_NC_PINS: list[int] = [
     5,    # J1.5  = GPIO4    (MTMS, unused)
     6,    # J1.6  = GPIO5    (MTDI, unused)
     7,    # J1.7  = GPIO0    (unused)
-    8,    # J1.8  = GPIO1    (unused)
     12,   # J1.12 = GPIO14   (unused)
     19,   # J3.4  = GPIO23   (unused)
     20,   # J3.5  = GPIO22   (unused)

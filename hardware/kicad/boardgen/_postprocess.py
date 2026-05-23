@@ -29,19 +29,15 @@ import os
 import re
 import shutil
 import subprocess
-import sys
 from pathlib import Path
 
 from boardgen._common import HERE
 from boardgen._project import (
     PAGE_CENTRE_X, PAGE_CENTRE_Y,
     LD2410_ANCHOR_X, LD2410_ANCHOR_Y, LD2410_BODY_W, LD2410_BODY_H,
-    LD2410_ROTATION,
     ESP32_ANCHOR_X, ESP32_ANCHOR_Y, ESP32_BODY_W, ESP32_BODY_L,
-    ESP32_ROTATION,
     MIKROE2462_ANCHOR_X, MIKROE2462_ANCHOR_Y,
     MIKROE2462_BODY_W, MIKROE2462_BODY_L,
-    MIKROE2462_ROTATION,
 )
 
 

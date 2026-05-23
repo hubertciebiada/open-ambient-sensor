@@ -3,7 +3,7 @@
 **DIY multi-sensor environmental monitor for indoor spaces.** Measures air quality and presence; mounts on a standard wall-recessed electrical box; runs ESPHome and integrates natively with Home Assistant.
 
 [![License: GPLv3](https://img.shields.io/badge/License-GPLv3-blue.svg?style=flat-square)](./GPLv3-LICENSE.md)
-[![Status: v0.40 prototype](https://img.shields.io/badge/Status-v0.40%20prototype-orange?style=flat-square)](#status)
+[![Status: v0.50 routing complete](https://img.shields.io/badge/Status-v0.50%20routing%20complete-orange?style=flat-square)](#status)
 [![MCU: ESP32-C6](https://img.shields.io/badge/MCU-ESP32--C6-green?style=flat-square)](#hardware-overview)
 [![Framework: ESPHome](https://img.shields.io/badge/Framework-ESPHome-orange?style=flat-square)](https://esphome.io)
 
@@ -11,7 +11,7 @@
 
 ## Status
 
-**v0.40 prototype.** First SMT-assembled boards (5 units) are in flight at JLCPCB. Firmware skeleton (5-package ESPHome config + web_server dashboard) is ready for first flash on delivery. See [`CLAUDE.md`](./CLAUDE.md) for the current design rationale, hard constraints, and the v0.40 saga (audit-15 → audit-16 → final order).
+**v0.40 boards in flight at JLCPCB** (first SMT-assembled prototype run, 5 units, awaiting delivery). **v0.50 routing complete** — board fully routed (Freerouting 89/89 + hand-stitched GND pour), `build.py` 30/30 PASS, DRC 0 violations / 0 unconnected. **v0.51 CI expansion landed** — `build.py` 35/35 PASS with +5 new regression checks. Firmware skeleton (7-package ESPHome config + web_server dashboard) is ready for first flash on delivery. See [`CLAUDE.md`](./CLAUDE.md) for the current design rationale, hard constraints, and the v0.40 saga (audit-15 → audit-16 → final order) plus the v0.50 routing rework.
 
 ---
 
@@ -22,7 +22,7 @@
 
 ## Additional features
 
-- 11× SK6812-SIDE RGB AQI ring with breathing effect; colour reflects an aggregated air-quality index
+- 7× SK6812-SIDE RGB AQI ring with breathing effect (7 LEDs on an 8-slot ring; D13 vacated for the J1 24 V terminal); colour reflects an aggregated air-quality index
 - Dynamic NFC tag (NXP NT3H1101 on MIKROE-2462) — a phone tap reads live data and serves a dashboard URL
 - **Bluetooth proxy** — extends BLE range across the deployment for Home Assistant BLE integrations
 - Qwiic / STEMMA QT expansion port — future sensors without a PCB respin
@@ -47,7 +47,7 @@ Both compromises (cheap-but-inaccurate, accurate-but-ugly) are rejected. See [`C
 | MCU | ESP32-C6-DevKitM-1-N4 (EAN 5904422385651) | 2× USB-C on module |
 | Air quality combo | Sensirion SEN66-SIN-T | I²C (JST GH 6-pin cable) |
 | Presence | HiLink HLK-LD2410B | UART @ 256000 baud |
-| Visual indicator | 11× SK6812-SIDE side-emit ring (Ø22 mm pitch) | 1-wire WS281x on GPIO 8 |
+| Visual indicator | 7× SK6812-SIDE side-emit ring (Ø22 mm pitch, 8 slots with D13 vacated for J1) | 1-wire WS281x on GPIO 8 |
 | NFC dynamic tag | NXP NT3H1101 on MIKROE-2462 NFC Tag 2 Click | I²C 0x55 + NFC |
 | Power input | 24 V DC terminal block + TVS + PTC + reverse-polarity P-FET | — |
 
@@ -69,7 +69,7 @@ open-ambient-sensor/
 │   ├── README.md                   # flashing + Home Assistant integration
 │   ├── esphome/
 │   │   ├── oas.yaml                # top-level ESPHome config
-│   │   ├── packages/               # core / leds / air-quality / presence / nfc / bt-proxy
+│   │   ├── packages/               # core / leds / buttons / air-quality / presence / nfc / bt-proxy
 │   │   └── examples/               # anonymized per-device override examples
 │   └── secrets.yaml.example
 └── hardware/
@@ -82,7 +82,7 @@ open-ambient-sensor/
 
 ## Getting started
 
-The board is at the v0.40 prototype stage. Once hardware lands and ESPHome flashes cleanly, this section will document:
+The board is at the v0.40 prototype stage (boards in flight at JLCPCB; v0.50 routing complete on the source tree). Once hardware lands and ESPHome flashes cleanly, this section will document:
 
 - Ordering the PCB (gerbers in [`hardware/output/jlcpcb/oas-jlcpcb.zip`](./hardware/output/jlcpcb/), JLCPCB SMT assembly with [`hardware/output/jlcpcb/oas-BOM.csv`](./hardware/output/jlcpcb/) + [`oas-top-CPL.csv`](./hardware/output/jlcpcb/))
 - Sourcing the SZOMK AK-N-94 enclosure

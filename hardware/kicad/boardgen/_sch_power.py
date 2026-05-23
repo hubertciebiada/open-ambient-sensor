@@ -1,7 +1,6 @@
 """boardgen/_sch_power.py - power.kicad_sch generator."""
 from __future__ import annotations
 
-import math
 import textwrap
 
 from boardgen._common import U, fmt, sheet_context, SCH_VERSION, GEN_VERSION, SHEET_BLOCK_UUIDS, SHEET_FILE_UUIDS, ROOT_SHEET_UUID, SUBSHEET_DISPLAY_NAMES
@@ -1701,21 +1700,3 @@ def gen_power_sch() -> str:
 # Pin 1 = J1 top; pin 16 = J3 top. This way the geometric pin order
 # mirrors the physical module silk and gen_mcu_sch can compute
 # row Y by index directly.
-from boardgen._lib_symbols import (
-    ESP32C6_DEVKITM1_PINS,
-    ESP32C6_DEVKITM1_SIGNAL_PIN,
-    ESP32C6_DEVKITM1_NC_PINS,
-    ESP32C6_DEVKITM1_GND_PINS,
-    ESP32C6_DEVKITM1_PIN_PITCH,
-    ESP32C6_DEVKITM1_PIN_ROW_HALF,
-    ESP32C6_DEVKITM1_LIB_X_LEFT,
-    ESP32C6_DEVKITM1_LIB_X_RIGHT,
-    ESP32C6_DEVKITM1_LIB_PIN_LEN,
-    ESP32C6_DEVKITM1_LIB_BODY_X,
-    ESP32C6_DEVKITM1_LIB_BODY_Y,
-)
-
-from boardgen._lib_symbols import _esp32c6_devkitm1_lib_symbol, MCU_LIB_SYMBOLS
-# -----------------------------------------------------------------------------
-# Helpers specific to the MCU sub-sheet (sheet_key="mcu" pinned)
-# -----------------------------------------------------------------------------

@@ -337,16 +337,25 @@ text_sensor:
 # (tcomp app note v1.1, Table 1) on every boot.
 #
 # Display values   → I2C raw (×10) values   → command
-#   T1 = 100 s      →  T1 = 1000             ┐  0x60B2  (offset / slope /
-#   T2 = 300 s      →  T2 = 3000             │           time-constant per
-#                                            │           slot, slots 0..4)
-#   K  = 20         →  K  =  200             ┐  0x6100  (acceleration K, P)
-#   P  = 20         →  P  =  200             ┘
+#   K  = 20         →  K  =  200             ┐
+#   P  = 20         →  P  =  200             │  0x6100  (single 4-word
+#   T1 = 100 s      →  T1 = 1000             │           write: K, P, T1, T2)
+#   T2 = 300 s      →  T2 = 3000             ┘
 #
 # The ×10 scale factor is the Sensirion encoding for these 16-bit unsigned
 # registers — value_on_wire = value_displayed_to_user × 10. Re-tune all four
 # in the chamber procedure described in tcomp §3.2 once first prototype is
 # built, then update the constants below.
+#
+# Protocol reference: Sensirion's official driver `raspberry-pi-i2c-sen66`
+# (Model-Version 1.6.0), `sen66_i2c.c::sen66_set_temperature_acceleration_parameters`.
+# The 0x6100 opcode takes FOUR 16-bit words {K, P, T1, T2} — NOT two as a
+# previous OAS revision implemented. The four parameters belong to a SINGLE
+# command; there is no separate "T-constants per slot" register on SEN66.
+# (Note: 0x60B2 = SET_TEMPERATURE_OFFSET_PARAMETERS is a different command
+# entirely, for additive T-offset trimming with a 4-word payload
+# {offset, slope, time_constant, slot} — NOT used here since OAS has no
+# self-heating offset to trim at boot.)
 #
 # Sensirion I2C wire format:
 #   [cmd_hi] [cmd_lo] [data_hi] [data_lo] [crc8(data_hi, data_lo)]  (×N words)
@@ -379,61 +388,22 @@ esphome:
             return c;
           };
 
-          // ---- 0x60B2  Set Temperature Offset Parameters --------------
-          //   Per tcomp app note v1.1 §3.2: writes a 5-word block to slot 0:
-          //     word0 = T_offset      (signed, °C × 200)        → 0 (no offset)
-          //     word1 = slope         (signed × 10000)          → 0
-          //     word2 = time_constant (uint, seconds)           → 0
-          //     word3 = slot index    (0..4)                    → 0
-          //     word4 = reserved                                → 0
-          //   The "T1/T2" label (CLAUDE.md / Sensirion app note v1.1)
-          //   refers to the time-constant field of two adjacent slots
-          //   (slot 0 = fast loop T1, slot 1 = slow loop T2). We program
-          //   both slots below.
-          //
-          //   Slot 0 — T1 = 1000 (raw) → 100 s display:
-          {
-            uint8_t buf[2 + 5*3];  // 2 cmd + 5 words × (2 data + 1 crc)
-            buf[0] = 0x60; buf[1] = 0xB2;
-            uint16_t w[5] = {0, 0, 1000, 0, 0};  // T_off, slope, time_const, slot, rsvd
-            for (uint8_t i = 0; i < 5; i++) {
-              uint8_t hi = (uint8_t)(w[i] >> 8);
-              uint8_t lo = (uint8_t)(w[i] & 0xFF);
-              buf[2 + i*3 + 0] = hi;
-              buf[2 + i*3 + 1] = lo;
-              buf[2 + i*3 + 2] = crc8(hi, lo);
-            }
-            auto err = id(sen66_raw).write(buf, sizeof(buf));
-            ESP_LOGI("sen66", "STAR slot 0 (T1=1000): err=%d", (int)err);
-          }
-          delay(20);  // tcomp §3.2 — 20 ms execution time between commands
-
-          //   Slot 1 — T2 = 3000 (raw) → 300 s display:
-          {
-            uint8_t buf[2 + 5*3];
-            buf[0] = 0x60; buf[1] = 0xB2;
-            uint16_t w[5] = {0, 0, 3000, 1, 0};  // slot index = 1
-            for (uint8_t i = 0; i < 5; i++) {
-              uint8_t hi = (uint8_t)(w[i] >> 8);
-              uint8_t lo = (uint8_t)(w[i] & 0xFF);
-              buf[2 + i*3 + 0] = hi;
-              buf[2 + i*3 + 1] = lo;
-              buf[2 + i*3 + 2] = crc8(hi, lo);
-            }
-            auto err = id(sen66_raw).write(buf, sizeof(buf));
-            ESP_LOGI("sen66", "STAR slot 1 (T2=3000): err=%d", (int)err);
-          }
-          delay(20);
-
-          // ---- 0x6100  Set RH/T Acceleration ---------------------------
-          //   Two-word write: K (uint16) then P (uint16), both ×10 raw.
-          //   K = 200 raw → 20 display; P = 200 raw → 20 display.
+          // ---- 0x6100  Set Temperature Acceleration Parameters --------
+          //   Per Sensirion driver `sen66_i2c.c` (Model-Version 1.6.0,
+          //   sen66_set_temperature_acceleration_parameters): one write
+          //   carries FOUR 16-bit words {K, P, T1, T2}, each followed by
+          //   its CRC-8.  Display values × 10 → raw on-wire values:
+          //     word0 = K  = 200   (display K  = 20)
+          //     word1 = P  = 200   (display P  = 20)
+          //     word2 = T1 = 1000  (display T1 = 100 s)
+          //     word3 = T2 = 3000  (display T2 = 300 s)
+          //   Total payload after opcode: 4 words × (2 data + 1 crc) = 12 B.
           bool ok = true;
           {
-            uint8_t buf[2 + 2*3];
+            uint8_t buf[2 + 4*3];   // 2 cmd + 4 words × (2 data + 1 crc) = 14 B
             buf[0] = 0x61; buf[1] = 0x00;
-            uint16_t w[2] = {200, 200};
-            for (uint8_t i = 0; i < 2; i++) {
+            uint16_t w[4] = {200, 200, 1000, 3000};  // K, P, T1, T2
+            for (uint8_t i = 0; i < 4; i++) {
               uint8_t hi = (uint8_t)(w[i] >> 8);
               uint8_t lo = (uint8_t)(w[i] & 0xFF);
               buf[2 + i*3 + 0] = hi;
@@ -441,7 +411,9 @@ esphome:
               buf[2 + i*3 + 2] = crc8(hi, lo);
             }
             auto err = id(sen66_raw).write(buf, sizeof(buf));
-            ESP_LOGI("sen66", "STAR accel (K=200, P=200): err=%d", (int)err);
+            ESP_LOGI("sen66",
+                     "STAR accel (K=200, P=200, T1=1000, T2=3000): err=%d",
+                     (int)err);
             if (err != esphome::i2c::ErrorCode::ERROR_OK) ok = false;
           }
 

@@ -5,16 +5,17 @@ desktop.ini
 
 # secrets ########
 **/secrets.yaml
+.env
+*.env
+*.pem
+*.key
+id_rsa*
+*.crt
 
 # build artifacts ########
 **/build/
 **/.cache/
 **/__pycache__/
-*.bak
-
-# third-party submodule build/cache (rotation corrections, etc.)
-hardware/kicad/third_party/*/__pycache__/
-hardware/kicad/third_party/*/**/__pycache__/
 
 # Temp / scratch directories (auto-downloaded models, cached binaries:
 # .tmp/spice/ for ngspice + LM2596 PSpice model, .tmp/freerouting/ for
@@ -22,29 +23,10 @@ hardware/kicad/third_party/*/**/__pycache__/
 # the JLCPCB component SQLite cache rebuilt by stage 34).
 /.tmp/
 
-# Audit netlist exports (temporary; regenerable via kicad-cli sch export netlist)
-hardware/kicad/_tmp_audit.net
-hardware/kicad/_audit_*.net
-
-# Stale agent / autorouter cleanup artefacts (historic local-only files)
-hardware/renders/_freerouting_*.log
-hardware/renders/_sch-*-tmp/
-
 # KiCad ########
-*-backups/
-*.kicad_pcb-bak
-*.kicad_sch-bak
 *.kicad_prl
-fp-info-cache
-~*.lck
-_autosave-*
-
-# KiCad MCP-tool backups (timestamped safety copies)
-hardware/kicad/.mcp-backups/
 
 # Local KiCad reports/exports (regenerable, not source-of-truth)
-hardware/kicad/drc.json
-hardware/kicad/erc.json
 hardware/kicad/*.svg
 hardware/kicad/*.pdf
 hardware/kicad/*.rpt
@@ -83,26 +65,10 @@ firmware/esphome/.esphome/
 # anchored + global pair (bare `.playwright-mcp/` proved ineffective)
 /.playwright-mcp/
 **/.playwright-mcp/
-*.kicad_pcb.tmp
-*.kicad_pro.tmp
-
-# Screenshots, scratch ########
-Zrzut*.png
-# widened from screenshot*.png — catches suffix patterns (botland-...-screenshot.png etc.)
-*screenshot*.png
-# session scratch renders + previews
-led-preview*.png
-*-preview*.png
-*.scratch
 
 # KiCad netlist exports (temporary, derived from .kicad_sch via kicad-cli)
 *.net
-_tmp_netlist_audit.net
-_audit_*.net
 
 # Freerouting tool (downloaded locally by user, not redistributable)
 freerouting.jar
 hardware/kicad/freerouting.jar
-hardware/kicad/freerouting.json
-hardware/kicad/freerouting.log
-

@@ -11,9 +11,7 @@ within typical LLM context window.
 """
 from __future__ import annotations
 
-import math
 import textwrap
-from pathlib import Path
 
 from boardgen._common import (  # noqa: F401
     U, fmt,

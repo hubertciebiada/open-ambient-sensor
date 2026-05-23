@@ -92,6 +92,11 @@ Limitations
 
 Exit code 0 if ALL assertions across BOTH sims pass; 1 on any failure,
 ngspice runtime error, or missing-dependency hard-fail.
+
+Implements Lesson 16 (CLAUDE.md "v0.51 CI expansion") — two-sim pattern:
+Sim 1 worst-case Q1 Vds (1 uF C1, no F1) and Sim 2 realistic LM2596 Vin
+(100 uF C1 + F1 cold-R + ~32 uF input bypass) must BOTH pass; thresholds
+are part-datasheet absolute maxima, never relaxed to make a sim pass.
 """
 from __future__ import annotations
 

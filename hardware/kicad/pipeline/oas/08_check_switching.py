@@ -88,11 +88,16 @@ Limitations
 
 Exit code 0 if all assertions pass; 1 on any assertion failure, ngspice
 runtime error, or missing-dependency hard-fail.
+
+Implements Lesson 19 (CLAUDE.md) — behavioural-fallback when TI PSpice
+models don't fit ngspice: slum790 (TPS62933) is encrypted, slum818
+(TPS62933P) timestep-collapses under `ngbehavior=ps`; the cascade check
+therefore uses averaged behavioural models parameterised from the
+datasheet + the standalone-stage measured LM2596 t_90.
 """
 from __future__ import annotations
 
 import sys
-import urllib.request
 import zipfile
 from pathlib import Path
 

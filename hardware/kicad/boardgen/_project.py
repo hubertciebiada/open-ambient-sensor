@@ -183,7 +183,7 @@ GPIO_RESERVED = {
 }
 
 # Safe-non-strap spare GPIOs for future expansion.
-GPIO_SPARE = [0, 1, 14, 18, 19, 20, 21, 22, 23]
+GPIO_SPARE = [0, 14, 18, 19, 20, 21, 22, 23]
 
 # Assembly + post-fab procedures (assembler-facing SOP) ------------------
 ASSEMBLY_INSTRUCTIONS = """\
@@ -1109,11 +1109,11 @@ J6_END_SIGNALS: dict[int, str] = {1: "GND", 15: "GND"}
 #   D1/D2/D3 — diodes (TVS / Schottky / Zener): stock cathode bar
 #   Q1       — AO3401A P-MOSFET (SOT-23): stock pin-1 mark
 #   U1/U2    — buck ICs (TO-263-5 / SOT-583): stock pin-1 mark
-#   C1/C4    — polarized radial electrolytics: stock "+" / pad-1 mark
+#   C1/C3/C4 — polarized radial electrolytics: stock "+" / pad-1 mark
 #   D11..D18 — SK6812-SIDE LEDs (oas custom footprint): pin-1 dot
 #              (D13 is skipped at the J1 cable slot — not placed).
 POLARIZED_DESIGNATORS: frozenset[str] = frozenset({
-    "D1", "D2", "D3", "Q1", "U1", "U2", "C1", "C4",
+    "D1", "D2", "D3", "Q1", "U1", "U2", "C1", "C3", "C4",
     "D11", "D12", "D14", "D15", "D16", "D17", "D18",
 })
 

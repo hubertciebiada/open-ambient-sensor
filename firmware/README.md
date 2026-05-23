@@ -4,6 +4,8 @@ OAS runs on **ESPHome** (YAML configuration) and integrates with Home Assistant 
 
 Hardware target: **ESP32-C6-DevKitM-1-N4** (ESP32-C6-MINI-1 SoM, 4 MB flash) on the OAS v0.40 PCB. Framework: **esp-idf** (required for BLE proxy memory headroom — `arduino` runs out of IRAM with the C6 + BLE + WiFi + sensors all enabled).
 
+User input: **SW1 push-button on GPIO 1**, side-actuated through the AK-N-94 enclosure's USB-C case-wall opening. Short press cycles the LED ring brightness 25 → 50 → 75 → 100 → Off; long press restarts the ESP32-C6.
+
 ## Layout
 
 ```
@@ -12,7 +14,8 @@ firmware/
 │   ├── oas.yaml             # top-level config, per-device substitutions
 │   ├── packages/
 │   │   ├── core.yaml        # WiFi, AP fallback, API, OTA, web_server, time, logger
-│   │   ├── leds.yaml        # SK6812-SIDE AQI ring (11 LEDs on GPIO 8)
+│   │   ├── leds.yaml        # SK6812-SIDE AQI ring (7 LEDs on GPIO 8; 8-slot ring with D13 vacated for J1)
+│   │   ├── buttons.yaml     # SW1 push-button on GPIO 1 (short press = LED dim cycle, long press = restart)
 │   │   ├── air-quality.yaml # Sensirion SEN66 (I²C 0x6B)
 │   │   ├── presence.yaml    # HiLink LD2410 (UART @ 256000 baud)
 │   │   ├── nfc.yaml         # MIKROE-2462 NT3H1101 dynamic tag (I²C 0x55)
@@ -42,7 +45,7 @@ Edit `firmware/esphome/secrets.yaml` and fill in:
 
 - `wifi_ssid` / `wifi_password` — your LAN credentials
 - `ap_password` — fallback hotspot password (min 8 chars)
-- `api_encryption_key` — generate with `esphome --encryption-key` or `openssl rand -base64 32`
+- `api_encryption_key` — generate with `openssl rand -base64 32` (paste the result as the `api_encryption_key` value in `secrets.yaml`)
 - `ota_password` — any strong password
 
 `secrets.yaml` is gitignored and must never be committed.
@@ -156,7 +159,7 @@ Alternatively, the **AP fallback** (`OAS-<device_id>-Setup` SSID, gated by `ap_p
 
 ## Status
 
-**Preliminary.** The base infrastructure (`oas.yaml` + `core.yaml`) is complete and validates clean against `esphome config`. Sensor packages (`air-quality.yaml`, `presence.yaml`, `nfc.yaml`, `bt-proxy.yaml`, `leds.yaml`) are being landed in parallel — see CLAUDE.md for the firmware TODO list. First end-to-end validation will follow once the v0.40 boards arrive from JLCPCB.
+**Firmware skeleton complete (7 packages):** `core.yaml`, `leds.yaml`, `buttons.yaml`, `air-quality.yaml`, `presence.yaml`, `nfc.yaml`, `bt-proxy.yaml`. Validates clean against `esphome config`. Awaiting hardware delivery for first-flash and bench bring-up — see CLAUDE.md for the firmware TODO list (LD2410 UART shakedown, NFC NDEF updater verification, OTA setup, HA discovery validation).
 
 ---
 
@@ -189,7 +192,7 @@ Alternatively, the **AP fallback** (`OAS-<device_id>-Setup` SSID, gated by `ap_p
 
 #### Light, numbers, selects, text, buttons, switches
 
-- `light.led_ring` — RGB addressable (11 LEDs); brightness / colour / effect controllable from HA
+- `light.led_ring` — RGB addressable (7 LEDs); brightness / colour / effect controllable from HA
 - `number.temperature_offset` (-10..+10 °C), `number.humidity_offset` (-20..+20 %RH), `number.co2_offset` (-500..+500 ppm) — persistent calibration trims
 - `number.ld2410_max_distance` (1-8 gates × 0.75 m), `number.ld2410_presence_timeout` (0-65535 s), `number.ld2410_gate_*_sensitivity` (0-100 per gate)
 - `number.led_brightness_day` (0-255), `number.led_brightness_night` (0-15)

@@ -1,7 +1,6 @@
 """boardgen/_sch_mcu.py - mcu.kicad_sch generator."""
 from __future__ import annotations
 
-import math
 import textwrap
 
 from boardgen._common import U, fmt, sheet_context, SCH_VERSION, GEN_VERSION, SHEET_FILE_UUIDS, ROOT_SHEET_UUID, SUBSHEET_DISPLAY_NAMES
@@ -662,8 +661,3 @@ def gen_mcu_sch() -> str:
         )
         """)
 
-
-# -----------------------------------------------------------------------------
-# 3d) Sensors sub-sheet — J3 (SEN66 JST-GH connector) + C10 decoupling cap
-# -----------------------------------------------------------------------------
-from boardgen._lib_symbols import _sk6812_side_lib_symbol

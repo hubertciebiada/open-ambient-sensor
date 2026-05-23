@@ -71,7 +71,6 @@ from __future__ import annotations
 
 import re
 import sys
-from dataclasses import dataclass
 from pathlib import Path
 
 HERE = Path(__file__).parent

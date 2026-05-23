@@ -35,6 +35,10 @@ Comfortable margin against F1 hold (750 mA).
 Exit code 0 on PASS (every rail's derated budget covers its peak load).
 Exit 1 on FAIL with all rail totals + which rail(s) breached. Designed
 to run as a `build.py` stage OR standalone.
+
+Implements Lesson 17 (CLAUDE.md) — TypedDict POWER_BUDGET pattern with
+NotRequired[...] for optional keys + TYPE_CHECKING import of
+PowerBudgetEntry from boardgen._project (no runtime cost, no cycle).
 """
 from __future__ import annotations
 
