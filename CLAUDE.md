@@ -86,6 +86,42 @@ Before assigning signals: read the official datasheet of the SPECIFIC model (NOT
 
 ---
 
+## Lessons learned (v0.50 DFM clean)
+
+Five concrete failure modes the v0.50 routing rework + JLCDFM clean-up exposed and recovered from. Each is a real trap the project hit.
+
+### 11. Routing-snapshot checkpoints MUST be replay-verified before commit
+
+The v0.50 checkpoint commit (`53e4ea9`) captured a Freerouting 89/89 snapshot into `oas_routes.py` but `build.py` was run only with `ROUTING_CHUNKS=("gnd",)` at commit time — so the snapshot's REPLAY onto the committed boardgen placement was never validated. The next session flipped `ROUTING_CHUNKS=("gnd","autoroute")`, rebuilt, and DRC went from 0 to **87 violations**: the snapshot had been extracted against a pre-Task-3 buck placement, ~2 mm off the committed pad positions, every buck-section track shorting an unrelated pad. A 30-minute checkpoint cost an entire re-route.
+
+Rule: a routing-snapshot commit is not committable until `build.py` runs the SAME `ROUTING_CHUNKS` config that consumes it, DRC PASSES on that replay, and the captured snapshot demonstrably lands on the committed pad positions.
+
+### 12. `tools/extract_routes.py` reads KiCad-saved boards ONLY
+
+`extract_routes.py` parses `(net N "name")` from segment/via blocks — the modern format KiCad's interactive `Save` writes. `boardgen` emits `(net N)` (integer code only, no quoted name). Running extract against a **boardgen-emitted** `oas.kicad_pcb` silently returns **0 segments + 0 vias** and overwrites `oas_routes.py` with an empty file — catastrophic data loss with no visible error. Hit twice in one session, both times rescued by `git checkout HEAD -- oas_routes.py`.
+
+Run extract ONLY after KiCad has saved the board (interactive route, SES import via MCP, hand-routed fix). After any `build.py` / `01_emit_sources.py` regen, `oas.kicad_pcb` is boardgen-formatted and extract is silently destructive. (The proper long-term fix: teach the extract regex to accept both `(net N)` and `(net N "name")` formats; until then, treat extract as KiCad-only.)
+
+### 13. Internal-cutout "Component to board edge" — shrink the cutout, not the components
+
+JLCDFM flagged 5 LED-ring decoupling caps (C20/C24/C25/C26/C27) at cap radius 7.0 mm as "Component to board edge distance 0.75 mm" against the **central Ø12 mm cable hole** — an INTERNAL cutout, not a panel edge. The reflex (move the caps outward) cascaded into a re-route: a 0.6 mm radial shift on tiny 0402 caps left the +5V and GND tracks crossing inside the cap's pad pair (22 DRC violations on a naive endpoint-shift transform).
+
+The correct fix was the **opposite move**: shrink the cutout (Ø12 → Ø10, `CABLE_HOLE_DIAMETER` in `boardgen/_project.py`), which lifted cap-to-edge clearance to ~1.7 mm with **zero routing impact**. Rule of thumb: when component-to-edge fires against an INTERNAL hole (not a depaneling edge), prefer shrinking the hole first — the supply cable still passes if the slack permits, and no routing has to follow. Move components only for panel-edge clearance issues.
+
+### 14. Via-in-pad is silent in DRC but tripped as Danger by JLCDFM
+
+A user-placed GND stitching via at PCB-local (18.95, −40.7) sat **dead-centre on C2 pad 2** (an SMD GND pad). DRC was silent — a same-net via on an SMD pad is geometrically legal (no clearance violation) — but JLCDFM tripped two Dangers: "Lead to hole distance 0 mm" (the via's drill is *through* the SMD pad, breaking the solder land) and "Silkscreen to hole 0 mm" (silk over the via hole near C2). The same pattern hit `via:0032` sitting under a footprint silk line at X=22.15.
+
+When placing a GND stitch via near an SMD pad, ALWAYS offset it adjacent to the pad (typically 0.6 mm centre-to-centre from the pad copper edge), never overlapping. DRC silence on same-net is NOT a DFM pass. Use `tools/jlcdfm_upload.py` to catch these before the order.
+
+### 15. `kicad-cli` re-saves `kicad_pro` with KiCad's default `rule_severities` populated
+
+Stage 10 `render_2d` invokes `kicad-cli pcb export svg`. The CLI loads the project, populates `board.design_settings.rule_severities` with KiCad's INTERNAL DEFAULTS (the full ~60-entry dict — `clearance: error`, `copper_edge_clearance: error`, `missing_courtyard: ignore`, etc.), and re-saves the project file. None of these are user-authored suppressions; they are just defaults made explicit by the round-trip. Stage 17 `lint_kicad_pro` (the Lesson 3 enforcement that `rule_severities == {}`) then sees the polluted dict and false-positives.
+
+Fix: the lint re-emits `oas.kicad_pro` from `boardgen._project_files.gen_pro()` (canonical, always empty) at its start, so it always checks the source-of-truth state, not whatever `kicad-cli` last wrote. **Lesson 3 itself remains intact** — any user-authored suppression in `boardgen` survives the re-emit and trips the lint. Generalisation: any pipeline check that reads `kicad_pro` should compare against the boardgen-emitted canonical state, not against post-`kicad-cli` content.
+
+---
+
 ## 🔴 Public repository rules
 
 **This is a PUBLIC repository.** Every committed file MUST follow these rules. No exceptions.
