@@ -87,8 +87,10 @@ UPSTREAM_CSV = KICAD_ROOT / "third_party" / "JLCKicadTools" / "jlc_kicad_tools" 
 # History: audit-19 (2026-05-19) removed earlier TO-263 and SOT-583
 # entries as empirical / DFM-unvalidated. The TO-263 entry is now BACK
 # (2026-05-21), re-added WITH JLCPCB DFM confirmation — see the U1
-# entry's rationale below. U2 (SOT-583) still has no entry: it has not
-# been observed mis-placed on DFM; add one only if a DFM upload shows it.
+# entry's rationale below. The SOT-583 entry is also BACK (2026-05-25),
+# re-added after JLCPCB's Confirm-Parts-Placement review of the v0.51
+# order asked for orientation confirmation on U2 — see the U2 entry's
+# rationale below.
 #
 # The SK6812-SIDE entry is kept at 0 deg deliberately (see the entry's
 # own comment block): the boardgen (90 - theta) LED placement formula
@@ -139,6 +141,26 @@ JLCPCB_ROTATIONS_OAS: list[tuple[re.Pattern, float, float, float, str]] = [
         re.compile(r"^TO-263-5_LM2596"),
         180, -3.104, 0.0,
         "U1 oas:TO-263-5_LM2596: project-local land = verbatim LCSC C116713 geometry. +180 (KiCad-vs-EasyEDA orientation) and dx=-3.104 mm (body-centre anchor vs lead/tab-pad midpoint). v0.43 — replaced the mismatched KiCad stock TO-263 land that tripped JLCPCB DFM lead/pad overlap.",
+    ),
+    # U2 — TPS62933DRLR sync buck in SOT-583 (KiCad stock
+    # Package_TO_SOT_SMD:SOT-583-8). Local renders (2D / 3D / preflight)
+    # stay at the KiCad-natural 0 deg — pin 1 (RT) upper-left, matching
+    # TI SLUSEA4D Rev D Figure 7-1 top-view. The CPL applies +180 so
+    # JLCPCB's tape-feeder orientation for C3200405 lines up with the
+    # KiCad pad geometry.
+    #
+    # Trigger: JLCPCB Confirm-Parts-Placement review of the v0.51 order
+    # (2026-05-25) flagged U2 with a render rotated 180 deg from our
+    # natural KiCad view and asked the customer to confirm. The render
+    # we sent back (KiCad-natural pin-1 upper-left) was accepted, but
+    # the round-trip indicates JLCPCB's tape feeder for this LCSC# is
+    # 180 deg off the KiCad footprint orientation — exactly what this
+    # table is for. Baking +180 in here so the next CPL upload matches
+    # JLCPCB's expected tape orientation without a manual question.
+    (
+        re.compile(r"^SOT-583-8$"),
+        180, 0.0, 0.0,
+        "U2 SOT-583-8 (TPS62933 / C3200405): +180 — JLCPCB Confirm-Parts-Placement review of v0.51 order (2026-05-25) showed U2 rotated 180 deg from KiCad natural; tape-feeder orientation for this LCSC# is 180 off the footprint. Local renders stay at 0 deg (KiCad ground truth, pin 1 RT upper-left per TI SLUSEA4D Fig 7-1); CPL applies +180.",
     ),
     # Q1 — AO3401A P-MOSFET, SOT-23 (KiCad stock Package_TO_SOT_SMD:SOT-23).
     # The upstream `^SOT-23,-90` row is dropped via JLCPCB_UPSTREAM_SKIP
