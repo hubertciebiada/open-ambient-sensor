@@ -30,7 +30,7 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
-from _common import Stage, KICAD_ROOT  # noqa: E402
+from _common import Stage, KICAD_ROOT, EXIT_MISSING_DEP  # noqa: E402
 from _project import PCB_PATH, OUTPUT_ROOT  # noqa: E402
 
 STAGE_NAME = "export_ibom"
@@ -61,7 +61,8 @@ def main() -> int:
         if not IBOM_GENERATOR.exists():
             st.fail(
                 "InteractiveHtmlBom submodule not initialized — "
-                "run `git submodule update --init --recursive`"
+                "run `git submodule update --init --recursive`",
+                code=EXIT_MISSING_DEP,
             )
         kicad_python = _find_kicad_python()
         if kicad_python is None:
@@ -70,7 +71,8 @@ def main() -> int:
                 f"{[str(p) for p in KICAD_PYTHON_CANDIDATES]} — "
                 "iBom needs the `pcbnew` module that ships only inside "
                 "KiCad's own interpreter; install KiCad 10 or update the "
-                "candidate list"
+                "candidate list",
+                code=EXIT_MISSING_DEP,
             )
         if not PCB_PATH.exists():
             st.fail(f"{PCB_PATH} not found — run build.py first")

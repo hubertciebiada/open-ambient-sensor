@@ -39,8 +39,9 @@ Lookup precedence (per `load_combined()`):
   - First regex match wins → apply offset, log source
   - No match → unchanged (the footprint keeps its KiCad rotation)
 
-User intent (2026-05-19): "Zrób oas specific rotations PO tych Z biblioteki.
-Osobny skrypt który domyka to co ucieka bibliotece". → the OAS list is a
+User intent (2026-05-19, translated): "Apply the OAS-specific rotations
+AFTER the library ones. A separate script that closes the gaps the library
+misses." → the OAS list is a
 gap-filler (runs AFTER upstream), not an override mechanism. When an
 upstream row is instead provably WRONG for an OAS footprint (not merely
 missing), the fix is to DROP that row via JLCPCB_UPSTREAM_SKIP rather than

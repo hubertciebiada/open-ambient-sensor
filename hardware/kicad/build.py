@@ -33,10 +33,10 @@ checks per the per-subdir number budget in CLAUDE.md):
   13 render_3d              3D top + iso renders via kicad-cli
   14 check_refdes_unique    designator uniqueness across schematic
   15 lint_typecheck         mypy on boardgen/ + pipeline/ (real-bug flags)
-  16 lint_compileall        python -m compileall over boardgen/ + pipeline/ + tools/
+  16 lint_compileall        python -m compileall over boardgen/ + pipeline/ + tools/ + tests/, then pytest unit suite
   17 lint_kicad_pro         rule_severities=={} enforcement (Lesson 3)
   18 lint_no_hand_pads      forbid hand-coded pad geometry (Lesson 1, whitelist for OAS customs)
-  19 check_oas_metadata     EXTERNAL_MODULES + lcsc_mapping schema lint (Lesson 10 + Gap H)
+  19 check_oas_metadata     EXTERNAL_MODULES + lcsc_mapping schema lint (Lesson 10 + Gap H) + J4 pin order (Lesson 20)
   20 export_gerbers         Protel gerbers + Excellon drill (raw fab data, vendor-neutral)
   21 check_polarity_silk    polarized component silk orientation audit
   22 export_ibom            InteractiveHtmlBom -> hardware/output/oas-ibom.html
@@ -152,7 +152,10 @@ def main() -> int:
         t0 = time.time()
         rc = run_stage(prefix, name, stage)
         elapsed = time.time() - t0
-        status = "PASS" if rc == 0 else "FAIL"
+        # Differentiated exit codes (see pipeline/_common.py EXIT_*):
+        # 0 PASS, 2 missing dependency, 3 IO/network failure, else
+        # design/check violation. All non-zero remain fail-fast.
+        status = {0: "PASS", 2: "FAIL-DEP", 3: "FAIL-IO"}.get(rc, "FAIL")
         results.append((prefix, name, status, elapsed))
         if rc != 0:
             break  # fail-fast

@@ -33,7 +33,7 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
-from _common import Stage, KICAD_ROOT  # noqa: E402
+from _common import Stage, KICAD_ROOT, EXIT_MISSING_DEP  # noqa: E402
 
 STAGE_NAME = "check_semantic"
 
@@ -72,7 +72,8 @@ def main() -> int:
         if skip is None:
             st.fail(
                 "kicad-skip submodule not initialized — "
-                "run `git submodule update --init --recursive`"
+                "run `git submodule update --init --recursive`",
+                code=EXIT_MISSING_DEP,
             )
 
         if not MCU_SCH.exists():

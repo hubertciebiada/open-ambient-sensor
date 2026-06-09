@@ -30,7 +30,7 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
-from _common import Stage, KICAD_ROOT  # noqa: E402
+from _common import Stage, KICAD_ROOT, EXIT_MISSING_DEP  # noqa: E402
 
 STAGE_NAME = "lint_typecheck"
 
@@ -42,7 +42,7 @@ def main() -> int:
         if importlib.util.find_spec("mypy") is None:
             print("[FAIL] mypy module not importable — required for stage 15 typecheck")
             print("[FAIL] one-time setup: pip install mypy")
-            st.fail("mypy missing")
+            st.fail("mypy missing", code=EXIT_MISSING_DEP)
 
         cmd = [
             sys.executable, "-m", "mypy",

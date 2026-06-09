@@ -38,7 +38,7 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
-from _common import Stage, KICAD_ROOT  # noqa: E402
+from _common import Stage, KICAD_ROOT, EXIT_MISSING_DEP  # noqa: E402
 
 STAGE_NAME = "check_lcsc_offline"
 
@@ -91,7 +91,10 @@ def main() -> int:
                 "\n       offline SQLite cache so LCSC# class / value mismatches"
                 "\n       (Lesson 5) get caught BEFORE a JLCPCB order is placed."
             )
-            st.fail("jlcparts offline cache missing — run the setup helper")
+            st.fail(
+                "jlcparts offline cache missing — run the setup helper",
+                code=EXIT_MISSING_DEP,
+            )
 
         sys.path.insert(0, str(KICAD_ROOT))
         from lcsc_mapping import LCSC_MAPPING  # noqa: E402

@@ -21,7 +21,11 @@ Format contract (consumed by `build.py`):
   - Every stage emits `[INFO] ...`, `[OK] ...`, `[WARN] ...`, `[FAIL] ...`
     log lines (uniform 4-char tag column with a 3-space pad after `OK`).
   - On clean exit a stage prints `[OK]   stage passed in X.Xs` and returns 0.
-  - On failure a stage prints `[FAIL] <reason>` and returns 1.
+  - On failure a stage prints `[FAIL] <reason>` and returns non-zero.
+    Non-zero return codes carry meaning (see the EXIT_* constants below):
+    1 = design/check violation, 2 = missing dependency, 3 = IO/network
+    failure. `build.py` treats ALL non-zero codes as fail-fast; the code
+    only differentiates the status string in the SUMMARY table.
 
 The orchestrator parses nothing from stdout; it relies purely on the
 subprocess return code. The structured log format is for humans reading
@@ -38,6 +42,15 @@ import subprocess
 import sys
 import time
 from pathlib import Path
+
+# Exit codes ----------------------------------------------------------------
+# Differentiated stage exit codes so callers (humans, agents, CI) can tell
+# a design problem apart from an environment problem. build.py maps these
+# to SUMMARY status strings (PASS / FAIL / FAIL-DEP / FAIL-IO) but treats
+# every non-zero code as fail-fast.
+EXIT_VALIDATION = 1   # design/check violation — the default failure
+EXIT_MISSING_DEP = 2  # a required tool/submodule/cache is not installed
+EXIT_IO = 3           # network/download/filesystem failure outside the design's control
 
 # Paths ---------------------------------------------------------------------
 HERE = Path(__file__).parent              # hardware/kicad/pipeline
@@ -488,6 +501,6 @@ class Stage:
         print(f"[WARN] {msg}")
 
     @staticmethod
-    def fail(msg: str) -> None:
+    def fail(msg: str, code: int = EXIT_VALIDATION) -> None:
         print(f"[FAIL] {msg}")
-        sys.exit(1)
+        sys.exit(code)
