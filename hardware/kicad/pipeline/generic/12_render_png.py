@@ -13,7 +13,7 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
-from _common import Stage, RENDERS  # noqa: E402
+from _common import Stage, RENDERS, EXIT_MISSING_DEP  # noqa: E402
 
 STAGE_NAME = "render_png"
 
@@ -26,7 +26,7 @@ def main() -> int:
         except ImportError:
             print("[FAIL] cairosvg not importable — required for stage 12 PNG conversion")
             print("[FAIL] one-time setup: pip install cairosvg")
-            st.fail("cairosvg missing")
+            st.fail("cairosvg missing", code=EXIT_MISSING_DEP)
 
         # rglob picks up SVGs from every subdir under renders/ (pcb/, sch/,
         # plus any future grouping). PNG lands in the same dir as its SVG.

@@ -3,7 +3,7 @@
 **DIY multi-sensor environmental monitor for indoor spaces.** Measures air quality and presence; mounts on a standard wall-recessed electrical box; runs ESPHome and integrates natively with Home Assistant.
 
 [![License: GPLv3](https://img.shields.io/badge/License-GPLv3-blue.svg?style=flat-square)](./GPLv3-LICENSE.md)
-[![Status: v0.50 routing complete](https://img.shields.io/badge/Status-v0.50%20routing%20complete-orange?style=flat-square)](#status)
+[![Status: v0.51 prototypes ordered](https://img.shields.io/badge/Status-v0.51%20prototypes%20ordered-orange?style=flat-square)](#status)
 [![MCU: ESP32-C6](https://img.shields.io/badge/MCU-ESP32--C6-green?style=flat-square)](#hardware-overview)
 [![Framework: ESPHome](https://img.shields.io/badge/Framework-ESPHome-orange?style=flat-square)](https://esphome.io)
 
@@ -11,7 +11,19 @@
 
 ## Status
 
-**v0.40 boards in flight at JLCPCB** (first SMT-assembled prototype run, 5 units, awaiting delivery). **v0.50 routing complete** — board fully routed (Freerouting 89/89 + hand-stitched GND pour), `build.py` 30/30 PASS, DRC 0 violations / 0 unconnected. **v0.51 CI expansion landed** — `build.py` 35/35 PASS with +5 new regression checks. Firmware skeleton (7-package ESPHome config + web_server dashboard) is ready for first flash on delivery. See [`CLAUDE.md`](./CLAUDE.md) for the current design rationale, hard constraints, and the v0.40 saga (audit-15 → audit-16 → final order) plus the v0.50 routing rework.
+**v0.51 boards ordered at JLCPCB on 2026-05-24** (prototype run, 5 units, full SMT assembly) — awaiting delivery. **v0.50 routing is complete**: the board is fully routed (Freerouting 89/89 + hand-stitched GND pour), DRC 0 violations / 0 unconnected. The **v0.51 CI expansion** brought the verification pipeline to 35 stages — `build.py` 35/35 PASS. The firmware skeleton (7-package ESPHome config + web_server dashboard) is ready for first flash on delivery, but has **not yet run on real hardware** — the design is unproven on physical hardware until the prototype batch arrives and is validated. See [`CLAUDE.md`](./CLAUDE.md) for the current design rationale, hard constraints, and lessons learned (the v0.40 footprint saga, the v0.50 routing rework, the v0.51 CI expansion).
+
+---
+
+## Can I build one today?
+
+**Short answer: you *can*, but you probably want to wait for the v1 validation milestone.**
+
+- **The design is complete and manufacturable.** All JLCPCB production files are committed under [`hardware/output/jlcpcb/`](./hardware/output/jlcpcb/) — gerber ZIP, BOM, and top/bottom CPL — produced and verified by the 35-stage pipeline on every build.
+- **It is an unvalidated prototype.** No board from this design has been powered on yet. Until the first batch is delivered, flashed, and tested (electrical bring-up, SEN66 readings, LD2410 UART, NFC, OTA), there is a real chance a respin is needed. Early adopters should wait for the v1 validation milestone before ordering.
+- **Cost positioning.** OAS deliberately sits above bargain-DIY BOM cost: a calibrated Sensirion SEN66 combo sensor, an mmWave radar with stillness detection, and a commercial-grade injection-moulded enclosure are all premium choices made on purpose — see [Design philosophy](#design-philosophy). If lowest possible cost is your priority, other open-source projects optimise for that instead.
+
+When hardware validation lands, this section will be replaced by a build guide (ordering, enclosure sourcing, flashing, Home Assistant onboarding). Flashing and Home Assistant integration are already documented in [`firmware/README.md`](./firmware/README.md); open work is tracked in the [TODO list](./CLAUDE.md#open-work--todo) in `CLAUDE.md`.
 
 ---
 
@@ -47,7 +59,7 @@ Both compromises (cheap-but-inaccurate, accurate-but-ugly) are rejected. See [`C
 | MCU | ESP32-C6-DevKitM-1-N4 (EAN 5904422385651) | 2× USB-C on module |
 | Air quality combo | Sensirion SEN66-SIN-T | I²C (JST GH 6-pin cable) |
 | Presence | HiLink HLK-LD2410B | UART @ 256000 baud |
-| Visual indicator | 7× SK6812-SIDE side-emit ring (Ø22 mm pitch, 8 slots with D13 vacated for J1) | 1-wire WS281x on GPIO 8 |
+| Visual indicator | 7× SK6812-SIDE side-emit ring (Ø26 mm base pitch, 8 slots with D13 vacated for J1) | 1-wire WS281x on GPIO 8 |
 | NFC dynamic tag | NXP NT3H1101 on MIKROE-2462 NFC Tag 2 Click | I²C 0x55 + NFC |
 | Power input | 24 V DC terminal block + TVS + PTC + reverse-polarity P-FET | — |
 
@@ -73,23 +85,41 @@ open-ambient-sensor/
 │   │   └── examples/               # anonymized per-device override examples
 │   └── secrets.yaml.example
 └── hardware/
-    ├── kicad/                      # build.py + boardgen/ (SOT) + pipeline + generated KiCad sources
+    ├── kicad/
+    │   ├── build.py                # THE single entrypoint — emits sources + runs the 35-stage pipeline
+    │   ├── boardgen/               # source of truth — generators for every .kicad_* file
+    │   ├── pipeline/               # 35 verification/export stages (generic / oas / jlcpcb)
+    │   ├── tests/                  # unit-test suite (pytest; run by stage 16 of build.py)
+    │   ├── tools/                  # manual-trigger scripts (route extract, DFM upload, jlcparts cache)
+    │   ├── oas_routes.py           # routing snapshot (replayed onto the generated PCB)
+    │   ├── lcsc_mapping.py         # SMD BOM — LCSC SKU source of truth
+    │   └── oas.kicad_*             # generated KiCad project files (derived artefacts — never hand-edit)
     ├── renders/                    # generated previews (PNG + SVG, visual changelog)
-    └── output/                     # production deliverables (gerbers ZIP + BOM + pos CSV)
+    └── output/                     # production deliverables (ibom + jlcpcb/ ZIP + BOM + 2× CPL)
 ```
 
 ---
 
-## Getting started
+## Rebuilding the design from source
 
-The board is at the v0.40 prototype stage (boards in flight at JLCPCB; v0.50 routing complete on the source tree). Once hardware lands and ESPHome flashes cleanly, this section will document:
+The KiCad project is **fully script-generated**. The `.kicad_pcb` / `.kicad_sch` / `.kicad_pro` / library files are derived artefacts — **never hand-edit them**; the next build overwrites every edit. The source of truth lives in [`hardware/kicad/boardgen/`](./hardware/kicad/boardgen/) (Python generators), [`lcsc_mapping.py`](./hardware/kicad/lcsc_mapping.py) (SMD BOM), and [`oas_routes.py`](./hardware/kicad/oas_routes.py) (routing snapshot).
 
-- Ordering the PCB (gerbers in [`hardware/output/jlcpcb/oas-jlcpcb.zip`](./hardware/output/jlcpcb/), JLCPCB SMT assembly with [`hardware/output/jlcpcb/oas-BOM.csv`](./hardware/output/jlcpcb/) + [`oas-top-CPL.csv`](./hardware/output/jlcpcb/))
-- Sourcing the SZOMK AK-N-94 enclosure
-- Flashing the ESP32-C6 — see [`firmware/README.md`](./firmware/README.md)
-- Adding the device to Home Assistant — see [`firmware/README.md`](./firmware/README.md)
+```sh
+cd hardware/kicad
+python build.py
+```
 
-In the meantime, follow the [open work / TODO](./CLAUDE.md#open-work--todo) list in `CLAUDE.md`.
+`build.py` is the only top-level entrypoint. It regenerates every KiCad source file bit-identically (deterministic v5 UUIDs — an unchanged tree produces an empty `git diff`) and then runs the full 35-stage verification pipeline: DRC, ERC, determinism self-check, analytical DC / ampacity / boot-strap / thermal / I²C-rise-time checks, ngspice SPICE simulations (buck soft-start, IEC 61000-4-5 surge, reverse polarity), unit tests, renders, and the vendor export stages that produce the JLCPCB deliverables. Any stage failure aborts the build.
+
+**Requirements:**
+
+- Python 3.11+
+- KiCad 10 with `kicad-cli` on `PATH`
+- `pip install mypy pytest cairosvg pygerber`
+- `git submodule update --init` (kicad-skip, InteractiveHtmlBom, jlcparts, and other tools under `hardware/kicad/third_party/`)
+- One-time jlcparts offline cache for the LCSC part-verification stage: `python hardware/kicad/tools/setup_jlcparts_cache.py` (~2 GiB download, expands to a local SQLite cache)
+
+ngspice and the vendor SPICE models are downloaded automatically into a gitignored `.tmp/` directory on first run. Individual pipeline stages are independently runnable for debugging (e.g. `python pipeline/generic/03_drc.py`), but a committable state always comes from a full `build.py` pass.
 
 ---
 

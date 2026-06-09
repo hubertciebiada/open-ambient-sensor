@@ -53,10 +53,12 @@ All downloads land under `<repo>/.tmp/spice/`, sibling to
 
 Failure policy (per CLAUDE.md "hard FAIL on download / py7zr failure")
 ---------------------------------------------------------------------
-No soft-skip anywhere. Missing py7zr -> raise with `pip install py7zr`.
-HTTP download failure -> raise. Size mismatch -> raise. ngspice exit
-code != 0 -> raise. Consumers wrap calls in `try` only when they want
-to add stage-specific context to the message before re-raising.
+No soft-skip anywhere. Missing py7zr -> SystemExit(EXIT_MISSING_DEP)
+with `pip install py7zr` hint. HTTP download failure / size mismatch /
+archive extraction failure -> SystemExit(EXIT_IO). ngspice exit code
+!= 0 -> raise (validation-class failure, default exit code). Consumers
+wrap calls in `try` only when they want to add stage-specific context
+to the message before re-raising.
 
 Implements Lesson 18 (CLAUDE.md) — leading underscore in the filename
 excludes this module from the `build.py` `pipeline/<subdir>/NN_*.py`
@@ -72,6 +74,13 @@ import sys
 import urllib.request
 from dataclasses import dataclass
 from pathlib import Path
+
+# Exit codes ----------------------------------------------------------------
+# Mirrors pipeline/_common.py EXIT_MISSING_DEP / EXIT_IO. Kept local on
+# purpose: this module is INDEPENDENT of `_common.py` (see docstring) and
+# must stay standalone-runnable without the pipeline dir on sys.path.
+EXIT_MISSING_DEP = 2  # a required tool (py7zr) is not installed
+EXIT_IO = 3           # network/download/extraction failure outside the design's control
 
 # Paths ---------------------------------------------------------------------
 HERE = Path(__file__).parent              # hardware/kicad/pipeline/oas
@@ -121,18 +130,25 @@ class CheckResult:
 def _download(url: str, target: Path) -> None:
     """urllib download with redirects + minimal progress print + size check.
 
-    Writes the response body to `target`. On size mismatch versus the
-    server's Content-Length header (when present), raises SystemExit
-    with a clear message; consumers must NOT swallow the failure.
+    Writes the response body to `target`. On network failure or size
+    mismatch versus the server's Content-Length header (when present),
+    raises SystemExit(EXIT_IO) with a clear message; consumers must NOT
+    swallow the failure.
     """
     target.parent.mkdir(parents=True, exist_ok=True)
     print(f"  downloading {url}")
-    with urllib.request.urlopen(url, timeout=120) as resp:
-        size = int(resp.headers.get("Content-Length") or 0)
-        target.write_bytes(resp.read())
+    try:
+        with urllib.request.urlopen(url, timeout=120) as resp:
+            size = int(resp.headers.get("Content-Length") or 0)
+            target.write_bytes(resp.read())
+    except OSError as e:
+        print(f"  download failed: {e}", file=sys.stderr)
+        sys.exit(EXIT_IO)
     actual = target.stat().st_size
     if size and actual != size:
-        sys.exit(f"  download size mismatch: expected {size} B, got {actual} B")
+        print(f"  download size mismatch: expected {size} B, got {actual} B",
+              file=sys.stderr)
+        sys.exit(EXIT_IO)
     print(f"  wrote {target.name} ({actual / 1024:.1f} kB)")
 
 
@@ -160,10 +176,12 @@ def ensure_ngspice() -> Path:
     on the cached binary.
 
     Hard-fails (SystemExit) on:
-      * `py7zr` not importable -> emits `pip install py7zr` hint.
-      * HTTP download failure / size mismatch.
+      * `py7zr` not importable -> EXIT_MISSING_DEP, emits `pip install
+        py7zr` hint.
+      * HTTP download failure / size mismatch / extraction failure ->
+        EXIT_IO.
       * Binary missing from the archive after extract (archive layout
-        change upstream).
+        change upstream) -> EXIT_IO.
     """
     cached = find_ngspice()
     if cached:
@@ -173,26 +191,34 @@ def ensure_ngspice() -> Path:
     try:
         import py7zr
     except ImportError:
-        sys.exit(
+        print(
             "[FAIL] py7zr not installed - needed to extract ngspice-46_64.7z.\n"
             "       Install with: pip install py7zr\n"
-            f"       Or manually extract ngspice-46_64.7z to {CACHE_DIR}/Spice64/."
+            f"       Or manually extract ngspice-46_64.7z to {CACHE_DIR}/Spice64/.",
+            file=sys.stderr,
         )
+        sys.exit(EXIT_MISSING_DEP)
 
     archive = CACHE_DIR / "ngspice-46_64.7z"
     _download(NGSPICE_URL, archive)
 
     print(f"  extracting {archive.name} (~50 MB)")
-    with py7zr.SevenZipFile(archive, mode="r") as z:
-        z.extractall(path=CACHE_DIR)
+    try:
+        with py7zr.SevenZipFile(archive, mode="r") as z:
+            z.extractall(path=CACHE_DIR)
+    except Exception as e:
+        print(f"[FAIL] extraction of {archive.name} failed: {e}", file=sys.stderr)
+        sys.exit(EXIT_IO)
     archive.unlink()
 
     found = find_ngspice()
     if not found:
-        sys.exit(
+        print(
             f"[FAIL] {NGSPICE_BIN_NAME} not present after extracting "
-            f"ngspice-46_64.7z to {CACHE_DIR}. Archive layout may have changed."
+            f"ngspice-46_64.7z to {CACHE_DIR}. Archive layout may have changed.",
+            file=sys.stderr,
         )
+        sys.exit(EXIT_IO)
     print(f"  ngspice ready at {found}")
     return found
 
