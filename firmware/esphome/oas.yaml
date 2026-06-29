@@ -101,4 +101,8 @@ packages:
   air_quality: !include packages/air-quality.yaml
   presence:    !include packages/presence.yaml
   nfc:         !include packages/nfc.yaml
-  bt_proxy:    !include packages/bt-proxy.yaml
+  # bt_proxy DISABLED (bring-up): esp32_ble_tracker::start_scan_() null-derefs
+  # global_ble->is_active() in setup() on ESP32-C6 / ESPHome 2026.4.1 ->
+  # Guru Meditation Load-access-fault crash-loop before WiFi init. Re-enable
+  # once the BLE init-order bug is fixed (see firmware TODO).
+  # bt_proxy:    !include packages/bt-proxy.yaml

@@ -87,15 +87,19 @@ web_server:
 # ---------------------------------------------------------------------------
 # Logger
 # ---------------------------------------------------------------------------
-# baud_rate: 0 disables the hardware UART logger because GPIO 16/17 (the
-# default UART0 pins) are owned by the LD2410 presence radar at 256000 baud
-# (see CLAUDE.md pinout). Logs are still available via:
-#   - USB-Serial-JTAG (native USB) when plugged into the second USB-C port
+# hardware_uart: USB_SERIAL_JTAG routes the logger over the ESP32-C6's native
+# USB-Serial-JTAG controller instead of a hardware UART. This is required
+# because GPIO 16/17 (the default UART0 pins) are owned by the LD2410 presence
+# radar at 256000 baud (see CLAUDE.md pinout) — a UART logger would collide
+# with the radar bus. Routing the logger to USB also keeps improv_serial
+# working (it needs a non-disabled serial logger; baud_rate: 0 would break it).
+# Logs are available via:
+#   - USB-Serial-JTAG (native USB) when plugged into the USB-C port
 #   - The web_server's live log viewer
 #   - Home Assistant device logs via the API
 logger:
   level: INFO
-  baud_rate: 0
+  hardware_uart: USB_SERIAL_JTAG
 
 # ---------------------------------------------------------------------------
 # mDNS — makes the device discoverable as oas-<device_id>.local on the LAN.

@@ -70,13 +70,14 @@ uart:
 # ---------------------------------------------------------------------------
 ld2410:
   uart_id: ld2410_uart
-  # Throttle: the LD2410 streams detection frames at ~10 Hz by default.
-  # Without throttle each frame would re-publish every sensor entity; in HA
-  # that floods the recorder DB. 500 ms is a good balance between
-  # responsiveness for automations and bus/DB load. The OUT-pin GPIO
-  # binary_sensor below is NOT throttled, so instant on/off automations
-  # can still subscribe to that one.
-  throttle: 500ms
+  # Throttle note: the LD2410 streams detection frames at ~10 Hz by default.
+  # Without rate-limiting each frame would re-publish every sensor entity; in
+  # HA that floods the recorder DB. The component-level `throttle:` option was
+  # removed in ESPHome 2026.x ("use per-sensor filters, instead"), so the
+  # 500 ms rate-limit now lives as a `throttle` filter on each numeric ld2410
+  # sensor below (sensor: platform: ld2410). The binary_sensors and the OUT-pin
+  # GPIO binary_sensor are deliberately NOT throttled, so instant on/off
+  # automations can still subscribe to those.
 
 # ---------------------------------------------------------------------------
 # Binary sensors
@@ -125,18 +126,28 @@ sensor:
     moving_distance:
       name: "${friendly_name} Moving Distance"
       id: oas_moving_distance
+      filters:
+        - throttle: 500ms
     still_distance:
       name: "${friendly_name} Still Distance"
       id: oas_still_distance
+      filters:
+        - throttle: 500ms
     moving_energy:
       name: "${friendly_name} Moving Energy"
       id: oas_moving_energy
+      filters:
+        - throttle: 500ms
     still_energy:
       name: "${friendly_name} Still Energy"
       id: oas_still_energy
+      filters:
+        - throttle: 500ms
     detection_distance:
       name: "${friendly_name} Detection Distance"
       id: oas_detection_distance
+      filters:
+        - throttle: 500ms
 
 # ---------------------------------------------------------------------------
 # Number entities — runtime-configurable detection parameters.

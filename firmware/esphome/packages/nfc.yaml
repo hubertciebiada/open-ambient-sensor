@@ -320,11 +320,11 @@ script:
             std::vector<uint8_t> page_bytes(
                 ndef_buf.begin() + off,
                 ndef_buf.begin() + off + 16);
-            esphome::i2c::ErrorCode err =
-                id(nfc_tag).write_bytes(page_num, page_bytes);
-            if (err != esphome::i2c::ErrorCode::ERROR_OK) {
-              ESP_LOGW("nfc", "I2C write of page 0x%02X failed (err %d)",
-                       page_num, (int)err);
+            // i2c_device's write_bytes(register, vector) returns bool
+            // (true = ACKed OK), not an i2c::ErrorCode.
+            bool ok = id(nfc_tag).write_bytes(page_num, page_bytes);
+            if (!ok) {
+              ESP_LOGW("nfc", "I2C write of page 0x%02X failed", page_num);
               error = true;
               break;
             }

@@ -131,7 +131,7 @@ light:
 
             // Paint the whole ring uniformly.
             for (int i = 0; i < it.size(); i++) {
-              it[i] = ESPColor(r, g, b);
+              it[i] = Color(r, g, b);
             }
 
       # ---------------------------------------------------------------
@@ -161,9 +161,9 @@ light:
             }
             for (int i = 0; i < N; i++) {
               if (i < filled) {
-                it[i] = ESPColor(r, g, b);
+                it[i] = Color(r, g, b);
               } else {
-                it[i] = ESPColor(0, 0, 0);
+                it[i] = Color(0, 0, 0);
               }
             }
 
@@ -219,7 +219,7 @@ light:
               h = h - floorf(h);   // wrap into [0,1)
               uint8_t r, g, b;
               hsv(h, 1.0f, 1.0f, r, g, b);
-              it[i] = ESPColor(r, g, b);
+              it[i] = Color(r, g, b);
             }
 
       # ---------------------------------------------------------------
@@ -242,11 +242,11 @@ light:
             for (int i = 0; i < N; i++) {
               int dist = head - i;
               while (dist < 0) dist += N;
-              if      (dist == 0) it[i] = ESPColor(255, 255, 255);
-              else if (dist == 1) it[i] = ESPColor(160, 160, 160);
-              else if (dist == 2) it[i] = ESPColor( 80,  80,  80);
-              else if (dist == 3) it[i] = ESPColor( 30,  30,  30);
-              else                it[i] = ESPColor(  0,   0,   0);
+              if      (dist == 0) it[i] = Color(255, 255, 255);
+              else if (dist == 1) it[i] = Color(160, 160, 160);
+              else if (dist == 2) it[i] = Color( 80,  80,  80);
+              else if (dist == 3) it[i] = Color( 30,  30,  30);
+              else                it[i] = Color(  0,   0,   0);
             }
 
       # ---------------------------------------------------------------
@@ -273,7 +273,7 @@ light:
               v = 0.10f + 0.90f * v;
               uint8_t lvl = (uint8_t)(v * 200.0f);
               // Slight warm-white bias so it feels cozy rather than clinical.
-              it[i] = ESPColor(lvl, (uint8_t)(lvl * 0.85f),
+              it[i] = Color(lvl, (uint8_t)(lvl * 0.85f),
                                     (uint8_t)(lvl * 0.55f));
             }
 
@@ -298,14 +298,14 @@ light:
               int dist = head - i;
               while (dist < 0) dist += N;
               if (dist > 5) {
-                it[i] = ESPColor(0, 0, 0);
+                it[i] = Color(0, 0, 0);
               } else {
                 // brightness = 255 * 0.55^dist
                 float decay = 1.0f;
                 for (int k = 0; k < dist; k++) decay *= 0.55f;
                 uint8_t lvl = (uint8_t)(255.0f * decay);
                 // Cyan-ish comet (180, 220, 255) scaled by decay.
-                it[i] = ESPColor((uint8_t)(180 * decay),
+                it[i] = Color((uint8_t)(180 * decay),
                                  (uint8_t)(220 * decay),
                                  (uint8_t)(255 * decay));
               }
