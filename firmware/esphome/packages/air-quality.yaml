@@ -33,10 +33,11 @@ i2c:
   - id: bus_a
     # v0.51 BOARD WORKAROUND — SDA/SCL are intentionally SWAPPED vs the
     # schematic (sda=GPIO7, scl=GPIO6, i.e. the opposite of the GPIO6=SDA /
-    # GPIO7=SCL pin map). The SEN66 JST-GH cable shipped with the v0.51
-    # prototypes has SDA/SCL crossed; bring-up confirmed that swapping them
-    # here makes the SEN66 ACK at 0x6B and report real readings with the
-    # as-shipped cable (no cable surgery needed).
+    # GPIO7=SCL pin map). On the v0.51 board the SEN66's SDA/SCL reach the
+    # OPPOSITE ESP GPIOs — a J3 pinout error on the BOARD. The JST-GH lead is a
+    # straight 1:1 cable; the crossing is NOT in the cable. Bring-up confirmed
+    # that swapping the pins here makes the SEN66 ACK at 0x6B and report real
+    # readings with a straight cable.
     #
     # This is SAFE only because the SEN66 is now the ONLY device on this bus:
     # the NFC tag (the other I2C consumer) has been dropped, and the LD2410 is

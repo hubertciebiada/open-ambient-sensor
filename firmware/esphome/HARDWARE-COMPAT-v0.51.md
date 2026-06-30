@@ -8,9 +8,11 @@ the air-quality sensor if flashed onto a corrected board. Do not "tidy it up".
 
 ### 1. I²C SDA/SCL are intentionally SWAPPED (`packages/air-quality.yaml`)
 The bus is declared `sda: GPIO7 / scl: GPIO6` — the **opposite** of the schematic
-(GPIO6 = SDA, GPIO7 = SCL). The SEN66 JST-GH cable shipped with the v0.51
-prototypes has SDA/SCL crossed; the firmware swap cancels that so the SEN66 ACKs
-at 0x6B and reports real readings with the **as-shipped cable** (no cable surgery).
+(GPIO6 = SDA, GPIO7 = SCL). On the v0.51 board the SEN66's SDA/SCL reach the
+opposite ESP GPIOs — a **J3 pinout error on the board**. The JST-GH lead is a
+straight 1:1 cable (the crossing is NOT in the cable). The firmware swap cancels
+the board error so the SEN66 ACKs at 0x6B and reports real readings with a
+**straight cable** (no cable surgery).
 
 This is only safe because the SEN66 is the **only** device left on the I²C bus
 (NFC was dropped — see below; the LD2410 is on UART). Caveat: it also swaps the
@@ -36,7 +38,7 @@ other I²C consumer).
 Matches the actual board (D11..D18, D13 skipped). Earlier firmware said 11.
 
 ## Summary of which firmware goes on which board
-| Board | SEN66 cable | I²C pins in firmware |
-|---|---|---|
-| **v0.51 (this)** | crossed (as shipped) | `sda: GPIO7 / scl: GPIO6` (swapped) |
-| Fixed rev (issue #6) | straight | `sda: GPIO6 / scl: GPIO7` (schematic) |
+| Board | J3 pinout | SEN66 cable | I²C pins in firmware |
+|---|---|---|---|
+| **v0.51 (this)** | SDA/SCL swapped (error) | straight 1:1 | `sda: GPIO7 / scl: GPIO6` (swapped) |
+| Fixed rev (issue #6) | corrected | straight 1:1 | `sda: GPIO6 / scl: GPIO7` (schematic) |
