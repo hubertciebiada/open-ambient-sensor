@@ -31,10 +31,26 @@
 # ---------------------------------------------------------------------------
 i2c:
   - id: bus_a
-    sda: GPIO6
-    scl: GPIO7
+    # v0.51 BOARD WORKAROUND — SDA/SCL are intentionally SWAPPED vs the
+    # schematic (sda=GPIO7, scl=GPIO6, i.e. the opposite of the GPIO6=SDA /
+    # GPIO7=SCL pin map). The SEN66 JST-GH cable shipped with the v0.51
+    # prototypes has SDA/SCL crossed; bring-up confirmed that swapping them
+    # here makes the SEN66 ACK at 0x6B and report real readings with the
+    # as-shipped cable (no cable surgery needed).
+    #
+    # This is SAFE only because the SEN66 is now the ONLY device on this bus:
+    # the NFC tag (the other I2C consumer) has been dropped, and the LD2410 is
+    # on UART. CAVEAT: it also swaps the J9 Qwiic port's SDA/SCL, so a standard
+    # Qwiic device on a v0.51 board + this firmware would need a crossed cable.
+    #
+    # PROPER FIX (next board rev): correct J3's pinout so a straight cable works
+    # — GitHub issue #6. When that lands, revert these two lines to
+    # sda: GPIO6 / scl: GPIO7. Do NOT "tidy up" this swap on a v0.51 board: it
+    # would break the SEN66.
+    sda: GPIO7
+    scl: GPIO6
     frequency: 100kHz   # SEN66 datasheet §3.1 max — DO NOT increase
-    scan: true          # logs detected addresses at startup (0x55 NFC, 0x6B SEN66, plus any Qwiic guest)
+    scan: true          # logs detected addresses at startup (0x6B SEN66, plus any Qwiic guest)
 
 # ---------------------------------------------------------------------------
 # Raw I2C device handle for the SEN66, used only for STAR-Engine writes

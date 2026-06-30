@@ -69,7 +69,7 @@ substitutions:
 
   # Project metadata — keep these in sync with CLAUDE.md / boardgen/_project.py.
   project_name: "HubertCiebiada.open-ambient-sensor"
-  project_version: "v0.40"
+  project_version: "v0.51"
 
 esphome:
   name: oas-${device_id}

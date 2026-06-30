@@ -15,9 +15,10 @@
 #
 # Control surface: ONE dropdown — the light's native "Effect" picker. The
 # four effects are:
-#   1. Dot Chase     — boot loading indicator (default until SEN66 data ready)
-#   2. AQI Solid     — AQI gradient colour, static (default once data arrives)
+#   1. Dot Chase     — rotating chase animation (selectable; NOT the default)
+#   2. AQI Solid     — AQI gradient colour, static
 #   3. AQI Breathing — AQI gradient colour with a ~4 s breathing envelope
+#                      (the DEFAULT — soft, easy on the eyes)
 #   4. Solid         — plain user-set colour (use the colour picker), no anim.
 # "Off" = the light's on/off toggle. (There is deliberately no separate
 # "ring mode" select — it duplicated the native effect dropdown.)
@@ -37,9 +38,8 @@
 # interval and boot logic know "do not touch the ring while alerting".
 # `oas_pre_critical_effect` remembers the effect that was active before the
 # override flipped the ring to red, so it can be restored when the alert clears.
-# `oas_boot_phase` drives the boot loading indicator: 0 = not started,
-# 1 = Dot Chase shown (waiting for first SEN66 reading), 2 = data arrived /
-# AQI Solid applied.
+# `oas_boot_phase` is a one-shot guard: 0 = not started, 2 = the ring has been
+# defaulted to AQI Breathing at boot.
 globals:
   - id: oas_critical_active
     type: bool
@@ -49,7 +49,7 @@ globals:
   - id: oas_pre_critical_effect
     type: std::string
     restore_value: no
-    initial_value: '"AQI Solid"'
+    initial_value: '"AQI Breathing"'
 
   - id: oas_boot_phase
     type: int
@@ -73,8 +73,8 @@ light:
     effects:
       # ---------------------------------------------------------------
       # 1. Dot Chase — single bright white head rotating around the ring
-      #    with a 3-LED linearly-fading tail. ~3 s per rotation. Used as
-      #    the boot "loading" indicator until the SEN66 produces data.
+      #    with a 3-LED linearly-fading tail. ~3 s per rotation. Selectable
+      #    effect only (no longer the boot default — that is AQI Breathing).
       # ---------------------------------------------------------------
       - addressable_lambda:
           name: "Dot Chase"
@@ -310,7 +310,7 @@ binary_sensor:
                 std::string eff = id(oas_pre_critical_effect);
                 if (eff.empty() || eff == "None" || eff == "Solid" ||
                     eff == "Dot Chase") {
-                  eff = "AQI Solid";
+                  eff = "AQI Breathing";
                 }
                 auto call = id(oas_ring).turn_on();
                 call.set_effect(eff);
@@ -321,26 +321,20 @@ binary_sensor:
 # Boot loading indicator + auto-dim
 # ---------------------------------------------------------------------------
 interval:
-  # Fast tick that drives the boot "loading" animation. On the first tick it
-  # starts Dot Chase; once the SEN66 publishes its first reading (oas_co2 stops
-  # being NaN) it switches the ring to AQI Solid (the default operating effect).
+  # One-shot at boot: default the ring to AQI Breathing on the first tick.
   # After that it is a cheap no-op (single int compare).
   - interval: 250ms
     then:
       - lambda: |-
+          // Default the ring to AQI Breathing (soft swell; green at AQI 0,
+          // fills in the real AQI colour once the SEN66 reports). Stays until
+          // the user picks another effect. Easy on the eyes vs the old Dot
+          // Chase loading indicator.
           if (id(oas_boot_phase) == 0) {
-            // Start the loading indicator.
-            auto call = id(oas_ring).turn_on();
-            call.set_effect("Dot Chase");
-            call.set_brightness(id(oas_ring_brightness_max).state / 100.0f);
-            call.perform();
-            id(oas_boot_phase) = 1;
-          } else if (id(oas_boot_phase) == 1 && !isnan(id(oas_co2).state)) {
-            // First real SEN66 data -> default to AQI Solid.
             id(oas_boot_phase) = 2;
             if (!id(oas_critical_active)) {
               auto call = id(oas_ring).turn_on();
-              call.set_effect("AQI Solid");
+              call.set_effect("AQI Breathing");
               call.set_brightness(id(oas_ring_brightness_max).state / 100.0f);
               call.perform();
             }
