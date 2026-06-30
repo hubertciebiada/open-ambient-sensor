@@ -108,7 +108,7 @@ bluetooth_proxy:
 # component continues to exist but has nothing to forward.
 switch:
   - platform: template
-    name: "${friendly_name} BLE Proxy"
+    name: "BLE Proxy"
     id: oas_ble_proxy_enabled
     icon: "mdi:bluetooth"
     optimistic: true

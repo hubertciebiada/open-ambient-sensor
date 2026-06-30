@@ -49,7 +49,7 @@ script:
 binary_sensor:
   - platform: gpio
     id: oas_button
-    name: "${friendly_name} Button"
+    name: "Button"
     pin:
       # ESP32-C6 GPIO 1 — safe non-strap input. Button to GND, internal
       # pull-up; inverted so a press reads as ON.

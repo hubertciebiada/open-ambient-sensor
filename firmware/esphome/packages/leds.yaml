@@ -67,7 +67,7 @@ light:
     pin: GPIO8
     rmt_symbols: 64
     id: oas_ring
-    name: "OAS Ring"
+    name: "Ring"
     restore_mode: ALWAYS_OFF
     default_transition_length: 500ms
     effects:
@@ -232,7 +232,7 @@ number:
   # during the day (the night window scales it down to 5 %).
   - platform: template
     id: oas_ring_brightness_max
-    name: "OAS Ring Max Brightness"
+    name: "Ring Max Brightness"
     optimistic: true
     initial_value: 30
     min_value: 0
@@ -252,7 +252,7 @@ number:
   # scales the ring to 5 % of the user's max-brightness setting.
   - platform: template
     id: oas_night_start
-    name: "OAS Night Mode Start Hour"
+    name: "Night Mode Start Hour"
     optimistic: true
     initial_value: 22
     min_value: 0
@@ -263,7 +263,7 @@ number:
 
   - platform: template
     id: oas_night_end
-    name: "OAS Night Mode End Hour"
+    name: "Night Mode End Hour"
     optimistic: true
     initial_value: 7
     min_value: 0
@@ -283,7 +283,7 @@ number:
 binary_sensor:
   - platform: template
     id: oas_critical_alert
-    name: "OAS Critical Alert"
+    name: "Critical Alert"
     device_class: safety
     lambda: |-
       // Mirror air-quality.yaml's critical sensor. NaN-safe because the

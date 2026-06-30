@@ -91,7 +91,7 @@ i2c_device:
 # Active-low + interrupt on FALLING edge = "phone just tapped me".
 binary_sensor:
   - platform: gpio
-    name: "${friendly_name} NFC Field"
+    name: "NFC Field"
     id: oas_nfc_field
     pin:
       number: GPIO3
@@ -115,7 +115,7 @@ binary_sensor:
 # ---------------------------------------------------------------------------
 text_sensor:
   - platform: template
-    name: "${friendly_name} NFC Status"
+    name: "NFC Status"
     id: oas_nfc_status
     icon: "mdi:nfc-variant"
     update_interval: never  # only updates when the script sets it
@@ -130,7 +130,7 @@ text_sensor:
 # The default 60 s is conservative; pushing below 10 s is unwise.
 number:
   - platform: template
-    name: "${friendly_name} NFC Refresh Interval"
+    name: "NFC Refresh Interval"
     id: oas_nfc_refresh_interval
     icon: "mdi:timer-refresh-outline"
     optimistic: true
@@ -151,7 +151,7 @@ number:
 # Stored in NVS and survives reboots.
 text:
   - platform: template
-    name: "${friendly_name} NFC Dashboard URL"
+    name: "NFC Dashboard URL"
     id: oas_nfc_dashboard_url
     icon: "mdi:link-variant"
     optimistic: true

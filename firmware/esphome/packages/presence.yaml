@@ -88,15 +88,15 @@ binary_sensor:
   # incorporates the gate-sensitivity tuning below.
   - platform: ld2410
     has_target:
-      name: "${friendly_name} Presence"
+      name: "Presence"
       id: oas_presence
       device_class: occupancy
     has_moving_target:
-      name: "${friendly_name} Moving Target"
+      name: "Moving Target"
       id: oas_moving_target
       device_class: motion
     has_still_target:
-      name: "${friendly_name} Still Target"
+      name: "Still Target"
       id: oas_still_target
       device_class: occupancy
 
@@ -110,7 +110,7 @@ binary_sensor:
   # datasheet §5.1. Configure as plain INPUT — no pull resistor needed
   # since the LD2410 actively drives both states.
   - platform: gpio
-    name: "${friendly_name} Presence Pin"
+    name: "Presence Pin"
     id: oas_presence_pin
     pin:
       number: GPIO2
@@ -124,27 +124,27 @@ binary_sensor:
 sensor:
   - platform: ld2410
     moving_distance:
-      name: "${friendly_name} Moving Distance"
+      name: "Moving Distance"
       id: oas_moving_distance
       filters:
         - throttle: 500ms
     still_distance:
-      name: "${friendly_name} Still Distance"
+      name: "Still Distance"
       id: oas_still_distance
       filters:
         - throttle: 500ms
     moving_energy:
-      name: "${friendly_name} Moving Energy"
+      name: "Moving Energy"
       id: oas_moving_energy
       filters:
         - throttle: 500ms
     still_energy:
-      name: "${friendly_name} Still Energy"
+      name: "Still Energy"
       id: oas_still_energy
       filters:
         - throttle: 500ms
     detection_distance:
-      name: "${friendly_name} Detection Distance"
+      name: "Detection Distance"
       id: oas_detection_distance
       filters:
         - throttle: 500ms
@@ -159,20 +159,20 @@ number:
     # Maximum gate (0..8) that registers MOVING targets. Default 8 (~6 m).
     # Reduce in small rooms to filter out detections beyond the wall.
     max_move_distance_gate:
-      name: "${friendly_name} Max Move Gate"
+      name: "Max Move Gate"
     # Same as above but for STILL targets (breathing-only humans).
     max_still_distance_gate:
-      name: "${friendly_name} Max Still Gate"
+      name: "Max Still Gate"
     # Seconds the target stays "present" after detection drops. Default 5 s.
     # Increase in offices where people sit still for long periods to avoid
     # the lights cutting out during deep concentration.
     timeout:
-      name: "${friendly_name} Presence Timeout"
+      name: "Presence Timeout"
     # Ambient-light threshold for the optional dependent-output gating
     # (only relevant if light_function below is set to anything other
     # than off). 0..255, 0 = always trigger regardless of light level.
     light_threshold:
-      name: "${friendly_name} Light Threshold"
+      name: "Light Threshold"
 
 # ---------------------------------------------------------------------------
 # Buttons — service / maintenance actions.
@@ -182,18 +182,18 @@ button:
     # Resets the LD2410 to factory defaults. Wipes per-gate sensitivity
     # tuning. Use only when starting over from scratch.
     factory_reset:
-      name: "${friendly_name} LD2410 Factory Reset"
+      name: "LD2410 Factory Reset"
       entity_category: config
     # Soft-reboots the LD2410. Useful if it gets into a wedged state
     # (very rare; usually solved by power-cycle of the whole OAS unit).
     restart:
-      name: "${friendly_name} LD2410 Restart"
+      name: "LD2410 Restart"
       entity_category: config
     # Re-reads the gate parameters from the LD2410 and republishes the
     # number entities above. Useful after changing sensitivity via the
     # HLKRadarTools Bluetooth app instead of via ESPHome.
     query_params:
-      name: "${friendly_name} LD2410 Read Params"
+      name: "LD2410 Read Params"
       entity_category: diagnostic
 
 # ---------------------------------------------------------------------------
@@ -207,13 +207,13 @@ select:
     # is supported. Reduce to 0.2 m for small rooms where 0.75 m gates
     # over-quantize the bedroom-sized space.
     distance_resolution:
-      name: "${friendly_name} Distance Resolution"
+      name: "Distance Resolution"
       entity_category: config
     # UART baud rate negotiation. Default 256000 matches the uart: block
     # above. Changing this on the fly will desync the ESP32 <-> LD2410
     # link; only useful if a future hardware revision changes baud.
     baud_rate:
-      name: "${friendly_name} LD2410 Baud Rate"
+      name: "LD2410 Baud Rate"
       entity_category: config
 
 # ---------------------------------------------------------------------------
@@ -226,11 +226,11 @@ switch:
     # Disable in production to avoid stray BLE advertisements once tuning
     # is complete (and to reduce 2.4 GHz noise for the OAS's own BLE proxy).
     bluetooth:
-      name: "${friendly_name} LD2410 Bluetooth"
+      name: "LD2410 Bluetooth"
       entity_category: config
     # Engineering mode reports per-gate energy readings on every UART
     # frame. Useful during sensitivity tuning; adds ~9x UART traffic and
     # is overkill for production. Keep OFF after calibration.
     engineering_mode:
-      name: "${friendly_name} LD2410 Engineering Mode"
+      name: "LD2410 Engineering Mode"
       entity_category: diagnostic
