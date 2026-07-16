@@ -223,7 +223,6 @@ Additional features:
 | Air quality combo | Sensirion **SEN66-SIN-T** (material 3.001.030) + JST GH 6-pin cable accessory (50 cm AWG26, separately ordered — Sensirion ships SEN66 without cable) | Sensirion / LaskaKit / ThePiHut | I²C 0x6B |
 | Presence | **HiLink HLK-LD2410B** (-B variant specifically — NOT -C; pin order and body dims differ per HLK datasheet) | HiLink / TME / AliExpress | UART 256000 baud |
 | Visual indicator | **7 × SK6812-SIDE** (OPSCO SK6812SIDE-A, 4020 side-emit) on Ø26 mm pitch ring, 8 slots at 45° pitch with D13 skipped for J1 cable area | LCSC C5378721 | 1-wire WS281x |
-| User button | **C&K PTS645VK392LFS** side-actuated (right-angle) THT tactile, in the AK-N-94 USB-C case-wall opening; SW1 | LCSC C285519 | GPIO 1 (THT hand-solder) |
 | NFC dynamic tag | **MIKROE-2462 NFC Tag 2 Click** (NXP NT3H1101 + onboard PCB antenna, mikroBUS L) | MikroE / TME | I²C 0x55 + NFC |
 | Power input | Phoenix Contact MSTBA 2,5/3-G-5,08 3-pos terminal | THT hand-solder | 24 V DC |
 | Reverse-polarity | **AO3401A** P-MOSFET (SOT-23) + BZT52C10S Zener clamp (SOD-323) + 100 k pull-down + 1 k gate series | LCSC C15127 / C19334 / C25803 / C21190 | — |
@@ -248,7 +247,6 @@ ESP32-C6-DevKitM-1-N4 is the Espressif official devkit (ESP32-C6-MINI-1 SoM + tw
 | GPIO 7 | I²C SCL | shared bus, **4.7 kΩ pull-ups on MCU side** (220 mm total bus length — see "Shared I²C bus" below) |
 | GPIO 16 | UART1 TX → LD2410 RX | 256000 baud |
 | GPIO 17 | UART1 RX ← LD2410 TX | 256000 baud |
-| GPIO 1 | SW1 push-button | safe non-strap input; short press = LED dim cycle, long press = ESP32 restart |
 | GPIO 2 | LD2410 OUT (presence interrupt) | safe non-strap input |
 | GPIO 3 | NT3H1101 FD (NFC field-detect interrupt) | safe non-strap input |
 | GPIO 8 | WS2812 DIN → external SK6812-SIDE AQI ring | strap pin (LED idles low — OK); **R7 = 10 kΩ external pull-up to +3V3 required** (DevKitM-1's onboard pull-up depends on VCC_5V which floats in OAS) |
@@ -258,7 +256,7 @@ ESP32-C6-DevKitM-1-N4 is the Espressif official devkit (ESP32-C6-MINI-1 SoM + tw
 - **GPIO 10, GPIO 11**: physically NOT bonded out on ESP32-C6FH4 (internal SiP flash uses these pins). Unavailable on every MINI-1 / SuperMini / XIAO / DevKitM-1 variant.
 - **Strap pins (avoid for general I/O)**: GPIO 4 (MTMS), 5 (MTDI), 9 (BOOT button on DevKitM-1), 15 (boot-mode select).
 
-**Available safe-non-strap spare GPIOs** (for future expansion): 0, 14, 18, 19, 20, 21, 22, 23 — eight pins free.
+**Available safe-non-strap spare GPIOs** (for future expansion): 0, 1, 14, 18, 19, 20, 21, 22, 23 — nine pins free. (GPIO 1 freed in v0.53 when the SW1 push-button was removed — GitHub issue #5.)
 
 ### Architectural decisions
 
@@ -301,9 +299,8 @@ No "hand-solder friendly" deviations remain anywhere in the design.
 - **NFC dynamic content**: `nt3h*` external component wrapping the NT3H1101 register map
 
 Current firmware skeleton (added v0.40-post-order):
-- `firmware/esphome/oas.yaml` top-level + 7 packages in `packages/`: core, leds, buttons, air-quality, presence, nfc, bt-proxy.
+- `firmware/esphome/oas.yaml` top-level + 6 packages in `packages/`: core, leds, air-quality, presence, nfc, bt-proxy.
 - 8+ LED effects with web_server-driven brightness / effect / mode (Auto-AQI / Manual / Off / Test-Rainbow). Day-night auto-dim.
-- SW1 push-button (GPIO 1): short press cycles ring brightness 25→50→75→100→Off, long press restarts the ESP32-C6.
 - SEN66 sensor offsets (temperature, humidity, CO2) exposed as `number:` entities preserved across reboots.
 - STAR-Engine IAQM Light preset (T1=1000, T2=3000, K=200, P=200 raw I²C 16-bit, ×10 of post-scale display values) re-uploaded on every boot via `on_boot:` lambda (Sensirion params are volatile per datasheet).
 - LD2410 per-gate sensitivity, max-distance, and timeout exposed as `number:` / `select:` entities.
@@ -349,7 +346,7 @@ Do not propose these again without new information:
 ### Hardware
 - [x] **Routing rework (v0.50) — DONE.** Board fully routed, `ROUTING_CHUNKS = ("gnd", "autoroute")`, `build.py` 30/30 PASS, DRC 0/0. Snapshot in `oas_routes.py` (613 seg + 42 via after the post-v0.50 DFM via removals).
 - [ ] Re-run the JLCPCB DFM check on the fully-routed gerbers (target 0 Danger / 0 Warning).
-- [ ] Receive v0.40 prototypes from JLCPCB; hand-solder the 10 THT components (J1 / J4 / J5 / J6 / J7 / J8 / SW1 / C1 / C3 / C4).
+- [ ] Receive v0.40 prototypes from JLCPCB; hand-solder the 9 THT components (J1 / J4 / J5 / J6 / J7 / J8 / C1 / C3 / C4).
 - [ ] Optional v2 substitutions (deferred): Q1 → AON7415 for actual positive Vds margin (-40 V vs SMBJ24A 38.9 V clamp); L1 → 6045 / 1264 body if production load grows beyond 1.2 A continuous.
 - [ ] Foam shroud / cover baffle separating SEN66 inlet zone from outlet zone (open mitigation; decision pending physical-prototype recirculation measurement).
 
@@ -378,7 +375,7 @@ open-ambient-sensor/
 │   ├── README.md                   # flashing + Home Assistant integration
 │   ├── esphome/
 │   │   ├── oas.yaml                # top-level ESPHome config
-│   │   ├── packages/               # core / leds / buttons / air-quality / presence / nfc / bt-proxy
+│   │   ├── packages/               # core / leds / air-quality / presence / nfc / bt-proxy
 │   │   └── examples/               # anonymized per-device override examples
 │   └── secrets.yaml.example
 └── hardware/

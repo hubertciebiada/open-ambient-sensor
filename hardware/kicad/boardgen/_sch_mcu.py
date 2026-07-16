@@ -99,7 +99,7 @@ def gen_mcu_sch() -> str:
         J5.5   GPIO4   (strap MTMS)             → no_connect
         J5.6   GPIO5   (strap MTDI)             → no_connect
         J5.7   GPIO0                            → no_connect (spare)
-        J5.8   GPIO1                            → hier label "BTN"
+        J5.8   GPIO1                            → no_connect (spare)
         J5.9   GPIO8   (strap boot, onboard LED)→ hier label "WS2812_DIN"
         J5.10  GPIO6                            → hier label "I2C_SDA"
         J5.11  GPIO7                            → hier label "I2C_SCL"
@@ -194,14 +194,15 @@ def gen_mcu_sch() -> str:
         "RST"        : 2,
         "LD2410_OUT" : 3,
         "NFC_FD"     : 4,
-        "BTN"        : 8,
         "WS2812_DIN" : 9,
         "I2C_SDA"    : 10,
         "I2C_SCL"    : 11,
     }
     J5_GND_PINS: list[int] = [13, 15]                     # J1.13, J1.15
-    J5_NC_PINS:  list[int] = [5, 6, 7, 12, 14]
-    #                          GPIO4/5/0/14     5V (J1.14)
+    # v0.53: pin 8 (GPIO1) joined the NC list when SW1 was removed
+    # (GitHub issue #5) — GPIO1 is now an unused spare, no_connect.
+    J5_NC_PINS:  list[int] = [5, 6, 7, 8, 12, 14]
+    #                          GPIO4/5/0/1/14   5V (J1.14)
     J6_SIGNAL_PIN: dict[str, int] = {
         "UART_TX"    : 2,
         "UART_RX"    : 3,
@@ -227,7 +228,6 @@ def gen_mcu_sch() -> str:
     J5_RST_Y    = j5_pin_y(J5_SIGNAL_PIN["RST"])         # 95.25
     J5_LDR_Y    = j5_pin_y(J5_SIGNAL_PIN["LD2410_OUT"])  # 97.79
     J5_NFC_Y    = j5_pin_y(J5_SIGNAL_PIN["NFC_FD"])      # 100.33
-    J5_BTN_Y    = j5_pin_y(J5_SIGNAL_PIN["BTN"])         # 110.49
     J5_WS_Y     = j5_pin_y(J5_SIGNAL_PIN["WS2812_DIN"])  # 113.03
     J5_SDA_Y    = j5_pin_y(J5_SIGNAL_PIN["I2C_SDA"])     # 115.57
     J5_SCL_Y    = j5_pin_y(J5_SIGNAL_PIN["I2C_SCL"])     # 118.11
@@ -379,7 +379,6 @@ def gen_mcu_sch() -> str:
     parts.append(_sch_wire(J5_PIN_X, J5_SCL_Y, HLABEL_LEFT_X, J5_SCL_Y, "scl-wire"))
     parts.append(_sch_wire(J5_PIN_X, J5_LDR_Y, HLABEL_LEFT_X, J5_LDR_Y, "ldr-wire"))
     parts.append(_sch_wire(J5_PIN_X, J5_NFC_Y, HLABEL_LEFT_X, J5_NFC_Y, "nfc-wire"))
-    parts.append(_sch_wire(J5_PIN_X, J5_BTN_Y, HLABEL_LEFT_X, J5_BTN_Y, "btn-wire"))
     parts.append(_sch_wire(J5_PIN_X, J5_WS_Y,  HLABEL_LEFT_X, J5_WS_Y,  "ws2812-wire"))
 
     # ---- EN: J5.2 (RST) → hier label "EN" (LEFT side) ----
@@ -508,11 +507,6 @@ def gen_mcu_sch() -> str:
         name="NFC_FD", shape="input",
         x=HLABEL_LEFT_X, y=J5_NFC_Y, angle=180, justify="right",
         uuid_tag="nfc-fd",
-    ))
-    parts.append(_sch_hierarchical_label(
-        name="BTN", shape="input",
-        x=HLABEL_LEFT_X, y=J5_BTN_Y, angle=180, justify="right",
-        uuid_tag="btn-j5",
     ))
     parts.append(_sch_hierarchical_label(
         name="WS2812_DIN", shape="output",

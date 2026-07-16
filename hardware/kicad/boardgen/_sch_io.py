@@ -10,7 +10,6 @@ from boardgen._sch_helpers import (
     _sch_wire, _sch_junction, _sch_power_flag,
     _sch_hierarchical_label, _sch_no_connect, _sch_local_label,
     _sch_conn_01x04, _sch_conn_01x06, _sch_conn_01x05, _sch_conn_01xn,
-    _sch_sw_push,
     _conn_01xn_pin_xy, _CONN_01XN_PIN1_LIB_Y,
 )
 
@@ -46,12 +45,6 @@ def gen_io_sch() -> str:
           J10.5          EN     (chip enable / reset)
           J10.6 (bottom) BOOT   (GPIO 9, pull low to enter ROM bootloader)
 
-      SW1 — Side-actuated tactile push-button (always populated)
-        C&K PTS645VK392LFS right-angle THT SPST momentary. Lives at the
-        chord edge in the AK-N-94 USB-C case-wall opening (left of C2).
-        Pin 1 -> BTN net (ESP32-C6 GPIO 1), pin 2 -> GND. Firmware: short
-        press cycles the LED ring brightness, long press restarts the MCU.
-
     Inter-sheet nets imported via hierarchical_label (matching sheet pins
     are declared on the root sheet's IO block, exported by the MCU sub-
     sheet which sources the underlying ESP32-C6 GPIOs):
@@ -61,7 +54,6 @@ def gen_io_sch() -> str:
       USB_DP       (bidirectional, J10 pin 4) — MCU GPIO 13 (USB D+)
       EN           (input,         J10 pin 5) — MCU RST pin
       BOOT         (input,         J10 pin 6) — MCU GPIO 9 BOOT strap
-      BTN          (output,        SW1 pin 1) — MCU GPIO 1 push-button
 
     +3V3 and GND join via global power symbols (same KiCad convention
     used in the power / mcu / sensors sub-sheets).
@@ -218,44 +210,6 @@ def gen_io_sch() -> str:
         ))
 
     # =====================================================================
-    # SW1 — side-actuated tactile push-button (v0.42)
-    # =====================================================================
-    # SW1 lives at the chord edge in the AK-N-94 USB-C case-wall opening
-    # (PCB CUTOUTS "USBC", immediately left of C2). Stock Switch:SW_Push
-    # is a horizontal 2-pin SPST momentary part. With angle=0:
-    #   Pin 1 (left)  at (SW1_X - 5.08, SW1_Y) -> BTN net (ESP32-C6 GPIO 1)
-    #   Pin 2 (right) at (SW1_X + 5.08, SW1_Y) -> GND
-    # Firmware: short press cycles the LED ring brightness, long press
-    # restarts the ESP32-C6.
-    SW1_X = 95.25
-    SW1_Y = 105.41              # open band between J9 (Y≈82) and J10 (Y≈132);
-                                # 105.41 = 83 × 1.27 mm connection grid
-    SW1_PIN1_X = SW1_X - 5.08   # 90.17 — left pin (BTN)
-    SW1_PIN2_X = SW1_X + 5.08   # 100.33 — right pin (GND)
-
-    # ----- SW1 pin 1 (BTN): wire WEST to the BTN hier label -----
-    # shape="output": the button signal originates on this (IO) sheet and
-    # exits to the MCU sub-sheet, which receives it as an input.
-    parts.append(_sch_wire(SW1_PIN1_X, SW1_Y, HLABEL_LEFT_X, SW1_Y, "sw1-p1-btn"))
-    parts.append(_sch_hierarchical_label(
-        name="BTN", shape="output",
-        x=HLABEL_LEFT_X, y=SW1_Y, angle=180, justify="right",
-        uuid_tag="btn-sw1",
-    ))
-
-    # ----- SW1 pin 2 (GND): hop EAST to a GND power flag -----
-    PWR_SW1_GND_X = SW1_PIN2_X + 5.08   # 105.41
-    parts.append(_sch_wire(SW1_PIN2_X, SW1_Y, PWR_SW1_GND_X, SW1_Y, "sw1-p2-gnd-hop"))
-    parts.append(_sch_power_flag(
-        lib_id="power:GND", value="GND",
-        x=PWR_SW1_GND_X, y=SW1_Y, angle=90,
-        reference="#PWR64",
-        value_offset_x=3.81, value_offset_y=0.0,
-        uuid_tag="pwr64-gnd-sw1-p2",
-        sheet_key="io",
-    ))
-
-    # =====================================================================
     # Symbol instances
     # =====================================================================
     parts.append(_sch_conn_01x04(
@@ -271,13 +225,6 @@ def gen_io_sch() -> str:
         value="1x6 P2.54mm pin header — native USB recovery (DNP)",
         uuid_tag="j10-recovery",
         dnp=True,
-        sheet_key="io",
-    ))
-    parts.append(_sch_sw_push(
-        x=SW1_X, y=SW1_Y, angle=0,
-        reference="SW1",
-        value="C&K PTS645VK392LFS",
-        uuid_tag="sw1-button",
         sheet_key="io",
     ))
 

@@ -4,8 +4,6 @@ OAS runs on **ESPHome** (YAML configuration) and integrates with Home Assistant 
 
 Hardware target: **ESP32-C6-DevKitM-1-N4** (ESP32-C6-MINI-1 SoM, 4 MB flash) on the OAS v0.40 PCB. Framework: **esp-idf** (required for BLE proxy memory headroom — `arduino` runs out of IRAM with the C6 + BLE + WiFi + sensors all enabled).
 
-User input: **SW1 push-button on GPIO 1**, side-actuated through the AK-N-94 enclosure's USB-C case-wall opening. Short press cycles the LED ring brightness 25 → 50 → 75 → 100 → Off; long press restarts the ESP32-C6.
-
 ## Layout
 
 ```
@@ -15,7 +13,6 @@ firmware/
 │   ├── packages/
 │   │   ├── core.yaml        # WiFi, AP fallback, API, OTA, web_server, time, logger
 │   │   ├── leds.yaml        # SK6812-SIDE AQI ring (7 LEDs on GPIO 8; 8-slot ring with D13 vacated for J1)
-│   │   ├── buttons.yaml     # SW1 push-button on GPIO 1 (short press = LED dim cycle, long press = restart)
 │   │   ├── air-quality.yaml # Sensirion SEN66 (I²C 0x6B)
 │   │   ├── presence.yaml    # HiLink LD2410 (UART @ 256000 baud)
 │   │   ├── nfc.yaml         # MIKROE-2462 NT3H1101 dynamic tag (I²C 0x55)
@@ -159,7 +156,7 @@ Alternatively, the **AP fallback** (`OAS-<device_id>-Setup` SSID, gated by `ap_p
 
 ## Status
 
-**Firmware skeleton complete (7 packages):** `core.yaml`, `leds.yaml`, `buttons.yaml`, `air-quality.yaml`, `presence.yaml`, `nfc.yaml`, `bt-proxy.yaml`. Validates clean against `esphome config`. Awaiting hardware delivery for first-flash and bench bring-up — see CLAUDE.md for the firmware TODO list (LD2410 UART shakedown, NFC NDEF updater verification, OTA setup, HA discovery validation).
+**Firmware skeleton complete (6 packages):** `core.yaml`, `leds.yaml`, `air-quality.yaml`, `presence.yaml`, `nfc.yaml`, `bt-proxy.yaml`. Validates clean against `esphome config`. Awaiting hardware delivery for first-flash and bench bring-up — see CLAUDE.md for the firmware TODO list (LD2410 UART shakedown, NFC NDEF updater verification, OTA setup, HA discovery validation).
 
 ---
 

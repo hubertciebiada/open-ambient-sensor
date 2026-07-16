@@ -25,14 +25,15 @@ from tools import extract_routes
 def test_round_trip_boardgen_format_byte_identical() -> None:
     """Committed oas.kicad_pcb (boardgen `(net N)` format) round-trips.
 
-    Counts match the committed snapshot header ("Source snapshot: 613
-    segments, 42 vias.") — the post-v0.50 DFM fixes dropped 2 vias from
-    the original 44-via snapshot, so 42 is the current ground truth.
+    Counts match the committed snapshot header ("Source snapshot: 606
+    segments, 40 vias.") — v0.53 removed SW1 (GitHub issue #5), dropping
+    the /IO/BTN net's 7 segments + 2 vias from the v0.50 613 seg / 42 via
+    baseline.
     """
     text = extract_routes.PCB.read_text(encoding="utf-8")
     segments, vias = extract_routes.extract(text)
-    assert len(segments) == 613
-    assert len(vias) == 42
+    assert len(segments) == 606
+    assert len(vias) == 40
 
     rendered = extract_routes.render(segments, vias)
     committed = extract_routes.OUT.read_text(encoding="utf-8")

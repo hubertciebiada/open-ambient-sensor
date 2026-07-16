@@ -10,8 +10,8 @@ STRIP_SILK_NEAR_PADS is set) — footprint body-outline silk within the
 DFM clearance of a pad is removed there, so oas.kicad_pcb itself stays
 library-faithful (an in-place footprint edit would trip KiCad's
 lib_footprint_mismatch DRC). STRIP_FOOTPRINT_SILK additionally drops
-DFM-hostile silk that the near-pad pass cannot reach (SW1's body-outline
-brackets, the CP_Radial polarity hatch fill) from named footprints on
+DFM-hostile silk that the near-pad pass cannot reach (the CP_Radial
+polarity hatch fill) from named footprints on
 that same copy. The drill files are exported from the original PCB
 (drill geometry has no silkscreen).
 

@@ -296,8 +296,6 @@ def strip_footprint_silk(pcb_path: Path, rules: dict) -> int:
 
     Handles stock-library silk that `strip_silk_near_pads` cannot reach
     (it only strips body outlines WITHIN min_clearance of a pad):
-      - SW1 C&K PTS645: the body-outline brackets only clutter the board
-        and crowd the THT pads -> dropped outright ("all").
       - CP_Radial electrolytics: the polarity HATCH fill is hundreds of
         dense silk lines crowding the cathode pinhole. ("x_ge", v) drops
         the hatch (positive local x) while keeping the "+" mark (negative

@@ -46,7 +46,6 @@ from boardgen._project import (  # noqa: F401
     J10_PCB_X, J10_PCB_Y, J10_PCB_ROTATION,
     J1_PIN_MAP, J2_PIN_MAP, J7_PIN_MAP, J8_PIN_MAP, J10_PIN_MAP,
     J4_END_SIGNALS, J5_END_SIGNALS, J6_END_SIGNALS,
-    SW1_PCB_X, SW1_PCB_Y, SW1_PCB_ROTATION,
     LED_RING_COUNT, LED_RING_THETA_START_DEG, LED_RING_THETA_STEP_DEG,
     LED_RING_SKIP_INDICES,
     SK6812SIDE_BODY_W, SK6812SIDE_BODY_H,
@@ -69,7 +68,6 @@ from boardgen._footprints_stock import (
     gen_j1_terminal_block_pcb_footprint,
     gen_j9_qwiic_pcb_footprint,
     gen_j10_recovery_pcb_footprint,
-    gen_sw1_button_pcb_footprint,
     gen_pinsocket_pcb_footprint,
     gen_sk6812_side_pcb_footprint,
     gen_capacitor_0402_pcb_footprint,
@@ -222,7 +220,7 @@ def gen_cutouts() -> tuple[str, str]:
         # keepout flag set to "allowed" — the zone is inert inside KiCad,
         # but KiCad's Specctra DSN export STILL turns it into a HARD
         # keepout that walls Freerouting out of fully-routable case-wall-
-        # opening space (the USB-C opening hosting SW1). Skipping the zone
+        # opening space (e.g. the USB-C opening). Skipping the zone
         # keeps the Dwgs.User marker (documentation) without the phantom
         # autoroute obstacle.
         if not allow_pads:
@@ -918,15 +916,6 @@ def gen_sensors_pcb_footprints() -> str:
         x=J10_PCB_X, y=J10_PCB_Y, rotation=J10_PCB_ROTATION,
     ))
 
-    # v0.42: SW1 — C&K PTS645VK392LFS side-actuated (right-angle) THT
-    # tactile push-button. Lives in the USB-C case-wall cutout (CUTOUTS
-    # "USBC", left of C2); actuator faces PCB +Y (chord) so the user
-    # presses it from outside the case. Short press cycles the LED ring
-    # brightness, long press restarts the ESP32-C6 (firmware).
-    parts.append(gen_sw1_button_pcb_footprint(
-        x=SW1_PCB_X, y=SW1_PCB_Y, rotation=SW1_PCB_ROTATION,
-    ))
-
     # ESP32-C6 DevKitM-1-N4 daughterboard shadow reservation. Mounted on
     # 2× 1x15 P2.54 mm female pin sockets (chunk #7); module sits face-up
     # ~8 mm above OAS PCB. Antenna at TOP short edge (Y=anchor_y), USB-C
@@ -1309,8 +1298,8 @@ def gen_silk_labels() -> str:
     # origin; in PCB space pin 1 (24V) lands at +5.08, pin 2 (GND) at 0,
     # pin 3 (PE) at -5.08. The stock Phoenix footprint already prints a
     # pin-1 triangle on F.SilkS; the terminal body silk fills the strip
-    # immediately south of the pads and the chord connectors (J9 / SW1)
-    # crowd the rest, so the per-pin 24V/GND/PE labels go on F.Fab
+    # immediately south of the pads and the chord connector J9
+    # crowds the rest, so the per-pin 24V/GND/PE labels go on F.Fab
     # (assembly layer — visible in the 2D render, exempt from
     # silk_overlap). The F.SilkS "J1 (24V)" body-id stays printed.
     parts.append(_silk("J1 (24V)", +15.0, J1_PCB_Y, "j1-body-id",
@@ -1393,13 +1382,18 @@ def gen_silk_labels() -> str:
                                 # comfortably above the 0.15 mm DRC limit.
     SILK_TEXT_MIN_HORIZONTAL_FIT = 5.0   # mm — width needed to keep label
                                           # at 1.0 mm horizontal inside the rect
-    CUTOUT_LABELS = {
-        # USB-C opening hosts SW1 (side-actuated tactile push-button).
-        "USBC": "SW1",
+    CUTOUT_LABELS: dict[str, str] = {
+        # No cutout carries a custom label: the sole remaining opening
+        # (USBC) hosts no OAS connector (SW1 was removed in v0.53 —
+        # GitHub issue #5), so it falls through to the default
+        # "<name> AUX" text marking it as an unused case-wall opening.
     }
-    # Cutouts whose silk rect is skipped to avoid silk_overlap DRC. USBC
-    # hosts SW1 (its own body silk), so its rect is dropped — only the
-    # text label emits.
+    # Cutouts whose silk rect is skipped to avoid a silk_overlap DRC.
+    # USBC abuts J1's Phoenix terminal-block body silk (J1 south edge
+    # reaches PCB Y=+34.51, X -8.73..+8.73; the USBC rect would span
+    # Y[+27.5..+43.22] X[-12.7..-2.3] and cross it) — so the rect is
+    # dropped and only the repositioned text label emits. This is a
+    # geometric constraint against J1, independent of the removed SW1.
     CUTOUTS_WITHOUT_RECT = {"USBC"}
     for name, x1, x2, y1, y2, allow_pads in CUTOUTS:
         rx1, rx2 = x1 + SILK_EDGE_INSET, x2 - SILK_EDGE_INSET
@@ -1427,13 +1421,13 @@ def gen_silk_labels() -> str:
         # case-wall edge) so it doesn't clash with the connector silk.
         # Other cutouts use the cutout centre.
         if name == "USBC":
-            # USBC hosts SW1. J1's terminal-block silk body rect reaches
-            # PCB Y=+34.51 (south edge) and spans X -8.73..+8.73 — the
-            # cutout centre (cx=-7.5, cy=+35.35) sits inside that X shadow,
-            # leaving only 0.14 mm to J1's silk once every stroke is lifted
-            # to the 0.15 mm JLCPCB floor (silk_overlap DRC). Drop the
-            # label ~0.45 mm further south into clear space — still ~5 mm
-            # north of the SW1 button body — to restore margin.
+            # USBC is an unused case-wall opening abutting J1. J1's
+            # terminal-block silk body rect reaches PCB Y=+34.51 (south
+            # edge) and spans X -8.73..+8.73 — the cutout centre
+            # (cx=-7.5, cy=+35.35) sits inside that X shadow, leaving only
+            # 0.14 mm to J1's silk once every stroke is lifted to the
+            # 0.15 mm JLCPCB floor (silk_overlap DRC). Drop the label
+            # ~0.45 mm further south into clear space to restore margin.
             tx, ty = cx, +35.8
         else:
             tx, ty = cx, cy

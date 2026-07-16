@@ -221,10 +221,10 @@ def test_projected_24v_input_within_derated_f1_hold() -> None:
 # ---------------------------------------------------------------------------
 
 def test_routes_snapshot_counts() -> None:
-    # Committed v0.50 snapshot. (CLAUDE.md says "613 + 44 vias"; the
-    # committed file holds 42 vias — code is the source of truth here.)
-    assert len(oas_routes.ROUTES_SEGMENTS) == 613
-    assert len(oas_routes.ROUTES_VIAS) == 42
+    # v0.53 snapshot: SW1 removal (GitHub issue #5) dropped the /IO/BTN
+    # net's 7 segments + 2 vias from the v0.50 613 seg / 42 via baseline.
+    assert len(oas_routes.ROUTES_SEGMENTS) == 606
+    assert len(oas_routes.ROUTES_VIAS) == 40
 
 
 def test_routes_segments_well_formed() -> None:

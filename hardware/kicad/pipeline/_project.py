@@ -143,10 +143,6 @@ SILK_PAD_MIN_CLEARANCE_MM = 0.22
 # silk that is DFM-hostile beyond that reach (JLCPCB DFM "silkscreen to
 # pad"). Empty dict => disabled. See _common.strip_footprint_silk.
 STRIP_FOOTPRINT_SILK = {
-    # SW1 C&K PTS645 tactile button — the stock F.SilkS body-outline
-    # brackets crowd the THT pads and only clutter the board. Dropped
-    # outright; the board-level "SW1" designator label identifies it.
-    "SW_Tactile_SPST_Angled_PTS645": "all",
     # C1 / C3 / C4 radial electrolytics — the stock CP_Radial polarity
     # HATCH fill is hundreds of dense silk lines crowding the cathode
     # pinhole. Drop the hatch (footprint-local x >= 0.5); the "+" mark
@@ -196,9 +192,8 @@ BOM_OUTPUT_FILE = "oas-BOM.csv"
 # A BOM row whose ALL designators belong here gets emitted with blank
 # LCSC + JLCPCB_Library = "THT (hand-solder)". J1 Phoenix terminal,
 # J4 LD2410 1.27 mm header, J5/J6 ESP32 sockets, J7/J8 MIKROE-2462
-# sockets, C1/C3 D8 radial bulk, C4 D6.3 radial bulk, SW1 PTS645
-# right-angle THT tactile push-button.
-THT_REFERENCES = {"J1", "J4", "J5", "J6", "J7", "J8", "C1", "C3", "C4", "SW1"}
+# sockets, C1/C3 D8 radial bulk, C4 D6.3 radial bulk.
+THT_REFERENCES = {"J1", "J4", "J5", "J6", "J7", "J8", "C1", "C3", "C4"}
 
 # Stage 32: ZIP bundle.
 BUNDLE_NAME = "oas-jlcpcb.zip"

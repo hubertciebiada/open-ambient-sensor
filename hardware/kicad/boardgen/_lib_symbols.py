@@ -515,16 +515,10 @@ def IO_LIB_SYMBOLS() -> str:
     power:+3V3, power:GND) and pulls in stock symbols:
       - Connector_Generic:Conn_01x04  (4-pin Qwiic / Stemma QT JST SH)
       - Connector_Generic:Conn_01x06  (already in the tail)
-      - Switch:SW_Push                (SW1 tactile push-button)
     """
     extras = "\n".join([
         _read_kicad_lib_symbol("Connector_Generic.kicad_sym", "Conn_01x04",
                                lib_nickname="Connector_Generic"),
-        # v0.42: SW1 — side-actuated tactile push-button. Stock SW_Push
-        # has numeric pins "1"/"2" that bind natively to the footprint
-        # pads "1"/"2" — no pin_name_map remap needed (Lesson 8).
-        _read_kicad_lib_symbol("Switch.kicad_sym", "SW_Push",
-                               lib_nickname="Switch"),
     ])
     return _MCU_LIB_SYMBOLS_TAIL + "\n" + extras
 
@@ -583,7 +577,8 @@ ESP32C6_DEVKITM1_SIGNAL_PIN: dict[str, int] = {
     # OAS-routed GPIOs
     "LD2410_OUT" : 3,   # J1.3 = GPIO2 — safe non-strap input
     "NFC_FD"     : 4,   # J1.4 = GPIO3 — safe non-strap input
-    "BTN"        : 8,   # J1.8 = GPIO1 — SW1 push-button, safe non-strap input
+    # J1.8 = GPIO1 was SW1's BTN net; SW1 removed in v0.53 (GitHub issue
+    # #5), so pin 8 is now an unused spare -> ESP32C6_DEVKITM1_NC_PINS.
     "WS2812_DIN" : 9,   # J1.9 = GPIO8 — drives SK6812-SIDE AQI ring DIN
                         # (v0.16). Same GPIO as the DevKitM-1's onboard
                         # NeoPixel; the onboard NeoPixel is unreachable in
@@ -626,6 +621,7 @@ ESP32C6_DEVKITM1_NC_PINS: list[int] = [
     5,    # J1.5  = GPIO4    (MTMS, unused)
     6,    # J1.6  = GPIO5    (MTDI, unused)
     7,    # J1.7  = GPIO0    (unused)
+    8,    # J1.8  = GPIO1    (was SW1/BTN; SW1 removed v0.53, now spare)
     12,   # J1.12 = GPIO14   (unused)
     19,   # J3.4  = GPIO23   (unused)
     20,   # J3.5  = GPIO22   (unused)

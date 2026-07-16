@@ -33,9 +33,6 @@ SUBSHEET_PINS: dict[str, list[tuple[str, str, float, float, int]]] = {
         # sensors sub-sheet's WS2812_DIN pin on the same edge for a
         # symmetric inter-sheet wire route (mirrors the NFC_FD pattern).
         ("WS2812_DIN",  "output",        0.0, 11.43, 180),
-        # v0.42: BTN — SW1 tactile push-button (lives on the IO sub-sheet,
-        # read by ESP32-C6 GPIO 1). The MCU receives it → shape "input".
-        ("BTN",         "input",         0.0, 13.97, 180),
         ("UART_TX",     "output",        38.1, 1.27, 0),
         ("UART_RX",     "input",         38.1, 3.81, 0),
         # v0.19: IO-bound nets — exposed on J10 recovery header in the
@@ -79,9 +76,6 @@ SUBSHEET_PINS: dict[str, list[tuple[str, str, float, float, int]]] = {
         ("USB_DP",      "bidirectional", 0.0,  8.89, 180),
         ("EN",          "input",         0.0, 11.43, 180),
         ("BOOT",        "input",         0.0, 13.97, 180),
-        # v0.42: BTN — SW1 push-button signal exported to the MCU sub-sheet.
-        # dy=16.51 = 13 × 1.27 mm (next slot below BOOT, on the grid).
-        ("BTN",         "output",        0.0, 16.51, 180),
     ],
 }
 
@@ -366,17 +360,6 @@ def gen_root_sch() -> str:
     inter_wires.append(_root_wire(BOOT_VERT_X, 64.77, BOOT_VERT_X, 102.87, "boot-vertical"))
     inter_wires.append(_root_wire(BOOT_VERT_X, 102.87, 101.6, 102.87, "boot-west-into-io"))
 
-    # v0.42 inter-sheet wire for BTN (SW1 push-button).
-    # MCU left-edge pin (101.6, 64.77) ↔ IO left-edge pin (101.6, 105.41).
-    # Route: west stub off the MCU pin to a vertical leg at X=92.71 — in
-    # the gap between the sensors block right edge (X=88.9) and the MCU /
-    # IO left edge (X=101.6) — then down to the IO pin row and an east
-    # stub into the IO pin. The west stub crosses the SDA/SCL/LD2410_OUT
-    # verticals perpendicularly (no shared endpoint → no junction → no
-    # net merge), exactly like the NFC_FD east-into-mcu wire.
-    inter_wires.append(_root_wire(101.6, 64.77, 92.71, 64.77, "btn-west-from-mcu"))
-    inter_wires.append(_root_wire(92.71, 64.77, 92.71, 105.41, "btn-vertical"))
-    inter_wires.append(_root_wire(92.71, 105.41, 101.6, 105.41, "btn-east-into-io"))
     wires_text = "\n".join(inter_wires)
 
     return textwrap.dedent(f"""\

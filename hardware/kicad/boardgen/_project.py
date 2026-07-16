@@ -144,7 +144,6 @@ EXTERNAL_MODULES = {
 # re-pinning, then the schematic generators below pick up via the table.
 # Cross-checked by pipeline/oas/06_check_boot.py.
 GPIO_ASSIGNMENTS = {
-    1:  {"net": "BTN",        "sheet": "/IO/",  "desc": "Tactile push-button SW1 (short press = LED dim cycle, long press = ESP32 restart); safe non-strap input"},
     2:  {"net": "LD2410_OUT", "sheet": "/MCU/", "desc": "LD2410 presence interrupt (safe non-strap input)"},
     3:  {"net": "NFC_FD",     "sheet": "/MCU/", "desc": "NT3H1101 NFC field-detect interrupt (safe non-strap)"},
     6:  {"net": "I2C_SDA",    "sheet": "/IO/",  "desc": "Shared I2C bus: SEN66 0x6B, NT3H1101 0x55, J9 Qwiic"},
@@ -166,7 +165,9 @@ GPIO_RESERVED = {
 }
 
 # Safe-non-strap spare GPIOs for future expansion.
-GPIO_SPARE = [0, 14, 18, 19, 20, 21, 22, 23]
+# GPIO 1 (J5 pin 8) joined this list in v0.53 when SW1 was removed
+# (GitHub issue #5) — it is now an unused, no-connect safe non-strap pin.
+GPIO_SPARE = [0, 1, 14, 18, 19, 20, 21, 22, 23]
 
 # =============================================================================
 # (geometry / footprints / schematic generators follow)
@@ -264,11 +265,14 @@ CUTOUTS = [
     # opening is dropped from CUTOUTS entirely.
     # USB-C opening — immediately LEFT (-X) of the (removed) RJ45 opening in the
     # top-of-enclosure view (chord order: round | two-round | USB-C | RJ45 |
-    # square). Hosts SW1, the side-actuated tactile push-button. The X range
-    # is an ESTIMATE — the AK-N-94 manufacturer DXF is third-party (Rule 6)
-    # and not committed; VERIFY x_min / x_max (and the SW1_PCB_* constants)
-    # against a physical AK-N-94 sample before locking a board revision.
-    ("USBC", -13.000, -2.000, +27.198, +Y_CHORD, True),  # USB-C opening (~11 mm) — hosts SW1 push-button
+    # square). This is a physical case-wall opening in the AK-N-94; OAS puts
+    # no connector in it (SW1 was removed in v0.53 — GitHub issue #5), so it
+    # is documented only. The X range is an ESTIMATE — the AK-N-94
+    # manufacturer DXF is third-party (Rule 6) and not committed; VERIFY
+    # x_min / x_max against a physical AK-N-94 sample before locking a board
+    # revision. allow_pads=True keeps the (inert) keepout out of the DSN
+    # export so it never walls the autorouter out of the opening.
+    ("USBC", -13.000, -2.000, +27.198, +Y_CHORD, True),  # USB-C opening (~11 mm) — unused (no connector)
 ]
 
 
@@ -848,32 +852,6 @@ J1_PCB_ROTATION = 180        # Rotation 180° places the cable-entry face
 J9_PCB_X = +17.0             # PCB X — internal, east of the J10 header
 J9_PCB_Y = -19.5             # PCB Y — internal row, north of the J5 socket
 J9_PCB_ROTATION = 0          # orientation unchanged from prior C5 placement
-
-# -----------------------------------------------------------------------------
-# SW1 — side-actuated tactile push-button (v0.42)
-# -----------------------------------------------------------------------------
-# C&K PTS645VK392LFS, right-angle THT SPST tactile. Footprint
-# `Button_Switch_THT:SW_Tactile_SPST_Angled_PTS645Vx39-2LFS` (verbatim
-# KiCad stock). SW1 lives at the chord edge in the AK-N-94 USB-C case-wall
-# opening (CUTOUTS "USBC", immediately left of C2). Same chord-edge
-# pattern as J9: the actuator faces PCB +Y (chord side) so the user
-# presses it from outside the case.
-#
-# Rotation 180°: the footprint actuator / cap protrudes toward footprint
-# LIB -Y, so rotation 180 maps LIB -Y -> PCB +Y (toward the chord). The
-# two signal pads sit at LIB Y=0 -> PCB Y = SW1_PCB_Y; the cap F.Fab tip
-# reaches PCB Y = SW1_PCB_Y + 3.85 (past the chord, into the wall opening).
-# Body (rotation 180) spans PCB X ≈ -11.0..-3.5, courtyard X ≈ -12.05..-2.5
-# — inside the CUTOUTS "USBC" X range. Signal pads at PCB Y=+41.0, pad
-# outer edge +41.875, ~1.6 mm clear of the chord at Y≈+43.52.
-#
-# ESTIMATE — VERIFY against a physical AK-N-94 sample: the USB-C cutout
-# position AND the actuator Z height vs the wall-opening slot (C&K PTS645
-# datasheet). The board is DRC-clean regardless of these values; only the
-# physical case alignment depends on them.
-SW1_PCB_X = -5.0
-SW1_PCB_Y = +41.0
-SW1_PCB_ROTATION = 180
 
 # -----------------------------------------------------------------------------
 # J10 — Native-USB recovery header (v0.19) — DNP 6-pin 2.54 mm THT
