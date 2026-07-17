@@ -25,14 +25,15 @@ from tools import extract_routes
 def test_round_trip_boardgen_format_byte_identical() -> None:
     """Committed oas.kicad_pcb (boardgen `(net N)` format) round-trips.
 
-    Counts match the committed snapshot header ("Source snapshot: 606
-    segments, 40 vias.") — v0.53 removed SW1 (GitHub issue #5), dropping
-    the /IO/BTN net's 7 segments + 2 vias from the v0.50 613 seg / 42 via
-    baseline.
+    Counts match the committed snapshot header ("Source snapshot: 600
+    segments, 40 vias.") — v0.53 removed SW1 (GitHub issue #5): the
+    /IO/BTN net's 7 segments + 2 vias, then the 6 orphaned GND stitch
+    segments that used to terminate at SW1 pad 2, off the v0.50
+    613 seg / 42 via baseline.
     """
     text = extract_routes.PCB.read_text(encoding="utf-8")
     segments, vias = extract_routes.extract(text)
-    assert len(segments) == 606
+    assert len(segments) == 600
     assert len(vias) == 40
 
     rendered = extract_routes.render(segments, vias)

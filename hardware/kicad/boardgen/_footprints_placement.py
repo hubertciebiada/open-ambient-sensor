@@ -1383,10 +1383,14 @@ def gen_silk_labels() -> str:
     SILK_TEXT_MIN_HORIZONTAL_FIT = 5.0   # mm — width needed to keep label
                                           # at 1.0 mm horizontal inside the rect
     CUTOUT_LABELS: dict[str, str] = {
-        # No cutout carries a custom label: the sole remaining opening
-        # (USBC) hosts no OAS connector (SW1 was removed in v0.53 —
-        # GitHub issue #5), so it falls through to the default
-        # "<name> AUX" text marking it as an unused case-wall opening.
+        # USBC: empty string = NO text label. The opening hosts no OAS
+        # connector (SW1 was removed in v0.53 — GitHub issue #5); a
+        # "USBC AUX" text would only suggest a connector that does not
+        # exist. Note for any future label here: the cutout centre sits
+        # inside J1's terminal-block silk X shadow (J1 south edge
+        # Y=+34.51, X -8.73..+8.73) — a label must drop to Y≈+35.8 to
+        # clear the 0.15 mm JLCPCB silk_overlap floor.
+        "USBC": "",
     }
     # Cutouts whose silk rect is skipped to avoid a silk_overlap DRC.
     # USBC abuts J1's Phoenix terminal-block body silk (J1 south edge
@@ -1413,28 +1417,15 @@ def gen_silk_labels() -> str:
                 \t)"""))
         # Centred text label at the DRC minimum text height (1.0 mm);
         # rotate 90° in narrow rects so the text fits inside without
-        # overlapping the outline.
+        # overlapping the outline. An empty CUTOUT_LABELS entry
+        # suppresses the label entirely (see USBC above).
         text_angle = 90.0 if rect_w < SILK_TEXT_MIN_HORIZONTAL_FIT else 0.0
         label = CUTOUT_LABELS.get(name, f"{name} AUX")
-        # A cutout hosting a connector gets its label positioned NORTH of
-        # the connector body shadow (into the PCB interior, away from the
-        # case-wall edge) so it doesn't clash with the connector silk.
-        # Other cutouts use the cutout centre.
-        if name == "USBC":
-            # USBC is an unused case-wall opening abutting J1. J1's
-            # terminal-block silk body rect reaches PCB Y=+34.51 (south
-            # edge) and spans X -8.73..+8.73 — the cutout centre
-            # (cx=-7.5, cy=+35.35) sits inside that X shadow, leaving only
-            # 0.14 mm to J1's silk once every stroke is lifted to the
-            # 0.15 mm JLCPCB floor (silk_overlap DRC). Drop the label
-            # ~0.45 mm further south into clear space to restore margin.
-            tx, ty = cx, +35.8
-        else:
-            tx, ty = cx, cy
-        parts.append(_silk(
-            label, tx, ty, f"cutout-silk-{name}",
-            size=1.0, angle=text_angle,
-        ))
+        if label:
+            parts.append(_silk(
+                label, cx, cy, f"cutout-silk-{name}",
+                size=1.0, angle=text_angle,
+            ))
 
     # ---- v0.27: per-component designator labels on F.SilkS ----
     # Every populated component on the OAS PCB gets a short Reference

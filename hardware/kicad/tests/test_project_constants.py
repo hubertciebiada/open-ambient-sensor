@@ -222,8 +222,10 @@ def test_projected_24v_input_within_derated_f1_hold() -> None:
 
 def test_routes_snapshot_counts() -> None:
     # v0.53 snapshot: SW1 removal (GitHub issue #5) dropped the /IO/BTN
-    # net's 7 segments + 2 vias from the v0.50 613 seg / 42 via baseline.
-    assert len(oas_routes.ROUTES_SEGMENTS) == 606
+    # net's 7 segments + 2 vias from the v0.50 613 seg / 42 via baseline,
+    # then the follow-up dead-copper sweep removed the 6 orphaned GND
+    # stitch segments that used to terminate at SW1 pad 2.
+    assert len(oas_routes.ROUTES_SEGMENTS) == 600
     assert len(oas_routes.ROUTES_VIAS) == 40
 
 
