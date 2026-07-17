@@ -40,6 +40,16 @@ GEN_VERSION = "10.0"
 # directly (single source of truth) — bump it on each release tag.
 OAS_NAME_SHORT = "Open Ambient Sensor"
 OAS_VERSION_LINE = "v0.53"
+# Public repo URL printed on F.SilkS under the board-id block (scheme
+# dropped, split at the slashes: a 53-char single line at the 1.0 mm
+# min_text_height would be ~72 mm wide — far beyond the west pocket).
+# tests/test_project_constants.py asserts the lines join back into the
+# canonical repo path.
+OAS_REPO_URL_SILK_LINES = (
+    "github.com/",
+    "hubertciebiada/",
+    "open-ambient-sensor",
+)
 
 
 # Number formatting -------------------------------------------------------

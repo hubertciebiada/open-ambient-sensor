@@ -528,28 +528,35 @@ def test_j3_cable_slot_webs_and_outline() -> None:
             _assert_inside_outline(cx, cy, "J3 cable slot corner")
 
 
-def test_qr_block_fits_west_pocket() -> None:
-    # The repo-QR silk field (code + quiet zone) must fit the west pocket
-    # freed by the NFC removal: east of the LD2410 daughterboard (body
-    # east edge = LD2410_ANCHOR_X) and west of the LED ring's west extent
-    # (westmost LED at ring radius 13 -> body/courtyard west edge ≈ -15.4;
-    # -16.0 used as the conservative bound). User spec: centre on the
-    # central hole's horizontal axis (Y = 0).
-    from boardgen._qr_data import QR_MATRIX
-    n = len(QR_MATRIX)
-    half_field = (n / 2.0 + _project.QR_SILK_QUIET_MODULES) * (
-        _project.QR_SILK_MODULE)
-    x_min = _project.QR_SILK_CENTER_X - half_field
-    x_max = _project.QR_SILK_CENTER_X + half_field
-    assert _project.QR_SILK_CENTER_Y == 0.0
-    assert x_min >= _project.LD2410_ANCHOR_X + 2.0, (
-        f"QR west edge {x_min:.2f} crowds the LD2410 (east edge "
+def test_board_id_block_fits_west_pocket() -> None:
+    # The board-id silk block (name + version + repo URL, 5 rows) must fit
+    # the west pocket freed by the NFC removal: east of the LD2410
+    # daughterboard (body east edge = LD2410_ANCHOR_X) and west of the
+    # LED ring's west extent (westmost LED at ring radius 13 -> body /
+    # courtyard west edge ≈ -15.4; -16.0 used as the conservative bound).
+    # User spec: block centred on the central hole's horizontal axis
+    # (Y = 0). Widest rows are 19 chars; KiCad stroke-font advance at the
+    # 1.0 mm min_text_height is ~1.36 mm/char (measured on the emitted
+    # board via a DRC silk_overlap hit) -> half-width ~12.9 mm.
+    from boardgen._common import (
+        OAS_NAME_SHORT, OAS_REPO_URL_SILK_LINES, OAS_VERSION_LINE,
+    )
+    rows = (OAS_NAME_SHORT, OAS_VERSION_LINE) + OAS_REPO_URL_SILK_LINES
+    half_w = max(len(r) for r in rows) * 1.36 / 2.0
+    assert _project.BOARD_ID_CENTER_Y == 0.0
+    x_min = _project.BOARD_ID_CENTER_X - half_w
+    x_max = _project.BOARD_ID_CENTER_X + half_w
+    assert x_min >= _project.LD2410_ANCHOR_X + 1.0, (
+        f"board-id west edge {x_min:.2f} crowds the LD2410 (east edge "
         f"{_project.LD2410_ANCHOR_X})")
-    assert x_max <= -16.0, f"QR east edge {x_max:.2f} crowds the LED ring"
+    assert x_max <= -16.0, (
+        f"board-id east edge {x_max:.2f} crowds the LED ring")
+    half_h = (len(rows) - 1) * _project.BOARD_ID_ROW_PITCH / 2.0 + 0.7
     for cx in (x_min, x_max):
-        for cy in (_project.QR_SILK_CENTER_Y - half_field,
-                   _project.QR_SILK_CENTER_Y + half_field):
-            _assert_inside_outline(cx, cy, "QR silk field corner")
-    # Modules below ~0.35 mm print but stop scanning reliably.
-    assert _project.QR_SILK_MODULE >= 0.35
-    assert _project.QR_SILK_QUIET_MODULES >= 4   # ISO/IEC 18004 quiet zone
+        for cy in (_project.BOARD_ID_CENTER_Y - half_h,
+                   _project.BOARD_ID_CENTER_Y + half_h):
+            _assert_inside_outline(cx, cy, "board-id block corner")
+    # The three URL rows must join back into the canonical repo path —
+    # a typo here ships an unreachable link on every physical board.
+    assert "".join(OAS_REPO_URL_SILK_LINES) == (
+        "github.com/hubertciebiada/open-ambient-sensor")

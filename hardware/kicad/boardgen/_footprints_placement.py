@@ -18,7 +18,7 @@ import textwrap
 from boardgen._common import (  # noqa: F401
     U, fmt,
     PCB_VERSION, GEN_VERSION,
-    OAS_NAME_SHORT, OAS_VERSION_LINE,
+    OAS_NAME_SHORT, OAS_VERSION_LINE, OAS_REPO_URL_SILK_LINES,
 )
 from boardgen._project import (  # noqa: F401
     fx, fy,
@@ -27,8 +27,7 @@ from boardgen._project import (  # noqa: F401
     SEN66_ZIPTIE_LOCAL, _sen66_local_to_pcb,
     J3_X, J3_Y, J3_ROTATION,
     _J3_COURTYARD_HALF_X, J3_CABLE_SLOT_X_MIN,
-    QR_SILK_CENTER_X, QR_SILK_CENTER_Y,
-    QR_SILK_MODULE, QR_SILK_QUIET_MODULES,
+    BOARD_ID_CENTER_X, BOARD_ID_CENTER_Y, BOARD_ID_ROW_PITCH,
     LD2410_BODY_W, LD2410_BODY_H,
     LD2410_SILK_INSET, LD2410_SILK_INSET_CONN, LD2410_EMIT_SILK_OUTLINE,
     LD2410_ANTENNA_X_END, LD2410_CONNECTOR_X, LD2410_CONNECTOR_Y,
@@ -60,7 +59,6 @@ from boardgen._footprints_custom import (  # noqa: F401
     _emit_pcb_footprint_simple_npth,
     _emit_daughterboard_reference_pcb_footprint,
 )
-from boardgen._qr_data import QR_MATRIX
 from boardgen._footprints_stock import (
     gen_sen66_reference_pcb_footprint,
     gen_ld2410_reference_pcb_footprint,
@@ -1112,77 +1110,28 @@ def gen_silk_labels() -> str:
     # now carries that duty; uuid tag "sen66-body" kept, no UUID churn.)
     body_mid_x = SEN66_ANCHOR_X + SEN66_BODY_Y / 2
     parts.append(_silk("SEN66 SIN-T", body_mid_x, +24.6, "sen66-body"))
-    # ---- Repo QR code + board identification block (F.SilkS, west pocket) ----
+    # ---- Board identification block (F.SilkS, west pocket) ----
     # v0.53-c (user change order): the name + version block moved from the
     # SE pocket (where the new J3 cable slot displaced the long name line)
     # into the west pocket freed by the NFC removal (issue #7), joined by
-    # a QR code linking to the public repo — a physical board now
-    # self-documents where its sources live. Geometry constants + pocket
-    # clearance survey live at QR_SILK_* in _project.py; the module
-    # matrix is vendored in _qr_data.py (provenance + regen note there).
-    # Polarity is NORMAL: the white silk field forms the LIGHT modules +
-    # the 4-module quiet zone; DARK modules stay bare soldermask. Emitted
-    # as per-row run-length-merged filled gr_poly rects of light modules
-    # + 4 quiet-zone frame strips. All rects sit on the 0.5 mm module
-    # grid, so neighbours share edges exactly (zero-area contact — no
-    # silk_overlap).
-    _qr_n = len(QR_MATRIX)
-    _qr_mod = QR_SILK_MODULE
-    _qr_x0 = QR_SILK_CENTER_X - _qr_n * _qr_mod / 2.0   # module grid west edge
-    _qr_y0 = QR_SILK_CENTER_Y - _qr_n * _qr_mod / 2.0   # module grid north edge
-    _qr_x1 = _qr_x0 + _qr_n * _qr_mod
-    _qr_y1 = _qr_y0 + _qr_n * _qr_mod
-    _qr_quiet = QR_SILK_QUIET_MODULES * _qr_mod
-
-    def _qr_rect(xa: float, ya: float, xb: float, yb: float, tag: str) -> str:
-        return textwrap.dedent(f"""\
-            \t(gr_poly
-            \t\t(pts
-            \t\t\t(xy {fx(xa)} {fy(ya)})
-            \t\t\t(xy {fx(xb)} {fy(ya)})
-            \t\t\t(xy {fx(xb)} {fy(yb)})
-            \t\t\t(xy {fx(xa)} {fy(yb)})
-            \t\t)
-            \t\t(stroke (width 0) (type solid))
-            \t\t(fill yes)
-            \t\t(layer "F.SilkS")
-            \t\t(uuid "{U('qr-silk:' + tag)}")
-            \t)""")
-
-    # Quiet-zone frame: N/S strips span the full field width (they own the
-    # corners); W/E strips cover only the code height.
-    parts.append(_qr_rect(_qr_x0 - _qr_quiet, _qr_y0 - _qr_quiet,
-                          _qr_x1 + _qr_quiet, _qr_y0, "quiet-n"))
-    parts.append(_qr_rect(_qr_x0 - _qr_quiet, _qr_y1,
-                          _qr_x1 + _qr_quiet, _qr_y1 + _qr_quiet, "quiet-s"))
-    parts.append(_qr_rect(_qr_x0 - _qr_quiet, _qr_y0, _qr_x0, _qr_y1,
-                          "quiet-w"))
-    parts.append(_qr_rect(_qr_x1, _qr_y0, _qr_x1 + _qr_quiet, _qr_y1,
-                          "quiet-e"))
-    for _qr_r, _qr_row in enumerate(QR_MATRIX):
-        _qr_c = 0
-        while _qr_c < _qr_n:
-            if _qr_row[_qr_c] == "0":   # light module -> silk
-                _qr_c_end = _qr_c
-                while _qr_c_end < _qr_n and _qr_row[_qr_c_end] == "0":
-                    _qr_c_end += 1
-                parts.append(_qr_rect(
-                    _qr_x0 + _qr_c * _qr_mod, _qr_y0 + _qr_r * _qr_mod,
-                    _qr_x0 + _qr_c_end * _qr_mod,
-                    _qr_y0 + (_qr_r + 1) * _qr_mod,
-                    f"r{_qr_r}c{_qr_c}"))
-                _qr_c = _qr_c_end
-            else:
-                _qr_c += 1
-    # Name + version, centred under the QR field (user spec: name below
-    # the code, version one row further). The version string is read from
-    # OAS_VERSION_LINE (boardgen/_common.py) — single source of truth,
-    # bump it on each release tag.
-    _qr_field_s = _qr_y1 + _qr_quiet          # +10.25
-    parts.append(_silk(OAS_NAME_SHORT, QR_SILK_CENTER_X, _qr_field_s + 1.95,
-                       "board-id-name", size=1.0))
-    parts.append(_silk(OAS_VERSION_LINE, QR_SILK_CENTER_X, _qr_field_s + 4.15,
-                       "board-id-version", size=1.0))
+    # the public repo URL — a physical board now self-documents where its
+    # sources live. (First iteration used a QR code here; replaced by
+    # plain text per user decision — the QR needed a filled-poly
+    # exemption in the stage-13 silk lifter plus scan-polarity care,
+    # while text needs nothing.) Pocket clearance survey lives at
+    # BOARD_ID_* in _project.py. Five rows centred on the block anchor:
+    # name, version, then the URL split at its slashes (a single 53-char
+    # line at the 1.0 mm min_text_height would be ~72 mm wide). Name /
+    # version / URL strings come from _common.py — single source of
+    # truth, bump OAS_VERSION_LINE on each release tag.
+    _id_rows = (OAS_NAME_SHORT, OAS_VERSION_LINE) + OAS_REPO_URL_SILK_LINES
+    _id_tags = ("board-id-name", "board-id-version",
+                "board-id-url-1", "board-id-url-2", "board-id-url-3")
+    _id_y0 = BOARD_ID_CENTER_Y - (len(_id_rows) - 1) * BOARD_ID_ROW_PITCH / 2
+    for _id_i, (_id_text, _id_tag) in enumerate(zip(_id_rows, _id_tags)):
+        parts.append(_silk(_id_text, BOARD_ID_CENTER_X,
+                           _id_y0 + _id_i * BOARD_ID_ROW_PITCH,
+                           _id_tag, size=1.0))
     # No separate "-> J3" / "to SEN66" cable-direction arrows are emitted
     # (dropped back in v0.9). The J3↔SEN66 relationship is documented by the
     # J3 "J3" designator + its F.Fab value "JST SM06B-GHS-TB (SEN66

@@ -491,28 +491,28 @@ J3_CABLE_SLOT_Y_MIN = J3_Y - J3_CABLE_SLOT_L / 2                        # 28.00
 J3_CABLE_SLOT_Y_MAX = J3_Y + J3_CABLE_SLOT_L / 2                        # 39.00
 
 # -----------------------------------------------------------------------------
-# Repo-URL QR code + board-id silk block (west pocket) — v0.53
+# Board-id silk block (west pocket) — v0.53
 # -----------------------------------------------------------------------------
 # The NFC removal (issue #7) left the west pocket empty (the MIKROE-2462
-# body shadow spanned X -40.16..-14.76, Y -16.51..+40.64). It now hosts a
-# silkscreen QR code linking to the public repo (matrix vendored in
-# boardgen/_qr_data.py) with the board name + version lines centred
-# below it — so a physical board self-documents where its sources live.
-# Placement (user spec): QR centre ON the horizontal axis of the central
-# cable hole (Y = 0), X centred in the pocket. Pocket window on that
-# axis: LD2410 body east edge -43.47 .. LED-ring west extent ~-14.8
-# (D15 at ring radius + its designator text) -> centre -29.0.
-# Field size: 33 modules x 0.5 mm + 4 quiet-zone modules per side
-# = 20.5 mm square -> spans X -39.25..-18.75, Y -10.25..+10.25; margins
-# ~4.2 mm to the LD2410 and ~4.0 mm to the ring. Nearest north item is
-# J2's pad row (east pad -38.3, Y -21.0) — 10.75 mm above the field.
-# Polarity is NORMAL: the white silk field forms the LIGHT modules +
-# quiet zone; DARK modules stay bare soldermask (dark-on-light scans on
-# every reader — an inverted white-module code would not).
-QR_SILK_CENTER_X = -29.0
-QR_SILK_CENTER_Y = 0.0        # user spec: on the central hole's horizontal axis
-QR_SILK_MODULE = 0.5          # mm per QR module (min silk feature 0.15 ok)
-QR_SILK_QUIET_MODULES = 4     # quiet-zone width, ISO/IEC 18004 recommendation
+# body shadow spanned X -40.16..-14.76, Y -16.51..+40.64). It now hosts
+# the board identification block: name + version + the public repo URL
+# (OAS_NAME_SHORT / OAS_VERSION_LINE / OAS_REPO_URL_SILK_LINES in
+# _common.py) — so a physical board self-documents where its sources
+# live. (v0.53-c first put a QR code here; replaced by plain text per
+# user decision — the QR needed a filled-poly exemption in the stage-13
+# silk lifter plus scan-polarity care, while text needs nothing.)
+# Placement: block centred ON the horizontal axis of the central cable
+# hole (Y = 0), X centred in the pocket. Pocket window on that axis:
+# LD2410 body east edge -43.47 .. LED-ring west extent ~-14.8 (D15 at
+# ring radius + its designator text) -> centre -29.0. Widest rows
+# ("Open Ambient Sensor" / "open-ambient-sensor", 19 chars at the
+# 1.0 mm min_text_height, ~1.36 mm/char stroke-font advance) span
+# ~25.8 mm -> X -41.9..-16.1; margins ~1.6 mm to the LD2410 silk and
+# ~1.5 mm to the ring's westmost courtyard. 5 rows at 2.4 mm pitch
+# (Y -4.8..+4.8) sit well inside the pocket's Y range.
+BOARD_ID_CENTER_X = -29.0
+BOARD_ID_CENTER_Y = 0.0       # user spec: on the central hole's horizontal axis
+BOARD_ID_ROW_PITCH = 2.4      # mm between the 5 text baselines (size 1.0)
 
 # -----------------------------------------------------------------------------
 # LD2410 PCB placement (mechanical reference + J4 pin header) — chunk #5b

@@ -692,15 +692,7 @@ def _lift_silk_line_widths(min_mm: float = SILK_MIN_STROKE_MM) -> int:
         # Find the block's layer. Skip non-silk.
         m_layer = re.search(r'\(layer\s+"([^"]+)"', block)
         layer = m_layer.group(1) if m_layer else None
-        # v0.53-c: FILLED silk polygons are exempt from the lift. For a
-        # filled poly the stroke is not a printed line feature — the
-        # plotted artwork is the fill region itself, and its minimum
-        # feature size is set by the polygon geometry, not the stroke.
-        # Lifting a 0-width stroke to 0.20 mm GROWS the filled shape by
-        # 0.10 mm per side: for the repo-QR silk field that would shrink
-        # every dark module 0.5 -> 0.3 mm and break scannability.
-        is_filled = re.search(r"\(fill\s+yes\)", block) is not None
-        if layer in ("F.SilkS", "B.SilkS") and not is_filled:
+        if layer in ("F.SilkS", "B.SilkS"):
             # Lift (stroke (width X)) if X < min.
             def _lift_stroke(mm: re.Match) -> str:
                 nonlocal lifted
