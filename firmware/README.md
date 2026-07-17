@@ -15,7 +15,6 @@ firmware/
 │   │   ├── leds.yaml        # SK6812-SIDE AQI ring (7 LEDs on GPIO 8; 8-slot ring with D13 vacated for J1)
 │   │   ├── air-quality.yaml # Sensirion SEN66 (I²C 0x6B)
 │   │   ├── presence.yaml    # HiLink LD2410 (UART @ 256000 baud)
-│   │   ├── nfc.yaml         # MIKROE-2462 NT3H1101 dynamic tag (I²C 0x55)
 │   │   └── bt-proxy.yaml    # Bluetooth proxy for Home Assistant
 │   └── examples/            # anonymized per-device override examples
 ├── secrets.yaml.example     # template; copy to secrets.yaml (gitignored)
@@ -57,7 +56,6 @@ Each physical OAS unit needs a unique `device_id` and `friendly_name`. You have 
 substitutions:
   device_id: livingroom
   friendly_name: "Living Room"
-  dashboard_url: "http://homeassistant.local:8123/lovelace/living-room"
 ```
 
 **Option B — Copy `oas.yaml` to a per-device file** (better for fleets):
@@ -156,7 +154,7 @@ Alternatively, the **AP fallback** (`OAS-<device_id>-Setup` SSID, gated by `ap_p
 
 ## Status
 
-**Firmware skeleton complete (6 packages):** `core.yaml`, `leds.yaml`, `air-quality.yaml`, `presence.yaml`, `nfc.yaml`, `bt-proxy.yaml`. Validates clean against `esphome config`. Awaiting hardware delivery for first-flash and bench bring-up — see CLAUDE.md for the firmware TODO list (LD2410 UART shakedown, NFC NDEF updater verification, OTA setup, HA discovery validation).
+**Firmware skeleton complete (5 packages):** `core.yaml`, `leds.yaml`, `air-quality.yaml`, `presence.yaml`, `bt-proxy.yaml`. Validates clean against `esphome config`. Awaiting hardware delivery for first-flash and bench bring-up — see CLAUDE.md for the firmware TODO list (LD2410 UART shakedown, OTA setup, HA discovery validation). The dynamic NFC tag package was removed together with the NFC hardware (GitHub issue #7).
 
 ---
 
@@ -195,7 +193,6 @@ Alternatively, the **AP fallback** (`OAS-<device_id>-Setup` SSID, gated by `ap_p
 - `number.led_brightness_day` (0-255), `number.led_brightness_night` (0-15)
 - `select.led_mode` — Auto-AQI / Manual / Off / Test-Rainbow
 - `select.led_effect` — 8+ effects (active when `led_mode = Manual`)
-- `text.dashboard_url` — URL the NFC tag redirects to when tapped (editable at runtime)
 - `button.restart` / `button.sen66_force_clean` / `button.ld2410_factory_reset`
 - `switch.bluetooth_proxy` (default on) / `switch.prevent_sleep`
 
@@ -264,10 +261,6 @@ action:
 ```
 
 Pair with a recovery automation that switches back to Auto-AQI when CO₂ drops below 1000 ppm.
-
-### NFC tap → dashboard
-
-Each OAS unit ships with a dynamic NFC tag (NXP NT3H1101 + onboard antenna on the MIKROE-2462 daughterboard). Tapping a phone opens the URL from the on-board NDEF record in the phone's default browser. The firmware re-writes the NDEF record every 60 s to keep the URL fresh. The URL is set by the `text.oas_<device>_dashboard_url` entity, initialised from the `dashboard_url` substitution in `oas.yaml` but editable at runtime via the on-device web dashboard or Home Assistant.
 
 ### Bluetooth proxy
 

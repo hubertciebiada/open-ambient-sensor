@@ -24,7 +24,7 @@ Specifically blocks the following classes of regression:
   4. **Pinout swap**: a future schematic edit accidentally swaps two
      signal pins (e.g. moves UART_TX onto GPIO 17 instead of 16, or
      wires LD2410_OUT to GPIO 3 instead of 2 - which would make the
-     LD2410 presence interrupt land on the NFC_FD ISR handler).
+     LD2410 presence interrupt land on an unconnected spare pin).
 
 Approach
 --------

@@ -460,39 +460,15 @@ def SENSORS_LIB_SYMBOLS() -> str:
                                        presence radar cable)
       - power:+5V                     (LD2410 module supply rail)
 
-    Chunk #5c adds:
-      - Connector_Generic:Conn_02x08_Top_Bottom  (16-pin 2-row connector
-                                       representing the mikroBUS socket
-                                       that mates with the MIKROE-2462
-                                       NFC Tag 2 Click daughterboard.
-                                       Pin numbering follows mikroBUS
-                                       spec: pins 1-8 down the LEFT
-                                       column (AN/RST/CS/SCK/MISO/MOSI/
-                                       +3.3V/GND), pins 9-16 down the
-                                       RIGHT column (PWM/INT/RX/TX/SCL/
-                                       SDA/+5V/GND). The Top_Bottom
-                                       variant of Conn_02x08 matches
-                                       this convention exactly.)
+    (Chunk #5c — the MIKROE-2462 mikroBUS socket symbols Conn_01x08 +
+    Conn_02x08_Top_Bottom — was removed together with the NFC feature,
+    issue #7.)
 
     All extras are pulled verbatim from the KiCad 10 stock libraries at
     generation time via `_read_kicad_lib_symbol()`.
     """
     extras = "\n".join([
         _read_kicad_lib_symbol("Connector_Generic.kicad_sym", "Conn_01x05",
-                               lib_nickname="Connector_Generic"),
-        # v0.21 (M3): Conn_01x08 replaces the Conn_02x08_Top_Bottom U4
-        # placeholder. The MIKROE-2462 NFC daughterboard mates with TWO
-        # 1×8 PCB female pin sockets J7 (mikroBUS pins 1..8, left row)
-        # and J8 (mikroBUS pins 9..16, right row), and each socket
-        # carries its own Conn_01x08 schematic symbol whose pin numbers
-        # (1..8) match the PCB pad numbers 1..8 of the corresponding
-        # socket. This gives `sync_pcb_nets_from_schematic` a direct
-        # (reference, pin) → net mapping for every J7/J8 pad. The old
-        # Conn_02x08_Top_Bottom symbol is no longer instantiated but
-        # is retained in the library for backward read compatibility.
-        _read_kicad_lib_symbol("Connector_Generic.kicad_sym", "Conn_01x08",
-                               lib_nickname="Connector_Generic"),
-        _read_kicad_lib_symbol("Connector_Generic.kicad_sym", "Conn_02x08_Top_Bottom",
                                lib_nickname="Connector_Generic"),
         _read_kicad_lib_symbol("power.kicad_sym", "+5V",
                                lib_nickname="power"),
@@ -576,7 +552,8 @@ ESP32C6_DEVKITM1_SIGNAL_PIN: dict[str, int] = {
     "RST"        : 2,   # J1.2 (RST pin, drives chip EN)
     # OAS-routed GPIOs
     "LD2410_OUT" : 3,   # J1.3 = GPIO2 — safe non-strap input
-    "NFC_FD"     : 4,   # J1.4 = GPIO3 — safe non-strap input
+    # J1.4 = GPIO3 was the NFC_FD net; NFC tag removed (GitHub issue #7),
+    # so pin 4 is now an unused spare -> ESP32C6_DEVKITM1_NC_PINS.
     # J1.8 = GPIO1 was SW1's BTN net; SW1 removed in v0.53 (GitHub issue
     # #5), so pin 8 is now an unused spare -> ESP32C6_DEVKITM1_NC_PINS.
     "WS2812_DIN" : 9,   # J1.9 = GPIO8 — drives SK6812-SIDE AQI ring DIN
@@ -618,6 +595,7 @@ ESP32C6_DEVKITM1_SIGNAL_PIN: dict[str, int] = {
 # All remaining unused GPIOs are no-connect.
 ESP32C6_DEVKITM1_NC_PINS: list[int] = [
     14,   # J1.14 = 5V       (powering via 3V3 pin; 5V unused)
+    4,    # J1.4  = GPIO3    (was NFC_FD; NFC removed issue #7, now spare)
     5,    # J1.5  = GPIO4    (MTMS, unused)
     6,    # J1.6  = GPIO5    (MTDI, unused)
     7,    # J1.7  = GPIO0    (unused)

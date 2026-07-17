@@ -109,7 +109,7 @@ ROOT_SHEET_UUID = str(uuid.uuid5(_OAS_NS, "sheet:root"))
 # Hierarchical sub-sheets — functional grouping (see CLAUDE.md):
 #   power   — input protection + bucks 24V → 5V → 3.3V
 #   mcu     — ESP32-C6-DevKitM-1-N4 + decoupling
-#   sensors — SEN66, LD2410, NT3H1101 NFC (status LED is the onboard
+#   sensors — SEN66, LD2410 (status LED is the onboard
 #             NeoPixel on DevKitM-1, so it lives logically in the mcu sheet)
 #   io      — connector cluster along the chord (24V terminal, Qwiic, SWD)
 #

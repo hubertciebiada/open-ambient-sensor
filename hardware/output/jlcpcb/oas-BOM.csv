@@ -1,6 +1,6 @@
 Comment,Designator,Footprint,Manufacturer,MPN,LCSC Part #,JLCPCB_Library,Qty
 47nF,C8,C_0603_1608Metric,Samsung Electro-Mechanics,CL10B473KB8NNNC,C1622,Basic,1
-100nF,"C7,C10,C11,C12,C13,C14,C15,C16,C17",C_0603_1608Metric,Yageo,CC0603KRX7R9BB104,C14663,Basic,9
+100nF,"C7,C10,C11,C13,C14,C15,C16,C17",C_0603_1608Metric,Yageo,CC0603KRX7R9BB104,C14663,Basic,8
 100nF,"C20,C21,C23,C24,C25,C26,C27",C_0402_1005Metric,Samsung Electro-Mechanics,CL05B104KO5NNNC,C1525,Basic,7
 1k,R4,R_0603_1608Metric,UNI-ROYAL (Uniroyal Elec),0603WAF1001T5E,C21190,Basic,1
 100k 1%,"R1,R2",R_0603_1608Metric,UNI-ROYAL (Uniroyal Elec),0603WAF1003T5E,C25803,Basic,2
@@ -12,8 +12,6 @@ Comment,Designator,Footprint,Manufacturer,MPN,LCSC Part #,JLCPCB_Library,Qty
 1x15 P2.54 mm female socket (ESP32 J1 antenna-side row),J5,PinSocket_1x15_P2.54mm_Vertical,,,,THT (hand-solder),1
 1x15 P2.54 mm female socket (ESP32 J3 USB-side row),J6,PinSocket_1x15_P2.54mm_Vertical,,,,THT (hand-solder),1
 "1x5 P1.27mm through-hole header (HLK-LD2410B daughterboard, soldered)",J4,PinHeader_1x05_P1.27mm_Vertical,,,,THT (hand-solder),1
-1x8 P2.54 mm female socket (MIKROE-2462 mikroBUS pins 1..8 — AN/RST/CS/SCK/MISO/MOSI/+3V3/GND),J7,PinSocket_1x08_P2.54mm_Vertical,,,,THT (hand-solder),1
-1x8 P2.54 mm female socket (MIKROE-2462 mikroBUS pins 9..16 — PWM/INT/RX/TX/SCL/SDA/+5V/GND),J8,PinSocket_1x08_P2.54mm_Vertical,,,,THT (hand-solder),1
 2.2uH 2A,L2,L_Cenker_CKCS5040,CENKER,CKCS5040-2.2uH/M,C354602,Extended,1
 220uF 10V,C4,CP_Radial_D6.3mm_P2.50mm,,,,THT (hand-solder),1
 22uF 10V,C6,C_0805_2012Metric,Samsung Electro-Mechanics,CL21A226MAQNNNE,C45783,Basic,1

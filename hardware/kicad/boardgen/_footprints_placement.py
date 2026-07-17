@@ -36,15 +36,11 @@ from boardgen._project import (  # noqa: F401
     ESP32_PIN_ROW_INSET, ESP32_PIN_PITCH, ESP32_PIN_COUNT_PER_ROW,
     ESP32_PIN_START_OFFSET,
     ESP32_ANCHOR_X, ESP32_ANCHOR_Y, ESP32_ROTATION,
-    MIKROE2462_BODY_W, MIKROE2462_BODY_L,
-    MIKROE2462_PIN_ROW_INSET, MIKROE2462_PIN_PITCH,
-    MIKROE2462_PIN_COUNT_PER_ROW, MIKROE2462_PIN_START_OFFSET,
-    MIKROE2462_ANCHOR_X, MIKROE2462_ANCHOR_Y, MIKROE2462_ROTATION,
     J1_PCB_X, J1_PCB_Y, J1_PCB_ROTATION,
     J2_PCB_X, J2_PCB_Y, J2_PCB_ROTATION,
     J9_PCB_X, J9_PCB_Y, J9_PCB_ROTATION,
     J10_PCB_X, J10_PCB_Y, J10_PCB_ROTATION,
-    J1_PIN_MAP, J2_PIN_MAP, J7_PIN_MAP, J8_PIN_MAP, J10_PIN_MAP,
+    J1_PIN_MAP, J2_PIN_MAP, J10_PIN_MAP,
     J4_END_SIGNALS, J5_END_SIGNALS, J6_END_SIGNALS,
     LED_RING_COUNT, LED_RING_THETA_START_DEG, LED_RING_THETA_STEP_DEG,
     LED_RING_SKIP_INDICES,
@@ -266,7 +262,7 @@ def gen_cutouts() -> tuple[str, str]:
 #     C1 (100µF bulk) + C2 (10 nF Y2) — sits closest to J1 / cable hole.
 #   MCU decoupling: C9, C17, R5, R6 (I2C pull-ups). Sits near J5/J6
 #     ESP32 socket.
-#   Sensor decoupling: C10 (SEN66), C11 (LD2410), C12 (NFC) — near each
+#   Sensor decoupling: C10 (SEN66), C11 (LD2410) — near each
 #     sensor's socket.
 #   J2 — DNP recovery header, placed off in a free corner.
 #
@@ -277,7 +273,7 @@ def gen_cutouts() -> tuple[str, str]:
 
 def gen_power_pcb_footprints() -> str:
     """Emit PCB footprints for all power-section schematic components,
-    plus sensor decoupling C10/C11/C12 and the DNP J2 recovery header.
+    plus sensor decoupling C10/C11 and the DNP J2 recovery header.
 
     Placement is in the open band between the LED ring outer (R=12 ≈
     Y=-13/+13) and the ESP32 daughterboard bottom (Y=-24.7), which is
@@ -299,6 +295,9 @@ def gen_power_pcb_footprints() -> str:
     # ============================================================
 
     # ---- Input protection cluster (north of cable hole, in front of J1)
+    # (Historical placement-iteration notes below reference the NFC /
+    # MIKROE-2462 daughterboard, removed in issue #7; its former shadow
+    # X=-40.16..-14.76 / Y=-16.51..+40.64 is free board area now.)
     # The strip Y ∈ [+12, +18] between J1 north (Y=+11.9 → +25 incl. body)
     # and LED ring outer (Y=+12). Tight. The strip is approx 6 mm tall and
     # extends from PCB X=-50 to +50 minus J1 / cutouts.
@@ -561,9 +560,9 @@ def gen_power_pcb_footprints() -> str:
     # (-32, -25) in the strip west of ESP32 west edge.
 
     # ---- v0.26: C1 placed south-east of SEN66, on the V_24V_PROT net ----
-    # The audit's "west-of-ESP32 column at X=-34" zone (used by U1, C3) is
-    # under the MIKROE-2462 NFC daughterboard shadow at Y > -16.51 — so
-    # C1 cannot share that column without poking into MIKROE clearance.
+    # The audit's "west-of-ESP32 column at X=-34" zone (used by U1, C3) was
+    # under the (since-removed, issue #7) MIKROE-2462 NFC daughterboard
+    # shadow at Y > -16.51 — so C1 could not share that column.
     # C1 lives on the protected-rail net (downstream of Q1 reverse-polarity
     # FET, upstream of U1.VIN through C3). Position (+40, +36) sits south
     # of J3 (JST GH SEN66 socket at +36, +27 — its crty extends to PCB Y
@@ -585,7 +584,7 @@ def gen_power_pcb_footprints() -> str:
     # C3 (U1.VIN input bulk) — v0.43: relocated from the LD2410-north
     # pocket (now occupied by J2) to the NE corner next to C1, out of every
     # daughterboard shadow (C3 is a ~12 mm-tall radial — must stay clear of
-    # the ESP32 / MIKROE / SEN66 shadows per the v0.26 relocation rule).
+    # the ESP32 / SEN66 shadows per the v0.26 relocation rule).
     parts.append(gen_capacitor_polarized_radial_pcb_footprint(
         x=+25.75, y=-39, rotation=0,
         reference="C3", value="100uF/50V",
@@ -778,7 +777,7 @@ def gen_power_pcb_footprints() -> str:
         descr="10 nF Y2 safety class — GND ↔ Earth_Protective EMI bridge. v0.50 Task-3: re-placed at the east end of Row S (+18.0, -40.7).",
     ))
 
-    # Sensor decoupling caps: C10 (SEN66 +3V3), C11 (LD2410 +5V), C12 (NFC +3V3).
+    # Sensor decoupling caps: C10 (SEN66 +3V3), C11 (LD2410 +5V).
     # v0.26: C10 shifted from (+42, +33) to (+46, +32) to clear C1
     # (relocated to (+40, +36) — 12 mm-tall D8 radial bulk for the
     # protected +24V rail). New C10 position sits east of C1 (gap 0.75
@@ -805,19 +804,8 @@ def gen_power_pcb_footprints() -> str:
         uuid_tag="c11-ld2410-decoupling-pcb",
         descr="100 nF local decoupling for LD2410 (J4 pin 5 / +5V). v0.45: vertical, placed at the 11-o'clock of J4's west end — west of the LD2410 body (LDR1, X>=97.4) in open copper. Nudged 0.5 mm north of the v0.44 spot (Y +14.5 -> +14.0) — the v0.44 position left C11.1 only 2.98 mm from the nearest J4 THT pad (JLCDFM 'tht to smd' warning); +0.5 mm lifts that to ~3.4 mm, clear of the >3.05 mm rule. North field is open (no neighbour within 4 mm).",
     ))
-    # C12 — NFC (NT3H1101) +3V3 decoupling. It belongs next to the NFC
-    # power-entry pin: J7 pin 7 (+3V3) at PCB (-38.89, +35.56), with
-    # J7 pin 8 (GND) just south at +38.10. Pin 1 is the NORTH end
-    # (Y=+20.32) after the v0.43 J7/J8 180-deg flip; the pre-v0.50
-    # comment miscounted from the south end and parked C12 ~13 mm away
-    # at the INT-pin level. Placed vertical in the open copper just
-    # east of J7's +3V3/GND label pair, under the MIKROE body shadow.
-    parts.append(gen_capacitor_0603_pcb_footprint(
-        x=-31.3, y=+36.5, rotation=90,
-        reference="C12", value="100nF",
-        uuid_tag="c12-nfc-decoupling",
-        descr="100 nF local decoupling for MIKROE-2462 NFC (mikroBUS pin 7 / +3V3). v0.50: re-placed next to J7 pin 7 (+3V3) — was ~13 mm away at the INT-pin level.",
-    ))
+    # (C12 — the NFC +3V3 decoupling cap — was removed together with the
+    # MIKROE-2462 daughterboard, issue #7.)
 
     # J2 — DNP recovery pin header. v0.43: relocated from the cramped NW
     # corner to the free pocket NORTH of the LD2410, placed HORIZONTAL
@@ -937,28 +925,11 @@ def gen_sensors_pcb_footprints() -> str:
         pin_start_offset=ESP32_PIN_START_OFFSET,
     ))
 
-    # MIKROE-2462 NFC Tag 2 Click daughterboard shadow reservation.
-    # Mounted on 2× 1x8 P2.54 mm female pin sockets (mikroBUS) in chunk #7;
-    # NT3H1101 + onboard PCB antenna sits ~7 mm above the OAS PCB.
-    parts.append(_emit_daughterboard_reference_pcb_footprint(
-        lib_id="oas:MIKROE-2462_Reference",
-        reference="MOD2",
-        descr="MIKROE-2462 NFC Tag 2 Click (NT3H1101 + onboard PCB NFC antenna). 25.4×57.15×7 mm (mikroBUS size L); mounts on 2×1x8 P2.54 mm female pin sockets. Pin block offset 2.54 mm toward pin-1 short edge; NFC antenna spiral fills the ~36.83 mm strip past pin 8.",
-        anchor_x=MIKROE2462_ANCHOR_X, anchor_y=MIKROE2462_ANCHOR_Y,
-        body_w=MIKROE2462_BODY_W, body_l=MIKROE2462_BODY_L,
-        pin_row_inset=MIKROE2462_PIN_ROW_INSET,
-        pin_pitch=MIKROE2462_PIN_PITCH,
-        pin_count_per_row=MIKROE2462_PIN_COUNT_PER_ROW,
-        body_label="MIKROE-2462",
-        antenna_label=None,
-        usb_label=None,
-        uuid_tag="mikroe2462-pcb",
-        rotation=MIKROE2462_ROTATION,
-        pin_start_offset=MIKROE2462_PIN_START_OFFSET,
-    ))
+    # (MOD2 — the MIKROE-2462 NFC daughterboard shadow reservation — was
+    # removed together with the NFC feature, issue #7.)
 
-    # Female pin sockets for ESP32 and MIKROE-2462 daughterboards.
-    # Each daughterboard mates with 2 parallel pin rows on OAS PCB.
+    # Female pin sockets for the ESP32 daughterboard.
+    # The daughterboard mates with 2 parallel pin rows on OAS PCB.
     # Pad positions match the daughterboard's onboard pin headers (see the
     # respective body comments above for pin layout per datasheet).
     #
@@ -989,46 +960,8 @@ def gen_sensors_pcb_footprints() -> str:
         uuid_tag="j6-esp32-row-b",
     ))
 
-    # MIKROE-2462 NFC Tag 2 Click — 2×1×8 mikroBUS, row spacing 22.86 mm,
-    # pitch 2.54 mm, pin block offset 2.54 mm from pin-1 short edge.
-    # v0.15.7: NFC body flipped 180° so pin block sits at PCB +Y (chord
-    # side, bottom of body). Anchor at body's PCB bottom-right corner;
-    # the pin block spans PCB Y = +20.32 .. +38.10, with the two row
-    # slots 22.86 mm apart in X (row A near the anchor, row B far).
-    #
-    # v0.43 fix — the J7/J8 socket pair was laid out as if the NFC antenna
-    # pointed toward the chord (PCB +Y); it actually points the other way
-    # (PCB -Y, toward the AK-N-94 perforated cover). The fix rotates the
-    # WHOLE J7+J8 pair 180° about its centre: J7 and J8 swap X slots and
-    # each footprint goes from rotation 180 → 0, moving pin 1 of each row
-    # from the chord (south) end to the body-interior (north) end. The pair
-    # still occupies the exact same area; only the internal handedness
-    # flips so the NFC click mates correctly. Net assignment is unchanged —
-    # the pads (carrying their nets) simply relocate. See _project.py
-    # J7_PIN_MAP / J8_PIN_MAP for the mikroBUS pin order.
-    mikroe_row_a_x = MIKROE2462_ANCHOR_X - MIKROE2462_PIN_ROW_INSET
-    mikroe_row_b_x = MIKROE2462_ANCHOR_X - (MIKROE2462_BODY_W - MIKROE2462_PIN_ROW_INSET)
-    mikroe_row_y_start = MIKROE2462_ANCHOR_Y - MIKROE2462_PIN_START_OFFSET
-    mikroe_row_span = (MIKROE2462_PIN_COUNT_PER_ROW - 1) * MIKROE2462_PIN_PITCH  # 17.78
-    mikroe_pin1_y = mikroe_row_y_start - mikroe_row_span    # north (body-interior) end
-    # J7 (mikroBUS pins 1..8) — now in the row-B (west) slot, rotation 0.
-    parts.append(gen_pinsocket_pcb_footprint(
-        pin_count=MIKROE2462_PIN_COUNT_PER_ROW,
-        x=mikroe_row_b_x, y=mikroe_pin1_y, rotation=0,
-        reference="J7",
-        value="MIKROE mikroBUS pins 1..8 (AN/RST/CS/SCK/MISO/MOSI/+3V3/GND)",
-        descr="Stock 1x8 P2.54 mm female pin socket. MIKROE-2462 plugs into this row + J8 (other row). mikroBUS standard pin block, offset 2.54 mm from pin-1 short edge.",
-        uuid_tag="j7-mikroe-row-a",
-    ))
-    # J8 (mikroBUS pins 9..16) — now in the row-A (east) slot, rotation 0.
-    parts.append(gen_pinsocket_pcb_footprint(
-        pin_count=MIKROE2462_PIN_COUNT_PER_ROW,
-        x=mikroe_row_a_x, y=mikroe_pin1_y, rotation=0,
-        reference="J8",
-        value="MIKROE mikroBUS pins 9..16 (PWM/INT/RX/TX/SCL/SDA/+5V/GND)",
-        descr="Stock 1x8 P2.54 mm female pin socket. MIKROE-2462 plugs into this row + J7 (other row).",
-        uuid_tag="j8-mikroe-row-b",
-    ))
+    # (J7/J8 — the MIKROE-2462 mikroBUS socket pair — was removed together
+    # with the NFC feature, issue #7.)
 
     # AQI status LED ring — 7 x SK6812-SIDE on a Ø26 mm pitch circle (8
     # slots at 45 deg pitch, one skipped at θ=90 deg for the J1 cable
@@ -1198,7 +1131,8 @@ def gen_silk_labels() -> str:
     parts.append(_silk("SEN66 SIN-T", sen66_body_cx, sen66_body_cy + 8.0,
                        "sen66-mpn", size=1.0))
 
-    # ---- v0.15.8: ESP32 and MIKROE-2462 body-label boards.
+    # ---- v0.15.8: ESP32 body-label board (the MIKROE-2462 body label
+    # left with the NFC removal, issue #7).
     # v0.22 — moved ESP32 body labels to F.Fab (was F.SilkS). The body
     # center now sits over the power-section SMD components placed under
     # the daughterboard shadow (U1 LM2596S, D2 SS14, etc.), which triggers
@@ -1220,12 +1154,6 @@ def gen_silk_labels() -> str:
     esp32_usb_cy = ESP32_ANCHOR_Y - ESP32_BODY_W / 2.0
     parts.append(_silk("USB", esp32_usb_cx, esp32_usb_cy,
                        "esp32-usb", size=1.0, layer="F.Fab"))
-    # MIKROE-2462 body centre (rotation 180 -> LIB (lx, ly) → PCB
-    # (anchor_x - lx, anchor_y - ly)).
-    mikroe_body_cx = MIKROE2462_ANCHOR_X - MIKROE2462_BODY_W / 2.0
-    mikroe_body_cy = MIKROE2462_ANCHOR_Y - MIKROE2462_BODY_L / 2.0
-    parts.append(_silk("MIKROE-2462", mikroe_body_cx, mikroe_body_cy,
-                       "mikroe-body", size=1.0))
 
     # v0.41 2026-05-19: "AQI ring" silk text removed. After LED rotation
     # fix (emission outward → pads moved inward radially), the pads of
@@ -1534,14 +1462,9 @@ def gen_silk_labels() -> str:
         # shadow per se — body label gr_text is at center; C11 at
         # X=-42 is INSIDE LD2410 X range -51..-43.47 but C11 sits south
         # of LD2410 silk frame Y=-16.51-0.5=-17.01 to ~-15.91.
-        # Pre-routing rework: MOD2 shifted west -2 mm to clear LED bump,
-        # bringing MOD2 west silk to X=-40.16. C11 designator label
-        # silk text at (-42, +12) now within ~0.6 mm of MOD2 silk →
-        # moved to F.Fab to avoid silk_overlap.
+        # Historically moved to F.Fab to avoid silk_overlap with the
+        # (since-removed, issue #7) MOD2 west silk at X=-40.16.
         ("C11", 0.0, -2.0, "F.Fab"),
-        # C12 INSIDE MIKROE shadow (X=-38.16..-12.76, Y=-16.51..+40.64,
-        # C12 anchor (-31.3, +36.5) is inside) → F.Fab
-        ("C12", 0.0, -2.0, "F.Fab"),
         # J2 DNP recovery — v0.43: relocated horizontal north of the
         # LD2410. Designator sits just EAST of the pad row, in the pocket
         # vacated by C3, clear of the per-pin labels (which sit north of
@@ -1583,7 +1506,6 @@ def gen_silk_labels() -> str:
         "C2":  (+18.0, -40.7),
         "C10": (+32, -47),
         "C11": (-52.5, +14.0),
-        "C12": (-31.3, +36.5),
         "J2":  (J2_PCB_X, J2_PCB_Y),
     }
     for entry in POWER_LABELS:
@@ -1598,9 +1520,9 @@ def gen_silk_labels() -> str:
         parts.append(_silk(ref, ax + dx, ay + dy, f"desig:{ref}",
                            size=1.0, layer=layer, angle=angle))
 
-    # ---- 2) Pin sockets J5/J6/J7/J8 ----
-    # Each pin socket lives at one of the two long edges of an ESP32
-    # (J5/J6) or MIKROE (J7/J8) daughterboard. Place the designator
+    # ---- 2) Pin sockets J5/J6 ----
+    # Each pin socket lives at one of the two long edges of the ESP32
+    # (J5/J6) daughterboard. Place the designator
     # OUTSIDE the daughterboard silk frame, near one short edge of
     # the row, so it remains visible even when the daughterboard plugs
     # in (and during bare-PCB assembly the user can identify which row
@@ -1614,19 +1536,11 @@ def gen_silk_labels() -> str:
     # J6 label south of MOD1 silk south edge at Y=-50.6: label at
     # Y=-52.5 gives 1.325 mm clearance.
     parts.append(_silk("J6", -22.39 + 5.37, -52.5, "desig:J6", size=1.0))
-    # J7/J8 — MIKROE-2462 mikroBUS socket pair. v0.43: after the 180° pair
-    # rotation J7 occupies the WEST slot (mikroe_row_b_x) and J8 the EAST
-    # slot (mikroe_row_a_x). Designators sit just SOUTH of the MIKROE-2462
-    # (MOD2) silk frame (south edge ≈ +40.84) and clear of the chord at
-    # Y=+43.5. mikroe_row_a_x / _b_x are reused by the per-pin label block.
-    mikroe_row_a_x = MIKROE2462_ANCHOR_X - MIKROE2462_PIN_ROW_INSET
-    mikroe_row_b_x = (MIKROE2462_ANCHOR_X
-                      - (MIKROE2462_BODY_W - MIKROE2462_PIN_ROW_INSET))
-    parts.append(_silk("J7", mikroe_row_b_x, +42.2, "desig:J7", size=1.0))
-    parts.append(_silk("J8", mikroe_row_a_x, +42.2, "desig:J8", size=1.0))
+    # (J7/J8 designators — the MIKROE-2462 mikroBUS socket pair — were
+    # removed together with the NFC feature, issue #7.)
 
     # ---- 2b) Module connector pin labels ----
-    # ESP32 (J5/J6), MIKROE-2462 (J7/J8) and LD2410 (J4) plug onto
+    # ESP32 (J5/J6) and LD2410 (J4) plug onto
     # multi-pin rows. Pad positions are DERIVED from the same placement
     # constants the pin sockets are generated from (see
     # gen_sensors_pcb_footprints) via `_pin_labels`, so a label can never
@@ -1634,17 +1548,9 @@ def gen_silk_labels() -> str:
     #   J5/J6/J4 — only the first + last pad carry a SIGNAL-NAME label
     #     (J*_END_SIGNALS), placed just OUTSIDE the daughterboard body so
     #     the module can be oriented during hand-assembly.
-    #   J7/J8 — FULL per-pin mikroBUS names (J7/J8_PIN_MAP), placed in the
-    #     22.86 mm gap BETWEEN the two socket rows.
     esp32_row_a_y = ESP32_ANCHOR_Y - ESP32_PIN_ROW_INSET
     esp32_row_b_y = ESP32_ANCHOR_Y - (ESP32_BODY_W - ESP32_PIN_ROW_INSET)
     esp32_row_x_start = ESP32_ANCHOR_X + ESP32_PIN_START_OFFSET
-    # mikroe_row_a_x / _b_x computed above (J7/J8 designator block). The
-    # pair was rotated 180° in v0.43: J7 in the west slot, J8 in the east
-    # slot, both rotation 0 with pin 1 at the NORTH (body-interior) end.
-    mikroe_row_span = (MIKROE2462_PIN_COUNT_PER_ROW - 1) * MIKROE2462_PIN_PITCH
-    mikroe_pin1_y = ((MIKROE2462_ANCHOR_Y - MIKROE2462_PIN_START_OFFSET)
-                     - mikroe_row_span)
     # ESP32 J5 (antenna-side row) — end labels pushed SOUTH, clear of the
     # MOD1 body south edge.
     parts.extend(_pin_labels(
@@ -1659,26 +1565,6 @@ def gen_silk_labels() -> str:
         pin1_local=(0.0, 0.0), step_local=(0.0, ESP32_PIN_PITCH),
         pin_map=J6_END_SIGNALS, label_offset=(0.0, -2.9),
         layer="F.SilkS", tag="j6-end", size=1.0,
-    ))
-    # MIKROE-2462 J7 (mikroBUS pins 1..8) — full per-pin names. J7 sits in
-    # the WEST slot; labels are pushed EAST into the 22.86 mm gap between
-    # the two socket rows. Horizontal (angle 0); text size 1.0 mm (the
-    # F.SilkS silk_min_text_height floor). The +4.5 mm offset clears J7's
-    # own stock silk frame (east line ~1.3 mm east of the pad column).
-    parts.extend(_pin_labels(
-        origin_x=mikroe_row_b_x, origin_y=mikroe_pin1_y, rotation=0,
-        pin1_local=(0.0, 0.0), step_local=(0.0, MIKROE2462_PIN_PITCH),
-        pin_map=J7_PIN_MAP, label_offset=(+4.5, 0.0),
-        layer="F.SilkS", tag="j7-pin", size=1.0,
-    ))
-    # MIKROE-2462 J8 (mikroBUS pins 9..16) — full per-pin names. J8 sits in
-    # the EAST slot; labels are pushed WEST (-4.5 mm) into the same gap,
-    # clear of J8's stock silk frame.
-    parts.extend(_pin_labels(
-        origin_x=mikroe_row_a_x, origin_y=mikroe_pin1_y, rotation=0,
-        pin1_local=(0.0, 0.0), step_local=(0.0, MIKROE2462_PIN_PITCH),
-        pin_map=J8_PIN_MAP, label_offset=(-4.5, 0.0),
-        layer="F.SilkS", tag="j8-pin", size=1.0,
     ))
     # LD2410 J4 — 1x05 P1.27 mm header at the LD2410 body's south edge;
     # end labels (OUT / VCC signal names) rotated 90° (vertical) and

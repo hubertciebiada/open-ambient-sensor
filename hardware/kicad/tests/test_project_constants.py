@@ -22,10 +22,8 @@ These guard the project-level facts that every downstream artefact
     (CLAUDE.md Lesson 17; radio-group max() mirrors stage 23).
   - The committed oas_routes.py snapshot is structurally sane.
 
-    NOTE on documentation drift: CLAUDE.md claims "613 segments + 44
-    vias"; the committed snapshot actually holds 613 segments + 42 vias
-    (also stated in the oas_routes.py docstring header). Asserted
-    against the committed code values.
+    The counts asserted below track the committed snapshot header in
+    oas_routes.py ("Source snapshot: N segments, M vias.").
 """
 from __future__ import annotations
 
@@ -102,10 +100,6 @@ def test_daughterboard_anchors_inside_outline() -> None:
         "SEN66": (_project.SEN66_ANCHOR_X, _project.SEN66_ANCHOR_Y),
         "LD2410": (_project.LD2410_ANCHOR_X, _project.LD2410_ANCHOR_Y),
         "ESP32 DevKitM-1": (_project.ESP32_ANCHOR_X, _project.ESP32_ANCHOR_Y),
-        "MIKROE-2462": (
-            _project.MIKROE2462_ANCHOR_X,
-            _project.MIKROE2462_ANCHOR_Y,
-        ),
     }
     for name, (x, y) in anchors.items():
         _assert_inside_outline(x, y, f"{name} anchor")
@@ -224,9 +218,14 @@ def test_routes_snapshot_counts() -> None:
     # v0.53 snapshot: SW1 removal (GitHub issue #5) dropped the /IO/BTN
     # net's 7 segments + 2 vias from the v0.50 613 seg / 42 via baseline,
     # then the follow-up dead-copper sweep removed the 6 orphaned GND
-    # stitch segments that used to terminate at SW1 pad 2.
-    assert len(oas_routes.ROUTES_SEGMENTS) == 600
-    assert len(oas_routes.ROUTES_VIAS) == 40
+    # stitch segments that used to terminate at SW1 pad 2 (600 + 40).
+    # The NFC removal (GitHub issue #7) then dropped 14 more segments
+    # (2 on the deleted /MCU/NFC_FD net + 12 dead GND stitches anchored
+    # at the removed J7.8/J8.8/C12.2 pads) and ADDED 3 bridge vias that
+    # replace the former J7.7/J8.5/J8.6 THT feed-throughs on the +3V3 /
+    # I2C_SCL / I2C_SDA runs to J3 (SEN66).
+    assert len(oas_routes.ROUTES_SEGMENTS) == 586
+    assert len(oas_routes.ROUTES_VIAS) == 43
 
 
 def test_routes_segments_well_formed() -> None:

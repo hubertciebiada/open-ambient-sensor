@@ -191,9 +191,9 @@ BOM_OUTPUT_FILE = "oas-BOM.csv"
 # Reference designators that go through THT hand-solder line (not SMT).
 # A BOM row whose ALL designators belong here gets emitted with blank
 # LCSC + JLCPCB_Library = "THT (hand-solder)". J1 Phoenix terminal,
-# J4 LD2410 1.27 mm header, J5/J6 ESP32 sockets, J7/J8 MIKROE-2462
-# sockets, C1/C3 D8 radial bulk, C4 D6.3 radial bulk.
-THT_REFERENCES = {"J1", "J4", "J5", "J6", "J7", "J8", "C1", "C3", "C4"}
+# J4 LD2410 1.27 mm header, J5/J6 ESP32 sockets,
+# C1/C3 D8 radial bulk, C4 D6.3 radial bulk.
+THT_REFERENCES = {"J1", "J4", "J5", "J6", "C1", "C3", "C4"}
 
 # Stage 32: ZIP bundle.
 BUNDLE_NAME = "oas-jlcpcb.zip"

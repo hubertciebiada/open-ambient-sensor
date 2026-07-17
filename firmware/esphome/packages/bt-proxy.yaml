@@ -48,7 +48,7 @@
 # ---------------------------------------------------------------------------
 # The BLE stack adds ~80 KB IRAM + ~50 KB DRAM at runtime. On the
 # ESP32-C6-MINI-1-N4 (4 MB flash, 512 KB SRAM) this fits with headroom
-# for SEN66 + LD2410 + NFC + WiFi + HA API + web_server + OTA. If a
+# for SEN66 + LD2410 + WiFi + HA API + web_server + OTA. If a
 # future feature pushes IRAM over the limit, the BLE proxy is the most
 # expendable component to drop.
 # =============================================================================

@@ -7,17 +7,16 @@
 #
 # DIY multi-sensor environmental monitor for indoor spaces. Measures air
 # quality (CO2, PM1/2.5/4/10, VOC, NOx, temperature, humidity via Sensirion
-# SEN66) and presence (HiLink LD2410 mmWave radar). RGB status ring + dynamic
-# NFC tag + Bluetooth proxy. 24V DC powered, mounts on a standard
+# SEN66) and presence (HiLink LD2410 mmWave radar). RGB status ring +
+# Bluetooth proxy. 24V DC powered, mounts on a standard
 # wall-recessed electrical box.
 #
 # ---------------------------------------------------------------------------
 # Per-device overrides
 # ---------------------------------------------------------------------------
 #
-# Every physical OAS unit needs its own short identifier ("device_id"), a
-# human-friendly room name ("friendly_name"), and optionally a dashboard URL
-# that the NFC tag will redirect a phone to. Override these per-device in
+# Every physical OAS unit needs its own short identifier ("device_id") and a
+# human-friendly room name ("friendly_name"). Override these per-device in
 # one of two ways:
 #
 #   1. Copy this file (e.g. `firmware/esphome/devices/livingroom.yaml`) and
@@ -37,9 +36,6 @@
 #                    Becomes the device hostname (oas-livingroom.local) and
 #                    the WiFi AP fallback SSID.
 #   friendly_name  — display name shown in Home Assistant, e.g. "Living Room".
-#   dashboard_url  — URL the NFC tag redirects to when tapped with a phone.
-#                    Typically your Home Assistant lovelace dashboard for
-#                    that room.
 #
 # ---------------------------------------------------------------------------
 # First-time setup
@@ -61,11 +57,6 @@ substitutions:
   # Per-device identity — override for every physical unit.
   device_id: prototype
   friendly_name: "OAS Prototype"
-
-  # NFC tag redirects to this URL when tapped with a phone. Point this at
-  # your Home Assistant lovelace dashboard, a Grafana panel, or any
-  # web page that shows the live readings for this device.
-  dashboard_url: "https://homeassistant.local/"
 
   # Project metadata — keep these in sync with CLAUDE.md / boardgen/_project.py.
   project_name: "HubertCiebiada.open-ambient-sensor"
@@ -99,10 +90,6 @@ packages:
   leds:        !include packages/leds.yaml
   air_quality: !include packages/air-quality.yaml
   presence:    !include packages/presence.yaml
-  # nfc DROPPED: NFC RF coupling is unusable through the AK-N-94 cover (antenna
-  # over the ground plane + distance to the cover). Feature removed — see GitHub
-  # issue #7 for the full HW + FW + docs removal in the next board revision.
-  # nfc:         !include packages/nfc.yaml
   # bt_proxy DISABLED (bring-up): esp32_ble_tracker::start_scan_() null-derefs
   # global_ble->is_active() in setup() on ESP32-C6 / ESPHome 2026.4.1 ->
   # Guru Meditation Load-access-fault crash-loop before WiFi init. Re-enable

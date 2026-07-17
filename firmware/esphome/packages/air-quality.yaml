@@ -17,8 +17,8 @@
 #   - SEN66 address = 0x6B (7-bit, fixed)
 #
 # This package also declares the primary I2C bus (id: bus_a) since the SEN66
-# is the heaviest user. The NFC (NT3H1101 @ 0x55) and Qwiic expansion packages
-# reference `bus_a` rather than declaring their own.
+# is the heaviest user. Any future Qwiic expansion package should
+# reference `bus_a` rather than declaring its own.
 #
 # Datasheet refs (see EXTERNAL_MODULES['SEN66-SIN-T'] in hardware/kicad/boardgen/_project.py):
 #   - Sensirion SEN6x datasheet v0.92, Dec 2025
@@ -27,7 +27,7 @@
 # =============================================================================
 
 # ---------------------------------------------------------------------------
-# I2C bus (primary, shared with NFC + Qwiic)
+# I2C bus (primary, shared with Qwiic)
 # ---------------------------------------------------------------------------
 i2c:
   - id: bus_a
@@ -40,7 +40,8 @@ i2c:
     # readings with a straight cable.
     #
     # This is SAFE only because the SEN66 is now the ONLY device on this bus:
-    # the NFC tag (the other I2C consumer) has been dropped, and the LD2410 is
+    # the NFC tag (the other I2C consumer) was removed entirely in issue #7,
+    # and the LD2410 is
     # on UART. CAVEAT: it also swaps the J9 Qwiic port's SDA/SCL, so a standard
     # Qwiic device on a v0.51 board + this firmware would need a crossed cable.
     #

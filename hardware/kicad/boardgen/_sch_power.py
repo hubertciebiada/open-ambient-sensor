@@ -1100,7 +1100,7 @@ def gen_power_sch() -> str:
     # and steps it down to a regulated 3.3V rail that powers the ESP32-C6
     # DevKitM-1-N4 (via its 3V3 pin, bypassing the module's onboard LDO so
     # we don't dissipate ~250 mW close to the SEN66 air-quality sensor),
-    # plus the SEN66 itself and the NT3H1101 NFC tag.
+    # plus the SEN66 itself.
     #
     # Component selection rationale (see commit message and CLAUDE.md):
     #   * TPS62933   : 3.8-30 V Vin range (17 V abs-max for the typical-use
@@ -1131,7 +1131,7 @@ def gen_power_sch() -> str:
     #                  WRONG — TPS62930 family is 0.6 V, TPS62933 is 0.8 V).
     #                  Vout = Vref × (1 + R2/R3) = 0.8 × (1 + 100/30.9) =
     #                  3.39 V — within ±3 % of 3.3 V target and well below
-    #                  ESP32-C6 / SEN66 / NT3H1101 absolute-max VDD of 3.6 V.
+    #                  ESP32-C6 / SEN66 absolute-max VDD of 3.6 V.
     #                  R3 = 30.9 kΩ gives a low-current divider
     #                  (~26 µA), and R2 = 100 kΩ is a standard E96 value.
     #                  1% tolerance keeps the output voltage variation due

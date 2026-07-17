@@ -196,7 +196,6 @@ Per-room sensor measures:
 
 Additional features:
 - RGB AQI status ring (7 × SK6812-SIDE LEDs) with breathing effect; color reflects aggregated air quality index
-- Dynamic NFC tag (NXP NT3H1101 on MIKROE-2462 daughterboard) — phone tap reads live data and serves URL to user's dashboard
 - Bluetooth proxy (software-only) — extends BLE range across the deployment for Home Assistant BLE integrations
 - Qwiic / Stemma QT expansion port — future sensors without PCB respin
 
@@ -223,7 +222,6 @@ Additional features:
 | Air quality combo | Sensirion **SEN66-SIN-T** (material 3.001.030) + JST GH 6-pin cable accessory (50 cm AWG26, separately ordered — Sensirion ships SEN66 without cable) | Sensirion / LaskaKit / ThePiHut | I²C 0x6B |
 | Presence | **HiLink HLK-LD2410B** (-B variant specifically — NOT -C; pin order and body dims differ per HLK datasheet) | HiLink / TME / AliExpress | UART 256000 baud |
 | Visual indicator | **7 × SK6812-SIDE** (OPSCO SK6812SIDE-A, 4020 side-emit) on Ø26 mm pitch ring, 8 slots at 45° pitch with D13 skipped for J1 cable area | LCSC C5378721 | 1-wire WS281x |
-| NFC dynamic tag | **MIKROE-2462 NFC Tag 2 Click** (NXP NT3H1101 + onboard PCB antenna, mikroBUS L) | MikroE / TME | I²C 0x55 + NFC |
 | Power input | Phoenix Contact MSTBA 2,5/3-G-5,08 3-pos terminal | THT hand-solder | 24 V DC |
 | Reverse-polarity | **AO3401A** P-MOSFET (SOT-23) + BZT52C10S Zener clamp (SOD-323) + 100 k pull-down + 1 k gate series | LCSC C15127 / C19334 / C25803 / C21190 | — |
 | TVS | **Brightking SMBJ24A** (SMB, unidirectional 24 V) | LCSC C87268 | — |
@@ -243,12 +241,11 @@ ESP32-C6-DevKitM-1-N4 is the Espressif official devkit (ESP32-C6-MINI-1 SoM + tw
 
 | Pin | Function | Notes |
 |---|---|---|
-| GPIO 6 | I²C SDA | shared bus: SEN66 (0x6B), NT3H1101 (0x55, on MIKROE-2462), J9 Qwiic |
+| GPIO 6 | I²C SDA | shared bus: SEN66 (0x6B), J9 Qwiic |
 | GPIO 7 | I²C SCL | shared bus, **4.7 kΩ pull-ups on MCU side** (220 mm total bus length — see "Shared I²C bus" below) |
 | GPIO 16 | UART1 TX → LD2410 RX | 256000 baud |
 | GPIO 17 | UART1 RX ← LD2410 TX | 256000 baud |
 | GPIO 2 | LD2410 OUT (presence interrupt) | safe non-strap input |
-| GPIO 3 | NT3H1101 FD (NFC field-detect interrupt) | safe non-strap input |
 | GPIO 8 | WS2812 DIN → external SK6812-SIDE AQI ring | strap pin (LED idles low — OK); **R7 = 10 kΩ external pull-up to +3V3 required** (DevKitM-1's onboard pull-up depends on VCC_5V which floats in OAS) |
 | GPIO 12 / 13 | Native USB-Serial-JTAG D+ / D− | one of the two USB-C ports |
 
@@ -256,15 +253,15 @@ ESP32-C6-DevKitM-1-N4 is the Espressif official devkit (ESP32-C6-MINI-1 SoM + tw
 - **GPIO 10, GPIO 11**: physically NOT bonded out on ESP32-C6FH4 (internal SiP flash uses these pins). Unavailable on every MINI-1 / SuperMini / XIAO / DevKitM-1 variant.
 - **Strap pins (avoid for general I/O)**: GPIO 4 (MTMS), 5 (MTDI), 9 (BOOT button on DevKitM-1), 15 (boot-mode select).
 
-**Available safe-non-strap spare GPIOs** (for future expansion): 0, 1, 14, 18, 19, 20, 21, 22, 23 — nine pins free. (GPIO 1 freed in v0.53 when the SW1 push-button was removed — GitHub issue #5.)
+**Available safe-non-strap spare GPIOs** (for future expansion): 0, 1, 3, 14, 18, 19, 20, 21, 22, 23 — ten pins free. (GPIO 1 freed in v0.53 when the SW1 push-button was removed — GitHub issue #5; GPIO 3 freed when the NFC tag was removed — GitHub issue #7.)
 
 ### Architectural decisions
 
 - **SEN66 mounts on the PCB**, flat on its 55.2 × 25.6 mm back face with the air-side face UP toward the AK-N-94 perforated cover. Body sticks 21.5 mm above PCB. **Zip-tie retention** through 4 NPTH holes (Ø ~3 mm) along the two long edges. PCB-mounted JST GH socket (J3) on the SEN66's +X short edge.
 - **Hard limit #1 lifted to ≥22 mm in the SEN66 zone** (default 17 mm elsewhere) — verified against physical AK-N-94 sample.
 - **PCB has F.CrtYd on the SEN66 mech-ref footprint** (zero standoff — body lies flat on PCB) as a programmatic guardrail. The v0.21→v0.22 misconception "SEN66 floats above PCB" cost an entire iteration; the F.CrtYd now mechanically prevents SMD placement under the SEN66 body shadow.
-- **AQI LED ring** (7 × SK6812-SIDE on a Ø26 mm base pitch circle around the central cable hole; per-slot radius overrides 11.0 / 16.5 mm clear J1 and MOD2 — see `LED_RING_RADIUS` + overrides in `boardgen/_project.py`). LEDs emit radially outward, parallel to the PCB — the cover never sees the die in line-of-sight, no "dot-through-perforation" artifact. The D13 slot (θ = 90°) is vacated for the J1 24 V terminal block on the SOUTH side. Each LED carries a 100 nF 0402 decoupling cap; the ring is powered from the LM2596S +5 V rail.
-- **Shared I²C bus**: SEN66 + NT3H1101 + Qwiic expansion. Realized bus length ~140 mm PCB MST + ~80 mm SEN66 JST GH cable = **~220 mm total**. Exceeds Sensirion's "< 100 mm recommended" envelope but stays within their "< 500 mm with shielding" hard limit. 4.7 kΩ pull-ups give t_r ≈ 1 µs at 100 kHz (within standard-mode spec); 10 kΩ would have failed the rise-time check.
+- **AQI LED ring** (7 × SK6812-SIDE on a Ø26 mm base pitch circle around the central cable hole; per-slot radius overrides 11.0 / 16.5 mm, historically set to clear J1 and the since-removed MOD2 — see `LED_RING_RADIUS` + overrides in `boardgen/_project.py`). LEDs emit radially outward, parallel to the PCB — the cover never sees the die in line-of-sight, no "dot-through-perforation" artifact. The D13 slot (θ = 90°) is vacated for the J1 24 V terminal block on the SOUTH side. Each LED carries a 100 nF 0402 decoupling cap; the ring is powered from the LM2596S +5 V rail.
+- **Shared I²C bus**: SEN66 + Qwiic expansion. Realized bus length ~140 mm PCB MST + ~80 mm SEN66 JST GH cable = **~220 mm total**. Exceeds Sensirion's "< 100 mm recommended" envelope but stays within their "< 500 mm with shielding" hard limit. 4.7 kΩ pull-ups give t_r ≈ 1 µs at 100 kHz (within standard-mode spec); 10 kΩ would have failed the rise-time check.
 - **GPIO 8 external pull-up R7 = 10 kΩ to +3V3** — required because the DevKitM-1's onboard pull-up relies on VCC_5V (which OAS leaves floating; we feed +3V3 directly into J5.1).
 - **Onboard DevKitM-1 NeoPixel is unreachable** in deployed units (its VDD ties to VCC_5V). The external SK6812-SIDE ring is the active indicator; the onboard pixel is a no-op in firmware.
 - **Bluetooth proxy** = software-only; no extra hardware.
@@ -276,7 +273,6 @@ Every placed footprint is verbatim KiCad stock OR a project-local OAS footprint 
 | Designator(s) | Footprint | Reason |
 |---|---|---|
 | MOD1 | `oas:ESP32-C6-DevKitM-1_Reference` | Mechanical reference for the ESP32-C6-DevKitM-1 daughterboard (no pads, body shadow only). No KiCad stock entry exists. |
-| MOD2 | `oas:MIKROE-2462_Reference` | Mechanical reference for the MIKROE-2462 NFC Tag 2 Click daughterboard (no pads, body shadow only). No KiCad stock entry exists. |
 | LDR1 | `oas:LD2410_Mechanical_Reference` | Mechanical reference for the HLK-LD2410B daughterboard (no pads, body shadow only). No KiCad stock entry exists. |
 | SENS1 | `oas:SEN66_Mechanical_Reference` | Mechanical reference for the Sensirion SEN66 module (no pads, body shadow only). No KiCad stock entry exists. |
 | H1..H3 | `oas:MountingHole_3.8mm_M3` | Custom Ø3.8 mm NPTH for SZOMK AK-N-94 manufacturer spec (between stock Ø3.2 mm and Ø4.0 mm sizes). |
@@ -296,15 +292,13 @@ No "hand-solder friendly" deviations remain anywhere in the design.
 - **HA integration**: native API
 - **OTA**: ESPHome + HA
 - **BLE proxy**: ESPHome `bluetooth_proxy:` component
-- **NFC dynamic content**: `nt3h*` external component wrapping the NT3H1101 register map
 
 Current firmware skeleton (added v0.40-post-order):
-- `firmware/esphome/oas.yaml` top-level + 6 packages in `packages/`: core, leds, air-quality, presence, nfc, bt-proxy.
+- `firmware/esphome/oas.yaml` top-level + 5 packages in `packages/`: core, leds, air-quality, presence, bt-proxy.
 - 8+ LED effects with web_server-driven brightness / effect / mode (Auto-AQI / Manual / Off / Test-Rainbow). Day-night auto-dim.
 - SEN66 sensor offsets (temperature, humidity, CO2) exposed as `number:` entities preserved across reboots.
 - STAR-Engine IAQM Light preset (T1=1000, T2=3000, K=200, P=200 raw I²C 16-bit, ×10 of post-scale display values) re-uploaded on every boot via `on_boot:` lambda (Sensirion params are volatile per datasheet).
 - LD2410 per-gate sensitivity, max-distance, and timeout exposed as `number:` / `select:` entities.
-- NT3H1101 NFC dynamic tag: live sensor JSON written to NTAG memory every 60 s; dashboard URL configurable via web_server text entity.
 - Bluetooth proxy enabled.
 
 Documentation: `firmware/README.md`.
@@ -333,7 +327,8 @@ Do not propose these again without new information:
 - ❌ Capacitive touch input
 - ❌ External temperature probe terminal (DS18B20 / NTC) — SEN66 is sufficient
 - ❌ Input current monitoring (INA219)
-- ❌ Display (OLED / LCD round) — researched mid-2026; Waveshare 1.28" GC9A01 clears Pillar #1 but fails Pillar #2 (permanent dark grey circle on the white cover breaks the smoke-detector silhouette). NFC + LED ring + HA dashboard already cover the "see the data" need.
+- ❌ Display (OLED / LCD round) — researched mid-2026; Waveshare 1.28" GC9A01 clears Pillar #1 but fails Pillar #2 (permanent dark grey circle on the white cover breaks the smoke-detector silhouette). LED ring + HA dashboard already cover the "see the data" need.
+- ❌ Dynamic NFC tag (NXP NT3H1101 on MIKROE-2462) — removed after v0.51 bring-up (GitHub issue #7). The I²C side worked, but RF coupling through the AK-N-94 cover was unusable (ground plane under the antenna + distance to the cover); the only workable fix (antenna glued inside the cover) breaks Pillar #2, and the feature only saved ~3 phone taps. Do not re-propose without a cover-integrated antenna concept that keeps the backlit-perforation look.
 - ❌ External USB-C connector on the case wall (use DevKitM-1's own USB-C for programming; OTA after first flash)
 - ❌ IR transmitter / receiver
 - ❌ Microphone / acoustic sensor
@@ -346,14 +341,13 @@ Do not propose these again without new information:
 ### Hardware
 - [x] **Routing rework (v0.50) — DONE.** Board fully routed, `ROUTING_CHUNKS = ("gnd", "autoroute")`, `build.py` 30/30 PASS, DRC 0/0. Snapshot in `oas_routes.py` (613 seg + 42 via after the post-v0.50 DFM via removals).
 - [ ] Re-run the JLCPCB DFM check on the fully-routed gerbers (target 0 Danger / 0 Warning).
-- [ ] Receive v0.40 prototypes from JLCPCB; hand-solder the 9 THT components (J1 / J4 / J5 / J6 / J7 / J8 / C1 / C3 / C4).
+- [ ] Receive v0.40 prototypes from JLCPCB; hand-solder the 7 THT components (J1 / J4 / J5 / J6 / C1 / C3 / C4).
 - [ ] Optional v2 substitutions (deferred): Q1 → AON7415 for actual positive Vds margin (-40 V vs SMBJ24A 38.9 V clamp); L1 → 6045 / 1264 body if production load grows beyond 1.2 A continuous.
 - [ ] Foam shroud / cover baffle separating SEN66 inlet zone from outlet zone (open mitigation; decision pending physical-prototype recirculation measurement).
 
 ### Firmware
 - [ ] First-flash on delivered prototype.
 - [ ] LD2410 UART integration shakedown.
-- [ ] NFC dynamic tag content updater verification.
 - [ ] OTA setup against real hardware.
 - [ ] HA discovery / device class metadata validation.
 
@@ -375,7 +369,7 @@ open-ambient-sensor/
 │   ├── README.md                   # flashing + Home Assistant integration
 │   ├── esphome/
 │   │   ├── oas.yaml                # top-level ESPHome config
-│   │   ├── packages/               # core / leds / air-quality / presence / nfc / bt-proxy
+│   │   ├── packages/               # core / leds / air-quality / presence / bt-proxy
 │   │   └── examples/               # anonymized per-device override examples
 │   └── secrets.yaml.example
 └── hardware/
@@ -516,7 +510,7 @@ The boardgen walker lives at `pipeline/generic/01_emit_sources.py` (stage 01 of 
    - `15_lint_typecheck` — `mypy` on `boardgen/` + `pipeline/` (real-bug flags: `--check-untyped-defs --warn-unused-ignores --warn-redundant-casts --warn-unreachable --no-implicit-optional`). Hard-fails if mypy missing.
    - `16_lint_compileall` — `python -m compileall` over `boardgen/` + `pipeline/` + `tools/` + `tests/` (catches syntax errors in modules not on the happy path), then runs the pytest unit suite in `tests/` (UUID determinism, geometry invariants, POWER_BUDGET sums, routing-snapshot sanity, extract_routes round-trip). Hard-fails if `pytest` is not importable.
    - `17_lint_kicad_pro` — Lesson 3 enforcement: `board.design_settings.rule_severities` and `erc.rule_severities` MUST be empty in `oas.kicad_pro`. Hard-fails on any suppression entry.
-   - `18_lint_no_hand_pads` — Lesson 1 enforcement: every `gen_*_pcb_footprint` delegates to `_emit_stock_lib_footprint` or parses a `_*_lib_footprint_path` file. Whitelist: 9 documented OAS custom footprints in CLAUDE.md "Deviation budget".
+   - `18_lint_no_hand_pads` — Lesson 1 enforcement: every `gen_*_pcb_footprint` delegates to `_emit_stock_lib_footprint` or parses a `_*_lib_footprint_path` file. Whitelist: 8 documented OAS custom footprints in CLAUDE.md "Deviation budget".
    - `19_check_oas_metadata` — Lesson 10 + Gap H + Lesson 6: every `EXTERNAL_MODULES` entry has at least one identifier (`mpn` / `ean` / `material` / `supplier_*`); every `lcsc_mapping` entry matches the expected schema (LCSC# `^C\d+$`, library tier ∈ {Basic, Extended, N/A}, manufacturer + MPN non-empty); every `POWER_BUDGET` entry has a non-empty HTTP(S) datasheet URL; J4 pin-1..5 order matches the Lesson 20 canon (check D — anchored to the `j4-p*` wire tags in `_sch_sensors.py` + `J4_PCB_ROTATION`, fails loudly if the anchors vanish).
    - `20_export_gerbers` — vendor-neutral raw fab data (Protel gerbers + Excellon drill + drill_map PDFs) written to `hardware/build/gerbers/` (gitignored, intermediate).
    - `21_check_polarity_silk` — radial-cap polarity-band silk audit (catches missing "+" or wrong-side wedge on electrolytic caps).
@@ -524,7 +518,7 @@ The boardgen walker lives at `pipeline/generic/01_emit_sources.py` (stage 01 of 
    - `23_check_power_budget` — reads `POWER_BUDGET` from `boardgen/_project.py` (TypedDict; Lesson 17); per-rail typ + peak current sum (radio-group-aware for ESP32-C6 Wi-Fi/BLE Coex time-share); checks each rail vs `POWER_BUDGET_SAFETY_DERATING × POWER_BUDGET_RAIL_LIMITS_MA` (LM2596 3 A / TPS62933 2 A / F1 750 mA hold).
    - `24_preflight_gerbers` — pygerber integrity + drill statistics + composite renders (smoke test on the raw fab data, vendor-neutral).
    - `25_check_thermal` — LM2596 junction temperature `Tj = Tamb + Pdiss × RthJA`. RthJA piecewise-linear-extrapolated from TI SNVS124N anchors at the actual U1 tab Cu area (92 mm² parsed from `oas.kicad_pcb`). Pdiss derived from POWER_BUDGET 5V rail Iout via `Pdiss ≈ Vout × Iout × (1/η - 1)`. Hard-fail at Tj > 125 °C, warn at > 110 °C.
-   - `26_check_i2c_rise_time` — t_r and C_bus on shared I²C (SEN66 + NT3H1101 + Qwiic). Parses SDA/SCL track lengths from `oas_routes.py`; budgets device input C per UM10204 ceiling. Hard-fail on `t_r > 1000 ns` (Standard-mode 100 kHz) or `C_bus > 400 pF`.
+   - `26_check_i2c_rise_time` — t_r and C_bus on shared I²C (SEN66 + Qwiic). Parses SDA/SCL track lengths from `oas_routes.py`; budgets device input C per UM10204 ceiling. Hard-fail on `t_r > 1000 ns` (Standard-mode 100 kHz) or `C_bus > 400 pF`.
    - `27_check_surge` — ngspice IEC 61000-4-5 1.2/50 µs voltage / 8/20 µs current combination wave, 200 V peak, 2 Ω source. TWO sims (Lesson 16): Sim 1 worst-case Q1 (1 µF C1, no F1) checks `vds_peak ≤ 30 V` (AO3401A abs max); Sim 2 realistic LM2596 (100 µF C1 + 0.1 Ω F1 + 32 µF input bypass) checks `vlm_peak ≤ 40 V` (LM2596 SNVS124N Vin abs max). Each sim sweeps L_trace = 12.5 / 25 / 37.5 nH.
    - `28_check_reverse_polarity` — ngspice reverse-polarity transients: sustained −24 V (100 ns edge, 5 ms hold) + arc-during-mating pulse (−60 V / 1 µs). Verifies BZT52C10S Zener + R4 + R1 hold `|Vgs(Q1)| ≤ 11 V` (1 V buffer under AO3401A 12 V hard max per Lesson 6).
    - `29_check_bom_consistency` — LCSC# bijection check across `lcsc_mapping.py` (catches copy-paste bugs before any vendor export).
@@ -611,8 +605,6 @@ Freerouting is used as a congestion **diagnostic**, not as the routing source of
 - Sensirion SEN66 product page: https://sensirion.com/products/catalog/SEN66
 - Sensirion SEN6x datasheet: https://sensirion.com/resource/datasheet/SEN6x
 - HiLink LD2410 documentation: https://www.hlktech.net
-- NXP NT3H1101 datasheet: https://www.nxp.com (search NT3H1101)
-- MIKROE-2462 NFC Tag 2 Click: https://www.mikroe.com/nfc-tag-2-click
 - SZOMK AK-N-94 enclosure: https://www.chinaenclosure.com
 - ESPHome documentation: https://esphome.io
 - JLCPCB component library: https://jlcpcb.com/parts

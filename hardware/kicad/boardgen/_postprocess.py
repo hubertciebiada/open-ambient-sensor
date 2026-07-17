@@ -36,8 +36,6 @@ from boardgen._project import (
     PAGE_CENTRE_X, PAGE_CENTRE_Y,
     LD2410_ANCHOR_X, LD2410_ANCHOR_Y, LD2410_BODY_W, LD2410_BODY_H,
     ESP32_ANCHOR_X, ESP32_ANCHOR_Y, ESP32_BODY_W, ESP32_BODY_L,
-    MIKROE2462_ANCHOR_X, MIKROE2462_ANCHOR_Y,
-    MIKROE2462_BODY_W, MIKROE2462_BODY_L,
 )
 
 
@@ -566,9 +564,9 @@ BARE_FOOTPRINT_TO_LIB: dict[str, str] = {
 # -----------------------------------------------------------------------------
 # v0.26 — Z-CLEARANCE GUARDRAIL
 # -----------------------------------------------------------------------------
-# The OAS PCB carries three daughterboards mounted on female pin sockets:
-# ESP32-C6 DevKitM-1-N4 (MOD1, ~8.6 mm above PCB), MIKROE-2462 NFC Tag 2
-# Click (MOD2, ~7 mm above PCB) and HLK-LD2410B (LDR1, ~7 mm above PCB).
+# The OAS PCB carries two daughterboards mounted on pin sockets/headers:
+# ESP32-C6 DevKitM-1-N4 (MOD1, ~8.6 mm above PCB) and HLK-LD2410B
+# (LDR1, ~7 mm above PCB).
 # The daughterboard mech-ref footprints intentionally do NOT carry an
 # F.CrtYd (see _emit_daughterboard_reference_pcb_footprint) so KiCad's
 # DRC `courtyards_overlap` rule does not block legitimate SMD placement
@@ -631,7 +629,7 @@ BARE_FOOTPRINT_TO_LIB: dict[str, str] = {
 #     11.5 mm = 14.0 mm total above PCB.
 #   - PinHeader 1.27 mm vertical (J4): plastic 2.0 mm + pin 8 mm =
 #     ~10 mm above PCB.
-#   - PinSocket 2.54 mm vertical (J5..J8): plastic body 8.5 mm.
+#   - PinSocket 2.54 mm vertical (J5/J6): plastic body 8.5 mm.
 #   - CP_Radial_D6.3mm_P2.5mm electrolytic: Panasonic ECA-1AM221 etc.
 #     — 11.2 mm max.
 #   - CP_Radial_D8.0mm_P3.50mm electrolytic: Panasonic ECA-1HM101 etc.
@@ -644,7 +642,7 @@ BARE_FOOTPRINT_TO_LIB: dict[str, str] = {
 #     daughterboard analogue — exempt from the under-daughterboard
 #     check (handled via _IS_DAUGHTERBOARD_REF below).
 #   - Daughterboard mech-refs themselves (ESP32-C6-DevKitM-1 /
-#     MIKROE-2462 / LD2410): they ARE the daughterboards; never appear
+#     LD2410): they ARE the daughterboards; never appear
 #     "under" themselves. Excluded from the check via the same
 #     _IS_DAUGHTERBOARD_REF predicate.
 #
@@ -700,7 +698,6 @@ FOOTPRINT_HEIGHT: dict[str, float] = {
     "oas:SEN66_Mechanical_Reference": 21.5,
     "oas:LD2410_Mechanical_Reference": 7.0,
     "oas:ESP32-C6-DevKitM-1_Reference": 8.6,
-    "oas:MIKROE-2462_Reference": 7.0,
 }
 
 
@@ -712,10 +709,6 @@ FOOTPRINT_HEIGHT: dict[str, float] = {
 #   - ESP32 daughterboard on 2× PinSocket_1x15_P2.54mm_Vertical (8.5 mm
 #     plastic body): conservative 5.5 mm budget. Top of the socket plastic
 #     less ~3 mm of male pin tail protrusion from the DevKitM-1.
-#   - MIKROE-2462 daughterboard on 2× PinSocket_1x08_P2.54mm_Vertical
-#     (same 8.5 mm body): same 5.5 mm budget. NFC antenna spiral is on
-#     the TOP side of the Click PCB (verified MikroE datasheet) — no
-#     additional bottom-side penalty.
 #   - LD2410 mounted on a 1×5 vertical 1.27 mm pin header (J4); the
 #     LD2410 PCB sits only ~3 mm above the OAS PCB and its bottom side
 #     carries ~1.5 mm of small bypass / SoC SMDs. Net budget ~2 mm. No
@@ -723,7 +716,6 @@ FOOTPRINT_HEIGHT: dict[str, float] = {
 #     guardrail flags any that creep in.
 DAUGHTERBOARD_Z_CLEARANCE: dict[str, float] = {
     "MOD1": 5.5,   # ESP32-C6 DevKitM-1-N4
-    "MOD2": 5.5,   # MIKROE-2462 NFC Tag 2 Click
     "LDR1": 2.0,   # HLK-LD2410B (direct 1.27 mm pin header, low stand-off)
 }
 
@@ -732,18 +724,17 @@ DAUGHTERBOARD_Z_CLEARANCE: dict[str, float] = {
 # are themselves the obstacle). These are skipped when iterating OAS
 # components, so a daughterboard never triggers the guardrail "against
 # itself" or against another tall mech-ref.
-_DAUGHTERBOARD_REFS: frozenset[str] = frozenset({"MOD1", "MOD2", "LDR1", "SENS1"})
+_DAUGHTERBOARD_REFS: frozenset[str] = frozenset({"MOD1", "LDR1", "SENS1"})
 
 # Per-daughterboard intentional mounting sockets — these are the female
-# pin sockets (J5/J6 for ESP32, J7/J8 for MIKROE) and the LD2410's
+# pin sockets (J5/J6 for ESP32) and the LD2410's
 # 1.27 mm pin header (J4) that the daughterboards PLUG INTO. They live
 # under the daughterboard shadow by design — their "height" is the
 # daughterboard's standoff, not an obstruction. Excluded per-shadow so
 # the J5 socket (mounting MOD1) doesn't trigger a violation for MOD1,
-# but would still trigger for MOD2 if somehow placed inside its shadow.
+# but would still trigger for another daughterboard's shadow.
 _DAUGHTERBOARD_MOUNTING_SOCKETS: dict[str, frozenset[str]] = {
     "MOD1": frozenset({"J5", "J6"}),       # ESP32 pin sockets
-    "MOD2": frozenset({"J7", "J8"}),       # MIKROE mikroBUS sockets
     "LDR1": frozenset({"J4"}),             # LD2410 1.27 mm pin header
 }
 
@@ -771,15 +762,6 @@ def _daughterboard_body_shadows() -> dict[str, tuple[float, float, float, float]
     esp_ymin = ESP32_ANCHOR_Y - ESP32_BODY_W
     esp_ymax = ESP32_ANCHOR_Y
     shadows["MOD1"] = (esp_xmin, esp_xmax, esp_ymin, esp_ymax)
-
-    # MIKROE-2462 (MOD2): rotation 180, LIB +X → PCB -X, LIB +Y → PCB -Y.
-    # LIB rect (0,0) → (body_w, body_l) maps to PCB X in
-    # [anchor_x - body_w, anchor_x] and Y in [anchor_y - body_l, anchor_y].
-    mik_xmin = MIKROE2462_ANCHOR_X - MIKROE2462_BODY_W
-    mik_xmax = MIKROE2462_ANCHOR_X
-    mik_ymin = MIKROE2462_ANCHOR_Y - MIKROE2462_BODY_L
-    mik_ymax = MIKROE2462_ANCHOR_Y
-    shadows["MOD2"] = (mik_xmin, mik_xmax, mik_ymin, mik_ymax)
 
     # LD2410 (LDR1): rotation 270, LIB +X → PCB +Y, LIB +Y → PCB -X.
     # LIB rect (0,0) → (LD2410_BODY_W, LD2410_BODY_H) maps to PCB X in
@@ -908,8 +890,6 @@ _FOOTPRINT_HALF_EXTENT: dict[str, tuple[float, float]] = {
     "Connector_PinHeader_1.27mm:PinHeader_1x05_P1.27mm_Vertical": (1.5, 3.5),
     # J2, J10 — 6-pin 2.54 mm vertical pin header, rotation 0/180
     "Connector_PinHeader_2.54mm:PinHeader_1x06_P2.54mm_Vertical": (1.5, 7.6),
-    # J7/J8 — 8-pin MIKROE sockets, rotation 180 (long axis along PCB -Y)
-    "Connector_PinSocket_2.54mm:PinSocket_1x08_P2.54mm_Vertical": (1.8, 10.2),
     # J5/J6 — 15-pin ESP32 sockets, rotation 90 (long axis along PCB +X)
     "Connector_PinSocket_2.54mm:PinSocket_1x15_P2.54mm_Vertical": (19.6, 1.8),
     "oas:SK6812-SIDE": (2.0, 1.0),
@@ -924,7 +904,6 @@ _FOOTPRINT_HALF_EXTENT: dict[str, tuple[float, float]] = {
     "oas:SEN66_Mechanical_Reference": (12.8, 27.6),
     "oas:LD2410_Mechanical_Reference": (3.81, 17.78),
     "oas:ESP32-C6-DevKitM-1_Reference": (24.13, 12.7),
-    "oas:MIKROE-2462_Reference": (12.7, 28.575),
 }
 
 
@@ -960,8 +939,8 @@ def check_z_clearance_violations() -> list[str]:
     shadow still triggers the guardrail when its body pokes ~2 mm into
     the shadow.
 
-    Daughterboards themselves (MOD1/MOD2/LDR1/SENS1) and their mating
-    sockets (J5/J6/J7/J8/J4) are exempt from the check — those are the
+    Daughterboards themselves (MOD1/LDR1/SENS1) and their mating
+    sockets (J5/J6/J4) are exempt from the check — those are the
     daughterboard's own support feet and live under its shadow by
     design.
     """

@@ -25,13 +25,12 @@ SUBSHEET_PINS: dict[str, list[tuple[str, str, float, float, int]]] = {
         ("I2C_SDA",     "bidirectional", 0.0,  1.27, 180),
         ("I2C_SCL",     "output",        0.0,  3.81, 180),
         ("LD2410_OUT",  "input",         0.0,  6.35, 180),
-        ("NFC_FD",      "input",         0.0,  8.89, 180),
         # v0.16: WS2812_DIN — MCU drives the SK6812-SIDE AQI status-LED
         # ring (chain of 12 LEDs in sensors sub-sheet). GPIO 8 → first
         # LED DIN. Exported as `output` from the MCU side. Placed on LEFT
         # edge alongside the other sensor-bound nets; matched against the
         # sensors sub-sheet's WS2812_DIN pin on the same edge for a
-        # symmetric inter-sheet wire route (mirrors the NFC_FD pattern).
+        # symmetric inter-sheet wire route.
         ("WS2812_DIN",  "output",        0.0, 11.43, 180),
         ("UART_TX",     "output",        38.1, 1.27, 0),
         ("UART_RX",     "input",         38.1, 3.81, 0),
@@ -61,8 +60,6 @@ SUBSHEET_PINS: dict[str, list[tuple[str, str, float, float, int]]] = {
         ("LD2410_OUT",  "output",        38.1,  6.35, 0),
         ("UART_TX",     "input",         38.1,  8.89, 0),
         ("UART_RX",     "output",        38.1, 11.43, 0),
-        # chunk #5c: MIKROE-2462 NFC Tag 2 Click — field-detect interrupt.
-        ("NFC_FD",      "output",         0.0,  6.35, 180),
         # v0.16: AQI status-LED ring input.
         ("WS2812_DIN",  "input",          0.0,  8.89, 180),
     ],
@@ -224,7 +221,7 @@ def gen_root_sch() -> str:
       - I2C_SCL  : MCU block left-edge pin (101.60, 54.61) ↔
                    Sensors block right-edge pin (88.9, 92.71)
 
-    Later chunks will add LD2410_OUT, NFC_FD (sensors→MCU), and
+    Later chunks will add LD2410_OUT (sensors→MCU) and
     UART_TX/UART_RX (MCU→sensors via LD2410 connector) as their sub-
     sheet content lands.
     """
@@ -294,22 +291,10 @@ def gen_root_sch() -> str:
     inter_wires.append(_root_wire(97.79, 113.03, 146.05, 113.03, "uart-rx-east-under-io"))
     inter_wires.append(_root_wire(146.05, 113.03, 146.05, 54.61, "uart-rx-vertical"))
     inter_wires.append(_root_wire(146.05, 54.61, 139.7, 54.61, "uart-rx-west-into-mcu"))
-    # chunk #5c inter-sheet wire for NFC_FD.
-    # NFC_FD — sensors left-edge (50.8, 95.25) ↔ MCU left-edge (101.60, 59.69).
-    # Both pins on left side of their blocks (sensors at angle 180 dx=0,
-    # MCU at angle 180 dx=0). Route: sensors LEFT stub goes WEST out of
-    # the sensors block to a vertical leg at X=44.45, up past the
-    # sensors block top edge (Y=88.9), then NORTHEAST across the empty
-    # space below the power block to the MCU block's LEFT edge.
-    inter_wires.append(_root_wire(50.8, 95.25, 44.45, 95.25, "nfc-fd-west-from-sensors"))
-    inter_wires.append(_root_wire(44.45, 95.25, 44.45, 59.69, "nfc-fd-vertical"))
-    inter_wires.append(_root_wire(44.45, 59.69, 101.60, 59.69, "nfc-fd-east-into-mcu"))
     # v0.16 inter-sheet wire for WS2812_DIN.
     # WS2812_DIN — sensors left-edge (50.8, 97.79) ↔ MCU left-edge
-    # (101.60, 62.23). Same routing topology as NFC_FD but using a
-    # parallel vertical leg at X=41.91 (one grid step west of the
-    # NFC_FD leg at X=44.45) and matching horizontal Y rows so the two
-    # nets stay visually separated.
+    # (101.60, 62.23). Routed on a vertical leg at X=41.91 with
+    # matching horizontal Y rows into each block edge.
     inter_wires.append(_root_wire(50.8, 97.79, 41.91, 97.79, "ws2812-din-west-from-sensors"))
     inter_wires.append(_root_wire(41.91, 97.79, 41.91, 62.23, "ws2812-din-vertical"))
     inter_wires.append(_root_wire(41.91, 62.23, 101.60, 62.23, "ws2812-din-east-into-mcu"))

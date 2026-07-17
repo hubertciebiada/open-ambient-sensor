@@ -34,7 +34,7 @@ Models used
   * U2 TPS62933:       Ideal regulator. Vout = Vref × (1 + R2/R3),
                        Vref = 0.8 V. Valid when 3.8 <= Vin <= 30 V.
   * Loads:             Combined currents derived from CLAUDE.md per-component
-                       budgets - ESP32 ~80 mA + SEN66 ~130 mA + NFC ~5 mA
+                       budgets - ESP32 ~80 mA + SEN66 ~130 mA
                        + LD2410 ~80 mA + LED ring avg ~80 mA + misc.
 
 Scenarios tested
@@ -96,7 +96,7 @@ V24_PROT_WINDOW = (23.5, 24.05)   # After Q1 (45 mΩ * ~0.5A = 22.5 mV drop) + F
 # active+RF (~80 mA), HLK-LD2410B datasheet (~80 mA), SK6812-SIDE x11
 # at 50% brightness (~80 mA avg).
 LOAD_5V_TYPICAL_A = 0.16    # LED ring avg 80 mA + LD2410 80 mA
-LOAD_3V3_TYPICAL_A = 0.22   # ESP32 80 mA + SEN66 130 mA + NFC 5 mA + misc
+LOAD_3V3_TYPICAL_A = 0.22   # ESP32 80 mA + SEN66 130 mA + 10 mA misc/margin
 TOTAL_INPUT_TYPICAL_A = 0.5  # rough total after buck efficiency losses
 
 

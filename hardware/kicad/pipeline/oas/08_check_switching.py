@@ -13,7 +13,7 @@ Two checks live in this stage:
    Drives the FULL OAS power chain (24 V -> 5 V -> 3V3) with realistic
    loads:
      - 5 V rail: LED ring 47.6 ohm constant (7 x SK6812-SIDE @ 15 mA).
-     - 3V3 rail: 75 mA constant (SEN66 + LD2410 + NFC) plus an ESP32-C6
+     - 3V3 rail: 75 mA constant (SEN66 + LD2410-via-5V proxy + margin) plus an ESP32-C6
        step-load 30 mA -> 330 mA at t = 20 ms (Wi-Fi association burst).
    Acceptance windows verify the 3V3 rail does not dip into TPS UVLO
    during the LM2596 ramp, the 5 V rail never exceeds the ESP32-C6
@@ -284,7 +284,7 @@ def render_cascade_softstart_cir(model_path: Path) -> str:
     Loads (worst-case representative; see CLAUDE.md POWER_BUDGET section)
     --------------------------------------------------------------------
       * 5V rail: 47.6 ohm constant (7 x SK6812-SIDE @ 15 mA = 105 mA).
-      * 3V3 rail: 75 mA constant (SEN66 + LD2410-via-5V proxy + NFC)
+      * 3V3 rail: 75 mA constant (SEN66 + LD2410-via-5V proxy + margin)
         + ESP32-C6 step-load 30 mA -> 330 mA at t = 20 ms (Wi-Fi assoc).
 
     Measurements
@@ -362,7 +362,7 @@ RBOND_3V3 V3V3_RAW V3V3 1m
 BLOAD_5V V5V 0  I = max(0, (v(V3V3) * (75m + (time<20m ? 30m : 330m))) / max(v(V5V), 0.1) / 0.95)
 
 * ---- 3V3 loads ----------------------------------------------------------
-* Constant 75 mA (SEN66 + LD2410-via-5V proxy + NFC).
+* Constant 75 mA (SEN66 + LD2410-via-5V proxy + margin).
 ISENS  V3V3 0  75m
 * ESP32-C6 step-load 30 mA -> 330 mA at t = 20 ms (Wi-Fi association).
 IESP   V3V3 0  PWL(0 30m 20m 30m 20.001m 330m 60m 330m)

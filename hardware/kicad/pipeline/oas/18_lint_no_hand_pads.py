@@ -36,11 +36,10 @@ BOARDGEN = KICAD_ROOT / "boardgen"
 # rule. Every entry MUST correspond to an OAS custom footprint listed in
 # CLAUDE.md "Deviation budget". Order matches the table there.
 WHITELIST_FUNCTIONS = {
-    # MOD1 / MOD2 / LDR1 / SENS1 mechanical references (oas:*_Reference)
+    # MOD1 / LDR1 / SENS1 mechanical references (oas:*_Reference)
     "gen_sen66_reference_pcb_footprint",
     "gen_ld2410_reference_pcb_footprint",
     "gen_esp32_devkit_reference_pcb_footprint",
-    "gen_mikroe2462_reference_pcb_footprint",
     # H1..H3 (oas:MountingHole_3.8mm_M3)
     "gen_mounting_hole_pcb_footprint",
     # ZT1..ZT4 (oas:ZipTieHole_3mm_NPTH)

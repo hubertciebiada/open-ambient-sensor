@@ -5,7 +5,7 @@ because they require domain knowledge ("this exact resistor with this
 exact value must exist on this exact net for the design to work"):
 
   A. I²C bus pull-ups: R5 = 4.7 kΩ on SDA, R6 = 4.7 kΩ on SCL. Without
-     either, the SEN66 / NT3H1101 / Qwiic bus does not transact.
+     either, the SEN66 / Qwiic bus does not transact.
      Hard-coded in CLAUDE.md hardware section ("4.7 kΩ pull-ups on MCU
      side"). A missing pull-up shows as a silent comms failure on first
      boot, not as an ERC warning.
@@ -41,8 +41,8 @@ MCU_SCH = KICAD_ROOT / "mcu.kicad_sch"
 
 # Expected pull-up resistors (reference, expected_value, semantic).
 EXPECTED_PULLUPS = [
-    ("R5", "4.7k 1%", "I2C SDA pull-up (SEN66/NT3H1101/Qwiic bus)"),
-    ("R6", "4.7k 1%", "I2C SCL pull-up (SEN66/NT3H1101/Qwiic bus)"),
+    ("R5", "4.7k 1%", "I2C SDA pull-up (SEN66/Qwiic bus)"),
+    ("R6", "4.7k 1%", "I2C SCL pull-up (SEN66/Qwiic bus)"),
     ("R7", "10k 1%",  "GPIO 8 WS2812 DIN pull-up (ring AQI signal)"),
 ]
 

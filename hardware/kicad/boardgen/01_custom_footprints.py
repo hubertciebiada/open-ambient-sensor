@@ -1,4 +1,4 @@
-"""boardgen stage 01: write the 9 custom .kicad_mod files.
+"""boardgen stage 01: write the 8 custom .kicad_mod files.
 
 These project-local footprints live under libraries/oas.pretty/ and
 cover mechanical references + the 4020 side-emit SK6812 LED + the
@@ -27,9 +27,6 @@ from boardgen._footprints import (
 from boardgen._project import (
     ESP32_BODY_W, ESP32_BODY_L, ESP32_PIN_ROW_INSET, ESP32_PIN_PITCH,
     ESP32_PIN_COUNT_PER_ROW, ESP32_PIN_START_OFFSET,
-    MIKROE2462_BODY_W, MIKROE2462_BODY_L,
-    MIKROE2462_PIN_ROW_INSET, MIKROE2462_PIN_PITCH,
-    MIKROE2462_PIN_COUNT_PER_ROW, MIKROE2462_PIN_START_OFFSET,
 )
 
 
@@ -61,22 +58,6 @@ def run(ctx) -> None:
             usb_label="USB",
             uuid_tag="esp32-devkitm1",
             pin_start_offset=ESP32_PIN_START_OFFSET,
-        ),
-        encoding="utf-8",
-    )
-    (HERE / "libraries" / "oas.pretty" / "MIKROE-2462_Reference.kicad_mod").write_text(
-        gen_daughterboard_mech_lib_file(
-            name="MIKROE-2462_Reference",
-            descr="MikroElektronika NFC Tag 2 Click (NT3H1101 NTAG I²C plus + onboard PCB antenna) daughterboard mechanical reference (no pads). Body 25.4×57.15×7 mm per mikroBUS size L spec. Pin block offset 2.54 mm toward pin-1 short edge; NFC antenna spiral on the ~36.83 mm strip past pin 8.",
-            body_w=MIKROE2462_BODY_W, body_l=MIKROE2462_BODY_L,
-            pin_row_inset=MIKROE2462_PIN_ROW_INSET,
-            pin_pitch=MIKROE2462_PIN_PITCH,
-            pin_count_per_row=MIKROE2462_PIN_COUNT_PER_ROW,
-            body_label="MIKROE-2462",
-            antenna_label=None,
-            usb_label=None,
-            uuid_tag="mikroe2462",
-            pin_start_offset=MIKROE2462_PIN_START_OFFSET,
         ),
         encoding="utf-8",
     )

@@ -5,13 +5,13 @@ electronic product:
 
   - Project identity (PROJECT_NAME, PROJECT_SHORTNAME)
   - External-module metadata (EXTERNAL_MODULES — Espressif devkit, SEN66,
-    LD2410, MIKROE-2462, AK-N-94 enclosure)
+    LD2410, AK-N-94 enclosure)
   - ESP32-C6 GPIO pin assignments (GPIO_ASSIGNMENTS, GPIO_RESERVED,
     GPIO_SPARE — single source of truth for the pinout)
   - PCB geometry (Ø120 mm D-shape outline, mounting holes, cable hole,
     case-wall cutouts)
   - Daughterboard placements: SEN66 + zip-tie holes + J3 socket;
-    LD2410 + J4 socket; ESP32-C6 DevKitM-1; MIKROE-2462 NFC click;
+    LD2410 + J4 socket; ESP32-C6 DevKitM-1;
     J1 24 V terminal block; J9 Qwiic; J10 recovery header
   - AQI LED ring (8 × SK6812-SIDE on 45° pitch)
   - Local-to-PCB coordinate transforms (`_sen66_local_to_pcb`,
@@ -103,21 +103,6 @@ EXTERNAL_MODULES = {
             "footprint orientation (see J4_PCB_* block)."
         ),
     },
-    "MIKROE-2462": {
-        "manufacturer": "MikroElektronika",
-        "mpn": "MIKROE-2462",
-        "description": "NFC Tag 2 Click (NXP NT3H1101 + onboard PCB antenna)",
-        "supplier": "MikroE direct / TME",
-        "datasheet": "https://www.mikroe.com/nfc-tag-2-click",
-        "form_factor": "mikroBUS L (25.4 x 57.15 x 7 mm)",
-        "note": (
-            "Pinout verified against the NFC Tag 2 Click schematic v101: "
-            "of the 16 mikroBUS pins only +3.3V (pin 7) + GND (pin 8) on "
-            "the left header and INT/FD (pin 10), SCL (pin 13), SDA "
-            "(pin 14), GND (pin 16) on the right header are connected; the "
-            "rest are NC. NT3H1101 I2C slave address 0x55."
-        ),
-    },
     "SZOMK AK-N-94": {
         "manufacturer": "SZOMK",
         "mpn": "AK-N-94",
@@ -145,8 +130,7 @@ EXTERNAL_MODULES = {
 # Cross-checked by pipeline/oas/06_check_boot.py.
 GPIO_ASSIGNMENTS = {
     2:  {"net": "LD2410_OUT", "sheet": "/MCU/", "desc": "LD2410 presence interrupt (safe non-strap input)"},
-    3:  {"net": "NFC_FD",     "sheet": "/MCU/", "desc": "NT3H1101 NFC field-detect interrupt (safe non-strap)"},
-    6:  {"net": "I2C_SDA",    "sheet": "/IO/",  "desc": "Shared I2C bus: SEN66 0x6B, NT3H1101 0x55, J9 Qwiic"},
+    6:  {"net": "I2C_SDA",    "sheet": "/IO/",  "desc": "Shared I2C bus: SEN66 0x6B, J9 Qwiic"},
     7:  {"net": "I2C_SCL",    "sheet": "/IO/",  "desc": "Shared I2C bus, 4.7 kOhm pull-ups on MCU side (220 mm bus)"},
     8:  {"net": "WS2812_DIN", "sheet": "/MCU/", "desc": "SK6812-SIDE AQI ring data line. STRAP PIN - R7 10 kOhm pull-up to +3V3 required (DevKitM-1 onboard pull-up runs off VCC_5V which is unpowered in OAS)"},
     12: {"net": "USB_DM",     "sheet": "/IO/",  "desc": "Native USB-Serial-JTAG D-"},
@@ -167,7 +151,9 @@ GPIO_RESERVED = {
 # Safe-non-strap spare GPIOs for future expansion.
 # GPIO 1 (J5 pin 8) joined this list in v0.53 when SW1 was removed
 # (GitHub issue #5) — it is now an unused, no-connect safe non-strap pin.
-GPIO_SPARE = [0, 1, 14, 18, 19, 20, 21, 22, 23]
+# GPIO 3 (J5 pin 4) joined when the NFC tag was removed (GitHub issue #7)
+# — the former NT3H1101 FD interrupt line is now an unused no-connect.
+GPIO_SPARE = [0, 1, 3, 14, 18, 19, 20, 21, 22, 23]
 
 # =============================================================================
 # (geometry / footprints / schematic generators follow)
@@ -292,7 +278,7 @@ def fy(y: float) -> str:
 #   1. A no-pad mechanical-reference footprint (`SEN66_Mechanical_Reference`)
 #      drawn on F.Fab / F.SilkS — marks where the SEN66 body sits and
 #      delineates the openings + sealing-divider hint so neighbouring
-#      components (LD2410, MIKROE-2462) stay clear.
+#      components (LD2410) stay clear.
 #   2. Four NPTH zip-tie holes (Ø 3.0 mm) that pinch the SEN66 flat
 #      against the PCB. Cut the zip-ties to remove or replace the module.
 #   3. The PCB-side JST GH 6-pin socket (J3) that mates with the SEN66's
@@ -415,8 +401,8 @@ J3_ROTATION = 0    # v0.15.8: flipped 180 -> 0 so the cable opening (pad-side,
 # Dimensions: LD2410B body ~30-33 × 15-16 mm in datasheet (varies by
 # revision). LD2410_BODY_W/H below are slightly enlarged + grid-aligned
 # (multiples of 1.27 mm) for keep-out planning. The mechanical-reference
-# footprint claims this rectangle so future PCB components (NT3H1101 NFC,
-# Qwiic, decoupling caps) keep clear of the LD2410 shadow.
+# footprint claims this rectangle so future PCB components (Qwiic,
+# decoupling caps) keep clear of the LD2410 shadow.
 LD2410_BODY_W = 35.56            # mm, long axis (28 × 1.27). Matches the
                                   # HLK-LD2410B datasheet V1.04 §4.1
                                   # "Module size: 7mm × 35mm", with a small
@@ -530,32 +516,31 @@ def _ld2410_local_to_pcb(lx: float, ly: float) -> tuple[float, float]:
 
 
 # -----------------------------------------------------------------------------
-# ESP32-C6 DevKitM-1-N4 + MIKROE-2462 NFC Tag 2 Click — PCB shadow reservations
+# ESP32-C6 DevKitM-1-N4 — PCB shadow reservation
 # -----------------------------------------------------------------------------
-# Both are daughterboards mounted on FEMALE pin sockets ("goldpiny żeńskie")
-# on the OAS PCB. The boards sit ~3-7 mm above the PCB on the standoff of
-# their pin headers, so SMD components on the OAS PCB CAN be placed under
-# their shadow (within the standoff Z budget of ~3-5 mm).
+# The devkit is a daughterboard mounted on FEMALE pin sockets ("goldpiny
+# żeńskie") on the OAS PCB. The board sits ~3-7 mm above the PCB on the
+# standoff of its pin headers, so SMD components on the OAS PCB CAN be
+# placed under its shadow (within the standoff Z budget of ~3-5 mm).
 #
-# This chunk just RESERVES the shadow areas with mechanical-reference
-# footprints (F.Fab body outline + F.SilkS marker + pin-row hints + labels).
+# This chunk just RESERVES the shadow area with a mechanical-reference
+# footprint (F.Fab body outline + F.SilkS marker + pin-row hints + labels).
 # The actual electrical female pin sockets land in chunk #7 (PCB routing).
 #
-# Layout (v0.15.6):
+# Layout (v0.15.6; MIKROE-2462 NFC daughterboard removed in issue #7 —
+# its former shadow, body X=-38.16..-14.76 / Y=-16.51..+40.64, is free
+# board area now):
 #
-#   ESP32-C6 DevKitM-1-N4    MIKROE-2462 (NFC Tag 2 Click)
-#   body: 48.26 × 25.4 mm     body: 25.4 × 57.15 mm (size L)
-#   anchor (-27.76, -24.70)   anchor (-12.76, +40.64) rot 180°
-#   body X=-27.76..+20.50     body X=-38.16..-12.76
-#   body Y=-50.10..-24.70     body Y=-16.51..+40.64
-#   center X = -3.63          NFC center X = -25.46
-#   horizontal at TOP-CENTER  vertical, flipped 180° (pins at PCB +Y)
-#   antenna LEFT (-X)         pins on long edges (J7+J8 at PCB Y=+20.32..+38.10)
-#   USB-C RIGHT (+X)          NFC antenna spiral at PCB Y=-16.51..+18.64 (top half)
+#   ESP32-C6 DevKitM-1-N4
+#   body: 48.26 × 25.4 mm
+#   anchor (-27.76, -24.70)
+#   body X=-27.76..+20.50
+#   body Y=-50.10..-24.70
+#   center X = -3.63
+#   horizontal at TOP-CENTER
+#   antenna LEFT (-X)
+#   USB-C RIGHT (+X)
 #
-# LD2410 + NFC share the same top edge at Y=-16.51 (left side group).
-# C1 and C2 AUX cutouts removed in v0.15.6 to free bottom-left region
-# for the NFC body (which is 57.15 mm long — size L mikroBUS).
 # SEN66 (right side, anchor +23.5/+22.0) unchanged. See per-constant
 # comments below for clearance breakdowns.
 
@@ -576,15 +561,12 @@ ESP32_PIN_START_OFFSET = 5.37      # distance from antenna short edge
                                     # dimensions drawing.
 
 # Placement (v0.15): ESP32 HORIZONTAL, UPPER-LEFT. User instruction:
-# "ESP mocno w dół i w lewo" — after NFC moved down to share LD2410's
-# Y band (Y=-13.03..+15.57), ESP32 cannot move further "down" (toward
-# +Y) without colliding with NFC in the X overlap range -33.21..-7.81.
-# The achievable interpretation: ESP32 stays horizontal, shifts LEFT,
-# and drops as far down as the NFC top edge allows. Body Y bottom edge
-# anchor_y = -14.03 sits 1 mm above NFC top at Y=-13.03. Body X range
-# -37.16..+11.10 leaves a 2.5 mm gap to LD2410's new right edge at
-# X=-39.66 and 12.4 mm to SEN66's left edge at X=+23.5. Helper rotation
-# 90° unchanged (body lies down 48.26 × 25.4).
+# "ESP mocno w dół i w lewo" — historically bounded from below by the
+# (since-removed, issue #7) NFC daughterboard sharing LD2410's Y band.
+# ESP32 stays horizontal, shifted LEFT, dropped as far down as the
+# then-present NFC top edge allowed. Body X range leaves a 2.5 mm gap
+# to LD2410's right edge at X=-39.66 and 12.4 mm to SEN66's left edge
+# at X=+23.5. Helper rotation 90° unchanged (body lies down 48.26 × 25.4).
 ESP32_ANCHOR_X = -27.76            # v0.15.3: -2 mm LEFT of v0.15.2.
                                     # Body X range -27.76..+20.50, center
                                     # X = -3.63. Right edge clearance to
@@ -607,63 +589,9 @@ ESP32_ANCHOR_Y = -24.70            # v0.15.3: +2 mm DOWN from v0.15.2's
                                     # courtyard depth.
 ESP32_ROTATION = 90                # KiCad rotation applied to helper output
 
-# Dimensions per mikroBUS Standard Specifications v2.00 (June 2015), size L.
-# https://download.mikroe.com/documents/standards/mikrobus/mikrobus-standard-specification-v200.pdf
-# NFC Tag 2 Click is mikroBUS size L — 25.4 × 57.15 mm (v0.15.5 fix; the
-# earlier "size S, 28.6 mm" assumption was wrong per the MikroE product
-# datasheet). Pin headers 2×1×8 P2.54 mm, row spacing 22.86 mm. Pin block
-# OFFSET 2.54 mm toward pin-1 short edge: pin 1 is 2.54 mm from the top
-# short edge; the NFC PCB antenna spiral fills the long strip past pin 8
-# (~36.83 mm of extra board length, the difference between size L and
-# the 8-pin block).
-MIKROE2462_BODY_W = 25.4
-MIKROE2462_BODY_L = 57.15           # v0.15.5: CORRECTED to mikroBUS size L
-                                     # per MikroE datasheet (was 28.6 size S,
-                                     # WRONG). NFC PCB antenna spiral fills
-                                     # the strip past pin 8 (~36.83 mm long).
-                                     # Layout collision with chord / AUX zone
-                                     # accepted for v0.15.5 — user wants to
-                                     # see visual overlap before deciding
-                                     # next layout move.
-MIKROE2462_BODY_Z = 7.0
-MIKROE2462_PIN_ROW_INSET = 1.27    # = (25.4 - 22.86) / 2
-MIKROE2462_PIN_PITCH = 2.54
-MIKROE2462_PIN_COUNT_PER_ROW = 8
-MIKROE2462_PIN_START_OFFSET = 2.54  # pin 1 at 2.54 mm from pin-1 short edge
-
-# Placement (v0.15): vertical, transverse axis (= horizontal centerline
-# through the body) aligned with LD2410's transverse axis at PCB Y=+1.27.
-# User instruction: "Oś poprzeczna NFC w tej samej osi co Oś czujnika
-# obecności" — NFC and LD2410 share the same horizontal Y band.
-# Body Y range -13.03..+15.57 (center Y=+1.27 matches LD2410 center Y).
-# Body X range -33.21..-7.81 (unchanged from v0.14): 6.45 mm gap to
-# LD2410's new right edge at X=-39.66, and 1.81 mm gap to cable hole
-# left edge at X=-6 (Ø12 hole at origin).
-#
-# The 5.74 mm antenna spiral strip at the bottom of the MIKROE body
-# is now at PCB Y=+9.83..+15.57 — well clear of the cable hole zone
-# and aimed outward toward the AK-N-94 perforated cover.
-MIKROE2462_ANCHOR_X = -14.76       # v0.15.7: rotated 180° around body
-                                    # center. Anchor now at body BOTTOM-RIGHT
-                                    # corner in PCB (was top-left in v0.15.6).
-                                    # Pre-routing rework: shifted west -2 mm
-                                    # so MOD2 east silk edge (X=-14.76) clears
-                                    # the new LED-ring outer edge at R=14
-                                    # (D17 outer body edge at PCB X=-14) by
-                                    # 0.76 mm. New body PCB range:
-                                    # X=-40.16..-14.76. C11 at (-42, +14)
-                                    # west silk edge at -42.8 → 2.64 mm clear
-                                    # of new MOD2 west silk at -40.16.
-MIKROE2462_ANCHOR_Y = +40.64       # v0.15.7: bottom edge of body in PCB
-                                    # (was top edge -16.51 in v0.15.6).
-                                    # Body PCB range unchanged: Y=-16.51..+40.64.
-                                    # 2.86 mm above PCB chord at +43.5.
-MIKROE2462_ROTATION = 180           # v0.15.7: flipped 180° per user request
-                                    # "nfc przerzuc w pionie. piny na dole".
-                                    # Pin block now at PCB Y=+20.32..+38.10
-                                    # (was -13.97..+3.81). NFC antenna spiral
-                                    # now at PCB Y=-16.51..+18.64 — radiates
-                                    # toward UPPER part of cover (was lower).
+# (MIKROE-2462 NFC daughterboard constants removed in issue #7 — the NFC
+# feature left the design entirely. Former shadow: X=-40.16..-14.76,
+# Y=-16.51..+40.64, west of the LED ring / south of LD2410.)
 
 
 # -----------------------------------------------------------------------------
@@ -941,7 +869,6 @@ J2_PCB_ROTATION = 90         # LIB +Y → PCB +X (horizontal pad row east).
 # from the netlist. Verified against the schematic sub-sheets:
 #   J1     — _sch_power.py    (J1.1 VIN / J1.2 GND / J1.3 PE)
 #   J2     — _sch_mcu.py      (UART/Boot recovery header)
-#   J7/J8  — _sch_sensors.py  (MIKROE-2462 mikroBUS socket, rows A/B)
 #   J9     — _sch_io.py       (standard Qwiic: GND / +3V3 / SDA / SCL)
 #   J10    — _sch_io.py       (native-USB recovery header)
 J1_PIN_MAP: dict[int, str] = {1: "24V", 2: "GND", 3: "PE"}
@@ -949,24 +876,13 @@ J2_PIN_MAP: dict[int, str] = {1: "+3V3", 2: "GND", 3: "TX", 4: "RX",
                               5: "EN", 6: "BOOT"}
 J10_PIN_MAP: dict[int, str] = {1: "GND", 2: "+3V3", 3: "USB-", 4: "USB+",
                                5: "EN", 6: "BOOT"}
-# J7/J8 — MIKROE-2462 mikroBUS socket, full per-pin names (mikroBUS Standard
-# Specifications v2.00, page 6). J7 = row A / mikroBUS pins 1..8 (left
-# header), J8 = row B / mikroBUS pins 9..16 (right header). The socket
-# carries the mikroBUS pin names regardless of which pins the NFC Tag 2
-# Click actually uses (NFC uses only +3V3/GND on J7 and INT-FD/SCL/SDA/GND
-# on J8 — see _sch_sensors.py chunk #5c).
-J7_PIN_MAP: dict[int, str] = {1: "AN", 2: "RST", 3: "CS", 4: "SCK",
-                              5: "MISO", 6: "MOSI", 7: "+3V3", 8: "GND"}
-J8_PIN_MAP: dict[int, str] = {1: "PWM", 2: "INT", 3: "RX", 4: "TX",
-                              5: "SCL", 6: "SDA", 7: "+5V", 8: "GND"}
 
 # Module socket end-pin signal names — printed at the EXTREME pads of each
 # daughterboard row so the module can be oriented during hand-assembly.
 # Signal names (not bare pin numbers) are used: they tell the assembler at
 # a glance which way round the module goes. Only the first + last pad of a
 # row carry a label (see gen_silk_labels). Keyed by footprint pad number.
-# Used for J4/J5/J6 only — J7/J8 carry FULL per-pin labels (J7/J8_PIN_MAP)
-# in the gap between the two mikroBUS rows, not just end labels.
+# Used for J4/J5/J6.
 #   ESP32-C6-DevKitM-1 — verified vs _lib_symbols.ESP32C6_DEVKITM1_PINS:
 #     J5 = module header J1 (pad 1 = 3V3 … pad 15 = GND)
 #     J6 = module header J3 (pad 1 = GND … pad 15 = GND — both rails GND
@@ -1046,25 +962,21 @@ LED_RING_RADIUS = 13.0    # v0.41 2026-05-19 (rev 3): back to 13.0 base after
 LED_RING_RADIUS_OVERRIDE = {
     0: 11.0,    # D11 — mirrored with D15 (also R=11). User wanted radial
                 # symmetry on the east-west axis through the ring centre,
-                # since D15 was forced to R=11 by MOD2 silk constraint and
-                # we don't want the silk-labelled reference LED (D11) to look
-                # bigger than its opposite-axis counterpart.
+                # since D15 was forced to R=11 by the (since-removed,
+                # issue #7) MOD2 silk constraint and we don't want the
+                # silk-labelled reference LED (D11) to look bigger than
+                # its opposite-axis counterpart.
     1: 16.5,    # D12 — bumped 15 → 16.5 (v0.41-followup-2). At R=16.5 cap C21
                 # mask west edge at PCB X=+8.745 leaves 0.21 mm clearance for
-                # a silk-no-go vertical line at PCB X=+8.50. R upper bound is
-                # set by D14 pin-1 dot vs MOD2 silk east edge (silk_overlap):
-                # with stroke widths, pin1 dot circle (radius 0.19) west edge
-                # must clear MOD2 silk east edge (X=+134.30 global) by 0.15.
-                # Strict bound: R ≤ 16.48; chose 16.5 as the prior known-good
-                # value (margin 0.32 mm at R=16.5).
+                # a silk-no-go vertical line at PCB X=+8.50. Historical upper
+                # bound R ≤ 16.48 came from D14 pin-1 dot vs the (since-
+                # removed, issue #7) MOD2 silk east edge; 16.5 kept as the
+                # known-good routed value.
     3: 16.5,    # D14 — bumped 15 → 16.5. Mirror of D12.
-    4: 11.0,    # D15 — unchanged; pulled INWARD to clear MOD2 (MIKROE-2462)
-                # silk east edge. After the LED rotation fix (emission outward
-                # → pad row now on OUTWARD body face), D15 pads at R=13 land
-                # 0.09 mm inside MOD2 silk shadow (silk east edge at PCB X=
-                # -14.26, pad west edge at -14.35). R=11 pulls body inward
-                # enough that pads are at PCB X~-11.85, 2.4 mm clear of
-                # MOD2 silk.
+    4: 11.0,    # D15 — pulled INWARD historically to clear the (since-
+                # removed, issue #7) MOD2 / MIKROE-2462 silk east edge.
+                # R=11 kept: the value is baked into the v0.50 routing
+                # snapshot; nothing forces it back out to 13.
 }
 LED_RING_COUNT = 8
 LED_RING_THETA_START_DEG = 0.0       # first LED (D11) sits on PCB +X axis
@@ -1343,19 +1255,6 @@ POWER_BUDGET: list[PowerBudgetEntry] = [
             "Sensirion product page lists 'Avg supply current 90,000 µA'. "
             "Peak ~150 mA during startup (laser PM module + fan spin-up "
             "transient)."
-        ),
-    },
-    {
-        "name": "NT3H1101 NFC (active)",
-        "rail": "3V3",
-        "typ_ma": 10.0,
-        "peak_ma": 10.0,
-        "datasheet": (
-            "https://www.nxp.com/docs/en/data-sheet/NT3H1101_1201.pdf"
-        ),
-        "note": (
-            "NXP NT3H1101 DS — I²C-active current ≈10 mA. Sits on the "
-            "MIKROE-2462 NFC Tag 2 Click daughterboard."
         ),
     },
     {

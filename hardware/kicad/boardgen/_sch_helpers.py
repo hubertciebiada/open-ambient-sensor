@@ -1326,103 +1326,6 @@ def _sch_conn_01x06(
         \t)""")
 
 
-def _sch_conn_02x08_top_bottom(
-    x: float, y: float, angle: int, reference: str, value: str, uuid_tag: str,
-    dnp: bool = False, sheet_key: str = "sensors",
-) -> str:
-    """Emit a Connector_Generic:Conn_02x08_Top_Bottom symbol instance.
-
-    Used as the mikroBUS placeholder for the MIKROE-2462 NFC Tag 2 Click
-    daughterboard (chunk #5c). 16 pins in two columns:
-      LEFT  column (pins 1..8, top to bottom): X = -5.08
-      RIGHT column (pins 9..16, top to bottom): X = +7.62
-    Y axis steps in 2.54 mm increments. With angle=0, lib pin (lx, ly)
-    maps to schem (x + lx, y - ly) — i.e. LIB +Y is UP, SCHEM +Y is DOWN.
-
-    Pin schem positions (anchor = (x, y), angle 0):
-      Pin n on LEFT  column (n in 1..8):  (x - 5.08,  y - (7.62 - 2.54*(n-1)))
-      Pin n on RIGHT column (n in 9..16): (x + 7.62,  y - (7.62 - 2.54*(n-9)))
-
-    Pin-function mapping (mikroBUS spec): pins 1..8 are LEFT side
-    (AN, RST, CS, SCK, MISO, MOSI, +3.3V, GND); pins 9..16 are RIGHT
-    side (PWM, INT, RX, TX, SCL, SDA, +5V, GND).
-    """
-    sym_uuid = U("sym:" + uuid_tag)
-    pin_uuids = [U(f"sym-pin:{uuid_tag}-{n}") for n in range(1, 17)]
-    sheet_path = f"/{ROOT_SHEET_UUID}/{SHEET_BLOCK_UUIDS[sheet_key]}"
-    dnp_flag = "yes" if dnp else "no"
-    pin_blocks = "\n".join(
-        f"\t\t(pin \"{n}\"\n\t\t\t(uuid \"{pin_uuids[n-1]}\")\n\t\t)"
-        for n in range(1, 17)
-    )
-    return textwrap.dedent(f"""\
-        \t(symbol
-        \t\t(lib_id "Connector_Generic:Conn_02x08_Top_Bottom")
-        \t\t(at {fmt(x)} {fmt(y)} {angle})
-        \t\t(unit 1)
-        \t\t(exclude_from_sim no)
-        \t\t(in_bom yes)
-        \t\t(on_board yes)
-        \t\t(dnp {dnp_flag})
-        \t\t(fields_autoplaced yes)
-        \t\t(uuid "{sym_uuid}")
-        \t\t(property "Reference" "{reference}"
-        \t\t\t(at {fmt(x + 2.54)} {fmt(y - 12.7)} 0)
-        \t\t\t(effects
-        \t\t\t\t(font
-        \t\t\t\t\t(size 1.27 1.27)
-        \t\t\t\t)
-        \t\t\t\t(justify left)
-        \t\t\t)
-        \t\t)
-        \t\t(property "Value" "{value}"
-        \t\t\t(at {fmt(x + 2.54)} {fmt(y + 12.7)} 0)
-        \t\t\t(effects
-        \t\t\t\t(font
-        \t\t\t\t\t(size 1.27 1.27)
-        \t\t\t\t)
-        \t\t\t\t(justify left)
-        \t\t\t)
-        \t\t)
-        \t\t(property "Footprint" ""
-        \t\t\t(at {fmt(x)} {fmt(y)} 0)
-        \t\t\t(effects
-        \t\t\t\t(font
-        \t\t\t\t\t(size 1.27 1.27)
-        \t\t\t\t)
-        \t\t\t\t(hide yes)
-        \t\t\t)
-        \t\t)
-        \t\t(property "Datasheet" "https://www.mikroe.com/nfc-tag-2-click"
-        \t\t\t(at {fmt(x)} {fmt(y)} 0)
-        \t\t\t(effects
-        \t\t\t\t(font
-        \t\t\t\t\t(size 1.27 1.27)
-        \t\t\t\t)
-        \t\t\t\t(hide yes)
-        \t\t\t)
-        \t\t)
-        \t\t(property "Description" "mikroBUS 2x8 socket — MIKROE-2462 NFC Tag 2 Click daughterboard (NT3H1101 NTAG I²C plus + onboard PCB antenna)"
-        \t\t\t(at {fmt(x)} {fmt(y)} 0)
-        \t\t\t(effects
-        \t\t\t\t(font
-        \t\t\t\t\t(size 1.27 1.27)
-        \t\t\t\t)
-        \t\t\t\t(hide yes)
-        \t\t\t)
-        \t\t)
-        {pin_blocks}
-        \t\t(instances
-        \t\t\t(project "oas"
-        \t\t\t\t(path "{sheet_path}"
-        \t\t\t\t\t(reference "{reference}")
-        \t\t\t\t\t(unit 1)
-        \t\t\t\t)
-        \t\t\t)
-        \t\t)
-        \t)""")
-
-
 def _sch_conn_01x04(
     x: float, y: float, angle: int, reference: str, value: str, uuid_tag: str,
     dnp: bool = False, sheet_key: str = "io",
@@ -1642,9 +1545,9 @@ def _sch_conn_01xn(
     """Emit a Connector_Generic:Conn_01xN symbol instance (generic).
 
     Used in v0.21 (M3) for the J5 / J6 ESP32-DevKitM-1 socket pair
-    (Conn_01x15) and the J7 / J8 MIKROE-2462 socket pair (Conn_01x08),
-    which replaced U3 (ESP32 placeholder) and U4 (mikroBUS placeholder)
-    respectively. Generalises `_sch_conn_01x05` / `_sch_conn_01x06`.
+    (Conn_01x15), which replaced the U3 ESP32 placeholder. (It also
+    served the J7 / J8 MIKROE-2462 socket pair until the NFC removal,
+    issue #7.) Generalises `_sch_conn_01x05` / `_sch_conn_01x06`.
 
     With angle=0, lib pin tip positions map to schematic as:
       Pin n: (X - 5.08,  Y - (PIN1_LIB_Y - 2.54*(n-1)))

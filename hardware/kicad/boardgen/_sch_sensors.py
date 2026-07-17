@@ -10,9 +10,8 @@ from boardgen._sch_helpers import (
     _sch_wire, _sch_junction, _sch_power_flag,
     _sch_capacitor, _sch_hierarchical_label, _sch_no_connect,
     _sch_local_label, _sch_sk6812_side,
-    _sch_conn_01x06, _sch_conn_02x08_top_bottom, _sch_conn_01x04,
-    _sch_conn_01x05, _sch_conn_01xn, _conn_01xn_pin_xy,
-    _CONN_01XN_PIN1_LIB_Y,
+    _sch_conn_01x06, _sch_conn_01x04,
+    _sch_conn_01x05,
 )
 
 
@@ -31,11 +30,9 @@ def gen_sensors_sch() -> str:
                 and the universal community pattern (Apollo MSR-2,
                 jonnybergdahl, p2baron). PCB footprint chosen in
                 chunk #7.
-    Chunk #5c — MIKROE-2462 NFC Tag 2 Click (U4 + C12). NXP NT3H1101
-                NTAG I²C plus + onboard PCB antenna, mounted as a
-                mikroBUS daughterboard on a 2×8 female pin socket
-                (P2.54 mm) on the OAS PCB. Pre-tuned antenna avoids
-                the PCB-trace antenna design (NXP AN11203) sub-project.
+    Chunk #5c — REMOVED (issue #7): the MIKROE-2462 NFC Tag 2 Click
+                daughterboard (J7 + J8 + C12) left the design together
+                with the NFC feature.
 
     SEN66 pinout (Sensirion SEN6x datasheet v0.92 Dec 2025, Table 16
     on p. 15) — applies to the entire SEN6x family (SEN62, SEN63C,
@@ -432,197 +429,6 @@ def gen_sensors_sch() -> str:
         x=C11_X, y=C11_Y, angle=0,
         reference="C11", value="100nF",
         uuid_tag="c11-ld2410-decoupling",
-        sheet_key="sensors",
-    ))
-
-    # =========================================================================
-    # chunk #5c — MIKROE-2462 NFC Tag 2 Click daughterboard (J7 + J8 + C12)
-    # =========================================================================
-    # v0.21 (M3): the 16-pin mikroBUS 2×8 placeholder U4 was replaced by
-    # TWO `Connector_Generic:Conn_01x08` instances — J7 (mikroBUS pins
-    # 1..8, LEFT column on the daughterboard's bottom-side header) and
-    # J8 (mikroBUS pins 9..16, RIGHT column) — whose schematic pin
-    # numbers 1..8 match the PCB pad numbers 1..8 of the corresponding
-    # female pin socket footprints J7 / J8. This unblocks
-    # `sync_pcb_nets_from_schematic` from propagating nets to the
-    # otherwise-orphan PCB sockets.
-    #
-    # NFC tag is hosted on a MikroElektronika "NFC Tag 2 Click"
-    # (MIKROE-2462) daughterboard: NXP NT3H1101 (NTAG I²C plus) +
-    # onboard PCB antenna + 16-pin mikroBUS male header (2×8, 2.54 mm
-    # pitch).
-    #
-    # mikroBUS standard pinout:
-    #   LEFT column  (pins 1..8, top -> bottom):
-    #     1=AN  2=RST 3=CS  4=SCK 5=MISO 6=MOSI 7=+3.3V 8=GND
-    #   RIGHT column (pins 9..16, top -> bottom):
-    #     9=PWM 10=INT 11=RX 12=TX 13=SCL  14=SDA  15=+5V  16=GND
-    #
-    # PCB ↔ schematic socket pin mapping:
-    #     J7 pin n (n in 1..8)  = mikroBUS pin n
-    #     J8 pin n (n in 1..8)  = mikroBUS pin (n+8)
-    #
-    # NFC Tag 2 Click electrically uses ONLY these mikroBUS pins:
-    #   pin 7  (+3.3V) — VCC for NT3H1101                         → J7 pin 7
-    #   pin 8  (GND)   — ground                                   → J7 pin 8
-    #   pin 10 (INT)   — FD field-detect (open-drain), → NFC_FD   → J8 pin 2
-    #   pin 13 (SCL)   — I²C clock                                → J8 pin 5
-    #   pin 14 (SDA)   — I²C data, slave 0x55                     → J8 pin 6
-    #   pin 16 (GND)   — ground                                   → J8 pin 8
-    # All other mikroBUS pins (1, 2, 3, 4, 5, 6, 9, 11, 12, 15) are
-    # unused by NFC Tag 2 Click; each gets a `(no_connect ...)` marker
-    # so ERC stays quiet.
-
-    # ===== J7: mikroBUS LEFT column (pins 1..8) =====
-    # J7 at angle=0, anchor (115.57 + 5.08, 125.73) = (120.65, 125.73).
-    # Pin tips on LEFT at X=115.57. Pin 1 (top, AN) at Y=118.11, pin 8
-    # (bottom, GND) at Y=135.89.
-    J7_ANCHOR_X = 120.65
-    J7_ANCHOR_Y = 125.73
-    J7_PIN_X    = 115.57            # pin tip column
-    # ===== J8: mikroBUS RIGHT column (pins 9..16) =====
-    # J8 at angle=180, anchor (133.35 - 5.08, 125.73) = (128.27, 125.73).
-    # Pin tips on RIGHT at X=133.35. With angle=180, pin order reverses:
-    # J8 pin 1 (= mikroBUS PWM pin 9) ends up at the BOTTOM Y=135.89,
-    # J8 pin 8 (= mikroBUS GND pin 16) at the TOP Y=118.11.
-    J8_ANCHOR_X = 128.27
-    J8_ANCHOR_Y = 125.73
-    J8_PIN_X    = 133.35            # pin tip column
-
-    def j7_pin_y(pin_num: int) -> float:
-        """Schematic Y of J7 pin tip n (n in 1..8). Angle=0."""
-        x, y = _conn_01xn_pin_xy(pin_num, J7_ANCHOR_X, J7_ANCHOR_Y, 8)
-        return y
-
-    def j8_pin_y(pin_num: int) -> float:
-        """Schematic Y of J8 pin tip n (n in 1..8). Angle=180 → reversed."""
-        pin1_lib_y = _CONN_01XN_PIN1_LIB_Y[8]
-        lib_y = pin1_lib_y - (pin_num - 1) * 2.54
-        return J8_ANCHOR_Y + lib_y
-
-    J7_3V3_Y = j7_pin_y(7)    # 133.35 — +3.3V
-    J7_GND_Y = j7_pin_y(8)    # 135.89 — GND
-    J8_FD_Y  = j8_pin_y(2)    # NFC_FD (mikroBUS pin 10)
-    J8_SCL_Y = j8_pin_y(5)    # SCL    (mikroBUS pin 13)
-    J8_SDA_Y = j8_pin_y(6)    # SDA    (mikroBUS pin 14)
-    J8_GND_Y = j8_pin_y(8)    # GND    (mikroBUS pin 16)
-
-    # ----- J7 pin 7 (+3.3V): wire WEST to +3V3 flag -----
-    PWR_J7P7_3V3_X = J7_PIN_X - 5.08     # 110.49 — flag anchor west of pin
-    parts.append(_sch_wire(J7_PIN_X, J7_3V3_Y, PWR_J7P7_3V3_X, J7_3V3_Y, "j7-p7-3v3-hop"))
-    parts.append(_sch_power_flag(
-        lib_id="power:+3V3", value="+3V3",
-        x=PWR_J7P7_3V3_X, y=J7_3V3_Y, angle=270,
-        reference="#PWR50",
-        value_offset_x=-3.81, value_offset_y=0.0,
-        uuid_tag="pwr50-3v3-j7-p7",
-        sheet_key="sensors",
-    ))
-
-    # ----- J7 pin 8 (GND): wire WEST to GND flag -----
-    PWR_J7P8_GND_X = J7_PIN_X - 5.08      # 110.49
-    parts.append(_sch_wire(J7_PIN_X, J7_GND_Y, PWR_J7P8_GND_X, J7_GND_Y, "j7-p8-gnd-hop"))
-    parts.append(_sch_power_flag(
-        lib_id="power:GND", value="GND",
-        x=PWR_J7P8_GND_X, y=J7_GND_Y, angle=270,
-        reference="#PWR51",
-        value_offset_x=-3.81, value_offset_y=0.0,
-        uuid_tag="pwr51-gnd-j7-p8",
-        sheet_key="sensors",
-    ))
-
-    # ----- J8 pin 2 (INT/FD, mikroBUS pin 10): wire EAST to NFC_FD hier label -----
-    NFC_HLABEL_X = HLABEL_LEFT_X       # 160.02 — shared column with J3/J4
-    parts.append(_sch_wire(J8_PIN_X, J8_FD_Y, NFC_HLABEL_X, J8_FD_Y, "j8-p2-fd"))
-    parts.append(_sch_hierarchical_label(
-        name="NFC_FD", shape="output",
-        x=NFC_HLABEL_X, y=J8_FD_Y, angle=0, justify="left",
-        uuid_tag="nfc-fd-j8",
-    ))
-
-    # ----- J8 pin 5 (SCL, mikroBUS pin 13): wire EAST to I2C_SCL hier label -----
-    parts.append(_sch_wire(J8_PIN_X, J8_SCL_Y, NFC_HLABEL_X, J8_SCL_Y, "j8-p5-scl"))
-    parts.append(_sch_hierarchical_label(
-        name="I2C_SCL", shape="input",
-        x=NFC_HLABEL_X, y=J8_SCL_Y, angle=0, justify="left",
-        uuid_tag="scl-j8",
-    ))
-
-    # ----- J8 pin 6 (SDA, mikroBUS pin 14): wire EAST to I2C_SDA hier label -----
-    parts.append(_sch_wire(J8_PIN_X, J8_SDA_Y, NFC_HLABEL_X, J8_SDA_Y, "j8-p6-sda"))
-    parts.append(_sch_hierarchical_label(
-        name="I2C_SDA", shape="bidirectional",
-        x=NFC_HLABEL_X, y=J8_SDA_Y, angle=0, justify="left",
-        uuid_tag="sda-j8",
-    ))
-
-    # ----- J8 pin 8 (GND, mikroBUS pin 16): wire EAST to GND flag -----
-    PWR_J8P8_GND_X = J8_PIN_X + 5.08   # 138.43
-    parts.append(_sch_wire(J8_PIN_X, J8_GND_Y, PWR_J8P8_GND_X, J8_GND_Y, "j8-p8-gnd-hop"))
-    parts.append(_sch_power_flag(
-        lib_id="power:GND", value="GND",
-        x=PWR_J8P8_GND_X, y=J8_GND_Y, angle=90,
-        reference="#PWR52",
-        value_offset_x=3.81, value_offset_y=0.0,
-        uuid_tag="pwr52-gnd-j8-p8",
-        sheet_key="sensors",
-    ))
-
-    # ----- No-connect markers on unused mikroBUS pins -----
-    # J7 pins 1..6 (mikroBUS AN/RST/CS/SCK/MISO/MOSI — not used by NFC tag).
-    for n in (1, 2, 3, 4, 5, 6):
-        parts.append(_sch_no_connect(J7_PIN_X, j7_pin_y(n), f"j7-nc-{n}"))
-    # J8 pins 1 (mikroBUS PWM), 3 (RX), 4 (TX), 7 (+5V) — not used.
-    for n in (1, 3, 4, 7):
-        parts.append(_sch_no_connect(J8_PIN_X, j8_pin_y(n), f"j8-nc-{n}"))
-
-    # ===== C12: 100 nF local decoupling on the NFC daughterboard +3.3V supply =====
-    # Sits WEST of J7 between J7 pin 7 (+3V3) and J7 pin 8 (GND).
-    C12_X = 105.41
-    C12_Y = (J7_3V3_Y + J7_GND_Y) / 2   # mid between J7 pin 7 (+3V3) and pin 8 (GND)
-    C12_TOP_Y = C12_Y - 3.81
-    C12_BOT_Y = C12_Y + 3.81
-    C12_3V3_Y = C12_TOP_Y - 3.81
-    parts.append(_sch_wire(C12_X, C12_3V3_Y, C12_X, C12_TOP_Y, "c12-top-3v3"))
-    parts.append(_sch_power_flag(
-        lib_id="power:+3V3", value="+3V3",
-        x=C12_X, y=C12_3V3_Y, angle=0,
-        reference="#PWR53",
-        value_offset_x=0.0, value_offset_y=-3.556,
-        uuid_tag="pwr53-3v3-c12",
-        sheet_key="sensors",
-    ))
-    C12_GND_Y = C12_BOT_Y + 3.81
-    parts.append(_sch_wire(C12_X, C12_BOT_Y, C12_X, C12_GND_Y, "c12-bot-gnd"))
-    parts.append(_sch_power_flag(
-        lib_id="power:GND", value="GND",
-        x=C12_X, y=C12_GND_Y, angle=0,
-        reference="#PWR54",
-        value_offset_x=0.0, value_offset_y=3.81,
-        uuid_tag="pwr54-gnd-c12",
-        sheet_key="sensors",
-    ))
-
-    # ===== J7, J8, C12 symbols =====
-    parts.append(_sch_conn_01xn(
-        pin_count=8,
-        x=J7_ANCHOR_X, y=J7_ANCHOR_Y, angle=0,
-        reference="J7",
-        value="1x8 P2.54 mm female socket (MIKROE-2462 mikroBUS pins 1..8 — AN/RST/CS/SCK/MISO/MOSI/+3V3/GND)",
-        uuid_tag="j7-mikroe-row-a", sheet_key="sensors",
-    ))
-    parts.append(_sch_conn_01xn(
-        pin_count=8,
-        x=J8_ANCHOR_X, y=J8_ANCHOR_Y, angle=180,
-        reference="J8",
-        value="1x8 P2.54 mm female socket (MIKROE-2462 mikroBUS pins 9..16 — PWM/INT/RX/TX/SCL/SDA/+5V/GND)",
-        uuid_tag="j8-mikroe-row-b", sheet_key="sensors",
-    ))
-    parts.append(_sch_capacitor(
-        lib_id="Device:C",
-        x=C12_X, y=C12_Y, angle=0,
-        reference="C12", value="100nF",
-        uuid_tag="c12-nfc-decoupling",
         sheet_key="sensors",
     ))
 

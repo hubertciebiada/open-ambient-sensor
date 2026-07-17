@@ -28,11 +28,15 @@ When that board revision exists:
 ➡ **Never flash this firmware onto a board whose J3 pinout has been fixed** — the
 double-swap would leave the SEN66 dead.
 
-### 2. NFC package disabled (`oas.yaml`)
-The `nfc:` include is commented out. NFC RF coupling is unusable through the
-AK-N-94 cover (antenna over the ground plane + distance). Full removal is tracked
-in **issue #7**. This is also why the SDA/SCL swap above is safe (NFC was the only
-other I²C consumer).
+### 2. NFC removed entirely (issue #7 — resolved)
+The dynamic NFC tag feature is **gone**: `packages/nfc.yaml` is deleted from the
+firmware and the MIKROE-2462 / NT3H1101 hardware (MOD2, J7, J8, C12, the NFC_FD
+net) is removed from the next board revision. NFC RF coupling was unusable
+through the AK-N-94 cover (antenna over the ground plane + distance), and the
+only workable fix would have broken the enclosure aesthetics. On the five v0.51
+prototype boards the J7/J8 footprints + MOD2 silk remain physically present but
+unpopulated and unused. This is also why the SDA/SCL swap above is safe (NFC
+was the only other I²C consumer).
 
 ### 3. LED ring `num_leds: 7`
 Matches the actual board (D11..D18, D13 skipped). Earlier firmware said 11.

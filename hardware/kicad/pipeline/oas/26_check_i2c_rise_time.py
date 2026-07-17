@@ -1,6 +1,6 @@
 """OAS - I2C bus signal-integrity (rise time + capacitance) check.
 
-Verifies the shared I2C bus (SEN66 + NT3H1101 + J9 Qwiic expansion)
+Verifies the shared I2C bus (SEN66 + J9 Qwiic expansion)
 stays inside the UM10204 ("I2C-bus specification and user manual",
 NXP Rev 7) limits:
 
@@ -36,9 +36,9 @@ Per-line lumped model: C_bus = C_track + C_via + C_cable + C_devices.
        - SEN66:     10 pF  (UM10204 ceiling -- Sensirion does NOT
                             publish C_i in the SEN6x datasheet, so
                             this is conservative; logged WARN).
-       - NT3H1101:   6 pF  (NXP NT3H1101 datasheet sec. Electrical
-                            characteristics).
        - Qwiic:     10 pF  (budgeted for one expansion device on J9).
+    (The NT3H1101 NFC tag's 6 pF left the budget with the NFC removal,
+    issue #7.)
 
 Pull-up resistance: hard-coded 4700 Ohm; verified by stage 09
 (`pipeline/oas/09_check_semantic.py` enforces R5/R6 = 4.7 kOhm from the
@@ -104,7 +104,6 @@ C_VIA_SAFETY_PF = 2.0       # Safety pad if zero vias on the net.
 C_CABLE_PF = 25.0           # 50 cm AWG26 JST GH @ ~50 pF/m per line.
 
 C_SEN66_PF = 10.0           # UM10204 ceiling; Sensirion does NOT publish C_i.
-C_NFC_PF = 6.0              # NXP NT3H1101 datasheet.
 C_QWIIC_PF = 10.0           # Budget for one user-plugged expansion device.
 
 # UM10204 limits.
@@ -220,15 +219,15 @@ def main() -> int:
         scl_vias = net_via_count(vias, SCL_NET)
 
         # On the shared bus the total device-end capacitance per line is the
-        # sum across every slave that hangs off the line (SEN66 + NT3H1101 +
+        # sum across every slave that hangs off the line (SEN66 +
         # Qwiic budget) - each device's input pin contributes in parallel.
-        c_device_total = C_SEN66_PF + C_NFC_PF + C_QWIIC_PF
+        c_device_total = C_SEN66_PF + C_QWIIC_PF
 
         s.info("Per-line capacitance breakdown:")
         c_bus_sda = report_line(s, "SDA", sda_len, sda_segs, sda_vias,
-                                c_device_total, "SEN66+NFC+Qwiic")
+                                c_device_total, "SEN66+Qwiic")
         c_bus_scl = report_line(s, "SCL", scl_len, scl_segs, scl_vias,
-                                c_device_total, "SEN66+NFC+Qwiic")
+                                c_device_total, "SEN66+Qwiic")
 
         # Rise-time analysis.
         t_r_sda_std = compute_t_r_ns(R_PULLUP_OHM, c_bus_sda)

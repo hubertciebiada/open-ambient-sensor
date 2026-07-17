@@ -26,7 +26,7 @@ from boardgen._sch_helpers import (
     _sch_resistor,
     _sch_hierarchical_label, _sch_no_connect, _sch_local_label,
     _sch_esp32c6_devkitm1, _mcu_pin_xy,
-    _sch_conn_01x06, _sch_conn_02x08_top_bottom, _sch_conn_01x04,
+    _sch_conn_01x06, _sch_conn_01x04,
     _sch_conn_01x05, _sch_conn_01xn, _conn_01xn_pin_xy,
     _CONN_01XN_PIN1_LIB_Y,
 )
@@ -95,7 +95,7 @@ def gen_mcu_sch() -> str:
         J5.1   3V3                              → +3V3 bus
         J5.2   RST                              → hier label "EN"
         J5.3   GPIO2                            → hier label "LD2410_OUT"
-        J5.4   GPIO3                            → hier label "NFC_FD"
+        J5.4   GPIO3                            → no_connect (spare)
         J5.5   GPIO4   (strap MTMS)             → no_connect
         J5.6   GPIO5   (strap MTDI)             → no_connect
         J5.7   GPIO0                            → no_connect (spare)
@@ -130,7 +130,6 @@ def gen_mcu_sch() -> str:
       I2C_SDA, I2C_SCL    → sensors sub-sheet + io sub-sheet (Qwiic)
       UART_TX, UART_RX    → sensors sub-sheet (LD2410)
       LD2410_OUT          → sensors sub-sheet
-      NFC_FD              → sensors sub-sheet
       USB_DM, USB_DP      → io sub-sheet (J10 native-USB recovery header)
       EN                  → io sub-sheet (J10 chip-enable / reset pin)
       BOOT                → io sub-sheet (J10 GPIO9 boot-mode strap)
@@ -193,7 +192,6 @@ def gen_mcu_sch() -> str:
         "3V3"        : 1,
         "RST"        : 2,
         "LD2410_OUT" : 3,
-        "NFC_FD"     : 4,
         "WS2812_DIN" : 9,
         "I2C_SDA"    : 10,
         "I2C_SCL"    : 11,
@@ -201,8 +199,10 @@ def gen_mcu_sch() -> str:
     J5_GND_PINS: list[int] = [13, 15]                     # J1.13, J1.15
     # v0.53: pin 8 (GPIO1) joined the NC list when SW1 was removed
     # (GitHub issue #5) — GPIO1 is now an unused spare, no_connect.
-    J5_NC_PINS:  list[int] = [5, 6, 7, 8, 12, 14]
-    #                          GPIO4/5/0/1/14   5V (J1.14)
+    # Pin 4 (GPIO3) joined when the NFC tag was removed (GitHub
+    # issue #7) — GPIO3 is now an unused spare, no_connect.
+    J5_NC_PINS:  list[int] = [4, 5, 6, 7, 8, 12, 14]
+    #                          GPIO3/4/5/0/1/14   5V (J1.14)
     J6_SIGNAL_PIN: dict[str, int] = {
         "UART_TX"    : 2,
         "UART_RX"    : 3,
@@ -227,7 +227,6 @@ def gen_mcu_sch() -> str:
     J5_3V3_Y    = j5_pin_y(J5_SIGNAL_PIN["3V3"])         # 92.71
     J5_RST_Y    = j5_pin_y(J5_SIGNAL_PIN["RST"])         # 95.25
     J5_LDR_Y    = j5_pin_y(J5_SIGNAL_PIN["LD2410_OUT"])  # 97.79
-    J5_NFC_Y    = j5_pin_y(J5_SIGNAL_PIN["NFC_FD"])      # 100.33
     J5_WS_Y     = j5_pin_y(J5_SIGNAL_PIN["WS2812_DIN"])  # 113.03
     J5_SDA_Y    = j5_pin_y(J5_SIGNAL_PIN["I2C_SDA"])     # 115.57
     J5_SCL_Y    = j5_pin_y(J5_SIGNAL_PIN["I2C_SCL"])     # 118.11
@@ -284,7 +283,7 @@ def gen_mcu_sch() -> str:
     R7_BOT_Y = R7_Y + 3.81          # 91.44 — pin 2 (bottom, WS2812 side)
     R7_3V3_BUS_X = R7_X             # +3V3 bus extension reaches R7's X column
     # Vertical drop from R7.pin2 (91.44) south to WS2812 wire (Y=113.03)
-    # at X=R7_X. Clear of existing horizontal wires (RST/LD2410/NFC/etc.
+    # at X=R7_X. Clear of existing horizontal wires (RST/LD2410/etc.
     # all stop at HLABEL_LEFT_X=119.38 west of R7).
 
     # ===== +3V3 bus =====
@@ -378,7 +377,6 @@ def gen_mcu_sch() -> str:
     parts.append(_sch_wire(J5_PIN_X, J5_SDA_Y, HLABEL_LEFT_X, J5_SDA_Y, "sda-wire"))
     parts.append(_sch_wire(J5_PIN_X, J5_SCL_Y, HLABEL_LEFT_X, J5_SCL_Y, "scl-wire"))
     parts.append(_sch_wire(J5_PIN_X, J5_LDR_Y, HLABEL_LEFT_X, J5_LDR_Y, "ldr-wire"))
-    parts.append(_sch_wire(J5_PIN_X, J5_NFC_Y, HLABEL_LEFT_X, J5_NFC_Y, "nfc-wire"))
     parts.append(_sch_wire(J5_PIN_X, J5_WS_Y,  HLABEL_LEFT_X, J5_WS_Y,  "ws2812-wire"))
 
     # ---- EN: J5.2 (RST) → hier label "EN" (LEFT side) ----
@@ -502,11 +500,6 @@ def gen_mcu_sch() -> str:
         name="LD2410_OUT", shape="input",
         x=HLABEL_LEFT_X, y=J5_LDR_Y, angle=180, justify="right",
         uuid_tag="ld2410-out",
-    ))
-    parts.append(_sch_hierarchical_label(
-        name="NFC_FD", shape="input",
-        x=HLABEL_LEFT_X, y=J5_NFC_Y, angle=180, justify="right",
-        uuid_tag="nfc-fd",
     ))
     parts.append(_sch_hierarchical_label(
         name="WS2812_DIN", shape="output",

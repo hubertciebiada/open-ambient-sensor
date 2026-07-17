@@ -20,7 +20,7 @@
 **Short answer: you *can*, but you probably want to wait for the v1 validation milestone.**
 
 - **The design is complete and manufacturable.** All JLCPCB production files are committed under [`hardware/output/jlcpcb/`](./hardware/output/jlcpcb/) — gerber ZIP, BOM, and top/bottom CPL — produced and verified by the 35-stage pipeline on every build.
-- **It is an unvalidated prototype.** No board from this design has been powered on yet. Until the first batch is delivered, flashed, and tested (electrical bring-up, SEN66 readings, LD2410 UART, NFC, OTA), there is a real chance a respin is needed. Early adopters should wait for the v1 validation milestone before ordering.
+- **It is an unvalidated prototype.** No board from this design has been powered on yet. Until the first batch is delivered, flashed, and tested (electrical bring-up, SEN66 readings, LD2410 UART, OTA), there is a real chance a respin is needed. Early adopters should wait for the v1 validation milestone before ordering.
 - **Cost positioning.** OAS deliberately sits above bargain-DIY BOM cost: a calibrated Sensirion SEN66 combo sensor, an mmWave radar with stillness detection, and a commercial-grade injection-moulded enclosure are all premium choices made on purpose — see [Design philosophy](#design-philosophy). If lowest possible cost is your priority, other open-source projects optimise for that instead.
 
 When hardware validation lands, this section will be replaced by a build guide (ordering, enclosure sourcing, flashing, Home Assistant onboarding). Flashing and Home Assistant integration are already documented in [`firmware/README.md`](./firmware/README.md); open work is tracked in the [TODO list](./CLAUDE.md#open-work--todo) in `CLAUDE.md`.
@@ -35,7 +35,6 @@ When hardware validation lands, this section will be replaced by a build guide (
 ## Additional features
 
 - 7× SK6812-SIDE RGB AQI ring with breathing effect (7 LEDs on an 8-slot ring; D13 vacated for the J1 24 V terminal); colour reflects an aggregated air-quality index
-- Dynamic NFC tag (NXP NT3H1101 on MIKROE-2462) — a phone tap reads live data and serves a dashboard URL
 - **Bluetooth proxy** — extends BLE range across the deployment for Home Assistant BLE integrations
 - Qwiic / STEMMA QT expansion port — future sensors without a PCB respin
 
@@ -60,7 +59,6 @@ Both compromises (cheap-but-inaccurate, accurate-but-ugly) are rejected. See [`C
 | Air quality combo | Sensirion SEN66-SIN-T | I²C (JST GH 6-pin cable) |
 | Presence | HiLink HLK-LD2410B | UART @ 256000 baud |
 | Visual indicator | 7× SK6812-SIDE side-emit ring (Ø26 mm base pitch, 8 slots with D13 vacated for J1) | 1-wire WS281x on GPIO 8 |
-| NFC dynamic tag | NXP NT3H1101 on MIKROE-2462 NFC Tag 2 Click | I²C 0x55 + NFC |
 | Power input | 24 V DC terminal block + TVS + PTC + reverse-polarity P-FET | — |
 
 **Enclosure:** SZOMK AK-N-94 (Ø128 mm perforated white ABS). PCB is a **Ø120 mm D-shape** with a flat chord along the bottom edge. Mounts on a standard wall-recessed electrical box (60 mm screw pitch).
@@ -81,7 +79,7 @@ open-ambient-sensor/
 │   ├── README.md                   # flashing + Home Assistant integration
 │   ├── esphome/
 │   │   ├── oas.yaml                # top-level ESPHome config
-│   │   ├── packages/               # core / leds / buttons / air-quality / presence / nfc / bt-proxy
+│   │   ├── packages/               # core / leds / air-quality / presence / bt-proxy
 │   │   └── examples/               # anonymized per-device override examples
 │   └── secrets.yaml.example
 └── hardware/
@@ -142,6 +140,5 @@ GNU General Public License v3.0 — see [`GPLv3-LICENSE.md`](./GPLv3-LICENSE.md)
 - AirGradient ONE (open-source inspiration): <https://github.com/airgradienthq/arduino>
 - Sensirion SEN66 product page: <https://sensirion.com/products/catalog/SEN66>
 - HiLink LD2410 documentation: <https://www.hlktech.net>
-- NXP NT3H1101 datasheet: <https://www.nxp.com>
 - ESPHome documentation: <https://esphome.io>
 - JLCPCB component library: <https://jlcpcb.com/parts>

@@ -2,7 +2,7 @@
 
 Custom mechanical-reference footprints with no KiCad stock equivalent:
 mounting hole, SEN66 / LD2410 / SK6812 body shadows, zip-tie holes, and
-daughterboard (ESP32-C6-DevKitM-1, MIKROE-2462) references. Each is
+the ESP32-C6-DevKitM-1 daughterboard reference. Each is
 hand-written S-expression tied to project-specific measurements from
 `boardgen/_project.py`.
 
@@ -33,10 +33,6 @@ from boardgen._project import (  # noqa: F401
     ESP32_PIN_ROW_INSET, ESP32_PIN_PITCH, ESP32_PIN_COUNT_PER_ROW,
     ESP32_PIN_START_OFFSET,
     ESP32_ANCHOR_X, ESP32_ANCHOR_Y, ESP32_ROTATION,
-    MIKROE2462_BODY_W, MIKROE2462_BODY_L,
-    MIKROE2462_PIN_ROW_INSET, MIKROE2462_PIN_PITCH,
-    MIKROE2462_PIN_COUNT_PER_ROW, MIKROE2462_PIN_START_OFFSET,
-    MIKROE2462_ANCHOR_X, MIKROE2462_ANCHOR_Y, MIKROE2462_ROTATION,
     J1_PCB_X, J1_PCB_Y, J1_PCB_ROTATION,
     J9_PCB_X, J9_PCB_Y, J9_PCB_ROTATION,
     J10_PCB_X, J10_PCB_Y, J10_PCB_ROTATION,
@@ -165,7 +161,7 @@ def gen_mounting_hole_footprint() -> str:
 #     This means hard constraint #1 has a SEN66-zone exception (≥22 mm),
 #     not the default 17 mm front-side height. CLAUDE.md v0.6.
 #   - The mech-ref footprint marks the SEN66 body's projected shadow on
-#     the PCB so the LD2410 and MIKROE-2462 daughterboards stay clear,
+#     the PCB so the LD2410 daughterboard stays clear,
 #     and so the J3 socket aligns with the SEN66's on-body JST GH
 #     connector for a short cable run.
 #   - No pads, no drilled holes (the 4× zip-tie retention holes are a
@@ -194,8 +190,8 @@ def gen_sen66_mechanical_footprint() -> str:
     4× zip-ties through NPTH holes flanking the body). This footprint
     exists so the PCB designer has a visible "SEN66 shadow" in 2D / 3D
     views, reserving enough clearance for the SEN66 body, the four
-    zip-tie holes, and ensuring that future components (LD2410,
-    NT3H1101) avoid the SEN66 zone.
+    zip-tie holes, and ensuring that future components (LD2410
+    and any new daughterboard) avoid the SEN66 zone.
 
     Rendered on `F.Fab` (full body outline + air openings + connector
     marker + foam-divider hint + module identification) and on
@@ -393,7 +389,7 @@ def gen_sen66_mechanical_footprint() -> str:
     # KiCad's DRC re-trigger `courtyards_overlap` on any such mistake,
     # which is exactly what we want as a guardrail. The 0.25 mm clearance
     # margin matches the KiCad default. Daughterboards on female pin
-    # sockets (MOD1 ESP32, MOD2 MIKROE) are DIFFERENT — they sit on
+    # sockets (MOD1 ESP32) are DIFFERENT — they sit on
     # 8-11 mm tall pin sockets so SMD components do fit under them; their
     # mech-refs intentionally OMIT the courtyard so DRC stays silent
     # there. See `_emit_daughterboard_reference_pcb_footprint`.
@@ -441,8 +437,7 @@ def gen_ld2410_mechanical_footprint() -> str:
     at J4 carries the electrical pads). This mechanical-reference
     footprint exists so the PCB designer sees a "LD2410 shadow" in
     2D/3D views, claiming the body-projected rectangle as a keep-out
-    zone for other components (NT3H1101 NFC IC, NFC trace antenna,
-    Qwiic, decoupling caps, etc.).
+    zone for other components (Qwiic, decoupling caps, etc.).
 
     Geometry (LD2410-local, anchor at body corner (0, 0)):
       - Body rectangle: 0..LD2410_BODY_W × 0..LD2410_BODY_H
@@ -751,9 +746,10 @@ def gen_ziptie_hole_footprint() -> str:
 #   F.Cu      — 4 SMD pads
 #   F.Fab     — body outline (4.0 × 1.6 mm), pin-1 dot, emission-edge arrow
 #   F.SilkS   — pin-1 dot near pad 1 + small emission-direction arrow on
-#                the body's -Y edge. No body silk RECT is emitted (would
-#                trigger silk_overlap DRC against the MIKROE-2462 silk
-#                at the angle-180° LED position; the body outline lives
+#                the body's -Y edge. No body silk RECT is emitted
+#                (historically it tripped silk_overlap DRC against the
+#                since-removed (issue #7) MIKROE-2462 silk at the
+#                angle-180° LED position; the body outline lives
 #                on F.Fab instead).
 #   F.CrtYd   — small courtyard slightly larger than the body
 #
@@ -788,9 +784,9 @@ def gen_sk6812_side_footprint() -> str:
     pads = "\n".join(pad_blocks)
     # Pin-1 dot on F.SilkS above pad 1, at pad 1's INNER edge (not its
     # centre): the asymmetric land puts pad 1 centre at -1.80, and a dot
-    # that far out collides with the MIKROE-2462 (MOD2) silk at the
-    # theta=135 deg LED (D14). The inner edge keeps the dot next to pad 1
-    # while clearing neighbouring daughterboard silk on every ring slot.
+    # that far out collided with the since-removed (issue #7) MIKROE-2462
+    # (MOD2) silk at the theta=135 deg LED (D14). The inner edge keeps the
+    # dot next to pad 1 and clear of any neighbouring silk on every slot.
     pin1_dot_x = SK6812SIDE_PADS[0][0] + SK6812SIDE_PADS[0][1] / 2.0
     # v0.44: dot centre 0.50 mm above pad 1's top edge (was 0.35 mm).
     # With the silk stroke lifted to the 0.15 mm JLCPCB floor the filled
@@ -1189,8 +1185,8 @@ def _daughterboard_body_content(
     `pin_start_offset` is the distance (in LIB +Y direction) from the
     body's pin-1-side short edge to pin 1's centerline. If None, the
     pin block is centred along the long axis. Asymmetric daughterboards
-    (ESP32-C6 DevKitM-1 pins offset toward antenna; MIKROE-2462 pins
-    offset toward pin-1 short edge) pass an explicit value.
+    (e.g. ESP32-C6 DevKitM-1 with pins offset toward the antenna)
+    pass an explicit value.
     """
     parts: list[str] = []
     # Asymmetric silk inset: the long-edge silk lines EXTEND 0.5 mm beyond
@@ -1258,7 +1254,7 @@ def _daughterboard_body_content(
     # for compatibility but no longer rendered inside the footprint.
     # ESP32-C6 "ant" / "USB" hints are emitted as board-level gr_text
     # by gen_silk_labels() so they read horizontally regardless of
-    # daughterboard rotation. MIKROE-2462 passes None for both.
+    # daughterboard rotation. Pass None for boards without such hints.
     _ = antenna_label  # noqa: F841 (argument deliberately unused after v0.15.8)
     _ = usb_label  # noqa: F841 (argument deliberately unused after v0.15.8)
 
@@ -1384,7 +1380,7 @@ def _emit_daughterboard_reference_pcb_footprint(
     on its 25.6 × 55.2 mm back face — ZERO standoff. SENS1 therefore
     DOES carry an F.CrtYd courtyard (programmed in v0.22) to catch
     accidental SMD placement under it. Do NOT copy that pattern to
-    MOD1 / MOD2 / LDR1 without rethinking the standoff budget (v0.22
+    MOD1 / LDR1 without rethinking the standoff budget (v0.22
     review Mn5).
     """
     body_blocks = _daughterboard_body_content(

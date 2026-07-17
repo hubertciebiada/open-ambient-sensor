@@ -41,10 +41,6 @@ from boardgen._project import (  # noqa: F401
     ESP32_PIN_ROW_INSET, ESP32_PIN_PITCH, ESP32_PIN_COUNT_PER_ROW,
     ESP32_PIN_START_OFFSET,
     ESP32_ANCHOR_X, ESP32_ANCHOR_Y, ESP32_ROTATION,
-    MIKROE2462_BODY_W, MIKROE2462_BODY_L,
-    MIKROE2462_PIN_ROW_INSET, MIKROE2462_PIN_PITCH,
-    MIKROE2462_PIN_COUNT_PER_ROW, MIKROE2462_PIN_START_OFFSET,
-    MIKROE2462_ANCHOR_X, MIKROE2462_ANCHOR_Y, MIKROE2462_ROTATION,
     J1_PCB_X, J1_PCB_Y, J1_PCB_ROTATION,
     J9_PCB_X, J9_PCB_Y, J9_PCB_ROTATION,
     J10_PCB_X, J10_PCB_Y, J10_PCB_ROTATION,
@@ -1448,7 +1444,7 @@ def gen_pinsocket_pcb_footprint(
 ) -> str:
     """Emit a stock-library `PinSocket_1xN_P2.54mm_Vertical` footprint placed
     at PCB (x, y) with `rotation` degrees. Used for the ESP32-C6 DevKitM-1
-    and MIKROE-2462 daughterboard mating sockets (the boards plug into
+    daughterboard mating sockets (the board plugs into
     these female 2.54 mm headers, sitting ~3-5 mm above the OAS PCB).
     Logic mirrors `gen_j4_pinheader_pcb_footprint`: skip stock metadata,
     rewrite the OAS-side properties, inject deterministic UUIDs, and
@@ -1839,8 +1835,8 @@ def _emit_two_pad_smd_footprint(
     `hide_ref` defaults to True. The OAS PCB instead emits a per-component
     board-level `gr_text` designator from `gen_designator_labels()` for
     every populated component — that gives us per-instance positioning
-    control (avoiding silk_overlap with J5/J6/J7/J8 socket frames, the
-    MOD1/MOD2 daughterboard outlines, and the LED-ring cap collisions
+    control (avoiding silk_overlap with J5/J6 socket frames, the
+    MOD1 daughterboard outline, and the LED-ring cap collisions
     that the in-footprint Reference text would otherwise trigger). Pass
     `hide_ref=False` only if you really want the in-footprint reference
     text on a future board where no curated gr_text label exists.

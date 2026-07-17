@@ -1731,16 +1731,6 @@
 )
 (wire
 	(pts
-		(xy 139.7 100.33) (xy 119.38 100.33)
-	)
-	(stroke
-		(width 0)
-		(type default)
-	)
-	(uuid "7845acbe-9236-53be-ae72-d43762327046")
-)
-(wire
-	(pts
 		(xy 139.7 113.03) (xy 119.38 113.03)
 	)
 	(stroke
@@ -2340,17 +2330,6 @@
 	)
 	(uuid "2facf014-acdf-5523-a7ed-e39fe4a0450c")
 )
-(hierarchical_label "NFC_FD"
-	(shape input)
-	(at 119.38 100.33 180)
-	(effects
-		(font
-			(size 1.27 1.27)
-		)
-		(justify right)
-	)
-	(uuid "b3cd52a7-8b69-5697-9e62-b415238961ec")
-)
 (hierarchical_label "WS2812_DIN"
 	(shape output)
 	(at 119.38 113.03 180)
@@ -2383,6 +2362,10 @@
 		(justify left)
 	)
 	(uuid "ec84377b-f3d0-5ba7-8900-704659ee2f90")
+)
+(no_connect
+	(at 139.7 100.33)
+	(uuid "e2c30c33-dd8a-5430-b174-b11d0b3d5e62")
 )
 (no_connect
 	(at 139.7 102.87)

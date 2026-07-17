@@ -40,7 +40,7 @@ reflect realistic CONTINUOUS load, not absolute peak.
             (worst case = solid red AQI alert for hours) -> ~620 mA
             continuous. Budget 0.70 A.
    +3V3   : ESP32 80 mA + SEN66 typ 200 mA (peak 350 mA is transient
-            during fan startup, not steady state) + NFC 5 mA -> ~290 mA
+            during fan startup, not steady state) -> ~280 mA
             continuous. Budget 0.45 A.
    GND    : carried by the copper pour (~Ø120 mm minus cutouts).
             Skipped - pour ampacity is huge vs trace ampacity.
