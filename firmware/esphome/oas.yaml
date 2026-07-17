@@ -60,7 +60,21 @@ substitutions:
 
   # Project metadata — keep these in sync with CLAUDE.md / boardgen/_project.py.
   project_name: "HubertCiebiada.open-ambient-sensor"
-  project_version: "v0.51"
+  project_version: "v0.53-dev"
+
+  # I2C pin mapping (consumed by packages/air-quality.yaml). The DEFAULTS
+  # below are the schematic mapping (GPIO6 = SDA, GPIO7 = SCL) — correct for
+  # boards with the corrected J3 pinout (issue #6 fix, CLAUDE.md Lesson 21).
+  #
+  # WARNING — v0.51 boards (the five 2026-05 prototypes) have SDA/SCL
+  # crossed at J3 and MUST override these to the swapped mapping
+  # (i2c_sda_pin: GPIO7 / i2c_scl_pin: GPIO6) — see
+  # examples/v0.51-board.yaml and HARDWARE-COMPAT-v0.51.md. Flashing the
+  # defaults onto a v0.51 board leaves the SEN66 dead, and flashing the
+  # swapped mapping onto a corrected board does the same. Match firmware
+  # to the board revision.
+  i2c_sda_pin: GPIO6
+  i2c_scl_pin: GPIO7
 
 esphome:
   name: oas-${device_id}

@@ -31,26 +31,30 @@
 # ---------------------------------------------------------------------------
 i2c:
   - id: bus_a
-    # v0.51 BOARD WORKAROUND — SDA/SCL are intentionally SWAPPED vs the
-    # schematic (sda=GPIO7, scl=GPIO6, i.e. the opposite of the GPIO6=SDA /
-    # GPIO7=SCL pin map). On the v0.51 board the SEN66's SDA/SCL reach the
-    # OPPOSITE ESP GPIOs — a J3 pinout error on the BOARD. The JST-GH lead is a
-    # straight 1:1 cable; the crossing is NOT in the cable. Bring-up confirmed
-    # that swapping the pins here makes the SEN66 ACK at 0x6B and report real
-    # readings with a straight cable.
+    # Pin mapping comes from the ${i2c_sda_pin} / ${i2c_scl_pin}
+    # substitutions declared in oas.yaml. DEFAULTS are the schematic mapping
+    # (sda = GPIO6, scl = GPIO7) — correct for boards with the corrected J3
+    # pinout (issue #6 / CLAUDE.md Lesson 21).
     #
-    # This is SAFE only because the SEN66 is now the ONLY device on this bus:
-    # the NFC tag (the other I2C consumer) was removed entirely in issue #7,
-    # and the LD2410 is
-    # on UART. CAVEAT: it also swaps the J9 Qwiic port's SDA/SCL, so a standard
-    # Qwiic device on a v0.51 board + this firmware would need a crossed cable.
+    # HISTORY / WHY overrides exist: the v0.51 boards copied the SEN6x
+    # datasheet Table 16 (v0.92, p. 15) MODULE-side pinout pin-for-pin onto
+    # J3, but a straight flat JST GH lead mirrors pin positions between the
+    # two face-to-face keyed connectors (position k mates position 7-k).
+    # The SEN6x pinout is power-symmetric (pins 1/6 and 2/5 internally
+    # tied), so the mirror shows up ONLY as an SDA<->SCL swap — the SEN66
+    # was powered but never ACKed. On v0.51 boards the SEN66's SDA/SCL
+    # therefore reach the OPPOSITE ESP GPIOs and firmware must swap the
+    # pins (i2c_sda_pin: GPIO7 / i2c_scl_pin: GPIO6 — see
+    # examples/v0.51-board.yaml). Bring-up (2026-06-30) confirmed the swap
+    # makes the SEN66 ACK at 0x6B and report real readings with a straight
+    # cable. Flashing the wrong mapping for the board revision leaves the
+    # SEN66 dead either way — see HARDWARE-COMPAT-v0.51.md.
     #
-    # PROPER FIX (next board rev): correct J3's pinout so a straight cable works
-    # — GitHub issue #6. When that lands, revert these two lines to
-    # sda: GPIO6 / scl: GPIO7. Do NOT "tidy up" this swap on a v0.51 board: it
-    # would break the SEN66.
-    sda: GPIO7
-    scl: GPIO6
+    # NOTE: the mapping is bus-wide, so it also affects the J9 Qwiic port.
+    # With the defaults (corrected board) J9 is a standard Qwiic port; with
+    # the v0.51 override a standard Qwiic device needs a crossed cable.
+    sda: ${i2c_sda_pin}
+    scl: ${i2c_scl_pin}
     frequency: 100kHz   # SEN66 datasheet §3.1 max — DO NOT increase
     scan: true          # logs detected addresses at startup (0x6B SEN66, plus any Qwiic guest)
 

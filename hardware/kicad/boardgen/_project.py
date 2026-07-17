@@ -82,7 +82,11 @@ EXTERNAL_MODULES = {
         "datasheet": "https://sensirion.com/resource/datasheet/SEN66",
         "accessory": (
             "JST GH 6-pin cable (50 cm AWG26) - separately ordered; "
-            "Sensirion ships SEN66 without cable."
+            "Sensirion ships SEN66 without cable. MUST be the flat "
+            "parallel-wire style (both housings crimped on the same face "
+            "of the wire row) - an opposite-crimp, position-1:1 lead "
+            "(Qwiic-cable style) re-crosses SDA/SCL on the corrected J3 "
+            "(CLAUDE.md Lesson 21, issue #6)."
         ),
         "note": (
             "Combo sensor: NDIR CO2 + laser PM + MOX VOC/NOx + SHT (T/RH) "
@@ -345,6 +349,11 @@ SEN66_ZIPTIE_LOCAL = [
 ]
 
 # J3 (JST GH 6-pin board-side socket — SM06B-GHS-TB, horizontal SMD).
+# Pin mapping: J3 is the positional MIRROR of the SEN6x Table 16 module
+# pinout — 1=VDD, 2=GND, 3=SCL, 4=SDA, 5=GND, 6=VDD — because a straight
+# flat GH lead reverses pin positions between two face-to-face polarized
+# headers (issue #6). See the J3 block in _sch_sensors.py + CLAUDE.md
+# Lesson 21; enforced by pipeline stage 19 check E.
 # Placed below the SEN66 body shadow (PCB +Y direction past body bottom
 # edge at Y=22). With v0.6 the SEN66 is PCB-mounted directly (no enclosure
 # cover mount), so the JST GH cable run is purely on-PCB. The SEN66's

@@ -1,0 +1,52 @@
+# =============================================================================
+# OAS example device config — hardware revision v0.51 (the five 2026-05
+# prototype boards)
+# =============================================================================
+#
+# v0.51 boards have SDA/SCL crossed at J3 (the SEN66 socket) — GitHub issue
+# #6, CLAUDE.md Lesson 21: J3 copied the SEN6x datasheet Table 16 module-side
+# pinout pin-for-pin, but a straight flat JST GH lead mirrors pin positions
+# between the two face-to-face keyed connectors, so SDA and SCL arrive on the
+# opposite ESP GPIOs. Firmware compensates by swapping the I2C pins via the
+# substitutions below.
+#
+# Usage: copy this file per physical unit (one file per device), adjust
+# device_id / friendly_name, then flash with:
+#
+#   esphome run firmware/esphome/examples/v0.51-board.yaml
+#
+# !secret note: ESPHome resolves `!secret` against a secrets.yaml located
+# next to the file that USES the tag (packages/) or next to the MAIN config
+# (this directory) — not next to the packaged oas.yaml. Before the first
+# run, create a one-line proxy in this directory (it stays uncommitted;
+# **/secrets.yaml is gitignored):
+#
+#   # firmware/esphome/examples/secrets.yaml
+#   <<: !include ../secrets.yaml
+#
+# WARNING — use this override ONLY on v0.51 boards:
+#   - On a board with the corrected J3 pinout, the swap re-crosses the bus
+#     and the SEN66 never ACKs (powered but dead, all channels NA).
+#   - Conversely, flashing the plain oas.yaml defaults onto a v0.51 board
+#     leaves the SEN66 dead the same way.
+#   Match firmware to the board revision before flashing.
+#
+# NOTE: the swap is bus-wide, so it also affects the J9 Qwiic port — a
+# standard Qwiic device attached to a v0.51 board needs a crossed Qwiic
+# cable.
+
+substitutions:
+  # Per-device identity — change for every physical unit.
+  device_id: room-a
+  friendly_name: "Room A"
+
+  # v0.51 board: J3 SDA/SCL crossed -> swap the I2C pins (issue #6).
+  i2c_sda_pin: GPIO7
+  i2c_scl_pin: GPIO6
+
+  # Version string shown in the boot log / Home Assistant — keep it at the
+  # hardware revision this override targets.
+  project_version: "v0.51"
+
+packages:
+  oas: !include ../oas.yaml

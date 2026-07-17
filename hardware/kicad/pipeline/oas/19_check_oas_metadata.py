@@ -1,6 +1,6 @@
 """Stage 19: metadata integrity checks on OAS source-of-truth dicts.
 
-Four checks, one stage:
+Five checks, one stage:
 
 A. `boardgen._project.EXTERNAL_MODULES` (Lesson 10): every dev-module /
    dev-board / breakout entry MUST carry at least one canonical part
@@ -48,6 +48,24 @@ D. J4 (HLK-LD2410B) pin order vs Lesson 20 canonical mapping. Authority:
    re-revert) makes this exact spot regression-prone; the check also
    FAILS LOUDLY if any anchor vanishes (a moved/renamed structure means
    the check is blind, which is itself a failure).
+
+E. J3 (SEN66) pin order vs Lesson 21 canonical mapping. Authority:
+   Sensirion SEN6x datasheet v0.92 (Dec 2025), Table 16 (p. 15) gives
+   the MODULE-side receptacle pinout (1=VDD, 2=GND, 3=SDA, 4=SCL,
+   5=GND, 6=VDD). The OAS board-side J3 MUST be the positional MIRROR
+   of that table — 1=VDD, 2=GND, **3=SCL, 4=SDA**, 5=GND, 6=VDD —
+   because a standard flat parallel-wire JST GH lead reverses pin
+   positions between two face-to-face polarized headers (position k
+   mates position 7-k end-to-end), and Sensirion's power-symmetric
+   pinout (1/6 and 2/5 internally tied) hides the mirror on power so
+   it manifests ONLY as an SDA<->SCL swap. Bench-confirmed 2026-06-30
+   on the v0.51 prototypes (issue #6): J3 copied Table 16 pin-for-pin
+   and the SEN66 never ACKed until firmware swapped the I2C pins.
+   Anchored to the "j3-p1-vdd-up" … "j3-p6-vdd-down" wire tags in
+   `boardgen/_sch_sensors.py`; fails loudly if anchors vanish. No
+   PCB-rotation anchor is needed (unlike J4): the GH socket is keyed,
+   so pad-to-cable-position mapping is fixed by the footprint
+   regardless of J3_ROTATION.
 """
 from __future__ import annotations
 
@@ -93,7 +111,7 @@ IDENTITY_KEY_PREFIXES = ("supplier",)
 # J4 pin 3 is the LD2410's UART_Rx INPUT — driven by the ESP32's TX
 # (GPIO 16), hence net UART_TX. Pin 5 (VCC) is fed from the +5V rail
 # (LM2596S), so its anchor is the power:+5V flag.
-J4_SCH_SOURCE_REL = Path("boardgen") / "_sch_sensors.py"
+SCH_SENSORS_SOURCE_REL = Path("boardgen") / "_sch_sensors.py"
 J4_EXPECTED: dict[int, tuple[str, str, str]] = {
     1: ("j4-p1-out", "label", "LD2410_OUT"),
     2: ("j4-p2-tx", "label", "UART_RX"),    # LD2410 TX -> MCU RX (crossover)
@@ -104,9 +122,28 @@ J4_EXPECTED: dict[int, tuple[str, str, str]] = {
 # Net/flag must appear in the parts.append(...) call immediately following
 # the anchored wire — 600 chars is comfortably past the intervening
 # coordinate arguments but well short of the NEXT pin's wiring.
-J4_ANCHOR_WINDOW = 600
-J4_HLABEL_PATTERN = re.compile(r'_sch_hierarchical_label\(\s*name="([A-Za-z0-9_]+)"')
-J4_PWRFLAG_PATTERN = re.compile(r'_sch_power_flag\(\s*lib_id="([A-Za-z0-9_:+\-]+)"')
+ANCHOR_WINDOW = 600
+HLABEL_PATTERN = re.compile(r'_sch_hierarchical_label\(\s*name="([A-Za-z0-9_]+)"')
+PWRFLAG_PATTERN = re.compile(r'_sch_power_flag\(\s*lib_id="([A-Za-z0-9_:+\-]+)"')
+
+# --- Check E: J3 / SEN66 pin order (Lesson 21) --------------------------------
+# Canonical J3 (board-side) order = positional MIRROR of Sensirion SEN6x
+# datasheet v0.92 Table 16 (p. 15): 1=VDD, 2=GND, 3=SCL, 4=SDA, 5=GND,
+# 6=VDD. Table 16 is the MODULE side; a standard flat parallel-wire JST GH
+# lead maps position k to position 7-k between the two face-to-face keyed
+# headers, and the power-symmetric SEN6x pinout (1/6, 2/5 internally tied)
+# reduces the visible effect of that mirror to an SDA<->SCL swap on pins
+# 3/4. Bench-confirmed 2026-06-30 (issue #6). Any future audit asserting
+# "J3 pin 3 must be SDA because Table 16 says pin 3 = SDA" is WRONG —
+# it confuses the module side with the host side (Lesson 21).
+J3_EXPECTED: dict[int, tuple[str, str, str]] = {
+    1: ("j3-p1-vdd-up", "power", "power:+3V3"),
+    2: ("j3-p2-gnd-hop", "power", "power:GND"),
+    3: ("j3-p3-scl", "label", "I2C_SCL"),   # mirror of SEN66 pin 4 (SCL)
+    4: ("j3-p4-sda", "label", "I2C_SDA"),   # mirror of SEN66 pin 3 (SDA)
+    5: ("j3-p5-gnd-hop", "power", "power:GND"),
+    6: ("j3-p6-vdd-down", "power", "power:+3V3"),
+}
 # v0.43 footprint-orientation fix: rotation 90 puts pad 1 (OUT) at the WEST
 # end of the row, where the LD2410 module's OUT pin physically lands
 # (rotation 270 was the pre-v0.43 end-for-end-wrong state). A deliberate
@@ -223,6 +260,69 @@ def _check_power_budget(errors: list[str]) -> int:
     return len(POWER_BUDGET)
 
 
+def _check_connector_pin_anchors(
+    errors: list[str],
+    conn: str,
+    lesson: str,
+    expected: dict[int, tuple[str, str, str]],
+    canon_msg: str,
+) -> int:
+    """Shared anchor scanner for checks D (J4) and E (J3).
+
+    For each pin, finds the deterministic wire uuid tag in
+    `boardgen/_sch_sensors.py` and asserts the hierarchical label /
+    power flag emitted immediately after it matches the canonical net.
+    Fails loudly if any anchor vanished: a moved/renamed wiring block
+    means the check is blind, which is itself a failure.
+    """
+    src_path = KICAD_ROOT / SCH_SENSORS_SOURCE_REL
+    try:
+        src = src_path.read_text(encoding="utf-8")
+    except OSError as exc:
+        errors.append(
+            f"{conn} ({lesson}) check is blind — cannot read "
+            f"{src_path}: {exc}"
+        )
+        return 0
+
+    checked = 0
+    for pin, (tag, kind, expected_net) in sorted(expected.items()):
+        pos = src.find(f'"{tag}"')
+        if pos < 0:
+            errors.append(
+                f"{conn} pin {pin}: wire anchor {tag!r} not found in "
+                f"{SCH_SENSORS_SOURCE_REL} — the {conn} wiring block moved "
+                f"or was renamed; the {lesson} check is blind and must be "
+                f"re-anchored"
+            )
+            continue
+
+        window = src[pos:pos + ANCHOR_WINDOW]
+        if kind == "label":
+            m = HLABEL_PATTERN.search(window)
+            what = "hierarchical label"
+        else:
+            m = PWRFLAG_PATTERN.search(window)
+            what = "power flag"
+        if m is None:
+            errors.append(
+                f"{conn} pin {pin}: no {what} found after wire anchor "
+                f"{tag!r} in {SCH_SENSORS_SOURCE_REL} — structure changed; "
+                f"the {lesson} check is blind and must be re-anchored"
+            )
+            continue
+
+        actual = m.group(1)
+        if actual != expected_net:
+            errors.append(
+                f"{conn} pin {pin}: {what} {actual!r} != canonical "
+                f"{expected_net!r} — {canon_msg}"
+            )
+            continue
+        checked += 1
+    return checked
+
+
 def _check_j4_pin_order(errors: list[str]) -> int:
     """Check D: J4 pin 1..5 net order vs Lesson 20 canonical mapping.
 
@@ -236,52 +336,17 @@ def _check_j4_pin_order(errors: list[str]) -> int:
     sys.path.insert(0, str(KICAD_ROOT))
     import boardgen._project as _bg_project  # noqa: E402
 
-    src_path = KICAD_ROOT / J4_SCH_SOURCE_REL
-    try:
-        src = src_path.read_text(encoding="utf-8")
-    except OSError as exc:
-        errors.append(
-            f"J4 (Lesson 20) check is blind — cannot read {src_path}: {exc}"
-        )
-        return 0
-
-    checked = 0
-    for pin, (tag, kind, expected) in sorted(J4_EXPECTED.items()):
-        pos = src.find(f'"{tag}"')
-        if pos < 0:
-            errors.append(
-                f"J4 pin {pin}: wire anchor {tag!r} not found in "
-                f"{J4_SCH_SOURCE_REL} — the J4 wiring block moved or was "
-                f"renamed; the Lesson-20 check is blind and must be "
-                f"re-anchored"
-            )
-            continue
-
-        window = src[pos:pos + J4_ANCHOR_WINDOW]
-        if kind == "label":
-            m = J4_HLABEL_PATTERN.search(window)
-            what = "hierarchical label"
-        else:
-            m = J4_PWRFLAG_PATTERN.search(window)
-            what = "power flag"
-        if m is None:
-            errors.append(
-                f"J4 pin {pin}: no {what} found after wire anchor {tag!r} "
-                f"in {J4_SCH_SOURCE_REL} — structure changed; the "
-                f"Lesson-20 check is blind and must be re-anchored"
-            )
-            continue
-
-        actual = m.group(1)
-        if actual != expected:
-            errors.append(
-                f"J4 pin {pin}: {what} {actual!r} != canonical {expected!r} "
-                f"— Lesson 20 / HLK V1.04 datasheet Table 1 (page 7): "
-                f"1=OUT, 2=LD2410 TX (net UART_RX), 3=LD2410 RX (net "
-                f"UART_TX), 4=GND, 5=VCC"
-            )
-            continue
-        checked += 1
+    checked = _check_connector_pin_anchors(
+        errors,
+        conn="J4",
+        lesson="Lesson-20",
+        expected=J4_EXPECTED,
+        canon_msg=(
+            "Lesson 20 / HLK V1.04 datasheet Table 1 (page 7): "
+            "1=OUT, 2=LD2410 TX (net UART_RX), 3=LD2410 RX (net "
+            "UART_TX), 4=GND, 5=VCC"
+        ),
+    )
 
     rotation = getattr(_bg_project, "J4_PCB_ROTATION", None)
     if rotation is None:
@@ -301,6 +366,35 @@ def _check_j4_pin_order(errors: list[str]) -> int:
     return checked
 
 
+def _check_j3_pin_order(errors: list[str]) -> int:
+    """Check E: J3 pin 1..6 net order vs Lesson 21 canonical mapping.
+
+    Authority: Sensirion SEN6x datasheet v0.92 (Dec 2025) Table 16
+    (p. 15) — the MODULE-side pinout. The board-side J3 must be its
+    positional MIRROR (1=VDD, 2=GND, 3=SCL, 4=SDA, 5=GND, 6=VDD)
+    because a standard flat parallel-wire JST GH lead reverses pin
+    positions between the two face-to-face keyed headers; the
+    power-symmetric SEN6x pinout hides the mirror on power pins, so the
+    only visible effect is the pins-3/4 SDA<->SCL swap that bricked the
+    SEN66 on the v0.51 prototypes (issue #6, bench-confirmed
+    2026-06-30). No PCB-rotation anchor (unlike check D): the GH socket
+    is keyed, so the pad-to-cable-position mapping is fixed by the
+    footprint regardless of J3_ROTATION.
+    """
+    return _check_connector_pin_anchors(
+        errors,
+        conn="J3",
+        lesson="Lesson-21",
+        expected=J3_EXPECTED,
+        canon_msg=(
+            "Lesson 21 / SEN6x datasheet v0.92 Table 16 (p. 15) MIRRORED "
+            "for the board side: 1=VDD, 2=GND, 3=SCL, 4=SDA, 5=GND, 6=VDD "
+            "(Table 16 itself is the MODULE side — a straight flat GH lead "
+            "mirrors positions end-to-end)"
+        ),
+    )
+
+
 def main() -> int:
     with Stage(STAGE_NAME) as st:
         errors: list[str] = []
@@ -308,6 +402,7 @@ def main() -> int:
         n_lcsc = _check_lcsc_mapping(errors)
         n_budget = _check_power_budget(errors)
         n_j4 = _check_j4_pin_order(errors)
+        n_j3 = _check_j3_pin_order(errors)
 
         if errors:
             for e in errors:
@@ -319,7 +414,10 @@ def main() -> int:
             f"{n_lcsc} LCSC_MAPPING entries match expected schema; "
             f"{n_budget} POWER_BUDGET entries have valid datasheet URLs; "
             f"{n_j4}/5 J4 pins match Lesson-20 canonical order "
-            f"(1=OUT 2=TX 3=RX 4=GND 5=VCC, HLK V1.04 Table 1)"
+            f"(1=OUT 2=TX 3=RX 4=GND 5=VCC, HLK V1.04 Table 1); "
+            f"{n_j3}/6 J3 pins match Lesson-21 canonical order "
+            f"(1=VDD 2=GND 3=SCL 4=SDA 5=GND 6=VDD — mirror of SEN6x "
+            f"v0.92 Table 16)"
         )
     return 0
 

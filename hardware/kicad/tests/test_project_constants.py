@@ -223,8 +223,11 @@ def test_routes_snapshot_counts() -> None:
     # (2 on the deleted /MCU/NFC_FD net + 12 dead GND stitches anchored
     # at the removed J7.8/J8.8/C12.2 pads) and ADDED 3 bridge vias that
     # replace the former J7.7/J8.5/J8.6 THT feed-throughs on the +3V3 /
-    # I2C_SCL / I2C_SDA runs to J3 (SEN66).
-    assert len(oas_routes.ROUTES_SEGMENTS) == 586
+    # I2C_SCL / I2C_SDA runs to J3 (SEN66). The J3 SDA/SCL pin swap
+    # (GitHub issue #6, Lesson 21) then unwound the west-end braid at
+    # the I2C bridge vias: -4 braid segments, +3 direct via-to-trunk
+    # connectors (585 = 586 - 4 + 3).
+    assert len(oas_routes.ROUTES_SEGMENTS) == 585
     assert len(oas_routes.ROUTES_VIAS) == 43
 
 

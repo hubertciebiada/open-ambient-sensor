@@ -25,16 +25,18 @@ from tools import extract_routes
 def test_round_trip_boardgen_format_byte_identical() -> None:
     """Committed oas.kicad_pcb (boardgen `(net N)` format) round-trips.
 
-    Counts match the committed snapshot header ("Source snapshot: 586
+    Counts match the committed snapshot header ("Source snapshot: 585
     segments, 43 vias.") — v0.53 removed SW1 (GitHub issue #5, -13 seg
     / -2 via off the v0.50 613/42 baseline), then the NFC removal
     (GitHub issue #7) dropped the /MCU/NFC_FD net (2 seg) + 12 dead GND
     stitches at the former J7/J8/C12 pads and added 3 bridge vias
-    replacing the J7.7/J8.5/J8.6 THT layer feed-throughs.
+    replacing the J7.7/J8.5/J8.6 THT layer feed-throughs, then the J3
+    SDA/SCL pin swap (GitHub issue #6) unwound the west-end braid at
+    the I2C bridge vias (-4 seg, +3 seg).
     """
     text = extract_routes.PCB.read_text(encoding="utf-8")
     segments, vias = extract_routes.extract(text)
-    assert len(segments) == 586
+    assert len(segments) == 585
     assert len(vias) == 43
 
     rendered = extract_routes.render(segments, vias)

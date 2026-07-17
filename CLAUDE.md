@@ -158,6 +158,14 @@ J4 pin numbering on OAS, FROM LEFT (as physically soldered) when looking at the 
 
 ---
 
+## Lessons learned (v0.53 prototype bring-up)
+
+### 21. J3 (SEN66) board-side pinout MIRRORS SEN6x Table 16 — a flat JST GH lead reverses pin positions end-to-end (bench-confirmed 2026-06-30)
+
+Sensirion SEN6x datasheet v0.92 (Dec 2025) Table 16 (p. 15) specifies the **MODULE-side** receptacle: 1=VDD, 2=GND, 3=SDA, 4=SCL, 5=GND (tied to 2), 6=VDD (tied to 1). The OAS board-side J3 must be wired as that table's positional MIRROR — **1=VDD, 2=GND, 3=SCL, 4=SDA, 5=GND, 6=VDD**. Mechanism, in three steps: (a) both cable ends are polarized GH-family connectors — the latch/shroud keying makes reversed insertion impossible, so housing position N always mates header pin N (JST GH datasheet p. 1, "housings are designed to prevent incorrect mating"); (b) a standard flat parallel-wire GH lead has both housings crimped on the same face of the wire row, which between two face-to-face headers maps header-A pin k ↔ header-B pin 7−k — a full positional mirror (1↔6, 2↔5, 3↔4); (c) Sensirion's pinout is deliberately power-symmetric (pins 1/6 and 2/5 internally tied), so the mirror is invisible on the power pins and manifests ONLY as an SDA↔SCL swap. The v0.51 boards copied Table 16 pin-for-pin onto J3 → SEN66 powered up but never ACKed at 0x6B; swapping the I²C pins in firmware (`sda: GPIO7 / scl: GPIO6`) made it fully functional with a straight cable — the bench proof of the crossing (issue #6). Fix (this Lesson's origin): J3 pins 3/4 swapped in `boardgen/_sch_sensors.py` (wire tags `j3-p3-scl` / `j3-p4-sda`); on copper, the corridor nets swap at the two I²C bridge vias, which made the pre-existing west-end braid (each via fed the OPPOSITE F.Cu trunk) unnecessary — replaced by two direct via→trunk connectors (−4/+3 segments); firmware defaults back to `sda: GPIO6 / scl: GPIO7` with a substitution override for v0.51 boards (`firmware/esphome/examples/v0.51-board.yaml`). Enforced by stage 19 **check E** anchored to the `j3-p*` wire tags. Any future audit asserting "J3 pin 3 must be SDA because Table 16 says pin 3 = SDA" is WRONG — Table 16 is the module side; the host side mirrors. CAVEAT: the design standardizes on the flat parallel-wire GH lead (the style verified on the bench); an opposite-crimp lead (housings on opposite faces of the wire row — electrically position-1:1, the Qwiic-cable style) would re-cross SDA/SCL on the fixed board. Check the crimp style when sourcing replacement cables.
+
+---
+
 ## 🔴 Public repository rules
 
 **This is a PUBLIC repository.** Every committed file MUST follow these rules. No exceptions.
@@ -257,7 +265,7 @@ ESP32-C6-DevKitM-1-N4 is the Espressif official devkit (ESP32-C6-MINI-1 SoM + tw
 
 ### Architectural decisions
 
-- **SEN66 mounts on the PCB**, flat on its 55.2 × 25.6 mm back face with the air-side face UP toward the AK-N-94 perforated cover. Body sticks 21.5 mm above PCB. **Zip-tie retention** through 4 NPTH holes (Ø ~3 mm) along the two long edges. PCB-mounted JST GH socket (J3) on the SEN66's +X short edge.
+- **SEN66 mounts on the PCB**, flat on its 55.2 × 25.6 mm back face with the air-side face UP toward the AK-N-94 perforated cover. Body sticks 21.5 mm above PCB. **Zip-tie retention** through 4 NPTH holes (Ø ~3 mm) along the two long edges. PCB-mounted JST GH socket (J3) on the SEN66's +X short edge. J3 is wired as the positional MIRROR of the SEN6x Table 16 module pinout (1=VDD, 2=GND, **3=SCL, 4=SDA**, 5=GND, 6=VDD) so a straight flat JST GH lead lands SDA→SDA / SCL→SCL — see Lesson 21; enforced by stage 19 check E.
 - **Hard limit #1 lifted to ≥22 mm in the SEN66 zone** (default 17 mm elsewhere) — verified against physical AK-N-94 sample.
 - **PCB has F.CrtYd on the SEN66 mech-ref footprint** (zero standoff — body lies flat on PCB) as a programmatic guardrail. The v0.21→v0.22 misconception "SEN66 floats above PCB" cost an entire iteration; the F.CrtYd now mechanically prevents SMD placement under the SEN66 body shadow.
 - **AQI LED ring** (7 × SK6812-SIDE on a Ø26 mm base pitch circle around the central cable hole; per-slot radius overrides 11.0 / 16.5 mm, historically set to clear J1 and the since-removed MOD2 — see `LED_RING_RADIUS` + overrides in `boardgen/_project.py`). LEDs emit radially outward, parallel to the PCB — the cover never sees the die in line-of-sight, no "dot-through-perforation" artifact. The D13 slot (θ = 90°) is vacated for the J1 24 V terminal block on the SOUTH side. Each LED carries a 100 nF 0402 decoupling cap; the ring is powered from the LM2596S +5 V rail.

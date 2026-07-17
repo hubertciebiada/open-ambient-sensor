@@ -34,9 +34,9 @@ def gen_sensors_sch() -> str:
                 daughterboard (J7 + J8 + C12) left the design together
                 with the NFC feature.
 
-    SEN66 pinout (Sensirion SEN6x datasheet v0.92 Dec 2025, Table 16
-    on p. 15) — applies to the entire SEN6x family (SEN62, SEN63C,
-    SEN65, SEN66, SEN68, SEN69C):
+    SEN66 MODULE-side pinout (Sensirion SEN6x datasheet v0.92 Dec 2025,
+    Table 16 on p. 15) — applies to the entire SEN6x family (SEN62,
+    SEN63C, SEN65, SEN66, SEN68, SEN69C):
 
       Pin 1: VDD  — Supply voltage (3.15-3.6 V)
       Pin 2: GND  — Ground
@@ -44,6 +44,33 @@ def gen_sensors_sch() -> str:
       Pin 4: SCL  — Serial clock input         (I²C, open-drain)
       Pin 5: GND  — Ground or NC  (internally tied to pin 2)
       Pin 6: VDD  — Supply voltage or NC (internally tied to pin 1)
+
+    J3 (the OAS board-side socket) is wired as the positional MIRROR of
+    Table 16 (CLAUDE.md Lesson 21; GitHub issue #6; bench-confirmed
+    2026-06-30):
+
+      J3 pin 1: VDD    pin 2: GND    pin 3: SCL
+      J3 pin 4: SDA    pin 5: GND    pin 6: VDD
+
+    WHY the mirror: both cable ends are polarized JST GH-family
+    connectors — the latch/shroud keying makes reversed insertion
+    impossible, so housing position N always mates header pin N at each
+    end (JST GH datasheet, p. 1). A standard flat parallel-wire GH
+    lead has both housings crimped on the same face of the wire row;
+    between two face-to-face headers this maps header-A pin k to
+    header-B pin (7 - k) — a full positional mirror (1↔6, 2↔5, 3↔4).
+    Sensirion's pinout is deliberately power-symmetric (pins 1/6 and
+    2/5 internally tied, Table 16), so the mirror is invisible on the
+    power pins and manifests ONLY as an SDA↔SCL swap. The v0.51 boards
+    copied Table 16 pin-for-pin onto J3 and the SEN66 never ACKed
+    (power measured correct, data crossed — exactly what the mirror
+    model predicts); v0.51 firmware carried an I²C pin-swap workaround
+    (sda=GPIO7 / scl=GPIO6). With the mirrored J3 below, a straight
+    flat lead lands SDA→SDA / SCL→SCL and the default firmware pin map
+    (sda=GPIO6 / scl=GPIO7) is correct. Enforced by pipeline stage 19
+    check E. Caveat: an opposite-crimp (electrically position-1:1) GH
+    lead would re-cross the data lines — the design standardizes on the
+    flat parallel-wire lead style (the style verified on the bench).
 
     The SEN6x is I²C-only — there is no SEL/UART-mode select pin on
     this family. (Earlier Sensirion modules had a SEL pin to choose
@@ -105,8 +132,8 @@ def gen_sensors_sch() -> str:
     J3_PIN_Y = {
         1: J3_Y - 5.08,        # 105.41 — VDD (top)
         2: J3_Y - 2.54,        # 107.95 — GND
-        3: J3_Y,               # 110.49 — SDA
-        4: J3_Y + 2.54,        # 113.03 — SCL
+        3: J3_Y,               # 110.49 — SCL (mirror of SEN66 pin 4 — Lesson 21)
+        4: J3_Y + 2.54,        # 113.03 — SDA (mirror of SEN66 pin 3 — Lesson 21)
         5: J3_Y + 5.08,        # 115.57 — GND (internally tied to pin 2)
         6: J3_Y + 7.62,        # 118.11 — VDD (internally tied to pin 1)
     }
@@ -128,8 +155,8 @@ def gen_sensors_sch() -> str:
     # naturally route west from J3's pin tips. The two labels share an
     # X column (159.39) two grid steps west of J3's pin tip column.
     HLABEL_LEFT_X = 160.02      # X column for both I²C hier labels
-    HLABEL_SDA_Y = J3_PIN_Y[3]  # 110.49 — same row as J3 pin 3
-    HLABEL_SCL_Y = J3_PIN_Y[4]  # 113.03 — same row as J3 pin 4
+    HLABEL_SCL_Y = J3_PIN_Y[3]  # 110.49 — same row as J3 pin 3 (SCL)
+    HLABEL_SDA_Y = J3_PIN_Y[4]  # 113.03 — same row as J3 pin 4 (SDA)
 
     parts: list[str] = []
 
@@ -157,20 +184,22 @@ def gen_sensors_sch() -> str:
         sheet_key="sensors",
     ))
 
-    # ----- Pin 3 (SDA): wire LEFT to I2C_SDA hier label -----
-    parts.append(_sch_wire(J3_PIN_X, J3_PIN_Y[3], HLABEL_LEFT_X, J3_PIN_Y[3], "j3-p3-sda"))
-    parts.append(_sch_hierarchical_label(
-        name="I2C_SDA", shape="bidirectional",
-        x=HLABEL_LEFT_X, y=HLABEL_SDA_Y, angle=180, justify="right",
-        uuid_tag="sda-j3",
-    ))
-
-    # ----- Pin 4 (SCL): wire LEFT to I2C_SCL hier label -----
-    parts.append(_sch_wire(J3_PIN_X, J3_PIN_Y[4], HLABEL_LEFT_X, J3_PIN_Y[4], "j3-p4-scl"))
+    # ----- Pin 3 (SCL): wire LEFT to I2C_SCL hier label -----
+    # J3 pin 3 carries SCL (NOT SDA): the host side mirrors SEN6x datasheet
+    # v0.92 Table 16 (p. 15) — see the module docstring / CLAUDE.md Lesson 21.
+    parts.append(_sch_wire(J3_PIN_X, J3_PIN_Y[3], HLABEL_LEFT_X, J3_PIN_Y[3], "j3-p3-scl"))
     parts.append(_sch_hierarchical_label(
         name="I2C_SCL", shape="input",
         x=HLABEL_LEFT_X, y=HLABEL_SCL_Y, angle=180, justify="right",
         uuid_tag="scl-j3",
+    ))
+
+    # ----- Pin 4 (SDA): wire LEFT to I2C_SDA hier label -----
+    parts.append(_sch_wire(J3_PIN_X, J3_PIN_Y[4], HLABEL_LEFT_X, J3_PIN_Y[4], "j3-p4-sda"))
+    parts.append(_sch_hierarchical_label(
+        name="I2C_SDA", shape="bidirectional",
+        x=HLABEL_LEFT_X, y=HLABEL_SDA_Y, angle=180, justify="right",
+        uuid_tag="sda-j3",
     ))
 
     # ----- Pin 5 (GND): hop LEFT and place a local GND flag -----

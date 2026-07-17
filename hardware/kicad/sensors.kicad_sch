@@ -1596,10 +1596,10 @@
 		(width 0)
 		(type default)
 	)
-	(uuid "3ccaa044-ae80-5ffe-9d6e-b9ee7f63c35c")
+	(uuid "d5652bb4-3fd7-5c7f-a241-7c0b4e72194b")
 )
-(hierarchical_label "I2C_SDA"
-	(shape bidirectional)
+(hierarchical_label "I2C_SCL"
+	(shape input)
 	(at 160.02 110.49 180)
 	(effects
 		(font
@@ -1607,7 +1607,7 @@
 		)
 		(justify right)
 	)
-	(uuid "4957f833-4ece-5dc6-a8b1-a082755b5ea6")
+	(uuid "ece0f922-bb7b-5e80-9d87-c5489ca4a111")
 )
 (wire
 	(pts
@@ -1617,10 +1617,10 @@
 		(width 0)
 		(type default)
 	)
-	(uuid "65efaf4d-e115-50c2-a50c-097aa80de92e")
+	(uuid "becc149c-dd40-525f-b888-524cc5df822b")
 )
-(hierarchical_label "I2C_SCL"
-	(shape input)
+(hierarchical_label "I2C_SDA"
+	(shape bidirectional)
 	(at 160.02 113.03 180)
 	(effects
 		(font
@@ -1628,7 +1628,7 @@
 		)
 		(justify right)
 	)
-	(uuid "ece0f922-bb7b-5e80-9d87-c5489ca4a111")
+	(uuid "4957f833-4ece-5dc6-a8b1-a082755b5ea6")
 )
 (wire
 	(pts

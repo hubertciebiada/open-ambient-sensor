@@ -1,48 +1,91 @@
-# ⚠ This firmware targets OAS hardware **v0.51** — read before flashing
+# ⚠ Hardware ↔ firmware compatibility — v0.51 boards need an I²C pin override
 
-`project_version` is set to `v0.51` (shown in the boot log and Home Assistant).
-This firmware contains a **board-revision-specific workaround** that will BREAK
-the air-quality sensor if flashed onto a corrected board. Do not "tidy it up".
+The firmware DEFAULTS in `oas.yaml` target boards with the **corrected J3
+pinout** (GitHub issue #6 fixed): `i2c_sda_pin: GPIO6` / `i2c_scl_pin: GPIO7`
+— the schematic mapping. The five **v0.51** prototype boards (2026-05 run)
+have **SDA/SCL crossed at J3** (the SEN66 socket) and MUST be flashed with a
+substitution override that swaps the two pins.
 
-## v0.51-specific behaviour
+➡ **Flashing the wrong mapping bricks the SEN66 either way** — the sensor is
+powered but never ACKs at 0x6B (`[E][sen6x] Communication failed`, all
+channels NA). Match the firmware to the board revision (check the silkscreen
+version marking) before flashing.
 
-### 1. I²C SDA/SCL are intentionally SWAPPED (`packages/air-quality.yaml`)
-The bus is declared `sda: GPIO7 / scl: GPIO6` — the **opposite** of the schematic
-(GPIO6 = SDA, GPIO7 = SCL). On the v0.51 board the SEN66's SDA/SCL reach the
-opposite ESP GPIOs — a **J3 pinout error on the board**. The JST-GH lead is a
-straight 1:1 cable (the crossing is NOT in the cable). The firmware swap cancels
-the board error so the SEN66 ACKs at 0x6B and reports real readings with a
-**straight cable** (no cable surgery).
+## Which firmware goes on which board
 
-This is only safe because the SEN66 is the **only** device left on the I²C bus
-(NFC was dropped — see below; the LD2410 is on UART). Caveat: it also swaps the
-J9 Qwiic port, so a standard Qwiic device on a v0.51 board + this firmware would
-need a crossed cable.
-
-**Proper fix = GitHub issue #6** (correct J3's pinout so a straight cable works).
-When that board revision exists:
-- revert `air-quality.yaml` to `sda: GPIO6 / scl: GPIO7`,
-- bump `project_version` in `oas.yaml`,
-- delete or rewrite this file.
-
-➡ **Never flash this firmware onto a board whose J3 pinout has been fixed** — the
-double-swap would leave the SEN66 dead.
-
-### 2. NFC removed entirely (issue #7 — resolved)
-The dynamic NFC tag feature is **gone**: `packages/nfc.yaml` is deleted from the
-firmware and the MIKROE-2462 / NT3H1101 hardware (MOD2, J7, J8, C12, the NFC_FD
-net) is removed from the next board revision. NFC RF coupling was unusable
-through the AK-N-94 cover (antenna over the ground plane + distance), and the
-only workable fix would have broken the enclosure aesthetics. On the five v0.51
-prototype boards the J7/J8 footprints + MOD2 silk remain physically present but
-unpopulated and unused. This is also why the SDA/SCL swap above is safe (NFC
-was the only other I²C consumer).
-
-### 3. LED ring `num_leds: 7`
-Matches the actual board (D11..D18, D13 skipped). Earlier firmware said 11.
-
-## Summary of which firmware goes on which board
-| Board | J3 pinout | SEN66 cable | I²C pins in firmware |
+| Board | J3 pinout | SEN66 cable | I²C substitutions |
 |---|---|---|---|
-| **v0.51 (this)** | SDA/SCL swapped (error) | straight 1:1 | `sda: GPIO7 / scl: GPIO6` (swapped) |
-| Fixed rev (issue #6) | corrected | straight 1:1 | `sda: GPIO6 / scl: GPIO7` (schematic) |
+| **v0.51** (five 2026-05 protos) | SDA/SCL crossed (error) | straight 1:1 | `i2c_sda_pin: GPIO7` / `i2c_scl_pin: GPIO6` — override, see below |
+| Fixed rev (issue #6 landed) | mirror of SEN6x Table 16 (correct) | straight 1:1 | defaults (`GPIO6` / `GPIO7`) — no override |
+
+## v0.51 override (exact snippet)
+
+Create a per-device config that includes `oas.yaml` as a package and swaps
+the pins (complete template: [`examples/v0.51-board.yaml`](examples/v0.51-board.yaml)):
+
+```yaml
+substitutions:
+  device_id: room-a
+  friendly_name: "Room A"
+  i2c_sda_pin: GPIO7      # v0.51 board: J3 SDA/SCL crossed (issue #6)
+  i2c_scl_pin: GPIO6
+  project_version: "v0.51"
+
+packages:
+  oas: !include ../oas.yaml
+```
+
+`!secret` resolution: ESPHome searches for `secrets.yaml` next to the file
+that uses the tag (`packages/`) or next to the main config (`examples/`) —
+NOT next to the packaged `oas.yaml`. Create a one-line uncommitted proxy
+`examples/secrets.yaml` (the `**/secrets.yaml` gitignore covers it):
+
+```yaml
+<<: !include ../secrets.yaml
+```
+
+## Why v0.51 needs the swap (root cause — issue #6, bench-confirmed 2026-06-30)
+
+The v0.51 J3 copied the SEN6x datasheet **Table 16** pinout (v0.92 Dec 2025,
+p. 15 — 1=VDD, 2=GND, 3=SDA, 4=SCL, 5=GND, 6=VDD) pin-for-pin onto the
+board-side socket. Table 16 is the **module side**. Both cable ends are
+polarized JST GH-family connectors (the latch/shroud keying means housing
+position N always mates header pin N), and a standard flat parallel-wire GH
+lead has both housings crimped on the same face of the wire row — between
+two face-to-face headers that maps position k to position 7−k, a full
+positional mirror (1↔6, 2↔5, 3↔4). Sensirion's pinout is power-symmetric
+(pins 1/6 and 2/5 internally tied), so the mirror is invisible on the power
+pins and manifests ONLY as an SDA↔SCL swap: the SEN66 was powered but never
+ACKed. Swapping the I²C pins in firmware cancels the board error — bring-up
+confirmed the SEN66 then ACKs at 0x6B and reports real readings with a
+straight cable (no cable surgery).
+
+The corrected board (issue #6 fix) wires J3 as the MIRROR of Table 16
+(1=VDD, 2=GND, **3=SCL, 4=SDA**, 5=GND, 6=VDD) so a straight flat lead lands
+SDA→SDA / SCL→SCL and the defaults are correct. See CLAUDE.md **Lesson 21**;
+enforced in CI by pipeline stage 19 check E.
+
+Cable caveat (both revisions): the design standardizes on the **flat
+parallel-wire** GH lead style — the style verified on the bench. An
+opposite-crimp lead (housings on opposite faces of the wire row,
+electrically position-1:1 — the Qwiic-cable style) would re-cross SDA/SCL.
+Do NOT reuse a hand-crossed cable from the early v0.51 workaround era on a
+corrected board (double-cross).
+
+## Bus-wide side effect: J9 Qwiic port
+
+The I²C mapping is bus-wide, so it also affects the J9 Qwiic port:
+
+- corrected board + defaults → J9 is a **standard** Qwiic port;
+- v0.51 board + override → a standard Qwiic device on J9 needs a
+  **crossed** Qwiic cable.
+
+## Applies to every revision (kept here for history)
+
+- **NFC removed entirely** (issue #7): `packages/nfc.yaml` is gone and the
+  MIKROE-2462 / NT3H1101 hardware (MOD2, J7, J8, C12, the NFC_FD net) is
+  removed from the corrected board revision. On the five v0.51 boards the
+  J7/J8 footprints + MOD2 silk remain physically present but unpopulated.
+  With NFC gone the SEN66 is the only fixed I²C device (LD2410 is UART),
+  which is why the v0.51 pin-swap override is safe on the shared bus.
+- **LED ring `num_leds: 7`** matches every board (D11..D18, D13 skipped).
