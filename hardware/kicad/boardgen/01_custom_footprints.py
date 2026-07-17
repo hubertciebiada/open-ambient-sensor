@@ -61,7 +61,7 @@ def run(ctx) -> None:
             pin_start_offset=ESP32_PIN_START_OFFSET,
             antenna_tab_w=ESP32_ANTENNA_TAB_W,
             antenna_tab_protrusion=ESP32_ANTENNA_TAB_PROTRUSION,
-            emit_silk_outline=False,
+            emit_silk_outline="corners",
         ),
         encoding="utf-8",
     )

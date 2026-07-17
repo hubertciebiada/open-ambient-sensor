@@ -620,24 +620,34 @@ def _ld2410_local_to_pcb(lx: float, ly: float) -> tuple[float, float]:
 # board area now):
 #
 #   ESP32-C6 DevKitM-1-N4
-#   body: 48.26 × 25.4 mm
-#   anchor (-27.76, -24.70)
-#   body X=-27.76..+20.50
+#   body: 48.26 × 25.4 mm (+ 13.20 × 5.37 mm antenna tab, west)
+#   anchor (-31.465, -24.70)   [v0.53 — see ESP32_ANCHOR_X comment]
+#   body X=-31.465..+16.795
 #   body Y=-50.10..-24.70
-#   center X = -3.63
+#   center X = -7.335
 #   horizontal at TOP-CENTER
 #   antenna LEFT (-X)
 #   USB-C RIGHT (+X)
 #
-# SEN66 (right side, anchor +23.5/+22.0) unchanged. See per-constant
-# comments below for clearance breakdowns.
+# SEN66 (right side, anchor +21.5/+22.0) — see per-constant comments
+# below for clearance breakdowns.
 
 # Dimensions per Espressif official dimensions drawing
 # https://dl.espressif.com/dl/schematics/esp32-c6-devkitm-1-dimensions.pdf
 # Body 25.40 × 48.26 mm. Pin headers 2×1×15 P2.54 mm, row spacing 22.86 mm.
-# Pin block is OFFSET along the long axis: pin 1 is 5.37 mm from the
-# antenna short edge; the opposite (USB-C) short edge has 7.33 mm of
-# board beyond pin 15. The two rows are symmetric about the long axis.
+# Pin block is OFFSET along the long axis: the drawing dimensions the
+# USB-C-side inset directly (last pin → USB short edge = 11.125 mm), so
+# pin 1 sits 48.26 − 14×2.54 − 11.125 = 1.575 mm from the antenna short
+# edge. The two rows are symmetric about the long axis.
+# HISTORY (v0.53 post-#3 review): the offset was recorded as 5.37 mm from
+# v0.15 until the issue-#3 review — a misattribution of the ANTENNA TAB
+# PROTRUSION dimension (the drawing's vertical "5.37" measures the module
+# sticking out past the board edge, NOT the pin-1 inset), ratified for
+# months by a circular sum-check (7.33 was back-derived, never read from
+# the PDF). The bench symptom was real: the physical module sat 3.795 mm
+# further toward the USB/caps side than the drawn shadow — which is WHY
+# the C1/C3/C4 caps blocked seating (issue #3) despite the drawing
+# showing clearance. Verified against the re-rendered PDF (Lesson 6).
 ESP32_BODY_W = 25.4
 ESP32_BODY_L = 48.26
 ESP32_BODY_Z = 8.6                # approx Z above OAS PCB (module + std-off)
@@ -647,18 +657,22 @@ ESP32_BODY_Z = 8.6                # approx Z above OAS PCB (module + std-off)
 # and read directly — Lesson 6): the "13.20" dimension spans the antenna
 # rectangle width (= ESP32-C6-MINI-1 module width), and the "5.37" dimension
 # runs from the board's antenna short edge UP to the tab tip = the protrusion.
-# (Reviewer-confirmed 13.20 / 5.37, cross-checked against the same PDF.) NOTE:
-# 5.37 is the SAME numeric value as ESP32_PIN_START_OFFSET but a DIFFERENT
-# physical dimension — kept as a separate constant deliberately. The tab is
-# centred on the body width.
+# (Reviewer-confirmed 13.20 / 5.37, cross-checked against the same PDF.)
+# CAUTION: 5.37 belongs to THIS tab dimension ONLY — it was historically
+# ALSO (wrongly) recorded as ESP32_PIN_START_OFFSET; see the HISTORY note
+# above. The tab is centred on the body width.
 ESP32_ANTENNA_TAB_W = 13.20         # mm, along the short (25.4 mm) axis — PDF
 ESP32_ANTENNA_TAB_PROTRUSION = 5.37  # mm, past the antenna short edge — PDF
 ESP32_PIN_ROW_INSET = 1.27         # = (25.40 - 22.86) / 2
 ESP32_PIN_PITCH = 2.54
 ESP32_PIN_COUNT_PER_ROW = 15
-ESP32_PIN_START_OFFSET = 5.37      # distance from antenna short edge
-                                    # (LIB Y=0) to pin 1; per Espressif
-                                    # dimensions drawing.
+ESP32_PIN_START_OFFSET = 1.575     # distance from antenna short edge (LIB
+                                    # Y=0) to pin 1 = 48.26 − 14×2.54 −
+                                    # 11.125 (the PDF dimensions the
+                                    # USB-side inset, 11.125, directly).
+                                    # Was 5.37 (the antenna-tab protrusion,
+                                    # misattributed) until the issue-#3
+                                    # review — see HISTORY above.
 
 # Placement (v0.15): ESP32 HORIZONTAL, UPPER-LEFT. User instruction:
 # "ESP mocno w dół i w lewo" — historically bounded from below by the
@@ -667,38 +681,46 @@ ESP32_PIN_START_OFFSET = 5.37      # distance from antenna short edge
 # then-present NFC top edge allowed. Body X range leaves a 2.5 mm gap
 # to LD2410's right edge at X=-39.66 and 12.4 mm to SEN66's left edge
 # at X=+23.5. Helper rotation 90° unchanged (body lies down 48.26 × 25.4).
-ESP32_ANCHOR_X = -35.26            # v0.53 (issue #3): -7.5 mm WEST of the old
-                                    # -27.76 (user-measured on the physical
-                                    # board). Body X range -35.26..+13.00,
-                                    # center X = -11.13. Purpose: seat the
-                                    # DevKit next to the THT bulk caps —
-                                    # body east edge +13.00 now clears the C3
-                                    # Ø8 radial can (west rim +21.75) by
-                                    # 8.75 mm, so the module drops in fully.
-                                    # KNOWN OVERHANG (user-accepted pending an
-                                    # enclosure-wall check — issue #3):
-                                    #   - body NW corner (-35.26, -50.10):
-                                    #     r=61.264 → 1.264 mm PAST the R60
-                                    #     outline.
-                                    #   - ESP32-C6-MINI-1 antenna tab tip
-                                    #     reaches PCB X=-40.63 (protrusion
-                                    #     5.37 mm west of the body edge); its
-                                    #     far corner (-40.63, -44.00) is at
-                                    #     r=59.89 → 0.11 mm INSIDE R60 (so the
-                                    #     tab itself does NOT overhang; only the
-                                    #     body NW corner does).
-                                    # F.Fab carries the full true outline
-                                    # (incl. tab, may cross Edge.Cuts); no
-                                    # F.SilkS body outline is emitted (it would
-                                    # fall off-board at the NW corner and cross
-                                    # buck / U1 copper — see gen MOD1 footprint).
+ESP32_ANCHOR_X = -31.465           # v0.53 (issue #3 + its review): the
+                                    # PHYSICAL datum is the J5/J6 socket rows —
+                                    # pin 1 at PCB X = anchor + offset =
+                                    # -29.89, exactly 7.5 mm WEST of the v0.51
+                                    # boards' -22.39 (user-measured move). When
+                                    # the pin-1 offset was corrected 5.37 →
+                                    # 1.575 (see HISTORY above), the anchor was
+                                    # re-derived as -29.89 − 1.575 = -31.465 so
+                                    # the SOCKETS DID NOT MOVE — only the drawn
+                                    # body shadow slid 3.795 mm east, onto where
+                                    # the real module actually sits.
+                                    # Body X range -31.465..+16.795, center
+                                    # X = -7.335. Clearances (real module):
+                                    #   - C3 Ø8 radial can west rim +21.75 −
+                                    #     body east +16.795 = 4.955 mm → the
+                                    #     module seats fully next to the caps.
+                                    #   - SEN66 cutout west edge +20.50 −
+                                    #     body east +16.795 = 3.705 mm.
+                                    #   - body NW corner (-31.465, -50.10):
+                                    #     r=59.153 → 0.847 mm INSIDE R60 —
+                                    #     NO overhang (the pre-review "1.264 mm
+                                    #     accepted overhang" was an artifact of
+                                    #     the wrong 5.37 offset).
+                                    #   - antenna tab tip X=-36.835; far corner
+                                    #     (-36.835, -44.00) r=57.381 → 2.62 mm
+                                    #     INSIDE R60.
+                                    # F.Fab carries the full true outline (body
+                                    # + tab); F.SilkS carries four corner
+                                    # L-ticks (a full silk rect would cross
+                                    # the U1 lead-pad ends ~X -31.55, the
+                                    # J5/J6 frame ends X -31.22 and the C2
+                                    # pad column ~X +16.5 — see the MOD1
+                                    # block in _footprints_placement.py).
 ESP32_ANCHOR_Y = -24.70            # v0.15.3: +2 mm DOWN from v0.15.2's
                                     # -26.70. Body Y range -50.10..-24.70.
                                     # Top edge 3.00 mm above H3 hole top
-                                    # at Y=-53.1 (was 1.0 mm). Top-left
-                                    # corner (-27.76, -50.10): distance
-                                    # √(770.6+2510.0)=57.27 → 2.73 mm
-                                    # clearance to PCB outline.
+                                    # at Y=-53.1 (was 1.0 mm). NW corner
+                                    # clearance vs the R60 outline: see the
+                                    # ESP32_ANCHOR_X comment (0.847 mm
+                                    # inside at the v0.53 anchor).
                                     # v0.18: REVERTED the v0.17 1.5 mm
                                     # north-shift (was -26.20) back to
                                     # the pre-v0.17 -24.70 value. J1

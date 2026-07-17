@@ -918,13 +918,17 @@ def gen_sensors_pcb_footprints() -> str:
     # ~8 mm above OAS PCB. Antenna tab overhangs the WEST short edge
     # (Y=anchor_y side after rotation → PCB -X), USB-C at the other short
     # edge. v0.53 (issue #3): F.Fab carries the TRUE outline incl. the
-    # ESP32-C6-MINI-1 antenna tab; F.SilkS body outline is omitted
-    # (emit_silk_outline=False) — after the -7.5 mm move it would fall off
-    # the board (NW corner) and cross buck / U1 copper.
+    # ESP32-C6-MINI-1 antenna tab. F.SilkS carries CORNER TICKS since the
+    # pin-offset fix (5.37 → 1.575, see _project.py HISTORY): the body is
+    # fully on-board now (NW corner 0.847 mm inside R60), but a FULL silk
+    # rect is still impossible — the west short edge would cross the U1
+    # lead-pad ends (~X −31.55) and the J5/J6 socket-frame ends (X −31.22),
+    # the east short edge the C2 pad column (~X +16.45..17.65). The four
+    # L-ticks mark the corners and skip those congested mid-spans.
     parts.append(_emit_daughterboard_reference_pcb_footprint(
         lib_id="oas:ESP32-C6-DevKitM-1_Reference",
         reference="MOD1",
-        descr="ESP32-C6-DevKitM-1-N4 daughterboard shadow (EAN 5904422385651). Body 25.4×48.26 mm + 13.20×5.37 mm antenna tab; 8.6 mm tall; mounts on 2×1x15 P2.54 mm female pin sockets. Pin block offset 5.37 mm from the antenna edge per Espressif dimensions PDF.",
+        descr="ESP32-C6-DevKitM-1-N4 daughterboard shadow (EAN 5904422385651). Body 25.4×48.26 mm + 13.20×5.37 mm antenna tab; 8.6 mm tall; mounts on 2×1x15 P2.54 mm female pin sockets. Pin block offset 1.575 mm from the antenna edge (48.26 − 14×2.54 − 11.125) per Espressif dimensions PDF.",
         anchor_x=ESP32_ANCHOR_X, anchor_y=ESP32_ANCHOR_Y,
         body_w=ESP32_BODY_W, body_l=ESP32_BODY_L,
         pin_row_inset=ESP32_PIN_ROW_INSET,
@@ -938,7 +942,7 @@ def gen_sensors_pcb_footprints() -> str:
         pin_start_offset=ESP32_PIN_START_OFFSET,
         antenna_tab_w=ESP32_ANTENNA_TAB_W,
         antenna_tab_protrusion=ESP32_ANTENNA_TAB_PROTRUSION,
-        emit_silk_outline=False,
+        emit_silk_outline="corners",
     ))
 
     # (MOD2 — the MIKROE-2462 NFC daughterboard shadow reservation — was
@@ -950,21 +954,25 @@ def gen_sensors_pcb_footprints() -> str:
     # respective body comments above for pin layout per datasheet).
     #
     # ESP32-C6 DevKitM-1 — 2×1×15, row spacing 22.86 mm, pitch 2.54 mm,
-    # pin block offset 5.37 mm from antenna short edge (= LIB Y=0).
+    # pin block offset 1.575 mm from antenna short edge (= LIB Y=0; see
+    # the _project.py HISTORY note — was wrongly 5.37 until the issue-#3
+    # review).
     # In PCB after helper rotation 90, LIB +Y → PCB +X, LIB +X → PCB -Y.
     # Row A (LIB X = 1.27): pin row along PCB X at PCB Y = anchor_y - 1.27.
     # Row B (LIB X = body_w - 1.27 = 24.13): PCB Y = anchor_y - 24.13.
-    # Pin 1 of each row at PCB X = anchor_x + 5.37 (after LIB +Y → PCB +X
-    # transform with anchor offset).
+    # Pin 1 of each row at PCB X = anchor_x + 1.575 = -29.89 — the
+    # PHYSICAL datum of the user-measured 7.5 mm west move (v0.51 boards
+    # had pin 1 at -22.39); the offset fix re-derived the anchor, NOT the
+    # socket position.
     esp32_row_a_y = ESP32_ANCHOR_Y - ESP32_PIN_ROW_INSET                    # -25.97
     esp32_row_b_y = ESP32_ANCHOR_Y - (ESP32_BODY_W - ESP32_PIN_ROW_INSET)   # -48.83
-    esp32_row_x_start = ESP32_ANCHOR_X + ESP32_PIN_START_OFFSET             # -22.39
+    esp32_row_x_start = ESP32_ANCHOR_X + ESP32_PIN_START_OFFSET             # -29.89
     parts.append(gen_pinsocket_pcb_footprint(
         pin_count=ESP32_PIN_COUNT_PER_ROW,
         x=esp32_row_x_start, y=esp32_row_a_y, rotation=90,
         reference="J5",
         value="ESP32 row A (pins 1..15, antenna-side row)",
-        descr="Stock 1x15 P2.54 mm female pin socket. ESP32-C6 DevKitM-1-N4 plugs into this row + J6 (other row). Pin block offset 5.37 mm from antenna short edge per Espressif dimensions PDF.",
+        descr="Stock 1x15 P2.54 mm female pin socket. ESP32-C6 DevKitM-1-N4 plugs into this row + J6 (other row). Pin block offset 1.575 mm from antenna short edge per Espressif dimensions PDF.",
         uuid_tag="j5-esp32-row-a",
     ))
     parts.append(gen_pinsocket_pcb_footprint(
@@ -1552,11 +1560,11 @@ def gen_silk_labels() -> str:
     # J5/J6 designators. v0.53 (issue #3): the label X was hardcoded to the
     # old row-1 X (-22.39); it now DERIVES from the pin-row start
     # (ESP32_ANCHOR_X + ESP32_PIN_START_OFFSET) so it follows the -7.5 mm
-    # DevKit move. Label sits a further +5.37 mm east (≈ over pin 3). Y is
+    # DevKit move. Label sits a further 2 pitches east (≈ over pin 3). Y is
     # unchanged (ESP32_ANCHOR_Y did not move): J5 at Y=-22.5 (NORTH of the
     # J5 pin row at -25.97 and the MOD1 north edge -24.70); J6 at Y=-52.5
     # (SOUTH of the MOD1 south edge -50.10).
-    _j5j6_label_x = ESP32_ANCHOR_X + ESP32_PIN_START_OFFSET + 5.37
+    _j5j6_label_x = ESP32_ANCHOR_X + ESP32_PIN_START_OFFSET + 2 * ESP32_PIN_PITCH
     parts.append(_silk("J5", _j5j6_label_x, -22.5, "desig:J5", size=1.0))
     parts.append(_silk("J6", _j5j6_label_x, -52.5, "desig:J6", size=1.0))
     # (J7/J8 designators — the MIKROE-2462 mikroBUS socket pair — were

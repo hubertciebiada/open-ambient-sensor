@@ -1177,7 +1177,7 @@ def _daughterboard_body_content(
     pin_start_offset: float | None = None,
     antenna_tab_w: float | None = None,
     antenna_tab_protrusion: float | None = None,
-    emit_silk_outline: bool = True,
+    emit_silk_outline: bool | str = True,
 ) -> str:
     """Inner body content (body outline on F.Fab + pin-row dots on F.Fab +
     optional F.SilkS outline) shared by the library footprint definition and
@@ -1198,14 +1198,16 @@ def _daughterboard_body_content(
     ESP32-C6-DevKitM-1 (the ESP32-C6-MINI-1 antenna section). F.Fab may cross
     Edge.Cuts, so the tab can hang off-board.
 
-    `emit_silk_outline`: when False, NO F.SilkS body outline is drawn. Set
-    False for the ESP32 (issue #3): after the -7.5 mm move its body outline
-    would fall off the board at the NW corner AND cross the buck-section pads
-    (R6/C9) on the east edge and the U1 pads under the antenna tab — every
-    F.SilkS position in the module footprint is a silk_edge or
-    silk_over_copper violation. The J5/J6 socket silk frames + the
-    board-level "ESP32-C6 DevKitM-1" F.Fab label document the module instead;
-    the full true shape (incl. tab) lives on F.Fab.
+    `emit_silk_outline`: True = full silk rect; "corners" = four L-shaped
+    corner ticks (for silk-congested neighbourhoods); False = nothing.
+    History: the ESP32 mech-ref briefly set False mid-issue-#3, when the
+    then-wrong pin-1 offset (5.37 instead of 1.575 — see the HISTORY note
+    in _project.py) drew the body 3.795 mm too far west, off the board at
+    the NW corner. With the offset corrected the body is fully on-board,
+    but its neighbourhood stays too dense for a full rect (U1 lead-pad
+    ends / J5-J6 frame ends / C2 pad column on the short-edge lines), so
+    the ESP32 uses "corners". The full true shape (incl. the antenna tab,
+    which may cross Edge.Cuts) always lives on F.Fab.
     """
     parts: list[str] = []
     # Asymmetric silk inset: the long-edge silk lines EXTEND 0.5 mm beyond
@@ -1252,9 +1254,41 @@ def _daughterboard_body_content(
 
     # Body F.SilkS outline — visible on physical board and 3D render so the
     # hand-assembler can see where the daughterboard sits. Encompasses
-    # the female pin sockets along the long edges. Omitted when
-    # emit_silk_outline is False (see docstring — ESP32 issue #3).
-    if emit_silk_outline:
+    # the female pin sockets along the long edges. Three modes:
+    #   True      — full rect (LD2410: its neighbourhood is silk-free).
+    #   "corners" — four L-shaped corner ticks (ESP32: a full rect is
+    #               physically impossible there — the west short edge would
+    #               cross the U1 lead pads (west ends ~0.2 mm past the body
+    #               line) and the J5/J6 socket-frame ends, the east short
+    #               edge the C2 pad column. Ticks mark the body corners and
+    #               skip the congested mid-spans; short-edge tick lines sit
+    #               0.3 mm OUTSIDE the body so they clear the U1 pad ends
+    #               and frame ends by >= 0.2 mm).
+    #   False     — nothing.
+    if emit_silk_outline == "corners":
+        tick = 2.0                     # leg length, mm
+        corner_out = -0.3              # short-edge lines pushed OUTSIDE body
+        cx0, cy0 = silk_inset_long, corner_out
+        cx1, cy1 = body_w - silk_inset_long, body_l - corner_out
+        _corners = [
+            # (corner point, x-leg direction, y-leg direction)
+            ((cx0, cy0), +1, +1),
+            ((cx1, cy0), -1, +1),
+            ((cx1, cy1), -1, -1),
+            ((cx0, cy1), +1, -1),
+        ]
+        for _ci, ((px, py), sx, sy) in enumerate(_corners):
+            for _li, (ex, ey) in enumerate(((px + sx * tick, py),
+                                            (px, py + sy * tick))):
+                parts.append(textwrap.dedent(f"""\
+                    \t(fp_line
+                    \t\t(start {fmt(px)} {fmt(py)})
+                    \t\t(end {fmt(ex)} {fmt(ey)})
+                    \t\t(stroke (width 0.12) (type solid))
+                    \t\t(layer "F.SilkS")
+                    \t\t(uuid "{U(f'fp-silk-corner-{_ci}-{_li}:' + uuid_tag)}")
+                    \t)"""))
+    elif emit_silk_outline:
         parts.append(textwrap.dedent(f"""\
             \t(fp_rect
             \t\t(start {fmt(silk_inset_long)} {fmt(silk_inset_short)})
@@ -1316,7 +1350,7 @@ def gen_daughterboard_mech_lib_file(
     pin_start_offset: float | None = None,
     antenna_tab_w: float | None = None,
     antenna_tab_protrusion: float | None = None,
-    emit_silk_outline: bool = True,
+    emit_silk_outline: bool | str = True,
 ) -> str:
     """Return the .kicad_mod library-file content for a daughterboard
     mechanical-reference footprint.
@@ -1410,7 +1444,7 @@ def _emit_daughterboard_reference_pcb_footprint(
     pin_start_offset: float | None = None,
     antenna_tab_w: float | None = None,
     antenna_tab_protrusion: float | None = None,
-    emit_silk_outline: bool = True,
+    emit_silk_outline: bool | str = True,
 ) -> str:
     """Emit a daughterboard mechanical-reference footprint placed at
     (anchor_x, anchor_y) on the OAS PCB. The footprint is purely visual

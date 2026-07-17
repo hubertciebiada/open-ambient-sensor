@@ -399,12 +399,31 @@ def test_cutout_margin_restored_to_full() -> None:
 # ESP32-C6 DevKitM-1 -7.5 mm west move + antenna tab (issue #3)
 # ---------------------------------------------------------------------------
 
+def test_esp32_pin_start_offset_derivation() -> None:
+    # The PDF dimensions the USB-side inset directly (last pin -> USB short
+    # edge = 11.125 mm); the pin-1 inset is DERIVED: 48.26 - 14*2.54 - 11.125
+    # = 1.575. Assert the derivation, not just the literal, so the three
+    # source dims stay consistent. (The pre-review value 5.37 was the antenna
+    # tab protrusion misattributed to the pin offset — see _project.py
+    # HISTORY; the bench symptom was issue #3 itself.)
+    usb_side_inset = 11.125
+    derived = (
+        _project.ESP32_BODY_L
+        - (_project.ESP32_PIN_COUNT_PER_ROW - 1) * _project.ESP32_PIN_PITCH
+        - usb_side_inset
+    )
+    assert _project.ESP32_PIN_START_OFFSET == pytest.approx(derived, abs=1e-9)
+    assert _project.ESP32_PIN_START_OFFSET == pytest.approx(1.575, abs=1e-9)
+
+
 def test_esp32_moved_west_for_issue3() -> None:
-    # -7.5 mm west of the old -27.76 so the DevKit seats next to the THT caps.
-    assert _project.ESP32_ANCHOR_X == pytest.approx(-35.26, abs=1e-6)
-    # J5/J6 pin rows derive from the anchor: row-1 X = anchor + pin_start.
+    # The PHYSICAL datum of the issue-#3 move is the J5/J6 socket row: pin 1
+    # at -29.89 = exactly 7.5 mm west of the v0.51 boards' -22.39
+    # (user-measured). The anchor is DERIVED (pin1 - offset); asserting the
+    # datum first means an offset change can never silently move the sockets.
     row_x_start = _project.ESP32_ANCHOR_X + _project.ESP32_PIN_START_OFFSET
-    assert row_x_start == pytest.approx(-29.89, abs=1e-6)
+    assert row_x_start == pytest.approx(-22.39 - 7.5, abs=1e-6)
+    assert _project.ESP32_ANCHOR_X == pytest.approx(-31.465, abs=1e-6)
 
 
 def test_esp32_antenna_tab_constants() -> None:
@@ -415,46 +434,47 @@ def test_esp32_antenna_tab_constants() -> None:
     assert _project.ESP32_ANTENNA_TAB_PROTRUSION == pytest.approx(5.37, abs=1e-6)
 
 
-def test_esp32_body_nw_corner_overhang_is_expected() -> None:
-    # KNOWN, user-ACCEPTED overhang (issue #3, pending enclosure check): the
-    # DevKit body NW corner sits PAST the R60 outline. Assert the exact value
-    # so any silent drift (a further move, a body-dim change) is caught.
+def test_esp32_body_nw_corner_inside_outline() -> None:
+    # Post-offset-fix: the body NW corner sits INSIDE the R60 outline by
+    # ~0.85 mm — NO overhang. (The pre-review "1.264 mm accepted overhang"
+    # was an artifact of the wrong 5.37 pin offset drawing the body 3.795 mm
+    # too far west.) Assert the exact clearance so drift is caught.
     # NW corner PCB = (anchor_x, anchor_y - body_w) under the rot-90 daughter-
     # board transform LIB(lx,ly) -> PCB(anchor_x+ly, anchor_y-lx).
     nx = _project.ESP32_ANCHOR_X
     ny = _project.ESP32_ANCHOR_Y - _project.ESP32_BODY_W
     r = math.hypot(nx, ny)
-    assert r > _project.R_OUTLINE, "body NW corner should overhang R60"
-    assert r - _project.R_OUTLINE == pytest.approx(1.264, abs=0.01)
+    assert r < _project.R_OUTLINE, "body NW corner must stay inside R60"
+    assert _project.R_OUTLINE - r == pytest.approx(0.847, abs=0.01)
 
 
-def test_esp32_antenna_tab_corner_just_inside_outline() -> None:
-    # With the PDF-exact 5.37 mm protrusion the antenna tab far corner sits
-    # JUST INSIDE the R60 outline (~0.11 mm) — so the tab itself does NOT
-    # overhang; only the body NW corner does. Assert the exact clearance so a
-    # protrusion change (or a further move) that pushes the tab off-board is
-    # caught. Tab far corner PCB = (anchor_x - protrusion,
-    #                               anchor_y - (body_w + tab_w)/2).
+def test_esp32_antenna_tab_corner_inside_outline() -> None:
+    # Post-offset-fix the tab far corner sits comfortably inside the R60
+    # outline (~2.62 mm). Tab far corner PCB = (anchor_x - protrusion,
+    #                                anchor_y - (body_w + tab_w)/2).
     tx = _project.ESP32_ANCHOR_X - _project.ESP32_ANTENNA_TAB_PROTRUSION
     ty = _project.ESP32_ANCHOR_Y - (
         _project.ESP32_BODY_W + _project.ESP32_ANTENNA_TAB_W
     ) / 2.0
     r = math.hypot(tx, ty)
     assert r < _project.R_OUTLINE, "antenna tab corner should stay inside R60"
-    assert _project.R_OUTLINE - r == pytest.approx(0.11, abs=0.02)
+    assert _project.R_OUTLINE - r == pytest.approx(2.62, abs=0.02)
 
 
 def test_devkit_east_edge_clears_c3_can() -> None:
     # The whole point of the move: the DevKit body east edge must clear the
-    # C3 Ø8 mm radial can's west rim by a comfortable margin so the module
-    # seats fully. C3 can centre (25.75, -39) + Ø8 mirror gen_power_pcb_
-    # footprints(); documented literals keep the suite KiCad-free.
+    # C3 Ø8 mm radial can's west rim so the module seats fully. Real gap
+    # after the offset fix: 21.75 - 16.795 = 4.955 mm (the pre-review
+    # "8.75 mm" was measured against the mis-drawn shadow). C3 can centre
+    # (25.75, -39) + Ø8 mirror gen_power_pcb_footprints(); documented
+    # literals keep the suite KiCad-free.
     C3_CAN_CENTRE_X = 25.75
     C3_CAN_DIAMETER = 8.0
     devkit_east = _project.ESP32_ANCHOR_X + _project.ESP32_BODY_L
     c3_west_rim = C3_CAN_CENTRE_X - C3_CAN_DIAMETER / 2.0
     gap = c3_west_rim - devkit_east
-    assert gap >= 5.0, f"DevKit east to C3 can = {gap:.3f} mm (< 5.0 mm)"
+    assert gap == pytest.approx(4.955, abs=0.01)
+    assert gap >= 4.0, f"DevKit east to C3 can = {gap:.3f} mm (< 4.0 mm)"
 
 
 def test_j9_clears_cutout_after_margin_restore() -> None:

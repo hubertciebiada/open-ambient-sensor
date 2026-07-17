@@ -25,6 +25,8 @@ id_rsa*
 
 # KiCad ########
 *.kicad_prl
+# editor lock files (KiCad writes ~<project>.kicad_pro.lck while open)
+*.lck
 
 # Local KiCad reports/exports (regenerable, not source-of-truth)
 hardware/kicad/*.svg
