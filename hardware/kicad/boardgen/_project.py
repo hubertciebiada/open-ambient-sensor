@@ -465,6 +465,55 @@ J3_ROTATION = 90   # v0.53 (issue #2): rotated 90 (from 0) so the cable mouth
                    # order (no collision forces otherwise). (Pin NET order is
                    # unaffected by rotation — stage 19 check E stays valid.)
 
+# J3 cable pass-through slot (v0.53, issue #2 follow-up — bench finding):
+# with the SEN66 recessed into the cutout, the module's own GH receptacle
+# sits BELOW the PCB plane, so the lead leaves the module on the back side
+# and must return to the front face to reach J3. A second Edge.Cuts slot
+# EAST of J3 lets the cable plug (JST GHR-06V housing, ~10.5 x 4.1 mm)
+# pass through from below; the lead then loops west into J3's west-facing
+# mouth. Same orientation as J3 (long axis along PCB Y, matching the
+# rot-90 pin row), centred on J3_Y. The 5 mm FR4 web between J3 and the
+# slot gives the flat lead room for the up-and-over service loop.
+# Clearances (see tests/test_project_constants.py::test_j3_cable_slot_*):
+#   - north: SEN66 recess cutout south edge +23.0 -> 5.0 mm web
+#   - south: flat chord +43.498 -> 4.5 mm web
+#   - west:  J3 east courtyard edge +19.70 -> 5.0 mm web (the gap below)
+#   - far corner (29.7, 39.0) sits R=49.0 -> ~11 mm inside the R60 arc
+_J3_COURTYARD_HALF_X = 3.2    # rot-90 courtyard half-extent (measured from
+                              # the emitted J3 footprint — see J3_Y comment)
+J3_CABLE_SLOT_GAP = 5.0       # FR4 web: J3 east courtyard edge -> slot west edge
+J3_CABLE_SLOT_W = 5.0         # slot X extent (plug housing depth 4.1 + slack)
+J3_CABLE_SLOT_L = 11.0        # slot Y extent (plug housing width 10.5 + slack)
+J3_CABLE_SLOT_CORNER_R = 1.5  # rounded corners; >= 1.0 mm for a Ø2 internal mill
+J3_CABLE_SLOT_X_MIN = J3_X + _J3_COURTYARD_HALF_X + J3_CABLE_SLOT_GAP   # 24.70
+J3_CABLE_SLOT_X_MAX = J3_CABLE_SLOT_X_MIN + J3_CABLE_SLOT_W             # 29.70
+J3_CABLE_SLOT_Y_MIN = J3_Y - J3_CABLE_SLOT_L / 2                        # 28.00
+J3_CABLE_SLOT_Y_MAX = J3_Y + J3_CABLE_SLOT_L / 2                        # 39.00
+
+# -----------------------------------------------------------------------------
+# Repo-URL QR code + board-id silk block (west pocket) — v0.53
+# -----------------------------------------------------------------------------
+# The NFC removal (issue #7) left the west pocket empty (the MIKROE-2462
+# body shadow spanned X -40.16..-14.76, Y -16.51..+40.64). It now hosts a
+# silkscreen QR code linking to the public repo (matrix vendored in
+# boardgen/_qr_data.py) with the board name + version lines centred
+# below it — so a physical board self-documents where its sources live.
+# Placement (user spec): QR centre ON the horizontal axis of the central
+# cable hole (Y = 0), X centred in the pocket. Pocket window on that
+# axis: LD2410 body east edge -43.47 .. LED-ring west extent ~-14.8
+# (D15 at ring radius + its designator text) -> centre -29.0.
+# Field size: 33 modules x 0.5 mm + 4 quiet-zone modules per side
+# = 20.5 mm square -> spans X -39.25..-18.75, Y -10.25..+10.25; margins
+# ~4.2 mm to the LD2410 and ~4.0 mm to the ring. Nearest north item is
+# J2's pad row (east pad -38.3, Y -21.0) — 10.75 mm above the field.
+# Polarity is NORMAL: the white silk field forms the LIGHT modules +
+# quiet zone; DARK modules stay bare soldermask (dark-on-light scans on
+# every reader — an inverted white-module code would not).
+QR_SILK_CENTER_X = -29.0
+QR_SILK_CENTER_Y = 0.0        # user spec: on the central hole's horizontal axis
+QR_SILK_MODULE = 0.5          # mm per QR module (min silk feature 0.15 ok)
+QR_SILK_QUIET_MODULES = 4     # quiet-zone width, ISO/IEC 18004 recommendation
+
 # -----------------------------------------------------------------------------
 # LD2410 PCB placement (mechanical reference + J4 pin header) — chunk #5b
 # -----------------------------------------------------------------------------

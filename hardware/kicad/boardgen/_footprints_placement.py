@@ -26,6 +26,9 @@ from boardgen._project import (  # noqa: F401
     SEN66_ANCHOR_X, SEN66_ANCHOR_Y, SEN66_ROTATION,
     SEN66_ZIPTIE_LOCAL, _sen66_local_to_pcb,
     J3_X, J3_Y, J3_ROTATION,
+    _J3_COURTYARD_HALF_X, J3_CABLE_SLOT_X_MIN,
+    QR_SILK_CENTER_X, QR_SILK_CENTER_Y,
+    QR_SILK_MODULE, QR_SILK_QUIET_MODULES,
     LD2410_BODY_W, LD2410_BODY_H,
     LD2410_SILK_INSET, LD2410_SILK_INSET_CONN, LD2410_EMIT_SILK_OUTLINE,
     LD2410_ANTENNA_X_END, LD2410_CONNECTOR_X, LD2410_CONNECTOR_Y,
@@ -57,6 +60,7 @@ from boardgen._footprints_custom import (  # noqa: F401
     _emit_pcb_footprint_simple_npth,
     _emit_daughterboard_reference_pcb_footprint,
 )
+from boardgen._qr_data import QR_MATRIX
 from boardgen._footprints_stock import (
     gen_sen66_reference_pcb_footprint,
     gen_ld2410_reference_pcb_footprint,
@@ -1099,31 +1103,91 @@ def gen_silk_labels() -> str:
     # SEN66 body label. v0.53 (issue #2): the SEN66 body shadow is now a real
     # recess cutout, so this label can no longer sit inside the body. Moved to
     # the rim band just SOUTH of the cutout (south edge +23.0) and NORTH of
-    # the J3 socket (north courtyard edge +26.4) — a ~3.4 mm clear strip.
+    # the J3 cable slot (north edge +28.0) — a ~3.4 mm clear strip.
     # Centred horizontally on the cutout mid-X = anchor_x + SEN66_BODY_Y/2.
+    # v0.53-c (user change order): text switched from "SEN66 air quality"
+    # to the module MPN "SEN66 SIN-T" — the MPN identifies the exact part
+    # to a stranger holding the board, where "air quality" said little.
+    # (The former dedicated MPN label on the east rim is gone — this label
+    # now carries that duty; uuid tag "sen66-body" kept, no UUID churn.)
     body_mid_x = SEN66_ANCHOR_X + SEN66_BODY_Y / 2
-    parts.append(_silk("SEN66 air quality", body_mid_x, +24.6, "sen66-body"))
-    # ---- Board identification block (F.SilkS, SE pocket) ----
-    # A physical PCB can be identified by name + version without booting
-    # the device. v0.53-b (issue #2 change order): J3 moved out to the SW
-    # column (X=16.5), vacating the SE pocket, so the board-id no longer
-    # tracks J3 — it takes an ABSOLUTE anchor in the now-open pocket SOUTH of
-    # the recess cutout (south edge +23.0) and NORTH of the chord (+43.5),
-    # under the "SEN66 air quality" label (+24.6) and WEST of the H1
-    # mounting-hole courtyard (west boundary +44.78). Two stacked lines at
-    # X=34.0 (cutout mid-X): name at +31.5, version at +35.0. The version
-    # string is read from OAS_VERSION_LINE (boardgen/_common.py) — single
-    # source of truth, bump it on each release tag.
-    parts.append(_silk(OAS_NAME_SHORT, 34.0, +31.5,
+    parts.append(_silk("SEN66 SIN-T", body_mid_x, +24.6, "sen66-body"))
+    # ---- Repo QR code + board identification block (F.SilkS, west pocket) ----
+    # v0.53-c (user change order): the name + version block moved from the
+    # SE pocket (where the new J3 cable slot displaced the long name line)
+    # into the west pocket freed by the NFC removal (issue #7), joined by
+    # a QR code linking to the public repo — a physical board now
+    # self-documents where its sources live. Geometry constants + pocket
+    # clearance survey live at QR_SILK_* in _project.py; the module
+    # matrix is vendored in _qr_data.py (provenance + regen note there).
+    # Polarity is NORMAL: the white silk field forms the LIGHT modules +
+    # the 4-module quiet zone; DARK modules stay bare soldermask. Emitted
+    # as per-row run-length-merged filled gr_poly rects of light modules
+    # + 4 quiet-zone frame strips. All rects sit on the 0.5 mm module
+    # grid, so neighbours share edges exactly (zero-area contact — no
+    # silk_overlap).
+    _qr_n = len(QR_MATRIX)
+    _qr_mod = QR_SILK_MODULE
+    _qr_x0 = QR_SILK_CENTER_X - _qr_n * _qr_mod / 2.0   # module grid west edge
+    _qr_y0 = QR_SILK_CENTER_Y - _qr_n * _qr_mod / 2.0   # module grid north edge
+    _qr_x1 = _qr_x0 + _qr_n * _qr_mod
+    _qr_y1 = _qr_y0 + _qr_n * _qr_mod
+    _qr_quiet = QR_SILK_QUIET_MODULES * _qr_mod
+
+    def _qr_rect(xa: float, ya: float, xb: float, yb: float, tag: str) -> str:
+        return textwrap.dedent(f"""\
+            \t(gr_poly
+            \t\t(pts
+            \t\t\t(xy {fx(xa)} {fy(ya)})
+            \t\t\t(xy {fx(xb)} {fy(ya)})
+            \t\t\t(xy {fx(xb)} {fy(yb)})
+            \t\t\t(xy {fx(xa)} {fy(yb)})
+            \t\t)
+            \t\t(stroke (width 0) (type solid))
+            \t\t(fill yes)
+            \t\t(layer "F.SilkS")
+            \t\t(uuid "{U('qr-silk:' + tag)}")
+            \t)""")
+
+    # Quiet-zone frame: N/S strips span the full field width (they own the
+    # corners); W/E strips cover only the code height.
+    parts.append(_qr_rect(_qr_x0 - _qr_quiet, _qr_y0 - _qr_quiet,
+                          _qr_x1 + _qr_quiet, _qr_y0, "quiet-n"))
+    parts.append(_qr_rect(_qr_x0 - _qr_quiet, _qr_y1,
+                          _qr_x1 + _qr_quiet, _qr_y1 + _qr_quiet, "quiet-s"))
+    parts.append(_qr_rect(_qr_x0 - _qr_quiet, _qr_y0, _qr_x0, _qr_y1,
+                          "quiet-w"))
+    parts.append(_qr_rect(_qr_x1, _qr_y0, _qr_x1 + _qr_quiet, _qr_y1,
+                          "quiet-e"))
+    for _qr_r, _qr_row in enumerate(QR_MATRIX):
+        _qr_c = 0
+        while _qr_c < _qr_n:
+            if _qr_row[_qr_c] == "0":   # light module -> silk
+                _qr_c_end = _qr_c
+                while _qr_c_end < _qr_n and _qr_row[_qr_c_end] == "0":
+                    _qr_c_end += 1
+                parts.append(_qr_rect(
+                    _qr_x0 + _qr_c * _qr_mod, _qr_y0 + _qr_r * _qr_mod,
+                    _qr_x0 + _qr_c_end * _qr_mod,
+                    _qr_y0 + (_qr_r + 1) * _qr_mod,
+                    f"r{_qr_r}c{_qr_c}"))
+                _qr_c = _qr_c_end
+            else:
+                _qr_c += 1
+    # Name + version, centred under the QR field (user spec: name below
+    # the code, version one row further). The version string is read from
+    # OAS_VERSION_LINE (boardgen/_common.py) — single source of truth,
+    # bump it on each release tag.
+    _qr_field_s = _qr_y1 + _qr_quiet          # +10.25
+    parts.append(_silk(OAS_NAME_SHORT, QR_SILK_CENTER_X, _qr_field_s + 1.95,
                        "board-id-name", size=1.0))
-    parts.append(_silk(OAS_VERSION_LINE, 34.0, +35.0,
+    parts.append(_silk(OAS_VERSION_LINE, QR_SILK_CENTER_X, _qr_field_s + 4.15,
                        "board-id-version", size=1.0))
     # No separate "-> J3" / "to SEN66" cable-direction arrows are emitted
     # (dropped back in v0.9). The J3↔SEN66 relationship is documented by the
     # J3 "J3" designator + its F.Fab value "JST SM06B-GHS-TB (SEN66
-    # connector)" and by the "SEN66 air quality" / "SEN66 SIN-T" board labels.
-    # With J3 now far from the SEN66 zone there is no adjacency to reinforce
-    # with an arrow, so none is added.
+    # connector)" and by the "SEN66 SIN-T" board label; the cable slot east
+    # of J3 carries its own "SEN66 lead" hint (see below).
 
     # ---- v0.15.8: LD2410 board-level labels (board-level gr_text so
     # they read horizontally even with the LD2410 footprint rotated 270°).
@@ -1144,31 +1208,47 @@ def gen_silk_labels() -> str:
     parts.append(_silk("antenna ^", ld_antenna_pcb[0], ld_antenna_pcb[1],
                        "ld2410-antenna", size=1.0, angle=90.0))
 
-    # ---- SEN66 module identification (MPN) label as board-level gr_text.
-    # v0.53 (issue #2): relocated out of the (now cut-out) body shadow to the
-    # EAST rim, rotated 90 so it runs vertically along the strip between the
-    # cutout east edge (+47.85) and the R60 outline (~+55 at this Y). Placed
-    # NORTH of the ZT2/ZT4 zip-tie holes (X=52.1, Y=0/-8; ZT4 designator at
-    # Y=-11.2) — at Y=-20 the text spans ~Y[-25,-15], clear of ZT4 and inside
-    # the outline (X≈54.5 at Y=-25).
-    parts.append(_silk("SEN66 SIN-T", +52.0, -20.0, "sen66-mpn",
-                       size=1.0, angle=90.0))
+    # (v0.53-c: the former dedicated MPN label on the east rim — vertical
+    # "SEN66 SIN-T" at (+52, -20), uuid tag "sen66-mpn" — was REMOVED per
+    # user change order; the "sen66-body" label south of the cutout now
+    # reads "SEN66 SIN-T" and carries the MPN duty alone.)
+
+    # ---- J3 cable-slot hint (v0.53-c, issue #2 follow-up) ----
+    # The pass-through slot east of J3 (J3_CABLE_SLOT_* in _project.py)
+    # is a non-obvious feature — an unlabeled internal hole reads as a
+    # mistake. A short vertical hint on the 5 mm FR4 web between J3 and
+    # the slot names what passes through: the SEN66 module's lead, up
+    # from the back side and west into J3's mouth. Centred on the web
+    # (X = (J3 east courtyard 19.70 + slot west edge 24.70)/2 = 22.20)
+    # at J3_Y. Size 1.0 (the board min_text_height — 0.8 trips the DRC
+    # text_height check); 10 chars span ~Y 26.7..40.3, the text column
+    # (X ±0.65) stays ~1.85 mm off both the courtyard and the slot edge,
+    # and the north end clears D1's silk by >1 mm.
+    parts.append(_silk("SEN66 lead",
+                       (J3_X + _J3_COURTYARD_HALF_X + J3_CABLE_SLOT_X_MIN) / 2,
+                       J3_Y, "j3-slot-hint", size=1.0, angle=90.0))
 
     # ---- v0.15.8: ESP32 body-label board (the MIKROE-2462 body label
     # left with the NFC removal, issue #7).
-    # v0.22 — moved ESP32 body labels to F.Fab (was F.SilkS). The body
-    # center now sits over the power-section SMD components placed under
-    # the daughterboard shadow (U1 LM2596S, D2 SS14, etc.), which triggers
-    # silk_over_copper DRC warnings when the labels are on F.SilkS.
-    # Since the ESP32 daughterboard physically COVERS this part of the
-    # PCB at assembly time, the silk text underneath would be invisible
-    # to the user anyway — moving it to F.Fab (assembly drawing layer,
-    # rendered in 2D-top.png but not silkscreen-printed) preserves the
-    # documentation value while clearing the DRC noise.
+    # v0.22 moved this label to F.Fab (was F.SilkS): back then the body
+    # center sat directly over power-section SMD pads, tripping
+    # silk_over_copper DRC. v0.53-c restores it to F.SilkS (user change
+    # order — the board had no printed ESP32 identification): after the
+    # v0.50 buck re-spread the body center falls in the ~5.7 mm routing
+    # corridor BETWEEN the two buck component rows (row A at Y=-33.5,
+    # row B at Y=-40.7), and the v0.53 module move west shifted the text
+    # with it. The exact body-centre Y (-37.4) grazed L2's silk frame
+    # (north edge ≈-37.9, DRC silk_overlap), so the label is nudged
+    # +1.3 mm south of dead-centre to the SILK corridor midpoint: L2/L1
+    # silk north edges ≈-37.9, row-A 0603 silk south edges ≈-34.2 ->
+    # centre -36.1, text band ≈-36.8..-35.4 clears both by >1 mm (and
+    # every pad by >1.4 mm). The label sits under the socketed
+    # daughterboard (~8.6 mm standoff), readable at an angle and during
+    # assembly.
     esp32_body_cx = ESP32_ANCHOR_X + ESP32_BODY_L / 2.0
-    esp32_body_cy = ESP32_ANCHOR_Y - ESP32_BODY_W / 2.0
+    esp32_body_cy = ESP32_ANCHOR_Y - ESP32_BODY_W / 2.0 + 1.3
     parts.append(_silk("ESP32-C6 DevKitM-1", esp32_body_cx, esp32_body_cy,
-                       "esp32-body", size=1.0, layer="F.Fab"))
+                       "esp32-body", size=1.0))
     # ESP32 USB-C ("USB") short-edge hint on F.Fab. The "ant" antenna-
     # edge hint was removed in v0.50 Task-3 (not needed, and the buck
     # re-spread put L1 in that spot). LIB (body_w/2, body_l - 6.0)

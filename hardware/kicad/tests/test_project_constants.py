@@ -490,3 +490,66 @@ def test_j9_clears_cutout_after_margin_restore() -> None:
     mp_courtyard_east = _project.J9_PCB_X + 3.90
     assert _project.SEN66_CUTOUT_X_MIN - mp_copper_east >= 0.30
     assert _project.SEN66_CUTOUT_X_MIN - mp_courtyard_east >= 0.30
+
+
+# ---------------------------------------------------------------------------
+# J3 cable pass-through slot + repo-QR silk block (v0.53-c)
+# ---------------------------------------------------------------------------
+
+def test_j3_cable_slot_dims() -> None:
+    # Bench finding (issue #2 follow-up): with the SEN66 recessed, its GH
+    # receptacle sits below the PCB — the lead's plug (GHR-06V, ~10.5 x
+    # 4.1 mm) passes up through an 11 x 5 mm slot east of J3. User spec:
+    # same orientation as J3 (long axis along Y), ~5 mm from J3's edge.
+    assert _project.J3_CABLE_SLOT_W == 5.0
+    assert _project.J3_CABLE_SLOT_L == 11.0
+    assert _project.J3_CABLE_SLOT_GAP == 5.0
+    assert _project.J3_CABLE_SLOT_CORNER_R >= 1.0   # Ø2 internal mill
+    # Slot is centred on J3's Y and starts one gap east of J3's courtyard.
+    assert _project.J3_CABLE_SLOT_Y_MIN + _project.J3_CABLE_SLOT_Y_MAX == (
+        pytest.approx(2 * _project.J3_Y, abs=1e-9))
+    assert _project.J3_CABLE_SLOT_X_MIN == pytest.approx(
+        _project.J3_X + _project._J3_COURTYARD_HALF_X + 5.0, abs=1e-9)
+    # Slot must fit the GHR-06V plug with slack on both axes.
+    assert _project.J3_CABLE_SLOT_L >= 10.5 + 0.4
+    assert _project.J3_CABLE_SLOT_W >= 4.1 + 0.8
+
+
+def test_j3_cable_slot_webs_and_outline() -> None:
+    # FR4 webs around the slot: >= 4.0 mm to the SEN66 recess cutout
+    # (north), >= 4.0 mm to the flat chord (south), and the whole slot
+    # inside the R60 D-shape outline.
+    north_web = _project.J3_CABLE_SLOT_Y_MIN - _project.SEN66_CUTOUT_Y_MAX
+    assert north_web >= 4.0, f"slot-to-cutout web = {north_web:.3f} mm"
+    south_web = _project.Y_CHORD - _project.J3_CABLE_SLOT_Y_MAX
+    assert south_web >= 4.0, f"slot-to-chord web = {south_web:.3f} mm"
+    for cx in (_project.J3_CABLE_SLOT_X_MIN, _project.J3_CABLE_SLOT_X_MAX):
+        for cy in (_project.J3_CABLE_SLOT_Y_MIN, _project.J3_CABLE_SLOT_Y_MAX):
+            _assert_inside_outline(cx, cy, "J3 cable slot corner")
+
+
+def test_qr_block_fits_west_pocket() -> None:
+    # The repo-QR silk field (code + quiet zone) must fit the west pocket
+    # freed by the NFC removal: east of the LD2410 daughterboard (body
+    # east edge = LD2410_ANCHOR_X) and west of the LED ring's west extent
+    # (westmost LED at ring radius 13 -> body/courtyard west edge ≈ -15.4;
+    # -16.0 used as the conservative bound). User spec: centre on the
+    # central hole's horizontal axis (Y = 0).
+    from boardgen._qr_data import QR_MATRIX
+    n = len(QR_MATRIX)
+    half_field = (n / 2.0 + _project.QR_SILK_QUIET_MODULES) * (
+        _project.QR_SILK_MODULE)
+    x_min = _project.QR_SILK_CENTER_X - half_field
+    x_max = _project.QR_SILK_CENTER_X + half_field
+    assert _project.QR_SILK_CENTER_Y == 0.0
+    assert x_min >= _project.LD2410_ANCHOR_X + 2.0, (
+        f"QR west edge {x_min:.2f} crowds the LD2410 (east edge "
+        f"{_project.LD2410_ANCHOR_X})")
+    assert x_max <= -16.0, f"QR east edge {x_max:.2f} crowds the LED ring"
+    for cx in (x_min, x_max):
+        for cy in (_project.QR_SILK_CENTER_Y - half_field,
+                   _project.QR_SILK_CENTER_Y + half_field):
+            _assert_inside_outline(cx, cy, "QR silk field corner")
+    # Modules below ~0.35 mm print but stop scanning reliably.
+    assert _project.QR_SILK_MODULE >= 0.35
+    assert _project.QR_SILK_QUIET_MODULES >= 4   # ISO/IEC 18004 quiet zone

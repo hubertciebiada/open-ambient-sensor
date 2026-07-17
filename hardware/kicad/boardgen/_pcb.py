@@ -26,6 +26,8 @@ from boardgen._project import (
     CABLE_HOLE_DIAMETER,
     SEN66_CUTOUT_X_MIN, SEN66_CUTOUT_X_MAX,
     SEN66_CUTOUT_Y_MIN, SEN66_CUTOUT_Y_MAX, SEN66_CUTOUT_CORNER_R,
+    J3_CABLE_SLOT_X_MIN, J3_CABLE_SLOT_X_MAX,
+    J3_CABLE_SLOT_Y_MIN, J3_CABLE_SLOT_Y_MAX, J3_CABLE_SLOT_CORNER_R,
 )
 from boardgen._footprints import (
     gen_cutouts,
@@ -124,52 +126,67 @@ def gen_pcb() -> str:
         \t\t(uuid "{U('cable_hole')}")
         \t)""")
 
-    # SEN66 recess cutout (v0.53, GitHub issue #2): a rounded rectangle
-    # milled through the board so the SEN66 module recesses into the
-    # enclosure rear space — the flat-mount body height broke the AK-N-94
-    # lid close. Emitted as 4 straight gr_line edges + 4 quarter-circle
-    # gr_arc corners on Edge.Cuts, derived from SEN66_CUTOUT_* in
-    # _project.py so the opening tracks any future SEN66 anchor move.
-    cx0, cx1 = SEN66_CUTOUT_X_MIN, SEN66_CUTOUT_X_MAX
-    cy0, cy1 = SEN66_CUTOUT_Y_MIN, SEN66_CUTOUT_Y_MAX
-    cr = SEN66_CUTOUT_CORNER_R
-    cs = cr * math.sqrt(0.5)   # corner-arc midpoint offset (r·cos45°)
-    _cut_lines = [
-        # (start_x, start_y, end_x, end_y, tag) — edges shortened by cr at
-        # each end so they meet the quarter-arc corners.
-        (cx0 + cr, cy0, cx1 - cr, cy0, "n"),   # north edge (min Y)
-        (cx1, cy0 + cr, cx1, cy1 - cr, "e"),   # east edge (max X)
-        (cx1 - cr, cy1, cx0 + cr, cy1, "s"),   # south edge (max Y)
-        (cx0, cy1 - cr, cx0, cy0 + cr, "w"),   # west edge (min X)
-    ]
-    _cut_arcs = [
-        # (start_x, start_y, mid_x, mid_y, end_x, end_y, tag) — quarter arcs
-        # bulging toward each rectangle corner (mid on the outward diagonal).
-        (cx1 - cr, cy0, cx1 - cr + cs, cy0 + cr - cs, cx1, cy0 + cr, "ne"),
-        (cx1, cy1 - cr, cx1 - cr + cs, cy1 - cr + cs, cx1 - cr, cy1, "se"),
-        (cx0 + cr, cy1, cx0 + cr - cs, cy1 - cr + cs, cx0, cy1 - cr, "sw"),
-        (cx0, cy0 + cr, cx0 + cr - cs, cy0 + cr - cs, cx0 + cr, cy0, "nw"),
+    # Internal rounded-rectangle cutouts on Edge.Cuts. Each is emitted as
+    # 4 straight gr_line edges + 4 quarter-circle gr_arc corners, derived
+    # from _project.py constants so the openings track any future anchor
+    # move. Two openings:
+    #   1. SEN66 recess cutout (v0.53, GitHub issue #2): the SEN66 module
+    #      recesses into the enclosure rear space — the flat-mount body
+    #      height broke the AK-N-94 lid close.
+    #   2. J3 cable pass-through slot (v0.53, issue #2 follow-up): with
+    #      the module recessed its GH receptacle sits below the PCB, so
+    #      the lead's plug passes up through this slot east of J3 and
+    #      loops west into J3's mouth (see J3_CABLE_SLOT_* in _project.py).
+    _rounded_cutouts = [
+        # (x_min, x_max, y_min, y_max, corner_r, uuid_prefix) — the SEN66
+        # prefix predates the second opening; keep it verbatim so the
+        # deterministic v5 UUIDs of the existing cutout never churn.
+        (SEN66_CUTOUT_X_MIN, SEN66_CUTOUT_X_MAX,
+         SEN66_CUTOUT_Y_MIN, SEN66_CUTOUT_Y_MAX,
+         SEN66_CUTOUT_CORNER_R, "sen66_cutout"),
+        (J3_CABLE_SLOT_X_MIN, J3_CABLE_SLOT_X_MAX,
+         J3_CABLE_SLOT_Y_MIN, J3_CABLE_SLOT_Y_MAX,
+         J3_CABLE_SLOT_CORNER_R, "j3_slot"),
     ]
     cutout_parts = []
-    for sx, sy, ex, ey, tag in _cut_lines:
-        cutout_parts.append(textwrap.dedent(f"""\
-            \t(gr_line
-            \t\t(start {fx(sx)} {fy(sy)})
-            \t\t(end {fx(ex)} {fy(ey)})
-            \t\t(stroke (width {fmt(EDGE_CUTS_WIDTH)}) (type solid))
-            \t\t(layer "Edge.Cuts")
-            \t\t(uuid "{U('sen66_cutout_edge_' + tag)}")
-            \t)"""))
-    for sx, sy, mx, my, ex, ey, tag in _cut_arcs:
-        cutout_parts.append(textwrap.dedent(f"""\
-            \t(gr_arc
-            \t\t(start {fx(sx)} {fy(sy)})
-            \t\t(mid {fx(mx)} {fy(my)})
-            \t\t(end {fx(ex)} {fy(ey)})
-            \t\t(stroke (width {fmt(EDGE_CUTS_WIDTH)}) (type solid))
-            \t\t(layer "Edge.Cuts")
-            \t\t(uuid "{U('sen66_cutout_corner_' + tag)}")
-            \t)"""))
+    for cx0, cx1, cy0, cy1, cr, prefix in _rounded_cutouts:
+        cs = cr * math.sqrt(0.5)   # corner-arc midpoint offset (r·cos45°)
+        _cut_lines = [
+            # (start_x, start_y, end_x, end_y, tag) — edges shortened by cr
+            # at each end so they meet the quarter-arc corners.
+            (cx0 + cr, cy0, cx1 - cr, cy0, "n"),   # north edge (min Y)
+            (cx1, cy0 + cr, cx1, cy1 - cr, "e"),   # east edge (max X)
+            (cx1 - cr, cy1, cx0 + cr, cy1, "s"),   # south edge (max Y)
+            (cx0, cy1 - cr, cx0, cy0 + cr, "w"),   # west edge (min X)
+        ]
+        _cut_arcs = [
+            # (start_x, start_y, mid_x, mid_y, end_x, end_y, tag) — quarter
+            # arcs bulging toward each rectangle corner (mid on the outward
+            # diagonal).
+            (cx1 - cr, cy0, cx1 - cr + cs, cy0 + cr - cs, cx1, cy0 + cr, "ne"),
+            (cx1, cy1 - cr, cx1 - cr + cs, cy1 - cr + cs, cx1 - cr, cy1, "se"),
+            (cx0 + cr, cy1, cx0 + cr - cs, cy1 - cr + cs, cx0, cy1 - cr, "sw"),
+            (cx0, cy0 + cr, cx0 + cr - cs, cy0 + cr - cs, cx0 + cr, cy0, "nw"),
+        ]
+        for sx, sy, ex, ey, tag in _cut_lines:
+            cutout_parts.append(textwrap.dedent(f"""\
+                \t(gr_line
+                \t\t(start {fx(sx)} {fy(sy)})
+                \t\t(end {fx(ex)} {fy(ey)})
+                \t\t(stroke (width {fmt(EDGE_CUTS_WIDTH)}) (type solid))
+                \t\t(layer "Edge.Cuts")
+                \t\t(uuid "{U(prefix + '_edge_' + tag)}")
+                \t)"""))
+        for sx, sy, mx, my, ex, ey, tag in _cut_arcs:
+            cutout_parts.append(textwrap.dedent(f"""\
+                \t(gr_arc
+                \t\t(start {fx(sx)} {fy(sy)})
+                \t\t(mid {fx(mx)} {fy(my)})
+                \t\t(end {fx(ex)} {fy(ey)})
+                \t\t(stroke (width {fmt(EDGE_CUTS_WIDTH)}) (type solid))
+                \t\t(layer "Edge.Cuts")
+                \t\t(uuid "{U(prefix + '_corner_' + tag)}")
+                \t)"""))
     outline = outline + "\n" + "\n".join(cutout_parts)
 
     # 3 mounting holes. v0.27: per-hole designators (H1/H2/H3) are
