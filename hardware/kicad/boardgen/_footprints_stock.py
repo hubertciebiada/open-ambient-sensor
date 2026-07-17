@@ -58,7 +58,7 @@ from boardgen._project import (  # noqa: F401
 # the mechanical-reference footprint owns them). `gen_sen66_reference_pcb_footprint`
 # (stock) reads from the same library so it needs the same body extents.
 from boardgen._footprints_custom import (  # noqa: F401
-    SEN66_BODY_X, SEN66_BODY_Y, SEN66_BODY_Z, SEN66_SILK_INSET,
+    SEN66_BODY_X, SEN66_BODY_Y, SEN66_BODY_Z,
     SEN66_INLET1_CX, SEN66_INLET1_CY, SEN66_INLET1_DX, SEN66_INLET1_DY,
     SEN66_INLET2_CX, SEN66_INLET2_CY, SEN66_INLET2_DX, SEN66_INLET2_DY,
     SEN66_OUTLET_CX, SEN66_OUTLET_CY, SEN66_OUTLET_DIA,
@@ -74,13 +74,15 @@ def gen_sen66_reference_pcb_footprint(x: float, y: float, rotation: int) -> str:
     `rotation` degrees. The PCB file format requires a full repetition
     of the footprint body — the library entry alone doesn't render.
 
-    Mechanical-only: no pads, no plated holes. All graphics on F.Fab,
-    F.SilkS, F.CrtYd; nothing on F.Cu so this footprint contributes
-    zero copper to the board.
+    Mechanical-only: no pads, no plated holes. Graphics on F.Fab + F.CrtYd;
+    nothing on F.Cu so this footprint contributes zero copper. v0.53
+    (issue #2): the module recesses through a real board cutout, so the two
+    F.SilkS elements (body outline + "JST GH cable ->" text) that fell inside
+    the opening were removed — see gen_sen66_mechanical_footprint() for the
+    full rationale. Kept in sync with that library definition.
     """
     x_min, y_min = 0.0, 0.0
     x_max, y_max = SEN66_BODY_X, SEN66_BODY_Y
-    inset = SEN66_SILK_INSET
     uuid_tag = "sen66-pcb"
 
     # Inlet #1 — obround.
@@ -147,14 +149,6 @@ def gen_sen66_reference_pcb_footprint(x: float, y: float, rotation: int) -> str:
         \t\t\t(layer "F.Fab")
         \t\t\t(uuid "{U('fp-fab-outline:' + uuid_tag)}")
         \t\t)
-        \t\t(fp_rect
-        \t\t\t(start {fmt(x_min + inset)} {fmt(y_min + inset)})
-        \t\t\t(end {fmt(x_max - inset)} {fmt(y_max - inset)})
-        \t\t\t(stroke (width 0.12) (type solid))
-        \t\t\t(fill no)
-        \t\t\t(layer "F.SilkS")
-        \t\t\t(uuid "{U('fp-silk-outline:' + uuid_tag)}")
-        \t\t)
         \t\t(fp_line
         \t\t\t(start {fmt(in1_x1)} {fmt(in1_y - in1_r)})
         \t\t\t(end {fmt(in1_x2)} {fmt(in1_y - in1_r)})
@@ -215,12 +209,6 @@ def gen_sen66_reference_pcb_footprint(x: float, y: float, rotation: int) -> str:
         \t\t\t(fill no)
         \t\t\t(layer "F.Fab")
         \t\t\t(uuid "{U('fp-conn-marker:' + uuid_tag)}")
-        \t\t)
-        \t\t(fp_text user "JST GH cable ->"
-        \t\t\t(at {fmt(SEN66_CONNECTOR_X - 5.0)} {fmt(SEN66_CONNECTOR_Y + 4.5)} 0)
-        \t\t\t(layer "F.SilkS")
-        \t\t\t(uuid "{U('fp-conn-label:' + uuid_tag)}")
-        \t\t\t(effects (font (size 1.0 1.0) (thickness 0.15)))
         \t\t)
         \t\t(fp_rect
         \t\t\t(start {fmt(-0.25)} {fmt(-0.25)})

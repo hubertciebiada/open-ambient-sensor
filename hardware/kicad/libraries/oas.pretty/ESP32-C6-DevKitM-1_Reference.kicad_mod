@@ -3,7 +3,7 @@
 	(generator "pcbnew")
 	(generator_version "10.0")
 	(layer "F.Cu")
-	(descr "Espressif ESP32-C6-DevKitM-1-N4 daughterboard mechanical reference (no pads). EAN 5904422385651. Body 25.4×48.26×8.6 mm. Mounts on 2× 1x15 P2.54 mm female pin sockets; antenna at one short edge, dual USB-C at the other. Pin block offset 0.98 mm toward antenna end per Espressif dimensions PDF.")
+	(descr "Espressif ESP32-C6-DevKitM-1-N4 daughterboard mechanical reference (no pads). EAN 5904422385651. Body 25.4×48.26 mm + 13.20×5.37 mm ESP32-C6-MINI-1 antenna tab (total envelope ~53.6×25.4 mm), 8.6 mm tall. Mounts on 2× 1x15 P2.54 mm female pin sockets; antenna tab overhangs one short edge, dual USB-C at the other. Pin block offset 5.37 mm from the antenna edge per Espressif dimensions PDF. F.Fab shows the true outline incl. tab; no F.SilkS (issue #3).")
 	(tags "esp32-c6-devkitm-1_reference oas mechanical reference daughterboard")
 	(attr board_only exclude_from_pos_files exclude_from_bom)
 	(property "Reference" "REF**"
@@ -38,7 +38,7 @@
 		(uuid "3be94b82-d252-54ca-9647-752ce930b38f")
 		(effects (font (size 1.27 1.27)))
 	)
-	(property "Description" "Espressif ESP32-C6-DevKitM-1-N4 daughterboard mechanical reference (no pads). EAN 5904422385651. Body 25.4×48.26×8.6 mm. Mounts on 2× 1x15 P2.54 mm female pin sockets; antenna at one short edge, dual USB-C at the other. Pin block offset 0.98 mm toward antenna end per Espressif dimensions PDF."
+	(property "Description" "Espressif ESP32-C6-DevKitM-1-N4 daughterboard mechanical reference (no pads). EAN 5904422385651. Body 25.4×48.26 mm + 13.20×5.37 mm ESP32-C6-MINI-1 antenna tab (total envelope ~53.6×25.4 mm), 8.6 mm tall. Mounts on 2× 1x15 P2.54 mm female pin sockets; antenna tab overhangs one short edge, dual USB-C at the other. Pin block offset 5.37 mm from the antenna edge per Espressif dimensions PDF. F.Fab shows the true outline incl. tab; no F.SilkS (issue #3)."
 		(at 0 0 0)
 		(unlocked yes)
 		(layer "F.Fab")
@@ -46,22 +46,22 @@
 		(uuid "28832a76-0d08-5c13-bdce-368bc4b008f5")
 		(effects (font (size 1.27 1.27)))
 	)
-(fp_rect
-	(start 0 0)
-	(end 25.4 48.26)
-	(stroke (width 0.1) (type solid))
-	(fill no)
-	(layer "F.Fab")
-	(uuid "f12c2871-b207-58b1-a32a-020c71bd96f2")
-)
-(fp_rect
-	(start -0.5 0.2)
-	(end 25.9 48.06)
-	(stroke (width 0.12) (type solid))
-	(fill no)
-	(layer "F.SilkS")
-	(uuid "1691a0b3-9dcb-5d2f-9b73-63fabaf1bc88")
-)
+            	(fp_poly
+            		(pts
+            			(xy 0 0)
+			(xy 0 48.26)
+			(xy 25.4 48.26)
+			(xy 25.4 0)
+			(xy 19.3 0)
+			(xy 19.3 -5.37)
+			(xy 6.1 -5.37)
+			(xy 6.1 0)
+            		)
+            		(stroke (width 0.1) (type solid))
+            		(fill no)
+            		(layer "F.Fab")
+            		(uuid "f12c2871-b207-58b1-a32a-020c71bd96f2")
+            	)
 (fp_circle
 	(center 1.27 5.37)
 	(end 1.77 5.37)

@@ -54,14 +54,6 @@
 	(layer "F.Fab")
 	(uuid "99a2b396-2184-54bb-9460-08813d7c9df8")
 )
-(fp_rect
-	(start 0.2 0.2)
-	(end 55 25.4)
-	(stroke (width 0.12) (type solid))
-	(fill no)
-	(layer "F.SilkS")
-	(uuid "82dd9bcb-5844-5bd2-95a7-574c65ff9a32")
-)
 (fp_line
 	(start 6.7 3.875)
 	(end 14.7 3.875)
@@ -122,12 +114,6 @@
 	(fill no)
 	(layer "F.Fab")
 	(uuid "8cea76ef-44c4-5ac6-ae1b-08d9123dcb06")
-)
-(fp_text user "JST GH cable ->"
-	(at 50.2 17.3 0)
-	(layer "F.SilkS")
-	(uuid "49fdecc7-cc63-52bb-8f66-b8d53bcd789c")
-	(effects (font (size 1.0 1.0) (thickness 0.15)))
 )
 (fp_rect
 	(start -0.25 -0.25)

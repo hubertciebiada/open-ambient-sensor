@@ -35,6 +35,7 @@ from boardgen._project import (  # noqa: F401
     ESP32_BODY_W, ESP32_BODY_L,
     ESP32_PIN_ROW_INSET, ESP32_PIN_PITCH, ESP32_PIN_COUNT_PER_ROW,
     ESP32_PIN_START_OFFSET,
+    ESP32_ANTENNA_TAB_W, ESP32_ANTENNA_TAB_PROTRUSION,
     ESP32_ANCHOR_X, ESP32_ANCHOR_Y, ESP32_ROTATION,
     J1_PCB_X, J1_PCB_Y, J1_PCB_ROTATION,
     J2_PCB_X, J2_PCB_Y, J2_PCB_ROTATION,
@@ -413,7 +414,7 @@ def gen_power_pcb_footprints() -> str:
     # pad 1 (cathode, KiCad D_SMB KLC) on the EAST physical side, facing
     # the Q1 source.
     parts.append(gen_diode_smb_pcb_footprint(
-        x=+20, y=+22.5, rotation=90,
+        x=+17, y=+22.5, rotation=90,
         reference="D1", value="SMBJ24A",
         uuid_tag="d1-tvs-smbj24a",
         descr="SMBJ24A TVS surge clamp, 24 V standoff, 38.9 V clamp.",
@@ -454,21 +455,28 @@ def gen_power_pcb_footprints() -> str:
     # no remap needed. Removes the previous lib_footprint_mismatch
     # warning that required `rule_severities` override.
     # v0.50 placement rework: Q1 sits in the RIGHT protection-cluster
-    # column at X=+20 (under ZT1), between F1 (north) and D1 (south).
-    # The cluster is two side-by-side columns (right: F1/Q1/D1; left at
-    # X=+15: gate network D3/R4/R1) instead of one tall stack.
+    # column, between F1 (north) and D1 (south). The cluster is two
+    # side-by-side columns (right: F1/Q1/D1; left: gate network D3/R4/R1)
+    # instead of one tall stack.
+    # v0.53 (issue #2): both columns moved 3 mm WEST (right X=+20→+17, left
+    # X=+15→+12) tracking the SEN66 recess cutout, whose west edge is at
+    # X=+20.5. The widest right-column courtyard is D1's SMB (half-X 2.25 mm
+    # at rotation 90) → east courtyard edge +19.25, i.e. 1.25 mm clear of the
+    # cutout west edge. Left column west edge (R1/R4 0603, half-X ~0.8, +12)
+    # clears the J1 terminal-block east edge (+9.15) by ~2.05 mm.
     parts.append(gen_sot23_3pin_pcb_footprint(
-        x=+20, y=+15.5, rotation=90,
+        x=+17, y=+15.5, rotation=90,
         reference="Q1", value="AO3401A",
         uuid_tag="q1-pmos",
         descr="P-MOSFET reverse-polarity protection. SOT-23. AO3401A: Vds=-30 V, Vgs=±12 V, RDS(on)=60 mΩ @ Vgs=-10 V.",
     ))
     # D3 — Q1 gate-source Zener clamp. v0.50 placement rework: NORTH end
-    # of the LEFT protection-cluster column at X=+15 (gate network
-    # D3/R4/R1), rotated 90; the right column at X=+20 carries F1/Q1/D1.
-    # D3.2 (cathode, gate-junction net D3-A) faces SOUTH toward R4/R1.
+    # of the LEFT protection-cluster column (gate network D3/R4/R1),
+    # rotated 90; the right column carries F1/Q1/D1. v0.53: left column
+    # X=+15→+12 (see the cluster note above D1). D3.2 (cathode,
+    # gate-junction net D3-A) faces SOUTH toward R4/R1.
     parts.append(gen_diode_sod323_pcb_footprint(
-        x=+15, y=+16.5, rotation=90,
+        x=+12, y=+16.5, rotation=90,
         reference="D3", value="10V Zener 200mW",
         uuid_tag="d3-zener",
         descr="10 V Zener clamp on Q1 gate-source to keep |Vgs| ≤ 10 V (v0.37 — was 18V pre-fix; AO3401A Vgs_max=±12V).",
@@ -481,27 +489,28 @@ def gen_power_pcb_footprints() -> str:
     # tripping JLCPCB DFM "pin inner edge". See gen_fuse_1812l_pcb_footprint.
     # Body 4.55 x 3.24 mm, courtyard ~5.6 x 3.9 mm. v0.50 placement
     # rework: F1 is the NORTH end of the RIGHT protection-cluster column
-    # at X=+20 (F1/Q1/D1, under ZT1); the gate network D3/R4/R1 forms the
-    # left column at X=+15 -- two columns instead of one tall stack.
+    # (F1/Q1/D1); the gate network D3/R4/R1 forms the left column -- two
+    # columns instead of one tall stack. v0.53: right column X=+20→+17
+    # (see the cluster note above D1).
     parts.append(gen_fuse_1812l_pcb_footprint(
-        x=+20, y=+9.5, rotation=90,
+        x=+17, y=+9.5, rotation=90,
         reference="F1", value="1812L075/33DR",
         uuid_tag="f1-ptc",
         descr="PTC polyfuse 750 mA hold / 1.5 A trip / 33 V (Littelfuse 1812L075/33DR, LCSC C151170, 1812 SMD).",
     ))
     # R4 (gate series) and R1 (gate pulldown) continue the LEFT
-    # protection-cluster column at X=+15, below D3, both rotated 90. The
-    # gate-junction net D3-A runs the column axis X=+15 (D3.2 -- R4.2 --
-    # R1.1 align). R4.1 (north) carries Net-(Q1-G) across to the Q1 gate
-    # in the right column; R1.2 (south) is the GND pulldown leg (pour).
+    # protection-cluster column (X=+12 as of v0.53), below D3, both rotated
+    # 90. The gate-junction net D3-A runs the column axis X=+12 (D3.2 --
+    # R4.2 -- R1.1 align). R4.1 (north) carries Net-(Q1-G) across to the Q1
+    # gate in the right column; R1.2 (south) is the GND pulldown leg (pour).
     parts.append(gen_resistor_0603_pcb_footprint(
-        x=+15, y=+21.5, rotation=90,
+        x=+12, y=+21.5, rotation=90,
         reference="R4", value="1k",
         uuid_tag="r4-gate-series",
         descr="1 kΩ gate series resistor between Q1.G and Vgs clamp junction.",
     ))
     parts.append(gen_resistor_0603_pcb_footprint(
-        x=+15, y=+26.5, rotation=90,
+        x=+12, y=+26.5, rotation=90,
         reference="R1", value="100k 1%",
         uuid_tag="r1-gate-pulldown",
         descr="100 kΩ 1% gate-GND pulldown for Q1 (P-MOSFET reverse-polarity).",
@@ -906,12 +915,16 @@ def gen_sensors_pcb_footprints() -> str:
 
     # ESP32-C6 DevKitM-1-N4 daughterboard shadow reservation. Mounted on
     # 2× 1x15 P2.54 mm female pin sockets (chunk #7); module sits face-up
-    # ~8 mm above OAS PCB. Antenna at TOP short edge (Y=anchor_y), USB-C
-    # at BOTTOM short edge (Y=anchor_y + body length).
+    # ~8 mm above OAS PCB. Antenna tab overhangs the WEST short edge
+    # (Y=anchor_y side after rotation → PCB -X), USB-C at the other short
+    # edge. v0.53 (issue #3): F.Fab carries the TRUE outline incl. the
+    # ESP32-C6-MINI-1 antenna tab; F.SilkS body outline is omitted
+    # (emit_silk_outline=False) — after the -7.5 mm move it would fall off
+    # the board (NW corner) and cross buck / U1 copper.
     parts.append(_emit_daughterboard_reference_pcb_footprint(
         lib_id="oas:ESP32-C6-DevKitM-1_Reference",
         reference="MOD1",
-        descr="ESP32-C6-DevKitM-1-N4 daughterboard shadow (EAN 5904422385651). 25.4×48.26×8.6 mm; mounts on 2×1x15 P2.54 mm female pin sockets. Pin block offset 0.98 mm toward antenna end per Espressif dimensions PDF.",
+        descr="ESP32-C6-DevKitM-1-N4 daughterboard shadow (EAN 5904422385651). Body 25.4×48.26 mm + 13.20×5.37 mm antenna tab; 8.6 mm tall; mounts on 2×1x15 P2.54 mm female pin sockets. Pin block offset 5.37 mm from the antenna edge per Espressif dimensions PDF.",
         anchor_x=ESP32_ANCHOR_X, anchor_y=ESP32_ANCHOR_Y,
         body_w=ESP32_BODY_W, body_l=ESP32_BODY_L,
         pin_row_inset=ESP32_PIN_ROW_INSET,
@@ -923,6 +936,9 @@ def gen_sensors_pcb_footprints() -> str:
         uuid_tag="esp32-devkitm1-pcb",
         rotation=ESP32_ROTATION,
         pin_start_offset=ESP32_PIN_START_OFFSET,
+        antenna_tab_w=ESP32_ANTENNA_TAB_W,
+        antenna_tab_protrusion=ESP32_ANTENNA_TAB_PROTRUSION,
+        emit_silk_outline=False,
     ))
 
     # (MOD2 — the MIKROE-2462 NFC daughterboard shadow reservation — was
@@ -1012,12 +1028,12 @@ def gen_silk_labels() -> str:
     Per the CLAUDE.md "PCB silkscreen documentation" convention, every
     major component / connector gets a short, ≤20-char identifier on
     F.SilkS, ~1.0-1.5 mm height. Labels emitted here:
-      - "SEN66 air quality"  — names the SEN66 body shadow
-      - "-> J3"              — cable-direction hint at the SEN66
-                                connector edge
-      - "to SEN66"           — destination label at J3
-      - "zip-tie"            — explanatory hint near one of the ZT
-                                holes (rest are designator-only)
+      - "SEN66 air quality"  — names the SEN66 recess-cutout zone
+      - "SEN66 SIN-T"        — SEN66 module MPN (east rim, vertical)
+      - board name + version — SE pocket identification block
+      - LD2410 body / antenna labels
+    (No "-> J3" / "to SEN66" cable-direction arrows — dropped in v0.9;
+    the J3 designator + F.Fab connector value carry that context.)
 
     Labels are emitted as PCB-level `gr_text` (not inside the placed
     footprints) so they are independent of footprint rotation —
@@ -1070,38 +1086,34 @@ def gen_silk_labels() -> str:
         return out
 
     parts = []
-    # SEN66 body label. With v0.9 anchor (23.5, 22), body shadow occupies
-    # PCB X=23.5..49.1, Y=-33.2..22. Place the label INSIDE the body in
-    # the empty corridor between the inlets (PCB Y ≈ +3.8..+18.9) and the
-    # outlet (PCB Y ≈ -30.8..-10.0); the corridor Y=-10..+3.8 has no
-    # air-opening markers on F.Fab and is unobstructed on F.SilkS.
-    # Centred horizontally on body mid-X = anchor_x + SEN66_BODY_Y/2 = 36.3.
+    # SEN66 body label. v0.53 (issue #2): the SEN66 body shadow is now a real
+    # recess cutout, so this label can no longer sit inside the body. Moved to
+    # the rim band just SOUTH of the cutout (south edge +23.0) and NORTH of
+    # the J3 socket (north courtyard edge +26.4) — a ~3.4 mm clear strip.
+    # Centred horizontally on the cutout mid-X = anchor_x + SEN66_BODY_Y/2.
     body_mid_x = SEN66_ANCHOR_X + SEN66_BODY_Y / 2
-    parts.append(_silk("SEN66 air quality", body_mid_x, -3.0, "sen66-body"))
-    # ---- Board identification block (F.SilkS, SE pocket under J3) ----
+    parts.append(_silk("SEN66 air quality", body_mid_x, +24.6, "sen66-body"))
+    # ---- Board identification block (F.SilkS, SE pocket) ----
     # A physical PCB can be identified by name + version without booting
-    # the device. Placed on F.SilkS in the open pocket SOUTH of the J3
-    # SEN66 socket (J3 body south edge ≈ Y+29) and NORTH of the chord
-    # edge (Y+43.5), EAST of the C5 AUX cutout (X≤35.4) and clear of the
-    # H1 mounting-hole courtyard (which sits north at Y≤30.35). The
-    # version string is read from OAS_VERSION_LINE (boardgen/_common.py)
-    # — single source of truth, bump it on each release tag. The repo
-    # URL is intentionally NOT printed: at the silk_min_text_height rule
-    # (1.0 mm) a ~45-char URL is far wider than this pocket.
-    parts.append(_silk(OAS_NAME_SHORT, J3_X + 2.5, J3_Y + 6.5,
+    # the device. v0.53-b (issue #2 change order): J3 moved out to the SW
+    # column (X=16.5), vacating the SE pocket, so the board-id no longer
+    # tracks J3 — it takes an ABSOLUTE anchor in the now-open pocket SOUTH of
+    # the recess cutout (south edge +23.0) and NORTH of the chord (+43.5),
+    # under the "SEN66 air quality" label (+24.6) and WEST of the H1
+    # mounting-hole courtyard (west boundary +44.78). Two stacked lines at
+    # X=34.0 (cutout mid-X): name at +31.5, version at +35.0. The version
+    # string is read from OAS_VERSION_LINE (boardgen/_common.py) — single
+    # source of truth, bump it on each release tag.
+    parts.append(_silk(OAS_NAME_SHORT, 34.0, +31.5,
                        "board-id-name", size=1.0))
-    parts.append(_silk(OAS_VERSION_LINE, J3_X + 2.5, J3_Y + 10.0,
+    parts.append(_silk(OAS_VERSION_LINE, 34.0, +35.0,
                        "board-id-version", size=1.0))
-    # v0.9 dropped a J3-side "to SEN66" reciprocal arrow because J3 sits
-    # right under the SEN66 body shadow — at ~1.1 mm between SEN66 silk
-    # south edge (Y=+22) and J3 Reference field (Y=+23.1), there is
-    # simply no DRC-clean room for a F.SilkS arrow on the J3 side
-    # (v0.38 retry confirmed: any text taller than 1.0 mm triggers
-    # silk_overlap with J3 Reference, any text smaller than 1.0 mm
-    # trips the silk_min_text_height rule). The SEN66 mech-ref keeps
-    # its "JST GH cable ->" F.SilkS arrow on the SEN66 side and the
-    # cable direction is visually conveyed by J3 ↔ SEN66 silk being
-    # adjacent.
+    # No separate "-> J3" / "to SEN66" cable-direction arrows are emitted
+    # (dropped back in v0.9). The J3↔SEN66 relationship is documented by the
+    # J3 "J3" designator + its F.Fab value "JST SM06B-GHS-TB (SEN66
+    # connector)" and by the "SEN66 air quality" / "SEN66 SIN-T" board labels.
+    # With J3 now far from the SEN66 zone there is no adjacency to reinforce
+    # with an arrow, so none is added.
 
     # ---- v0.15.8: LD2410 board-level labels (board-level gr_text so
     # they read horizontally even with the LD2410 footprint rotated 270°).
@@ -1122,14 +1134,15 @@ def gen_silk_labels() -> str:
     parts.append(_silk("antenna ^", ld_antenna_pcb[0], ld_antenna_pcb[1],
                        "ld2410-antenna", size=1.0, angle=90.0))
 
-    # ---- v0.15.8: SEN66 module identification label as board-level
-    # gr_text (the in-footprint "SEN66 SIN-T" fp_text rotates with the
-    # SEN66's rotation 90° and ends up vertical on the rendered PCB).
-    # Placed at the SEN66 body centre.
-    sen66_body_cx = SEN66_ANCHOR_X + SEN66_BODY_Y / 2
-    sen66_body_cy = SEN66_ANCHOR_Y - SEN66_BODY_X / 2
-    parts.append(_silk("SEN66 SIN-T", sen66_body_cx, sen66_body_cy + 8.0,
-                       "sen66-mpn", size=1.0))
+    # ---- SEN66 module identification (MPN) label as board-level gr_text.
+    # v0.53 (issue #2): relocated out of the (now cut-out) body shadow to the
+    # EAST rim, rotated 90 so it runs vertically along the strip between the
+    # cutout east edge (+47.85) and the R60 outline (~+55 at this Y). Placed
+    # NORTH of the ZT2/ZT4 zip-tie holes (X=52.1, Y=0/-8; ZT4 designator at
+    # Y=-11.2) — at Y=-20 the text spans ~Y[-25,-15], clear of ZT4 and inside
+    # the outline (X≈54.5 at Y=-25).
+    parts.append(_silk("SEN66 SIN-T", +52.0, -20.0, "sen66-mpn",
+                       size=1.0, angle=90.0))
 
     # ---- v0.15.8: ESP32 body-label board (the MIKROE-2462 body label
     # left with the NFC removal, issue #7).
@@ -1406,11 +1419,16 @@ def gen_silk_labels() -> str:
         # v0.43: printed F.SilkS designators so each cap is identifiable
         # on the assembled board (the cap body covers its own footprint).
         # C1 + C4 have a clear strip toward the board arc → label NORTH of
-        # the body. C3 is boxed in on three sides (C4 N / C1 E / ESP32 W /
-        # SEN66 S), so its label goes in the 4:30 (SE) pocket, rotated
-        # 90 deg (vertical) to fit the ~1.6 mm slot between C1 and SEN66.
+        # the body. C3 is boxed in on FOUR sides now (C4 N / C1 E / ESP32 W /
+        # SEN66-recess-cutout S). v0.53 (issue #2): the recess cutout north
+        # edge (Y=-33.95) sits 0.45 mm from the old SE-pocket F.SilkS 'C3'
+        # text, and every clear direction runs into the C1/C3 body silk. So
+        # 'C3' moves to F.Fab (exempt from silk DRC) — the same remedy already
+        # used for the boxed-in C10/C11/C2 designators. The cap is still
+        # identified by its body silk + the F.Fab designator (assembly
+        # drawing); it stays in the readable 4:30 (SE) pocket.
         ("C1",  0.0, -6.5, "F.SilkS"),
-        ("C3",  +4.28, +4.12, "F.SilkS", 90.0),
+        ("C3",  +4.28, +4.12, "F.Fab", 90.0),
         # U1 (TO-263-5): signal pads at X_local=-7.65 (= PCB X=-41.65),
         # tab pad east at X_local=+1.5 to +6.2 (= PCB X=-32.5..-27.8).
         # Label needs to clear the signal pad column (PCB X=-41.65 ±
@@ -1474,12 +1492,15 @@ def gen_silk_labels() -> str:
     # Component anchors mirror the placements in gen_power_pcb_footprints().
     # Keep this dict in lock-step with that function.
     COMPONENT_ANCHORS = {
-        "D1":  (+20, +22.5),
-        "F1":  (+20, +9.5),
-        "Q1":  (+20, +15.5),
-        "D3":  (+15, +16.5),
-        "R4":  (+15, +21.5),
-        "R1":  (+15, +26.5),
+        # v0.53 (issue #2): protection cluster moved 3 mm west with the
+        # SEN66 recess cutout — keep these anchors in lock-step with
+        # gen_power_pcb_footprints() (right column X=+17, left column X=+12).
+        "D1":  (+17, +22.5),
+        "F1":  (+17, +9.5),
+        "Q1":  (+17, +15.5),
+        "D3":  (+12, +16.5),
+        "R4":  (+12, +21.5),
+        "R1":  (+12, +26.5),
         "C1":  (+35.75, -39),
         "C3":  (+25.75, -39),
         "U1":  (-38.03, -34.014),
@@ -1528,14 +1549,16 @@ def gen_silk_labels() -> str:
     # in (and during bare-PCB assembly the user can identify which row
     # is which).
     #
-    # J5 row A at PCB (-22.39, -25.97), rotation 90, 15 pins along
-    # PCB +X. ESP32 (MOD1) daughterboard silk rect Y range [-50.6, -24.2].
-    # Label at PCB Y=-22.5 — 1.125 mm clear of MOD1 silk north edge
-    # at Y=-24.2 (with label-bbox half-h ≈0.575 mm).
-    parts.append(_silk("J5", -22.39 + 5.37, -22.5, "desig:J5", size=1.0))
-    # J6 label south of MOD1 silk south edge at Y=-50.6: label at
-    # Y=-52.5 gives 1.325 mm clearance.
-    parts.append(_silk("J6", -22.39 + 5.37, -52.5, "desig:J6", size=1.0))
+    # J5/J6 designators. v0.53 (issue #3): the label X was hardcoded to the
+    # old row-1 X (-22.39); it now DERIVES from the pin-row start
+    # (ESP32_ANCHOR_X + ESP32_PIN_START_OFFSET) so it follows the -7.5 mm
+    # DevKit move. Label sits a further +5.37 mm east (≈ over pin 3). Y is
+    # unchanged (ESP32_ANCHOR_Y did not move): J5 at Y=-22.5 (NORTH of the
+    # J5 pin row at -25.97 and the MOD1 north edge -24.70); J6 at Y=-52.5
+    # (SOUTH of the MOD1 south edge -50.10).
+    _j5j6_label_x = ESP32_ANCHOR_X + ESP32_PIN_START_OFFSET + 5.37
+    parts.append(_silk("J5", _j5j6_label_x, -22.5, "desig:J5", size=1.0))
+    parts.append(_silk("J6", _j5j6_label_x, -52.5, "desig:J6", size=1.0))
     # (J7/J8 designators — the MIKROE-2462 mikroBUS socket pair — were
     # removed together with the NFC feature, issue #7.)
 
@@ -1559,7 +1582,15 @@ def gen_silk_labels() -> str:
         pin_map=J5_END_SIGNALS, label_offset=(0.0, +2.9),
         layer="F.SilkS", tag="j5-end", size=1.0,
     ))
-    # ESP32 J6 (USB-side row) — end labels pushed NORTH.
+    # ESP32 J6 (USB-side row) — end label pushed SOUTH of the J6 socket
+    # silk frame. v0.53 (issue #3): only the EAST end is labelled now
+    # (J6_END_SIGNALS = {15: "GND"}). With the DevKit 7.5 mm west, the west
+    # end (pin-16, PCB X=-29.89) sat over the SW board arc — the ~1.2 mm gap
+    # between the J6 frame south edge (-50.16) and the arc (-52.02) is too
+    # small for the label — and since BOTH J6 ends were "GND" (no orientation
+    # value; J5's 3V3/GND end labels already orient the module), the west
+    # "GND" was dropped rather than crammed. The east end has ample room at
+    # the -2.9 offset.
     parts.extend(_pin_labels(
         origin_x=esp32_row_x_start, origin_y=esp32_row_b_y, rotation=90,
         pin1_local=(0.0, 0.0), step_local=(0.0, ESP32_PIN_PITCH),

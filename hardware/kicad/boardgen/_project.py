@@ -73,6 +73,14 @@ EXTERNAL_MODULES = {
             "Official Espressif devkit (ESP32-C6-MINI-1 SoM + 2x USB-C). "
             "NOT compatible with generic 'SuperMini' clones (different pinout)."
         ),
+        "derived_dimensions": (
+            "PCB body 48.26 x 25.4 mm; the ESP32-C6-MINI-1 PCB antenna adds a "
+            "13.20 x 5.37 mm tab overhanging one short edge -> total envelope "
+            "~53.6 x 25.4 mm. Body 48.26 / 25.4 / pin geometry AND the "
+            "antenna tab (width 13.20, protrusion 5.37) all from the Espressif "
+            "dimensions PDF. Mounts 8.6 mm above the OAS PCB on 2x 1x15 P2.54 "
+            "female sockets (J5/J6)."
+        ),
     },
     "SEN66-SIN-T": {
         "manufacturer": "Sensirion",
@@ -303,10 +311,16 @@ def fy(y: float) -> str:
 # toward 3:00). Anchor (0, 0) in footprint coords is the corner of the
 # 55.2 × 25.6 mm body face; placing this anchor at PCB (cx, cy) puts
 # the body in PCB X = cx..cx+25.6, Y = cy-55.2..cy.
-SEN66_ANCHOR_X = 23.5   # v0.9: pushed near max-right. Body right edge X=49.1
-                        # leaves ~0.8 mm to PCB outline at body top (Y=-33.2,
-                        # PCB outline x_max=49.98). H1 courtyard cleared in Y
-                        # since body bottom now sits above H1 zone.
+SEN66_ANCHOR_X = 21.5   # v0.53: shifted 2 mm WEST (was 23.5) for the SEN66
+                        # recess cutout (issue #2). At the old X=23.5 the body
+                        # NE corner (49.1, -33.2) sat only 0.88 mm from the R60
+                        # arc, so the +0.75 mm east cutout margin would have
+                        # BREACHED the outline. The 2 mm west shift moves the
+                        # body east edge to X=47.1 → cutout east edge X=47.85
+                        # → NE cutout corner r=58.67 → 1.33 mm rim to the R60
+                        # outline (see SEN66_CUTOUT_* below). The protection
+                        # cluster tracks this move 3 mm west in
+                        # _footprints_placement.py.
 SEN66_ANCHOR_Y = 22.0   # v0.9: lifted up 3 mm (was 25). Body bottom Y=22 clears
                         # H1 courtyard top (Y=24.65) by 2.65 mm so the body
                         # right edge is free to enter H1's X range without
@@ -332,6 +346,62 @@ def _sen66_local_to_pcb(lx: float, ly: float) -> tuple[float, float]:
     return (SEN66_ANCHOR_X + rx, SEN66_ANCHOR_Y + ry)
 
 
+# -----------------------------------------------------------------------------
+# SEN66 recess cutout (v0.53, GitHub issue #2)
+# -----------------------------------------------------------------------------
+# The SEN66 body stands ~21.5 mm above the PCB; on the flat-mount design the
+# assembly was too tall for the AK-N-94 lid to close. Fix: cut a REAL
+# rectangular opening in the PCB under the module so it RECESSES into the
+# enclosure rear space. Bench finding: cutting exactly at the body outline is
+# 1-2 mm too tight to press the module in, so the opening is WIDER than the
+# body on every side (asymmetric margins — see below).
+#
+# Body dimensions duplicated here (physical Sensirion SEN6x constant; the real
+# source is SEN66_BODY_X / SEN66_BODY_Y in _footprints_custom.py, which imports
+# FROM this module — so we cannot import them back without a cycle). The
+# cutout is DERIVED from the anchor + rotation via _sen66_local_to_pcb() on the
+# four body corners, so any future SEN66_ANCHOR_* / SEN66_ROTATION move drags
+# the cutout with it automatically. tests/test_project_constants.py asserts
+# these body dims stay in sync with _footprints_custom.py.
+_SEN66_BODY_LONG = 55.2    # footprint-local +X extent (== SEN66_BODY_X)
+_SEN66_BODY_SHORT = 25.6   # footprint-local +Y extent (== SEN66_BODY_Y)
+
+# Cutout margins are named by PCB direction (not by footprint axis) so they
+# stay meaningful under any rotation. East is held smallest: at the body NE
+# corner the R60 arc passes only ~0.88 mm away, so a symmetric +1 mm widening
+# would breach the outline. The 2 mm west shift of SEN66_ANCHOR_X (v0.53) plus
+# east margin held to 0.75 mm keeps the NE cutout corner 1.33 mm inside the
+# R60 outline (verified below + by
+# tests/test_project_constants.py::test_sen66_cutout_ne_corner_inside_outline).
+# West restored 0.8 → 1.0 mm in v0.53 (issue #3). The 0.8 mm trim had been a
+# Task-1 compromise: the ESP32 (MOD1) daughterboard-shadow silk east edge sat
+# at X=20.30, only 0.20 mm from a 1.0 mm-margin cutout west edge (20.5) →
+# silk_edge_clearance. Issue #3 moves the DevKit 7.5 mm WEST, so its silk east
+# edge is now ≈+12.8 (far from the cutout); the compromise is obsolete and the
+# full 1.0 mm press-fit margin is restored (cutout west edge back to 20.5,
+# short-axis slack 1.75 mm total). Cluster D1 east courtyard (≈+19.25) still
+# clears the cutout west edge (20.5) by 1.25 mm (≥1.0).
+SEN66_CUTOUT_MARGIN_W = 1.0    # PCB -X (west): press-fit clearance
+SEN66_CUTOUT_MARGIN_E = 0.75   # PCB +X (east): held small to protect the R60 rim
+SEN66_CUTOUT_MARGIN_N = 0.75   # PCB -Y (north): held small (radial caps sit above)
+SEN66_CUTOUT_MARGIN_S = 1.0    # PCB +Y (south): press-fit clearance
+SEN66_CUTOUT_CORNER_R = 1.5    # rounded corners; ≥1.0 mm for a Ø2 internal mill
+
+_sen66_body_corners_pcb = [
+    _sen66_local_to_pcb(0.0, 0.0),
+    _sen66_local_to_pcb(_SEN66_BODY_LONG, 0.0),
+    _sen66_local_to_pcb(_SEN66_BODY_LONG, _SEN66_BODY_SHORT),
+    _sen66_local_to_pcb(0.0, _SEN66_BODY_SHORT),
+]
+SEN66_CUTOUT_X_MIN = min(c[0] for c in _sen66_body_corners_pcb) - SEN66_CUTOUT_MARGIN_W
+SEN66_CUTOUT_X_MAX = max(c[0] for c in _sen66_body_corners_pcb) + SEN66_CUTOUT_MARGIN_E
+SEN66_CUTOUT_Y_MIN = min(c[1] for c in _sen66_body_corners_pcb) - SEN66_CUTOUT_MARGIN_N
+SEN66_CUTOUT_Y_MAX = max(c[1] for c in _sen66_body_corners_pcb) + SEN66_CUTOUT_MARGIN_S
+# With the v0.53 anchor (21.5, 22.0) + rotation 90 this evaluates to
+# X 20.70..47.85, Y -33.95..23.0 (a 27.15 x 56.95 mm opening; short-axis
+# slack 1.55 mm, long-axis slack 1.75 mm over the 25.6 x 55.2 mm body).
+
+
 # Zip-tie hole positions in SEN66-local mm (relative to the body corner
 # at (0, 0)). v0.7: both pinch-points now inside the "safe corridor"
 # X ∈ [19.22, 31.03] (between inlet-zone X≤18.22 and outlet X≥32.03), so
@@ -340,12 +410,20 @@ def _sen66_local_to_pcb(lx: float, ly: float) -> tuple[float, float]:
 # X = 22 (~40% of 55.2) and X = 30 (~54% of 55.2). Previously the second
 # pair was at X=50 which sits inside the outlet circle (X=32..53) and
 # would have blocked ~8% of outlet area — fixed.
-# Y = -3 and Y = body_y + 3 = 28.6 (3 mm clearance past each long edge).
+# v0.53 (issue #2): the two pairs are pushed 2 mm further OUTWARD along the
+# short axis (local Y = -5 / +30.6, was -3 / +28.6 = 5 mm past each long edge)
+# so their holes clear the recess cutout. At the v0.53 anchor these land at
+# PCB (16.5, 0) / (52.1, 0) / (16.5, -8) / (52.1, -8) — the 16.5 / 52.1 X
+# columns sit 4.2 / 4.25 mm outside the cutout X edges (20.70 / 47.85), i.e. a
+# ~2.7 / 2.75 mm FR4 web from each Ø3 hole edge to the cutout edge. With the
+# module recessed, the zip ties now cross UNDER the module's protruding back
+# (counts against the 5 mm back-side budget — physical check at next order).
+# Y = -5 and Y = body_y + 5 = 30.6 (5 mm clearance past each long edge).
 SEN66_ZIPTIE_LOCAL = [
-    ("ZT1", 22.0, -3.0),
-    ("ZT2", 22.0, 28.6),
-    ("ZT3", 30.0, -3.0),
-    ("ZT4", 30.0, 28.6),
+    ("ZT1", 22.0, -5.0),
+    ("ZT2", 22.0, 30.6),
+    ("ZT3", 30.0, -5.0),
+    ("ZT4", 30.0, 30.6),
 ]
 
 # J3 (JST GH 6-pin board-side socket — SM06B-GHS-TB, horizontal SMD).
@@ -354,36 +432,37 @@ SEN66_ZIPTIE_LOCAL = [
 # flat GH lead reverses pin positions between two face-to-face polarized
 # headers (issue #6). See the J3 block in _sch_sensors.py + CLAUDE.md
 # Lesson 21; enforced by pipeline stage 19 check E.
-# Placed below the SEN66 body shadow (PCB +Y direction past body bottom
-# edge at Y=22). With v0.6 the SEN66 is PCB-mounted directly (no enclosure
-# cover mount), so the JST GH cable run is purely on-PCB. The SEN66's
-# JST GH connector is on its +X short edge at PCB Y=-33.2 (the body's
-# NORTH edge after the SEN66's rotation 90°); the cable enters J3 from
-# PCB -Y (north). With J3_ROTATION=0 (v0.15.8 fix), the J3 cable opening
-# also faces PCB -Y so the cable enters straight without a U-turn.
-# Verified clear of mounting hole H1 at (+47.6, +27.5) and clear of
-# cutout C5 at (X 27.9..35.4, Y 36.5..42.5).
-J3_X = 38.0   # Pre-routing rework 2: shifted +2 mm east (was 36.0). User
-              #   asked for +5mm but H1's custom F.CrtYd radius 2.85 mm
-              #   puts its west boundary at +44.78. J3 JST GH stock
-              #   courtyard extends ~5-6 mm east of anchor. +3 mm
-              #   (J3_X=39) still tripped DRC; +2 mm (J3_X=38) is the
-              #   max safe shift before H1 courtyard collision.
-              # on body mid-X = SEN66_ANCHOR_X + SEN66_BODY_Y/2 = 23.5 + 12.8
-              # = 36.3 -> rounded to 36.
-J3_Y = 27.0   # v0.9: sits 3 mm south (PCB +Y) of SEN66 body bottom (Y=22).
-              # With J3_ROTATION=0 (v0.15.8), J3 body extends south of pads
-              # (pads at PCB Y = J3_Y - 1.85 = 25.15), so the J3 body south
-              # edge sits ~Y=29. Cable opening (pads side) faces NORTH
-              # toward SEN66, eliminating the 180° U-turn.
-J3_ROTATION = 0    # v0.15.8: flipped 180 -> 0 so the cable opening (pad-side,
-                   # native "north" of footprint) faces PCB -Y (north, toward
-                   # the SEN66 body). Eliminates the 180° U-turn the cable
-                   # previously had to make when J3 opened south (away from
-                   # SEN66). Per independent code review M1: SEN66 connector
-                   # sits on body +X short edge at PCB Y=-33.2 (north side
-                   # of body); cable now runs SOUTH from SEN66 → into J3
-                   # opening (no U-turn).
+# Placed in the SW pocket, in the same X column as the ZT1/ZT3 zip-tie holes
+# (X=16.5), SOUTH of them (and south of the D1/Q1/F1 protection column) so
+# the SEN66's ~50 cm flat lead gets a long, gentle bend from the module's
+# connector (on the +X short edge at PCB (34.3, -33.2), the NORTH cutout edge)
+# down and around into J3. v0.53-b (issue #2, user change order): moved from
+# the old SE pocket (34, 31) to (16.5, 33.5) to open up cable-bend room. The
+# cable mouth still faces WEST (rotation 90). Clearances re-measured against
+# the ACTUAL emitted courtyards (J3 rot-90 courtyard half-extent = X 3.2 /
+# Y 5.98 mm from the 6-pin 1.25 mm row):
+#   - D1 (SMB, (17, 22.5) rot90) south courtyard edge +26.155; J3 north edge
+#     +27.52 → 1.37 mm clear (≥1.0).
+#   - R1 (0603, (12, 26.5) rot90) east courtyard edge +12.73; J3 west edge
+#     +13.30 → 0.57 mm X gap (courtyards DISJOINT in X → no overlap).
+#   - J1 east courtyard +9.15; J3 west edge +13.30 → 4.15 mm (and no Y overlap).
+#   - flat chord +43.52; J3 south courtyard edge +39.48 → 4.04 mm clear.
+#   - cutout west edge +20.70; J3 east courtyard edge +19.70 → 1.0 mm clear.
+J3_X = 16.5   # v0.53-b (issue #2): user change order — align with ZT3's X
+              #   (SEN66_ZIPTIE ZT3 lands at PCB X=16.5) so J3 sits in the
+              #   ZT1/ZT3 column, giving the SEN66 lead a long sweeping bend.
+J3_Y = 33.5   # v0.53-b: slightly south of the old +31 so the J3 north
+              #   courtyard edge (+27.52, = 33.5 - 5.98) clears D1's south
+              #   courtyard edge (+26.155) by 1.37 mm (≥1.0). Further south
+              #   would crowd the chord (south courtyard edge +39.48 already).
+J3_ROTATION = 90   # v0.53 (issue #2): rotated 90 (from 0) so the cable mouth
+                   # (pad-side, native footprint "north"/-Y) points PCB -X
+                   # (WEST). Under _sen66_local_to_pcb's rotation matrix a
+                   # local -Y feature maps to PCB -X at rotation 90, i.e. the
+                   # mouth turns from "up" to "left" — a 90° counter-clockwise
+                   # turn in the board top view. Kept at 90 per the change
+                   # order (no collision forces otherwise). (Pin NET order is
+                   # unaffected by rotation — stage 19 check E stays valid.)
 
 # -----------------------------------------------------------------------------
 # LD2410 PCB placement (mechanical reference + J4 pin header) — chunk #5b
@@ -562,6 +641,18 @@ def _ld2410_local_to_pcb(lx: float, ly: float) -> tuple[float, float]:
 ESP32_BODY_W = 25.4
 ESP32_BODY_L = 48.26
 ESP32_BODY_Z = 8.6                # approx Z above OAS PCB (module + std-off)
+# ESP32-C6-MINI-1 PCB-antenna tab: the module's antenna section overhangs
+# the devkit PCB's antenna short edge. BOTH numbers are EXTRACTED from the
+# Espressif dimensions drawing (esp32-c6-devkitm-1-dimensions.pdf, re-rendered
+# and read directly — Lesson 6): the "13.20" dimension spans the antenna
+# rectangle width (= ESP32-C6-MINI-1 module width), and the "5.37" dimension
+# runs from the board's antenna short edge UP to the tab tip = the protrusion.
+# (Reviewer-confirmed 13.20 / 5.37, cross-checked against the same PDF.) NOTE:
+# 5.37 is the SAME numeric value as ESP32_PIN_START_OFFSET but a DIFFERENT
+# physical dimension — kept as a separate constant deliberately. The tab is
+# centred on the body width.
+ESP32_ANTENNA_TAB_W = 13.20         # mm, along the short (25.4 mm) axis — PDF
+ESP32_ANTENNA_TAB_PROTRUSION = 5.37  # mm, past the antenna short edge — PDF
 ESP32_PIN_ROW_INSET = 1.27         # = (25.40 - 22.86) / 2
 ESP32_PIN_PITCH = 2.54
 ESP32_PIN_COUNT_PER_ROW = 15
@@ -576,11 +667,31 @@ ESP32_PIN_START_OFFSET = 5.37      # distance from antenna short edge
 # then-present NFC top edge allowed. Body X range leaves a 2.5 mm gap
 # to LD2410's right edge at X=-39.66 and 12.4 mm to SEN66's left edge
 # at X=+23.5. Helper rotation 90° unchanged (body lies down 48.26 × 25.4).
-ESP32_ANCHOR_X = -27.76            # v0.15.3: -2 mm LEFT of v0.15.2.
-                                    # Body X range -27.76..+20.50, center
-                                    # X = -3.63. Right edge clearance to
-                                    # SEN66 (+23.5) grows to 3.00 mm
-                                    # (was 1.00 in v0.15.2).
+ESP32_ANCHOR_X = -35.26            # v0.53 (issue #3): -7.5 mm WEST of the old
+                                    # -27.76 (user-measured on the physical
+                                    # board). Body X range -35.26..+13.00,
+                                    # center X = -11.13. Purpose: seat the
+                                    # DevKit next to the THT bulk caps —
+                                    # body east edge +13.00 now clears the C3
+                                    # Ø8 radial can (west rim +21.75) by
+                                    # 8.75 mm, so the module drops in fully.
+                                    # KNOWN OVERHANG (user-accepted pending an
+                                    # enclosure-wall check — issue #3):
+                                    #   - body NW corner (-35.26, -50.10):
+                                    #     r=61.264 → 1.264 mm PAST the R60
+                                    #     outline.
+                                    #   - ESP32-C6-MINI-1 antenna tab tip
+                                    #     reaches PCB X=-40.63 (protrusion
+                                    #     5.37 mm west of the body edge); its
+                                    #     far corner (-40.63, -44.00) is at
+                                    #     r=59.89 → 0.11 mm INSIDE R60 (so the
+                                    #     tab itself does NOT overhang; only the
+                                    #     body NW corner does).
+                                    # F.Fab carries the full true outline
+                                    # (incl. tab, may cross Edge.Cuts); no
+                                    # F.SilkS body outline is emitted (it would
+                                    # fall off-board at the NW corner and cross
+                                    # buck / U1 copper — see gen MOD1 footprint).
 ESP32_ANCHOR_Y = -24.70            # v0.15.3: +2 mm DOWN from v0.15.2's
                                     # -26.70. Body Y range -50.10..-24.70.
                                     # Top edge 3.00 mm above H3 hole top
@@ -781,7 +892,20 @@ J1_PCB_ROTATION = 180        # Rotation 180° places the cable-entry face
 # X +13.08..+20.92, Y -22.81..-16.19 — 1.6 mm clear of the "J10 flash"
 # board-silk label, 2.3 mm to the SEN66 zone west edge, 1.36 mm to the
 # J5 courtyard. Recovers the J9 +3V3/SDA/SCL trio for the autoroute.
-J9_PCB_X = +17.0             # PCB X — internal, east of the J10 header
+J9_PCB_X = +16.0             # PCB X — internal, east of the J10 header.
+                              # v0.53 (issue #3): nudged 1.0 mm WEST (was
+                              # +17.0). The east MP mounting-ear copper edge sat
+                              # at +20.40 and its COURTYARD reached +20.90; with
+                              # SEN66_CUTOUT_MARGIN_W restored to 1.0 the cutout
+                              # west edge is +20.5, which at +17.0 left the MP
+                              # copper 0.10 mm to the edge (DRC violation) and
+                              # the courtyard 0.20 mm INSIDE the cutout. At
+                              # +16.0 the MP copper east edge is +19.40
+                              # (1.10 mm copper-to-edge) and the courtyard east
+                              # edge +19.90 (0.60 mm clear) — both with real
+                              # margin. Neighbours OK: ZT3 (16.5, -8) is
+                              # 11.5 mm south, the DevKit south edge is at
+                              # -24.70 (5.2 mm north of J9).
 J9_PCB_Y = -19.5             # PCB Y — internal row, north of the J5 socket
 J9_PCB_ROTATION = 0          # orientation unchanged from prior C5 placement
 
@@ -900,7 +1024,12 @@ J10_PIN_MAP: dict[int, str] = {1: "GND", 2: "+3V3", 3: "USB-", 4: "USB+",
 #     J4 (pad 1 = OUT … pad 5 = VCC)
 J4_END_SIGNALS: dict[int, str] = {1: "OUT", 5: "VCC"}
 J5_END_SIGNALS: dict[int, str] = {1: "3V3", 15: "GND"}
-J6_END_SIGNALS: dict[int, str] = {1: "GND", 15: "GND"}
+# v0.53 (issue #3): J6's WEST end (pin 1) label dropped — after the -7.5 mm
+# DevKit move it fell over the SW board arc and could not be placed clear of
+# both the J6 socket silk frame and the outline. Both J6 ends were "GND"
+# (no orientation value; J5's 3V3/GND ends already orient the module), so only
+# the roomy EAST end is labelled.
+J6_END_SIGNALS: dict[int, str] = {15: "GND"}
 
 # Polarity-sensitive designators — components whose orientation matters and
 # which therefore MUST carry a polarity / pin-1 silkscreen mark. Consumed by

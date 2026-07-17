@@ -27,6 +27,7 @@ from boardgen._footprints import (
 from boardgen._project import (
     ESP32_BODY_W, ESP32_BODY_L, ESP32_PIN_ROW_INSET, ESP32_PIN_PITCH,
     ESP32_PIN_COUNT_PER_ROW, ESP32_PIN_START_OFFSET,
+    ESP32_ANTENNA_TAB_W, ESP32_ANTENNA_TAB_PROTRUSION,
 )
 
 
@@ -48,7 +49,7 @@ def run(ctx) -> None:
     (HERE / "libraries" / "oas.pretty" / "ESP32-C6-DevKitM-1_Reference.kicad_mod").write_text(
         gen_daughterboard_mech_lib_file(
             name="ESP32-C6-DevKitM-1_Reference",
-            descr="Espressif ESP32-C6-DevKitM-1-N4 daughterboard mechanical reference (no pads). EAN 5904422385651. Body 25.4×48.26×8.6 mm. Mounts on 2× 1x15 P2.54 mm female pin sockets; antenna at one short edge, dual USB-C at the other. Pin block offset 0.98 mm toward antenna end per Espressif dimensions PDF.",
+            descr="Espressif ESP32-C6-DevKitM-1-N4 daughterboard mechanical reference (no pads). EAN 5904422385651. Body 25.4×48.26 mm + 13.20×5.37 mm ESP32-C6-MINI-1 antenna tab (total envelope ~53.6×25.4 mm), 8.6 mm tall. Mounts on 2× 1x15 P2.54 mm female pin sockets; antenna tab overhangs one short edge, dual USB-C at the other. Pin block offset 5.37 mm from the antenna edge per Espressif dimensions PDF. F.Fab shows the true outline incl. tab; no F.SilkS (issue #3).",
             body_w=ESP32_BODY_W, body_l=ESP32_BODY_L,
             pin_row_inset=ESP32_PIN_ROW_INSET,
             pin_pitch=ESP32_PIN_PITCH,
@@ -58,6 +59,9 @@ def run(ctx) -> None:
             usb_label="USB",
             uuid_tag="esp32-devkitm1",
             pin_start_offset=ESP32_PIN_START_OFFSET,
+            antenna_tab_w=ESP32_ANTENNA_TAB_W,
+            antenna_tab_protrusion=ESP32_ANTENNA_TAB_PROTRUSION,
+            emit_silk_outline=False,
         ),
         encoding="utf-8",
     )

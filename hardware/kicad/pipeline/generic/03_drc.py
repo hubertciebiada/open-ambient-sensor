@@ -57,20 +57,27 @@ def main() -> int:
             st.fail(f"{n_viol} DRC violation(s) — see {drc_report}")
         st.ok(f"{n_viol} violations")
 
-        # Unconnected-pad baseline: the v0.50 routing rework is complete
-        # (ROUTING_CHUNKS = ("gnd", "autoroute") — Freerouting 89/89 +
-        # hand-finished GND stitching). The board is fully routed, so the
-        # expectation is ZERO unconnected pads. Hard-fail on ANY deviation
-        # so the harness catches a routing regression immediately.
-        EXPECTED_UNCONNECTED = 0
+        # Unconnected-pad baseline.
+        #
+        # TEMPORARY (GitHub issue #8): signal routing is DELIBERATELY absent
+        # while the placement tasks (issue #2 SEN66 recess cutout, etc.) land.
+        # ROUTING_CHUNKS = ("gnd",) in boardgen/_routing.py emits GND pours
+        # only, so every non-GND pad legitimately reads as unconnected. This
+        # count is the exact pours-only baseline measured against the current
+        # placement; a DIFFERENT value is a real regression (a pad moved,
+        # appeared, or vanished unexpectedly). When issue #8 re-routes the
+        # board to full coverage this MUST return to 0 — any non-zero value
+        # is then a routing regression. DRC *violations* stay hard-zero
+        # throughout (the GND pours clip cleanly around the new cutout).
+        EXPECTED_UNCONNECTED = 83
         if n_unc != EXPECTED_UNCONNECTED:
             st.fail(
                 f"{n_unc} unconnected pads — expected exactly "
-                f"{EXPECTED_UNCONNECTED} (the board is fully routed). "
-                f"A non-zero count is a routing regression — see "
-                f"{drc_report}."
+                f"{EXPECTED_UNCONNECTED} (pours-only baseline pending the "
+                f"issue #8 re-route). A different count means a pad moved / "
+                f"appeared / vanished — see {drc_report}."
             )
-        st.ok(f"{n_unc} unconnected pads — fully routed")
+        st.ok(f"{n_unc} unconnected pads — pours-only baseline (issue #8)")
     return 0
 
 

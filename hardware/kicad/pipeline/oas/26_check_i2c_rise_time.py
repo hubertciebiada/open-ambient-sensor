@@ -94,6 +94,12 @@ ROUTES_PATH = KICAD_DIR / "oas_routes.py"
 sys.path.insert(0, str(HERE.parent))
 from _common import Stage  # noqa: E402
 
+# hardware/kicad on path so we can read the routing-chunk selector — this
+# stage consumes track lengths from oas_routes.py, which only matches the
+# emitted board while the "autoroute" chunk is active (GitHub issue #8).
+sys.path.insert(0, str(KICAD_DIR))
+from boardgen._routing import ROUTING_CHUNKS  # noqa: E402
+
 # I2C bus parameters (verified by stage 09; see CLAUDE.md "Shared I2C bus").
 R_PULLUP_OHM = 4700.0       # R5 = R6 = 4.7 kOhm on +3V3, enforced by stage 09.
 
@@ -192,6 +198,19 @@ def report_line(s: Stage, label: str, length_mm: float, seg_count: int,
 
 def main() -> int:
     with Stage("check_i2c_rise_time") as s:
+        # GitHub issue #8: while signal routing is deferred (ROUTING_CHUNKS
+        # has no "autoroute" chunk), the emitted board carries GND pours only
+        # and the oas_routes.py snapshot is a stale reference that no longer
+        # matches the board. The rise-time / C_bus check needs real routed
+        # track lengths, so it cannot run meaningfully — skip loudly. It
+        # re-arms automatically once the issue #8 re-route re-enables autoroute.
+        if "autoroute" not in ROUTING_CHUNKS:
+            s.info("SKIP: signal routing deferred to GitHub issue #8 — "
+                   "ROUTING_CHUNKS = " + repr(ROUTING_CHUNKS) + " has no "
+                   '"autoroute" chunk, so there are no routed I2C tracks to '
+                   "measure. Re-arms when the issue #8 re-route lands.")
+            s.ok("skipped — signal routing deferred to issue #8")
+            return 0
         s.info("OAS I2C bus signal-integrity check (UM10204 t_r/C_bus)")
         s.info(f"  Pull-up: R_pull = {R_PULLUP_OHM:.0f} Ohm "
                "(R5/R6 = 4.7 kOhm, verified by stage 09)")

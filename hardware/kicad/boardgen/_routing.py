@@ -60,19 +60,28 @@ from boardgen._project import (
 # Which chunks of the routing plan are enabled. Each chunk adds tracks
 # for one functional subsystem.
 #
-# v0.50 (2026-05-22): "autoroute" RE-ENABLED. The captured snapshot in
-# oas_routes.py was re-extracted (tools/extract_routes.py) from a FRESH
-# Freerouting 2.2.4 pass run against the CURRENT committed placement
-# (the v0.50 buck re-spread / Task 3). Freerouting reached full 89/89
-# coverage (0 unrouted nets) with JLCDFM-strict rules (0.20 mm
-# clearance, 0.70/0.30 mm vias, 0.25 mm track) — 384 segments + 16
-# vias. The previous snapshot was stale: it had been extracted against
-# a pre-Task-3 buck placement, so replaying it shorted the buck
-# section. "hand_v40" stays disabled — superseded by the autoroute
-# snapshot. The GND copper pour reconnects every GND pad automatically.
+# v0.50 (2026-05-22): "autoroute" was RE-ENABLED after re-extracting a
+# fresh Freerouting 2.2.4 snapshot against the committed placement.
+#
+# v0.53 (GitHub issue #2 → routing deferred to issue #8): "autoroute" is
+# DELIBERATELY DISABLED. The SEN66 recess cutout (issue #2) plus the
+# other placement tasks moved/removed pads all over the board, so the
+# v0.50 signal snapshot in oas_routes.py is stale — replaying it would
+# short moved pads and cross the new cutout. Rather than re-route
+# incrementally after every placement task, the full re-route happens
+# ONCE at the end, tracked by GitHub issue #8. Until then the board ships
+# with GND pours only: every GND pad connects through the pour, and the
+# non-GND pads legitimately read as "unconnected" in DRC (stage 03 bakes
+# in that exact expected count, flagged temporary per issue #8).
+#
+# oas_routes.py is LEFT ON DISK untouched (reference for the eventual
+# re-route) but is NOT emitted while "autoroute" is absent. Route-dependent
+# checks (stage 26 I2C rise-time; the extract_routes / snapshot test
+# suites) skip themselves when "autoroute" not in ROUTING_CHUNKS.
 ROUTING_CHUNKS: tuple[str, ...] = (
     "gnd",         # Chunk 1 — F.Cu + B.Cu GND copper pour. ALWAYS on.
-    "autoroute",   # Chunk 2 — Freerouting 89/89 snapshot replay.
+    # "autoroute", # Chunk 2 — Freerouting snapshot replay. Disabled until
+    #                the one-shot full re-route (GitHub issue #8).
 )
 
 

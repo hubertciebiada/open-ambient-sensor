@@ -20,8 +20,20 @@ from pathlib import Path
 import pytest
 
 from tools import extract_routes
+from boardgen._routing import ROUTING_CHUNKS
+
+# The round-trip test below reads the COMMITTED oas.kicad_pcb. While signal
+# routing is deferred to GitHub issue #8 (ROUTING_CHUNKS has no "autoroute"
+# chunk) the board carries GND pours only, so it no longer round-trips to the
+# frozen oas_routes.py snapshot — skip that one test. The pure-function
+# extractor tests (synthetic PCB text) run regardless.
+_routing_deferred = pytest.mark.skipif(
+    "autoroute" not in ROUTING_CHUNKS,
+    reason="signal routing deferred to issue #8",
+)
 
 
+@_routing_deferred
 def test_round_trip_boardgen_format_byte_identical() -> None:
     """Committed oas.kicad_pcb (boardgen `(net N)` format) round-trips.
 

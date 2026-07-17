@@ -195,19 +195,20 @@ def main() -> None:
     print(f"Parsed {len(segments)} track segments across {len(nets_by_code)} nets.")
     print()
 
-    # v0.40 post-order: if the board has no signal track segments (e.g.
-    # routing chunk(s) disabled while iterating on footprint corrections),
-    # there's nothing to check. Skip cleanly rather than failing per-net
-    # — the unrouted state is documented in ROUTING_CHUNKS comments in
-    # boardgen and is expected during the v0.40 post-order footprint
-    # iteration before the routing rework (separate task #93).
+    # If the board has no signal track segments there's nothing to check.
+    # This check is board-driven (it parses tracks straight out of
+    # oas.kicad_pcb), so a routeless board self-skips — no need to consult
+    # ROUTING_CHUNKS. Currently this fires because signal routing is deferred
+    # to GitHub issue #8 (ROUTING_CHUNKS = ("gnd",) emits GND pours only); it
+    # re-arms automatically once the issue #8 re-route re-populates the board
+    # with signal tracks.
     if len(segments) == 0:
         print("SKIP: no routed signal track segments found.")
         print(
-            "       routing snapshot is disabled in boardgen "
-            "ROUTING_CHUNKS — ampacity check deferred until routing rework "
-            "(task #93). The GND copper pour gives every GND pad a "
-            "connection; non-GND nets currently show as unconnected pads."
+            "       signal routing deferred to GitHub issue #8 "
+            "(boardgen ROUTING_CHUNKS has no \"autoroute\" chunk). The GND "
+            "copper pour gives every GND pad a connection; non-GND nets "
+            "currently show as unconnected pads (stage 03 baseline)."
         )
         return
 

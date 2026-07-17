@@ -169,7 +169,8 @@ def gen_mounting_hole_footprint() -> str:
 SEN66_BODY_X = 55.2
 SEN66_BODY_Y = 25.6
 SEN66_BODY_Z = 21.5                # body height (CLAUDE.md hard constraint)
-SEN66_SILK_INSET = 0.2             # inset between F.Fab outline and F.SilkS
+# (v0.53: SEN66_SILK_INSET removed — the F.SilkS body outline it inset was
+# dropped when the module started recessing through a real cutout, issue #2.)
 
 # Air-opening footprint markers (on F.Fab only — assembly reference,
 # not on F.SilkS so the silkscreen art stays uncluttered).
@@ -193,19 +194,31 @@ def gen_sen66_mechanical_footprint() -> str:
     zip-tie holes, and ensuring that future components (LD2410
     and any new daughterboard) avoid the SEN66 zone.
 
-    Rendered on `F.Fab` (full body outline + air openings + connector
-    marker + foam-divider hint + module identification) and on
-    `F.SilkScreen` (slightly inset body outline only — keep silkscreen
-    art minimal for production cleanliness).
+    Rendered on `F.Fab` only (full body outline + air openings + connector
+    marker + foam-divider hint). v0.53 (issue #2): the module now recesses
+    THROUGH a real board cutout, so every F.SilkS element of this footprint
+    fell inside the opening — the F.SilkS body outline and the
+    "JST GH cable ->" text were removed (silk over an internal cutout drops
+    at fab). The F.CrtYd body-shadow guardrail is KEPT (a placement over the
+    hole is impossible anyway, and the courtyard still documents the shadow);
+    module identification silk is carried by board-level gr_text in
+    gen_silk_labels(), relocated onto the remaining rim.
     """
     # Footprint-local coordinates with the rectangle's corner at (0, 0)
     # are awkward for KiCad — the footprint anchor sits at (0, 0) and
     # all features sit in +X, +Y. That's fine; pcbnew accepts it.
     x_min, y_min = 0.0, 0.0
     x_max, y_max = SEN66_BODY_X, SEN66_BODY_Y
-    inset = SEN66_SILK_INSET
 
-    # F.Fab body outline (un-inset rectangle).
+    # F.Fab body outline (un-inset rectangle). v0.53 (issue #2): F.Fab art
+    # is KEPT verbatim even though it now sits over the recess cutout — F.Fab
+    # is the assembly-drawing layer (never silkscreened), so it is not a
+    # fab/DFM concern, and it accurately documents the recessed module body +
+    # inlets + outlet + connector. The F.SilkS body outline and the
+    # "JST GH cable ->" F.SilkS text were REMOVED (they fell entirely inside
+    # the cutout — silk over an internal opening drops at fab / trips JLCDFM).
+    # Module identification silk is carried by the board-level gr_text labels
+    # in gen_silk_labels(), relocated onto the remaining rim.
     fab_outline = textwrap.dedent(f"""\
         \t(fp_rect
         \t\t(start {fmt(x_min)} {fmt(y_min)})
@@ -216,17 +229,8 @@ def gen_sen66_mechanical_footprint() -> str:
         \t\t(uuid "{U('sen66:fp:fab-outline')}")
         \t)""")
 
-    # F.SilkS body outline (inset slightly from the courtyard / Edge.Cuts
-    # so the silkscreen edge prints cleanly inside the body shadow).
-    silk_outline = textwrap.dedent(f"""\
-        \t(fp_rect
-        \t\t(start {fmt(x_min + inset)} {fmt(y_min + inset)})
-        \t\t(end {fmt(x_max - inset)} {fmt(y_max - inset)})
-        \t\t(stroke (width 0.12) (type solid))
-        \t\t(fill no)
-        \t\t(layer "F.SilkS")
-        \t\t(uuid "{U('sen66:fp:silk-outline')}")
-        \t)""")
+    # (v0.53: F.SilkS body outline removed — see the note above; it fell
+    # inside the recess cutout.)
 
     # Inlet #1 — obround (rounded ends). Half-length of straight midsection:
     # straight = DX - DY (since end radii are DY/2).
@@ -318,13 +322,8 @@ def gen_sen66_mechanical_footprint() -> str:
         \t\t(layer "F.Fab")
         \t\t(uuid "{U('sen66:fp:conn-marker')}")
         \t)""")
-    conn_label = textwrap.dedent(f"""\
-        \t(fp_text user "JST GH cable ->"
-        \t\t(at {fmt(SEN66_CONNECTOR_X - 5.0)} {fmt(SEN66_CONNECTOR_Y + 4.5)} 0)
-        \t\t(layer "F.SilkS")
-        \t\t(uuid "{U('sen66:fp:conn-label')}")
-        \t\t(effects (font (size 1.0 1.0) (thickness 0.15)))
-        \t)""")
+    # (v0.53: the "JST GH cable ->" F.SilkS text was removed — it fell inside
+    # the recess cutout. The connector marker stays on F.Fab only.)
 
     # v0.15.8: "SEN66 SIN-T" module-identification label moved to a
     # board-level gr_text emitted by gen_silk_labels(), so the label
@@ -407,9 +406,9 @@ def gen_sen66_mechanical_footprint() -> str:
     body_blocks = "\n".join(
         block for block in [
             ref_block, value_block, footprint_block, datasheet_block, desc_block,
-            fab_outline, silk_outline,
+            fab_outline,
             inlet1_top, inlet1_bot, inlet1_left_arc, inlet1_right_arc,
-            inlet2, outlet, divider, conn_marker, conn_label,
+            inlet2, outlet, divider, conn_marker,
             courtyard,
         ] if block
     )
@@ -1176,10 +1175,13 @@ def _daughterboard_body_content(
     usb_label: str | None,
     uuid_tag: str,
     pin_start_offset: float | None = None,
+    antenna_tab_w: float | None = None,
+    antenna_tab_protrusion: float | None = None,
+    emit_silk_outline: bool = True,
 ) -> str:
-    """Inner body content (fp_rect on F.Fab + pin-row dots on F.Fab +
-    fp_text labels) shared by the library footprint definition and the
-    in-PCB placement instance for a daughterboard mech-ref. Returns the
+    """Inner body content (body outline on F.Fab + pin-row dots on F.Fab +
+    optional F.SilkS outline) shared by the library footprint definition and
+    the in-PCB placement instance for a daughterboard mech-ref. Returns the
     block ready to embed inside a (footprint ...) wrapper.
 
     `pin_start_offset` is the distance (in LIB +Y direction) from the
@@ -1187,6 +1189,23 @@ def _daughterboard_body_content(
     pin block is centred along the long axis. Asymmetric daughterboards
     (e.g. ESP32-C6 DevKitM-1 with pins offset toward the antenna)
     pass an explicit value.
+
+    `antenna_tab_w` / `antenna_tab_protrusion` (both given, or both None):
+    draw the F.Fab body outline as the TRUE outline of a module whose PCB
+    antenna overhangs the pin-1-side short edge (LIB Y=0) — a rectangular
+    tab of width `antenna_tab_w` (centred on `body_w`) protruding
+    `antenna_tab_protrusion` in the LIB -Y direction. Used for the
+    ESP32-C6-DevKitM-1 (the ESP32-C6-MINI-1 antenna section). F.Fab may cross
+    Edge.Cuts, so the tab can hang off-board.
+
+    `emit_silk_outline`: when False, NO F.SilkS body outline is drawn. Set
+    False for the ESP32 (issue #3): after the -7.5 mm move its body outline
+    would fall off the board at the NW corner AND cross the buck-section pads
+    (R6/C9) on the east edge and the U1 pads under the antenna tab — every
+    F.SilkS position in the module footprint is a silk_edge or
+    silk_over_copper violation. The J5/J6 socket silk frames + the
+    board-level "ESP32-C6 DevKitM-1" F.Fab label document the module instead;
+    the full true shape (incl. tab) lives on F.Fab.
     """
     parts: list[str] = []
     # Asymmetric silk inset: the long-edge silk lines EXTEND 0.5 mm beyond
@@ -1198,29 +1217,53 @@ def _daughterboard_body_content(
     silk_inset_long = -0.5  # negative = extends OUTSIDE body in X direction
     silk_inset_short = 0.2  # positive = stays INSIDE body in Y direction
 
-    # Body F.Fab outline (fabrication documentation layer).
-    parts.append(textwrap.dedent(f"""\
-        \t(fp_rect
-        \t\t(start 0 0)
-        \t\t(end {fmt(body_w)} {fmt(body_l)})
-        \t\t(stroke (width 0.1) (type solid))
-        \t\t(fill no)
-        \t\t(layer "F.Fab")
-        \t\t(uuid "{U('fp-fab-outline:' + uuid_tag)}")
-        \t)"""))
+    # Body F.Fab outline (fabrication documentation layer). With an antenna
+    # tab, emit the full true outline (body rect + protruding tab) as a
+    # closed polygon; otherwise a plain body rectangle.
+    if antenna_tab_w is not None and antenna_tab_protrusion is not None:
+        tab_x1 = (body_w - antenna_tab_w) / 2.0
+        tab_x2 = (body_w + antenna_tab_w) / 2.0
+        tab_y = -antenna_tab_protrusion
+        _poly_pts = [
+            (0.0, 0.0), (0.0, body_l), (body_w, body_l), (body_w, 0.0),
+            (tab_x2, 0.0), (tab_x2, tab_y), (tab_x1, tab_y), (tab_x1, 0.0),
+        ]
+        _pts_txt = "\n".join(f"\t\t\t(xy {fmt(px)} {fmt(py)})" for px, py in _poly_pts)
+        parts.append(textwrap.dedent(f"""\
+            \t(fp_poly
+            \t\t(pts
+            {_pts_txt}
+            \t\t)
+            \t\t(stroke (width 0.1) (type solid))
+            \t\t(fill no)
+            \t\t(layer "F.Fab")
+            \t\t(uuid "{U('fp-fab-outline:' + uuid_tag)}")
+            \t)"""))
+    else:
+        parts.append(textwrap.dedent(f"""\
+            \t(fp_rect
+            \t\t(start 0 0)
+            \t\t(end {fmt(body_w)} {fmt(body_l)})
+            \t\t(stroke (width 0.1) (type solid))
+            \t\t(fill no)
+            \t\t(layer "F.Fab")
+            \t\t(uuid "{U('fp-fab-outline:' + uuid_tag)}")
+            \t)"""))
 
     # Body F.SilkS outline — visible on physical board and 3D render so the
     # hand-assembler can see where the daughterboard sits. Encompasses
-    # the female pin sockets along the long edges.
-    parts.append(textwrap.dedent(f"""\
-        \t(fp_rect
-        \t\t(start {fmt(silk_inset_long)} {fmt(silk_inset_short)})
-        \t\t(end {fmt(body_w - silk_inset_long)} {fmt(body_l - silk_inset_short)})
-        \t\t(stroke (width 0.12) (type solid))
-        \t\t(fill no)
-        \t\t(layer "F.SilkS")
-        \t\t(uuid "{U('fp-silk-outline:' + uuid_tag)}")
-        \t)"""))
+    # the female pin sockets along the long edges. Omitted when
+    # emit_silk_outline is False (see docstring — ESP32 issue #3).
+    if emit_silk_outline:
+        parts.append(textwrap.dedent(f"""\
+            \t(fp_rect
+            \t\t(start {fmt(silk_inset_long)} {fmt(silk_inset_short)})
+            \t\t(end {fmt(body_w - silk_inset_long)} {fmt(body_l - silk_inset_short)})
+            \t\t(stroke (width 0.12) (type solid))
+            \t\t(fill no)
+            \t\t(layer "F.SilkS")
+            \t\t(uuid "{U('fp-silk-outline:' + uuid_tag)}")
+            \t)"""))
 
     # Pin row dots on F.Fab (one column on each long edge, at pin_row_inset
     # from the body edge, offset along the long axis per pin_start_offset).
@@ -1271,6 +1314,9 @@ def gen_daughterboard_mech_lib_file(
     usb_label: str | None,
     uuid_tag: str,
     pin_start_offset: float | None = None,
+    antenna_tab_w: float | None = None,
+    antenna_tab_protrusion: float | None = None,
+    emit_silk_outline: bool = True,
 ) -> str:
     """Return the .kicad_mod library-file content for a daughterboard
     mechanical-reference footprint.
@@ -1280,8 +1326,9 @@ def gen_daughterboard_mech_lib_file(
     but with library-file metadata (no `(at x y rotation)` anchor, no
     embedded `(uuid ...)` for the footprint itself — KiCad pcbnew
     generates those when the lib footprint is dropped onto a board).
-    Adding the matching lib file silences KiCad's
-    `lib_footprint_issues` DRC warning.
+    Adding the matching lib file silences KiCad's `lib_footprint_issues`
+    DRC warning — so the `antenna_tab_*` / `emit_silk_outline` args MUST be
+    passed identically here and at the placement call site.
     """
     body = _daughterboard_body_content(
         body_w=body_w, body_l=body_l,
@@ -1292,6 +1339,9 @@ def gen_daughterboard_mech_lib_file(
         usb_label=usb_label,
         uuid_tag=uuid_tag + ":lib",
         pin_start_offset=pin_start_offset,
+        antenna_tab_w=antenna_tab_w,
+        antenna_tab_protrusion=antenna_tab_protrusion,
+        emit_silk_outline=emit_silk_outline,
     )
     return textwrap.dedent(f"""\
         (footprint "{name}"
@@ -1358,11 +1408,16 @@ def _emit_daughterboard_reference_pcb_footprint(
     uuid_tag: str,
     rotation: int = 0,
     pin_start_offset: float | None = None,
+    antenna_tab_w: float | None = None,
+    antenna_tab_protrusion: float | None = None,
+    emit_silk_outline: bool = True,
 ) -> str:
     """Emit a daughterboard mechanical-reference footprint placed at
     (anchor_x, anchor_y) on the OAS PCB. The footprint is purely visual
-    (F.Fab + F.SilkS outlines + pin-row hints + labels); the actual
+    (F.Fab outline + optional F.SilkS outline + pin-row hints); the actual
     electrical female pin sockets are placed separately in chunk #7.
+    `antenna_tab_*` / `emit_silk_outline` pass through to
+    `_daughterboard_body_content` — see its docstring.
 
     The daughterboard is assumed to be VERTICAL orientation: long axis
     along PCB +Y, body extending from (anchor_x, anchor_y) to
@@ -1392,6 +1447,9 @@ def _emit_daughterboard_reference_pcb_footprint(
         usb_label=usb_label,
         uuid_tag=uuid_tag,
         pin_start_offset=pin_start_offset,
+        antenna_tab_w=antenna_tab_w,
+        antenna_tab_protrusion=antenna_tab_protrusion,
+        emit_silk_outline=emit_silk_outline,
     )
     return textwrap.dedent(f"""\
         \t(footprint "{lib_id}"

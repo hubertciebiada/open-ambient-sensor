@@ -36,6 +36,7 @@ from boardgen._project import (
     PAGE_CENTRE_X, PAGE_CENTRE_Y,
     LD2410_ANCHOR_X, LD2410_ANCHOR_Y, LD2410_BODY_W, LD2410_BODY_H,
     ESP32_ANCHOR_X, ESP32_ANCHOR_Y, ESP32_BODY_W, ESP32_BODY_L,
+    ESP32_ANTENNA_TAB_PROTRUSION,
 )
 
 
@@ -757,7 +758,14 @@ def _daughterboard_body_shadows() -> dict[str, tuple[float, float, float, float]
     # LIB +Y → PCB +X. Body LIB rect (0,0) → (body_w, body_l). After
     # rotation the body covers PCB X = [anchor_x, anchor_x + body_l] and
     # PCB Y = [anchor_y - body_w, anchor_y].
-    esp_xmin = ESP32_ANCHOR_X
+    # v0.53 (issue #3): extend the shadow WEST by the antenna-tab protrusion
+    # (the ESP32-C6-MINI-1 PCB antenna overhangs the antenna short edge at PCB
+    # -X). The tab is only ~13.2 mm wide (a sub-band of the 25.4 mm body), but
+    # this AABB widens the whole west edge — a CONSERVATIVE over-approximation
+    # (the corners it adds are empty of tall parts). With the -7.5 mm move, U1
+    # (TO-263, 4.83 mm) now sits under the tab; extending the shadow makes the
+    # Z-guardrail actually check it against the 5.5 mm MOD1 budget (it passes).
+    esp_xmin = ESP32_ANCHOR_X - ESP32_ANTENNA_TAB_PROTRUSION
     esp_xmax = ESP32_ANCHOR_X + ESP32_BODY_L
     esp_ymin = ESP32_ANCHOR_Y - ESP32_BODY_W
     esp_ymax = ESP32_ANCHOR_Y
@@ -880,8 +888,10 @@ _FOOTPRINT_HALF_EXTENT: dict[str, tuple[float, float]] = {
     # Connectors — placed at varying rotations, see per-call comments
     # in gen_*_pcb_footprint helpers. The (half_x, half_y) here assumes
     # the rotation actually used on the OAS PCB.
-    # J3 — JST GH 6-pin horizontal SMD, rotation 0 (mouth +Y / -Y)
-    "Connector_JST:JST_GH_SM06B-GHS-TB_1x06-1MP_P1.25mm_Horizontal": (4.6, 2.5),
+    # J3 — JST GH 6-pin horizontal SMD, rotation 90 (mouth -X / west;
+    # v0.53 issue #2). Body half-extent swapped from the rotation-0
+    # (4.6, 2.5) — the 6-pin row (~9.2 mm) now runs along PCB Y.
+    "Connector_JST:JST_GH_SM06B-GHS-TB_1x06-1MP_P1.25mm_Horizontal": (2.5, 4.6),
     # J9 — JST SH 4-pin horizontal SMD, rotation 180 (mouth toward chord)
     "Connector_JST:JST_SH_SM04B-SRSS-TB_1x04-1MP_P1.00mm_Horizontal": (2.7, 1.5),
     # J1 — Phoenix MSTBA 3-pin terminal block, rotation 180

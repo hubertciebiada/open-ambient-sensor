@@ -11,6 +11,7 @@ writes it to `oas.kicad_pcb`.
 """
 from __future__ import annotations
 
+import math
 import textwrap
 
 from boardgen._common import (
@@ -23,6 +24,8 @@ from boardgen._project import (
     HALF_CHORD, Y_CHORD, R_OUTLINE,
     HOLE_POSITIONS, EDGE_CUTS_WIDTH, HOLE_DIAMETER, COURTYARD_RADIUS,
     CABLE_HOLE_DIAMETER,
+    SEN66_CUTOUT_X_MIN, SEN66_CUTOUT_X_MAX,
+    SEN66_CUTOUT_Y_MIN, SEN66_CUTOUT_Y_MAX, SEN66_CUTOUT_CORNER_R,
 )
 from boardgen._footprints import (
     gen_cutouts,
@@ -120,6 +123,54 @@ def gen_pcb() -> str:
         \t\t(layer "Edge.Cuts")
         \t\t(uuid "{U('cable_hole')}")
         \t)""")
+
+    # SEN66 recess cutout (v0.53, GitHub issue #2): a rounded rectangle
+    # milled through the board so the SEN66 module recesses into the
+    # enclosure rear space — the flat-mount body height broke the AK-N-94
+    # lid close. Emitted as 4 straight gr_line edges + 4 quarter-circle
+    # gr_arc corners on Edge.Cuts, derived from SEN66_CUTOUT_* in
+    # _project.py so the opening tracks any future SEN66 anchor move.
+    cx0, cx1 = SEN66_CUTOUT_X_MIN, SEN66_CUTOUT_X_MAX
+    cy0, cy1 = SEN66_CUTOUT_Y_MIN, SEN66_CUTOUT_Y_MAX
+    cr = SEN66_CUTOUT_CORNER_R
+    cs = cr * math.sqrt(0.5)   # corner-arc midpoint offset (r·cos45°)
+    _cut_lines = [
+        # (start_x, start_y, end_x, end_y, tag) — edges shortened by cr at
+        # each end so they meet the quarter-arc corners.
+        (cx0 + cr, cy0, cx1 - cr, cy0, "n"),   # north edge (min Y)
+        (cx1, cy0 + cr, cx1, cy1 - cr, "e"),   # east edge (max X)
+        (cx1 - cr, cy1, cx0 + cr, cy1, "s"),   # south edge (max Y)
+        (cx0, cy1 - cr, cx0, cy0 + cr, "w"),   # west edge (min X)
+    ]
+    _cut_arcs = [
+        # (start_x, start_y, mid_x, mid_y, end_x, end_y, tag) — quarter arcs
+        # bulging toward each rectangle corner (mid on the outward diagonal).
+        (cx1 - cr, cy0, cx1 - cr + cs, cy0 + cr - cs, cx1, cy0 + cr, "ne"),
+        (cx1, cy1 - cr, cx1 - cr + cs, cy1 - cr + cs, cx1 - cr, cy1, "se"),
+        (cx0 + cr, cy1, cx0 + cr - cs, cy1 - cr + cs, cx0, cy1 - cr, "sw"),
+        (cx0, cy0 + cr, cx0 + cr - cs, cy0 + cr - cs, cx0 + cr, cy0, "nw"),
+    ]
+    cutout_parts = []
+    for sx, sy, ex, ey, tag in _cut_lines:
+        cutout_parts.append(textwrap.dedent(f"""\
+            \t(gr_line
+            \t\t(start {fx(sx)} {fy(sy)})
+            \t\t(end {fx(ex)} {fy(ey)})
+            \t\t(stroke (width {fmt(EDGE_CUTS_WIDTH)}) (type solid))
+            \t\t(layer "Edge.Cuts")
+            \t\t(uuid "{U('sen66_cutout_edge_' + tag)}")
+            \t)"""))
+    for sx, sy, mx, my, ex, ey, tag in _cut_arcs:
+        cutout_parts.append(textwrap.dedent(f"""\
+            \t(gr_arc
+            \t\t(start {fx(sx)} {fy(sy)})
+            \t\t(mid {fx(mx)} {fy(my)})
+            \t\t(end {fx(ex)} {fy(ey)})
+            \t\t(stroke (width {fmt(EDGE_CUTS_WIDTH)}) (type solid))
+            \t\t(layer "Edge.Cuts")
+            \t\t(uuid "{U('sen66_cutout_corner_' + tag)}")
+            \t)"""))
+    outline = outline + "\n" + "\n".join(cutout_parts)
 
     # 3 mounting holes. v0.27: per-hole designators (H1/H2/H3) are
     # emitted as board-level `gr_text` in `gen_designator_labels()` so
