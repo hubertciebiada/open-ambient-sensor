@@ -920,11 +920,12 @@ def gen_sensors_pcb_footprints() -> str:
     # edge. v0.53 (issue #3): F.Fab carries the TRUE outline incl. the
     # ESP32-C6-MINI-1 antenna tab. F.SilkS carries CORNER TICKS since the
     # pin-offset fix (5.37 → 1.575, see _project.py HISTORY): the body is
-    # fully on-board now (NW corner 0.847 mm inside R60), but a FULL silk
+    # fully on-board now (NW corner 1.364 mm inside R60), but a FULL silk
     # rect is still impossible — the west short edge would cross the U1
-    # lead-pad ends (~X −31.55) and the J5/J6 socket-frame ends (X −31.22),
-    # the east short edge the C2 pad column (~X +16.45..17.65). The four
-    # L-ticks mark the corners and skip those congested mid-spans.
+    # lead-pad ends (X −31.55..−28.05) and the J5/J6 socket-frame ends
+    # (X −30.22), and the east short edge skirts the C2 pad column
+    # (~X +17.6). The four L-ticks mark the corners and skip those
+    # congested mid-spans.
     parts.append(_emit_daughterboard_reference_pcb_footprint(
         lib_id="oas:ESP32-C6-DevKitM-1_Reference",
         reference="MOD1",
@@ -960,13 +961,14 @@ def gen_sensors_pcb_footprints() -> str:
     # In PCB after helper rotation 90, LIB +Y → PCB +X, LIB +X → PCB -Y.
     # Row A (LIB X = 1.27): pin row along PCB X at PCB Y = anchor_y - 1.27.
     # Row B (LIB X = body_w - 1.27 = 24.13): PCB Y = anchor_y - 24.13.
-    # Pin 1 of each row at PCB X = anchor_x + 1.575 = -29.89 — the
-    # PHYSICAL datum of the user-measured 7.5 mm west move (v0.51 boards
-    # had pin 1 at -22.39); the offset fix re-derived the anchor, NOT the
-    # socket position.
+    # Pin 1 of each row at PCB X = anchor_x + 1.575 = -28.89 — the
+    # PHYSICAL datum: net 6.5 mm west of the v0.51 boards' -22.39 (the
+    # user-measured 7.5 mm move, trimmed 1.0 mm back east after a live fit
+    # check — see ESP32_ANCHOR_X in _project.py); the offset fix re-derived
+    # the anchor, NOT the socket position.
     esp32_row_a_y = ESP32_ANCHOR_Y - ESP32_PIN_ROW_INSET                    # -25.97
     esp32_row_b_y = ESP32_ANCHOR_Y - (ESP32_BODY_W - ESP32_PIN_ROW_INSET)   # -48.83
-    esp32_row_x_start = ESP32_ANCHOR_X + ESP32_PIN_START_OFFSET             # -29.89
+    esp32_row_x_start = ESP32_ANCHOR_X + ESP32_PIN_START_OFFSET             # -28.89
     parts.append(gen_pinsocket_pcb_footprint(
         pin_count=ESP32_PIN_COUNT_PER_ROW,
         x=esp32_row_x_start, y=esp32_row_a_y, rotation=90,
@@ -1592,13 +1594,13 @@ def gen_silk_labels() -> str:
     ))
     # ESP32 J6 (USB-side row) — end label pushed SOUTH of the J6 socket
     # silk frame. v0.53 (issue #3): only the EAST end is labelled now
-    # (J6_END_SIGNALS = {15: "GND"}). With the DevKit 7.5 mm west, the west
-    # end (pin-16, PCB X=-29.89) sat over the SW board arc — the ~1.2 mm gap
-    # between the J6 frame south edge (-50.16) and the arc (-52.02) is too
-    # small for the label — and since BOTH J6 ends were "GND" (no orientation
-    # value; J5's 3V3/GND end labels already orient the module), the west
-    # "GND" was dropped rather than crammed. The east end has ample room at
-    # the -2.9 offset.
+    # (J6_END_SIGNALS = {15: "GND"}). With the DevKit moved west, the west
+    # end (pin-16, PCB X=-28.89) sits over the SW board arc — the narrow gap
+    # between the J6 frame south edge (-50.16) and the arc is too small for
+    # the label — and since BOTH J6 ends were "GND" (no orientation value;
+    # J5's 3V3/GND end labels already orient the module), the west "GND" was
+    # dropped rather than crammed. The east end has ample room at the -2.9
+    # offset.
     parts.extend(_pin_labels(
         origin_x=esp32_row_x_start, origin_y=esp32_row_b_y, rotation=90,
         pin1_local=(0.0, 0.0), step_local=(0.0, ESP32_PIN_PITCH),

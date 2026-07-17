@@ -2333,7 +2333,7 @@
 (footprint "oas:ESP32-C6-DevKitM-1_Reference"
 	(layer "F.Cu")
 	(uuid "80585f9b-fdcc-5d78-917d-6cb71f900f86")
-	(at 117.035 80.3 90)
+	(at 118.035 80.3 90)
 	(descr "ESP32-C6-DevKitM-1-N4 daughterboard shadow (EAN 5904422385651). Body 25.4×48.26 mm + 13.20×5.37 mm antenna tab; 8.6 mm tall; mounts on 2×1x15 P2.54 mm female pin sockets. Pin block offset 1.575 mm from the antenna edge (48.26 − 14×2.54 − 11.125) per Espressif dimensions PDF.")
 	(attr board_only exclude_from_pos_files exclude_from_bom)
 	(property "Reference" "MOD1"
@@ -2680,7 +2680,7 @@
 (footprint "Connector_PinSocket_2.54mm:PinSocket_1x15_P2.54mm_Vertical"
 	(layer "F.Cu")
 	(uuid "7f69ad95-742b-5c75-a7e5-8ef499f2b421")
-	(at 118.61 79.03 90)
+	(at 119.61 79.03 90)
 (property "Reference" "J5"
 	(at 0 -1.9 90)
 	(layer "F.SilkS")
@@ -2995,7 +2995,7 @@
 (footprint "Connector_PinSocket_2.54mm:PinSocket_1x15_P2.54mm_Vertical"
 	(layer "F.Cu")
 	(uuid "fcc9f71f-2b3c-581f-8d3b-f16d57b077fb")
-	(at 118.61 56.17 90)
+	(at 119.61 56.17 90)
 (property "Reference" "J6"
 	(at 0 -1.9 90)
 	(layer "F.SilkS")
@@ -13896,7 +13896,7 @@
 	)
 )
 (gr_text "ESP32-C6 DevKitM-1"
-	(at 141.165 67.6 0)
+	(at 142.165 67.6 0)
 	(layer "F.Fab")
 	(uuid "e5c5f8b8-3a1d-592f-a740-15f1e95151ab")
 	(effects
@@ -13904,7 +13904,7 @@
 	)
 )
 (gr_text "USB"
-	(at 159.295 67.6 0)
+	(at 160.295 67.6 0)
 	(layer "F.Fab")
 	(uuid "275c22c6-5a9a-5717-a90b-49bdd45e0c93")
 	(effects
@@ -14364,7 +14364,7 @@
 	)
 )
 (gr_text "J5"
-	(at 123.69 82.5 0)
+	(at 124.69 82.5 0)
 	(layer "F.SilkS")
 	(uuid "0a115f8a-2f4d-5046-ae6e-b645952630ff")
 	(effects
@@ -14372,7 +14372,7 @@
 	)
 )
 (gr_text "J6"
-	(at 123.69 52.5 0)
+	(at 124.69 52.5 0)
 	(layer "F.SilkS")
 	(uuid "b7cd5127-0ad8-59e5-b0d9-0cbf90f47cd4")
 	(effects
@@ -14380,7 +14380,7 @@
 	)
 )
 (gr_text "3V3"
-	(at 118.61 81.93 0)
+	(at 119.61 81.93 0)
 	(layer "F.SilkS")
 	(uuid "d0a1f27a-d8bb-5d93-a242-9ab4ba417196")
 	(effects
@@ -14388,7 +14388,7 @@
 	)
 )
 (gr_text "GND"
-	(at 154.17 81.93 0)
+	(at 155.17 81.93 0)
 	(layer "F.SilkS")
 	(uuid "bac2f00c-2ce4-5f3e-a947-6d588e7343cf")
 	(effects
@@ -14396,7 +14396,7 @@
 	)
 )
 (gr_text "GND"
-	(at 154.17 53.27 0)
+	(at 155.17 53.27 0)
 	(layer "F.SilkS")
 	(uuid "f18c4cfb-d85b-5330-bb66-a72138b86536")
 	(effects

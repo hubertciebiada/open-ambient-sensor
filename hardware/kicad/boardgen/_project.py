@@ -376,11 +376,12 @@ _SEN66_BODY_SHORT = 25.6   # footprint-local +Y extent (== SEN66_BODY_Y)
 # West restored 0.8 → 1.0 mm in v0.53 (issue #3). The 0.8 mm trim had been a
 # Task-1 compromise: the ESP32 (MOD1) daughterboard-shadow silk east edge sat
 # at X=20.30, only 0.20 mm from a 1.0 mm-margin cutout west edge (20.5) →
-# silk_edge_clearance. Issue #3 moves the DevKit 7.5 mm WEST, so its silk east
-# edge is now ≈+12.8 (far from the cutout); the compromise is obsolete and the
-# full 1.0 mm press-fit margin is restored (cutout west edge back to 20.5,
-# short-axis slack 1.75 mm total). Cluster D1 east courtyard (≈+19.25) still
-# clears the cutout west edge (20.5) by 1.25 mm (≥1.0).
+# silk_edge_clearance. Issue #3 moves the DevKit west (net 6.5 mm); its body
+# east edge is now +17.795 (silk corner ticks ~2.7 mm from the cutout, no
+# silk_edge issue), so the compromise is obsolete and the full 1.0 mm
+# press-fit margin is restored (cutout west edge back to 20.5, short-axis
+# slack 1.75 mm total). Cluster D1 east courtyard (≈+19.25) still clears the
+# cutout west edge (20.5) by 1.25 mm (≥1.0).
 SEN66_CUTOUT_MARGIN_W = 1.0    # PCB -X (west): press-fit clearance
 SEN66_CUTOUT_MARGIN_E = 0.75   # PCB +X (east): held small to protect the R60 rim
 SEN66_CUTOUT_MARGIN_N = 0.75   # PCB -Y (north): held small (radial caps sit above)
@@ -621,10 +622,10 @@ def _ld2410_local_to_pcb(lx: float, ly: float) -> tuple[float, float]:
 #
 #   ESP32-C6 DevKitM-1-N4
 #   body: 48.26 × 25.4 mm (+ 13.20 × 5.37 mm antenna tab, west)
-#   anchor (-31.465, -24.70)   [v0.53 — see ESP32_ANCHOR_X comment]
-#   body X=-31.465..+16.795
+#   anchor (-30.465, -24.70)   [v0.53 — see ESP32_ANCHOR_X comment]
+#   body X=-30.465..+17.795
 #   body Y=-50.10..-24.70
-#   center X = -7.335
+#   center X = -6.335
 #   horizontal at TOP-CENTER
 #   antenna LEFT (-X)
 #   USB-C RIGHT (+X)
@@ -681,45 +682,50 @@ ESP32_PIN_START_OFFSET = 1.575     # distance from antenna short edge (LIB
 # then-present NFC top edge allowed. Body X range leaves a 2.5 mm gap
 # to LD2410's right edge at X=-39.66 and 12.4 mm to SEN66's left edge
 # at X=+23.5. Helper rotation 90° unchanged (body lies down 48.26 × 25.4).
-ESP32_ANCHOR_X = -31.465           # v0.53 (issue #3 + its review): the
-                                    # PHYSICAL datum is the J5/J6 socket rows —
-                                    # pin 1 at PCB X = anchor + offset =
-                                    # -29.89, exactly 7.5 mm WEST of the v0.51
-                                    # boards' -22.39 (user-measured move). When
+ESP32_ANCHOR_X = -30.465           # v0.53 (issue #3 + its review + live fit
+                                    # check): the PHYSICAL datum is the J5/J6
+                                    # socket rows — pin 1 at PCB X = anchor +
+                                    # offset = -28.89, a NET 6.5 mm WEST of the
+                                    # v0.51 boards' -22.39. History of the
+                                    # datum: the user first measured a 7.5 mm
+                                    # west move (pin 1 -29.89), then after a
+                                    # live fit check on the physical assembly
+                                    # trimmed it 1.0 mm back EAST for west-side
+                                    # safety margin — the surplus toward the
+                                    # THT caps / SEN66 was ample, so 6.5 mm
+                                    # nets more slack where it matters. When
                                     # the pin-1 offset was corrected 5.37 →
-                                    # 1.575 (see HISTORY above), the anchor was
-                                    # re-derived as -29.89 − 1.575 = -31.465 so
-                                    # the SOCKETS DID NOT MOVE — only the drawn
-                                    # body shadow slid 3.795 mm east, onto where
-                                    # the real module actually sits.
-                                    # Body X range -31.465..+16.795, center
-                                    # X = -7.335. Clearances (real module):
+                                    # 1.575 (see HISTORY above), the anchor
+                                    # became datum − 1.575 = -30.465; the
+                                    # anchor is DERIVED, the sockets are the
+                                    # truth.
+                                    # Body X range -30.465..+17.795, center
+                                    # X = -6.335. Clearances (real module):
                                     #   - C3 Ø8 radial can west rim +21.75 −
-                                    #     body east +16.795 = 4.955 mm → the
+                                    #     body east +17.795 = 3.955 mm → the
                                     #     module seats fully next to the caps.
                                     #   - SEN66 cutout west edge +20.50 −
-                                    #     body east +16.795 = 3.705 mm.
-                                    #   - body NW corner (-31.465, -50.10):
-                                    #     r=59.153 → 0.847 mm INSIDE R60 —
-                                    #     NO overhang (the pre-review "1.264 mm
-                                    #     accepted overhang" was an artifact of
-                                    #     the wrong 5.37 offset).
-                                    #   - antenna tab tip X=-36.835; far corner
-                                    #     (-36.835, -44.00) r=57.381 → 2.62 mm
+                                    #     body east +17.795 = 2.705 mm.
+                                    #   - body NW corner (-30.465, -50.10):
+                                    #     r=58.636 → 1.364 mm INSIDE R60 —
+                                    #     NO overhang.
+                                    #   - antenna tab tip X=-35.835; far corner
+                                    #     (-35.835, -44.00) r=56.746 → 3.25 mm
                                     #     INSIDE R60.
                                     # F.Fab carries the full true outline (body
                                     # + tab); F.SilkS carries four corner
                                     # L-ticks (a full silk rect would cross
-                                    # the U1 lead-pad ends ~X -31.55, the
-                                    # J5/J6 frame ends X -31.22 and the C2
-                                    # pad column ~X +16.5 — see the MOD1
+                                    # the U1 lead-pad ends X -31.55..-28.05
+                                    # and the J5/J6 frame ends X -30.22 on the
+                                    # west, and skirts the C2 pad column
+                                    # (~X +17.6) on the east — see the MOD1
                                     # block in _footprints_placement.py).
 ESP32_ANCHOR_Y = -24.70            # v0.15.3: +2 mm DOWN from v0.15.2's
                                     # -26.70. Body Y range -50.10..-24.70.
                                     # Top edge 3.00 mm above H3 hole top
                                     # at Y=-53.1 (was 1.0 mm). NW corner
                                     # clearance vs the R60 outline: see the
-                                    # ESP32_ANCHOR_X comment (0.847 mm
+                                    # ESP32_ANCHOR_X comment (1.364 mm
                                     # inside at the v0.53 anchor).
                                     # v0.18: REVERTED the v0.17 1.5 mm
                                     # north-shift (was -26.20) back to
