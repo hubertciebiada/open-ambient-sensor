@@ -132,22 +132,7 @@
 	(layer "Edge.Cuts")
 	(uuid "e8f878cf-90a9-5001-9bea-45dd089aaa09")
 )
-(gr_rect
-	(start 135.5 132.198)
-	(end 146.5 148.497798)
-	(stroke (width 0.1) (type solid))
-	(fill no)
-	(layer "Dwgs.User")
-	(uuid "dec9e140-fe61-5168-87f9-7a2fdb3a1a0b")
-)
-(gr_text "USBC\n11.0×16.3"
-	(at 141 140.347899)
-	(layer "Dwgs.User")
-	(uuid "dd4b3530-1efb-5eb6-8dc9-5476113eeb21")
-	(effects
-		(font (size 0.8 0.8) (thickness 0.12))
-	)
-)
+
 (footprint "oas:MountingHole_3.8mm_M3"
 	(layer "F.Cu")
 	(uuid "22d32203-3832-5c19-8be2-18d61a3bc1d7")

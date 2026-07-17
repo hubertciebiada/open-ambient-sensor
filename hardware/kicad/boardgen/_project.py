@@ -255,25 +255,20 @@ CABLE_HOLE_DIAMETER = 10.0
 # `(pads not_allowed)` so a connector's solder pads may live inside the
 # opening area (connector body + accessible pads sit in the case-wall
 # opening).
-CUTOUTS = [
-    # name, x_min, x_max, y_min, y_max, allow_pads  (PCB-local mm, +Y = toward chord)
-    # v0.50-rework: the C2 cutout (RJ45 / Ethernet wall opening) is
-    # removed. It only ever hosted J9 (Qwiic), now relocated INTERNAL
-    # (see J9_PCB_* above). An empty case-wall keepout only sterilises
-    # routing space — and exported to Freerouting as a HARD keepout that
-    # trapped the J1 reverse-polarity protection cluster's pads — so the
-    # opening is dropped from CUTOUTS entirely.
-    # USB-C opening — immediately LEFT (-X) of the (removed) RJ45 opening in the
-    # top-of-enclosure view (chord order: round | two-round | USB-C | RJ45 |
-    # square). This is a physical case-wall opening in the AK-N-94; OAS puts
-    # no connector in it (SW1 was removed in v0.53 — GitHub issue #5), so it
-    # is documented only. The X range is an ESTIMATE — the AK-N-94
-    # manufacturer DXF is third-party (Rule 6) and not committed; VERIFY
-    # x_min / x_max against a physical AK-N-94 sample before locking a board
-    # revision. allow_pads=True keeps the (inert) keepout out of the DSN
-    # export so it never walls the autorouter out of the opening.
-    ("USBC", -13.000, -2.000, +27.198, +Y_CHORD, True),  # USB-C opening (~11 mm) — unused (no connector)
-]
+#
+# The list is currently EMPTY — no case-wall opening hosts an OAS
+# connector anymore:
+#   - C2 (RJ45 / Ethernet) dropped in the v0.50 rework: it only ever
+#     hosted J9 (Qwiic), now relocated INTERNAL (see J9_PCB_* above),
+#     and the exported keepout trapped the J1 protection cluster's pads
+#     in Freerouting.
+#   - USBC (USB-C opening, X -13..-2, ~11 mm) dropped in v0.53 with the
+#     SW1 push-button removal (GitHub issue #5): with no component in
+#     the opening, its Dwgs.User reservation marker was documentation
+#     noise on the drawings.
+# The openings remain physical features of the AK-N-94 wall; re-add an
+# entry here only when a connector actually moves into one.
+CUTOUTS: list[tuple[str, float, float, float, float, bool]] = []
 
 
 # Page-centre formatters --------------------------------------------------

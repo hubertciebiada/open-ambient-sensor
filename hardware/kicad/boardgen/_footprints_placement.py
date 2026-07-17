@@ -1367,14 +1367,13 @@ def gen_silk_labels() -> str:
     #     by SILK_EDGE_INSET on each side so it clears Edge.Cuts even
     #     when the cutout is clipped at the chord
     #   - A short text label centred in the rectangle identifying what
-    #     the cutout hosts. For narrow rects the text is rotated 90° so
-    #     it still fits inside the outline without overlapping
-    #     (DRC silk_overlap).
-    #
-    # Per-cutout label override: a cutout hosting a connector with its
-    # own body silk skips the silk rect (see CUTOUTS_WITHOUT_RECT) to
-    # avoid a DRC `silk_overlap` against the connector outline — only the
-    # text label is emitted, positioned clear of the connector body.
+    #     the cutout hosts ("<name> AUX" default). For narrow rects the
+    #     text is rotated 90° so it still fits inside the outline without
+    #     overlapping (DRC silk_overlap).
+    # CUTOUTS is currently empty (see boardgen/_project.py — the USBC
+    # opening left with SW1 in v0.53, GitHub issue #5), so this loop
+    # emits nothing today; the mechanism stays for any future opening
+    # that hosts a connector again.
     SILK_EDGE_INSET = 0.3       # mm — keeps rect off the board edge.
                                 # With 0.12 mm silk stroke, line outer edge
                                 # sits 0.06 mm beyond the centerline; 0.3 mm
@@ -1382,50 +1381,29 @@ def gen_silk_labels() -> str:
                                 # comfortably above the 0.15 mm DRC limit.
     SILK_TEXT_MIN_HORIZONTAL_FIT = 5.0   # mm — width needed to keep label
                                           # at 1.0 mm horizontal inside the rect
-    CUTOUT_LABELS: dict[str, str] = {
-        # USBC: empty string = NO text label. The opening hosts no OAS
-        # connector (SW1 was removed in v0.53 — GitHub issue #5); a
-        # "USBC AUX" text would only suggest a connector that does not
-        # exist. Note for any future label here: the cutout centre sits
-        # inside J1's terminal-block silk X shadow (J1 south edge
-        # Y=+34.51, X -8.73..+8.73) — a label must drop to Y≈+35.8 to
-        # clear the 0.15 mm JLCPCB silk_overlap floor.
-        "USBC": "",
-    }
-    # Cutouts whose silk rect is skipped to avoid a silk_overlap DRC.
-    # USBC abuts J1's Phoenix terminal-block body silk (J1 south edge
-    # reaches PCB Y=+34.51, X -8.73..+8.73; the USBC rect would span
-    # Y[+27.5..+43.22] X[-12.7..-2.3] and cross it) — so the rect is
-    # dropped and only the repositioned text label emits. This is a
-    # geometric constraint against J1, independent of the removed SW1.
-    CUTOUTS_WITHOUT_RECT = {"USBC"}
     for name, x1, x2, y1, y2, allow_pads in CUTOUTS:
         rx1, rx2 = x1 + SILK_EDGE_INSET, x2 - SILK_EDGE_INSET
         ry1, ry2 = y1 + SILK_EDGE_INSET, y2 - SILK_EDGE_INSET
         cx = (rx1 + rx2) / 2
         cy = (ry1 + ry2) / 2
         rect_w = rx2 - rx1
-        if name not in CUTOUTS_WITHOUT_RECT:
-            parts.append(textwrap.dedent(f"""\
-                \t(gr_rect
-                \t\t(start {fx(rx1)} {fy(ry1)})
-                \t\t(end {fx(rx2)} {fy(ry2)})
-                \t\t(stroke (width 0.12) (type solid))
-                \t\t(fill no)
-                \t\t(layer "F.SilkS")
-                \t\t(uuid "{U('cutout-silk-rect:'+name)}")
-                \t)"""))
+        parts.append(textwrap.dedent(f"""\
+            \t(gr_rect
+            \t\t(start {fx(rx1)} {fy(ry1)})
+            \t\t(end {fx(rx2)} {fy(ry2)})
+            \t\t(stroke (width 0.12) (type solid))
+            \t\t(fill no)
+            \t\t(layer "F.SilkS")
+            \t\t(uuid "{U('cutout-silk-rect:'+name)}")
+            \t)"""))
         # Centred text label at the DRC minimum text height (1.0 mm);
         # rotate 90° in narrow rects so the text fits inside without
-        # overlapping the outline. An empty CUTOUT_LABELS entry
-        # suppresses the label entirely (see USBC above).
+        # overlapping the outline.
         text_angle = 90.0 if rect_w < SILK_TEXT_MIN_HORIZONTAL_FIT else 0.0
-        label = CUTOUT_LABELS.get(name, f"{name} AUX")
-        if label:
-            parts.append(_silk(
-                label, cx, cy, f"cutout-silk-{name}",
-                size=1.0, angle=text_angle,
-            ))
+        parts.append(_silk(
+            f"{name} AUX", cx, cy, f"cutout-silk-{name}",
+            size=1.0, angle=text_angle,
+        ))
 
     # ---- v0.27: per-component designator labels on F.SilkS ----
     # Every populated component on the OAS PCB gets a short Reference
