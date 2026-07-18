@@ -59,25 +59,20 @@ def main() -> int:
 
         # Unconnected-pad baseline.
         #
-        # TEMPORARY (GitHub issue #8): signal routing is DELIBERATELY absent
-        # while the placement tasks (issue #2 SEN66 recess cutout, etc.) land.
-        # ROUTING_CHUNKS = ("gnd",) in boardgen/_routing.py emits GND pours
-        # only, so every non-GND pad legitimately reads as unconnected. This
-        # count is the exact pours-only baseline measured against the current
-        # placement; a DIFFERENT value is a real regression (a pad moved,
-        # appeared, or vanished unexpectedly). When issue #8 re-routes the
-        # board to full coverage this MUST return to 0 — any non-zero value
-        # is then a routing regression. DRC *violations* stay hard-zero
-        # throughout (the GND pours clip cleanly around the new cutout).
-        EXPECTED_UNCONNECTED = 83
+        # GitHub issue #8 re-route COMPLETE: ROUTING_CHUNKS = ("gnd",
+        # "autoroute") in boardgen/_routing.py replays the full Freerouting
+        # snapshot (oas_routes.py) + GND stitch vias, so the board is fully
+        # routed. This MUST be 0 — any non-zero value is a routing regression
+        # (a pad stranded, moved, appeared, or vanished). DRC *violations*
+        # stay hard-zero throughout.
+        EXPECTED_UNCONNECTED = 0
         if n_unc != EXPECTED_UNCONNECTED:
             st.fail(
                 f"{n_unc} unconnected pads — expected exactly "
-                f"{EXPECTED_UNCONNECTED} (pours-only baseline pending the "
-                f"issue #8 re-route). A different count means a pad moved / "
-                f"appeared / vanished — see {drc_report}."
+                f"{EXPECTED_UNCONNECTED} (board fully routed, issue #8). A "
+                f"non-zero count is a routing regression — see {drc_report}."
             )
-        st.ok(f"{n_unc} unconnected pads — pours-only baseline (issue #8)")
+        st.ok(f"{n_unc} unconnected pads — fully routed (issue #8)")
     return 0
 
 

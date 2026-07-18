@@ -80,8 +80,20 @@ from boardgen._project import (
 # suites) skip themselves when "autoroute" not in ROUTING_CHUNKS.
 ROUTING_CHUNKS: tuple[str, ...] = (
     "gnd",         # Chunk 1 — F.Cu + B.Cu GND copper pour. ALWAYS on.
-    # "autoroute", # Chunk 2 — Freerouting snapshot replay. Disabled until
-    #                the one-shot full re-route (GitHub issue #8).
+    "autoroute",   # Chunk 2 — Freerouting snapshot replay from oas_routes.py.
+)
+
+
+# v0.53 issue #8: F.Cu copperpour keepout rectangles (PCB-local mm:
+# x0, y0, x1, y1, tag) that suppress tiny isolated GND pour slivers the
+# full re-route leaves behind. Each is a <2 mm² fragment that no 0.7 mm
+# stitch via can seat (inter-pin gaps around the J5 header + I2C_SCL trunk,
+# plus two stray slivers near the cable hole and the buck). Removing the
+# F.Cu pour there deletes the island; THT GND pins in the pocket keep their
+# B.Cu-plane connection through the barrel. Centroids from the filled-gerber
+# G36 island scan (tools/pour_islands helper).
+_GND_FCU_SLIVER_KEEPOUTS: tuple[tuple[float, float, float, float, str], ...] = (
+    (8.40, -2.30, 10.10, -0.50, "hole_ne_sliver"),    # padless @157.76,103.58
 )
 
 
@@ -511,6 +523,17 @@ def _route_gnd_pour(em: "_RouteEmitter", nets: dict) -> int:
         return 0
     em.gnd_zone("F.Cu", code)
     em.gnd_zone("B.Cu", code)
+
+    # v0.53 (issue #8): the full re-route leaves a handful of tiny F.Cu GND
+    # pour slivers that no stitch via can seat (0.24 mm inter-pin gaps, e.g.
+    # trapped between the J5 header pin row and the parallel I2C_SCL trunk).
+    # KiCad keeps them as isolated islands (DRC unconnected). Suppress the
+    # pour there with copperpour-not-allowed keepouts (F.Cu only) — the THT
+    # GND pins in those pockets (J5.13) still connect through their barrel to
+    # the continuous B.Cu plane; the pad-less slivers simply vanish. PCB-local
+    # rectangles (mm); see tools notes for the island centroids they cover.
+    for (x0, y0, x1, y1, tag) in _GND_FCU_SLIVER_KEEPOUTS:
+        em.gnd_island_keepout("F.Cu", x0, y0, x1, y1, tag=tag)
 
     # v0.44: the two v0.32 hand-placed GND-sliver stitch vias (tags
     # v032:c8_2_bridge / v032:j3_2_in_pad) were removed. They bridged

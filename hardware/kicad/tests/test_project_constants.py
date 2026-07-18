@@ -229,20 +229,13 @@ def test_projected_24v_input_within_derated_f1_hold() -> None:
 
 @_routing_deferred
 def test_routes_snapshot_counts() -> None:
-    # v0.53 snapshot: SW1 removal (GitHub issue #5) dropped the /IO/BTN
-    # net's 7 segments + 2 vias from the v0.50 613 seg / 42 via baseline,
-    # then the follow-up dead-copper sweep removed the 6 orphaned GND
-    # stitch segments that used to terminate at SW1 pad 2 (600 + 40).
-    # The NFC removal (GitHub issue #7) then dropped 14 more segments
-    # (2 on the deleted /MCU/NFC_FD net + 12 dead GND stitches anchored
-    # at the removed J7.8/J8.8/C12.2 pads) and ADDED 3 bridge vias that
-    # replace the former J7.7/J8.5/J8.6 THT feed-throughs on the +3V3 /
-    # I2C_SCL / I2C_SDA runs to J3 (SEN66). The J3 SDA/SCL pin swap
-    # (GitHub issue #6, Lesson 21) then unwound the west-end braid at
-    # the I2C bridge vias: -4 braid segments, +3 direct via-to-trunk
-    # connectors (585 = 586 - 4 + 3).
-    assert len(oas_routes.ROUTES_SEGMENTS) == 585
-    assert len(oas_routes.ROUTES_VIAS) == 43
+    # v0.53 issue #8 full re-route on the widened-buck-corridor placement:
+    # Freerouting 2.2.4 (100% coverage, 0 unrouted) + the GND stitch vias
+    # (island-to-plane bridges tying every isolated F.Cu GND pour fragment
+    # down to the B.Cu plane) + a couple of hand-nudged power tracks off the
+    # cable hole / SEN66-cutout edges. Snapshot: 390 segments, 45 vias.
+    assert len(oas_routes.ROUTES_SEGMENTS) == 390
+    assert len(oas_routes.ROUTES_VIAS) == 45
 
 
 @_routing_deferred

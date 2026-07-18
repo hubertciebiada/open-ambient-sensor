@@ -615,22 +615,31 @@ def gen_power_pcb_footprints() -> str:
     # The 20 SMD power-section parts are re-placed into a clean 2-row
     # grid inside the user rectangle (PCB-local X[-27.5,+20.5],
     # Y[-44.5,-30] -- the gap between the ESP32 J5 and J6 pin rows).
-    # Row N at Y=-33.5, Row S at Y=-40.7 leave a ~5.7 mm horizontal
-    # routing corridor; every courtyard clears the J5 row (north) and
-    # the J6 row (south) by >=3.6 mm. West->east follows the power
-    # flow: buck1 (D2/L1) west, buck2 (U2 cluster) centre, ESP32 +3V3
-    # decoupling + I2C pull-ups east. U1/C1/C3/C4/C10 out of scope.
-    #   Row S (Y=-40.7): L1 C14 C5 C15 U2 C7 L2 C6 C9 C2
-    #   Row N (Y=-33.5): D2 C13 C8 R2 R3 C16 C17 R5 R6 R7
+    # Row N at Y=-32.5, Row S at Y=-41.5 leave a ~9.0 mm horizontal
+    # routing corridor; every courtyard still clears the J5 row (south,
+    # Y=-25.97) and the J6 row (north, Y=-48.83) by >=3.0 mm. West->east
+    # follows the power flow: buck1 (D2/L1) west, buck2 (U2 cluster)
+    # centre, ESP32 +3V3 decoupling + I2C pull-ups east. U1/C1/C3/C4/C10
+    # out of scope.
+    #   Row S (Y=-41.5): L1 C14 C5 C15 U2 C7 L2 C6 C9 C2
+    #   Row N (Y=-32.5): D2 C13 C8 R2 R3 C16 C17 R5 R6 R7
+    #
+    # v0.53 (issue #8): the two rows were spread apart from the v0.50
+    # 5.7 mm corridor (Row N -33.5 -> -32.5 toward J5, Row S -40.7 ->
+    # -41.5 toward J6) to relieve the +3V3/I2C congestion that boxed the
+    # decoupling-cap GND pads (R3/C16/C17) into sub-via GND pour islands
+    # after the full signal re-route. Widening the corridor lets the GND
+    # pour reach every cap GND pad. Measured: J5 pad-to-Row-N-body 4.26 mm,
+    # J6 pad-to-Row-S-inductor 3.06 mm (both were ~5+ mm before).
     # D2 -- buck1 freewheel diode (Row N west, above L1).
     parts.append(gen_diode_sma_pcb_footprint(
-        x=-23.1, y=-33.5, rotation=0,
+        x=-23.1, y=-32.5, rotation=0,
         reference="D2", value="SS14",
         uuid_tag="d2-schottky",
         descr="SS14 Schottky diode 40 V / 1 A, SMA, freewheeling for U1 buck.",
     ))
     parts.append(gen_inductor_smd_5x5_pcb_footprint(
-        x=-23.1, y=-40.7, rotation=0,
+        x=-23.1, y=-41.5, rotation=0,
         reference="L1", value="33uH",
         uuid_tag="l1-buck1",
         descr="33 µH ≥2 A SMD shielded power inductor (Wurth WE-PD-S or eq).",
@@ -651,25 +660,25 @@ def gen_power_pcb_footprints() -> str:
     # (R2/R3) on Row N directly above. Row S order U2 -> C7(BST) ->
     # L2(SW) keeps the switch node compact.
     parts.append(gen_sot583_pcb_footprint(
-        x=-5.8, y=-40.7, rotation=0,
+        x=-5.8, y=-41.5, rotation=0,
         reference="U2", value="TPS62933",
         uuid_tag="u2-tps62933",
         descr="TPS62933 5 V→3.3 V synchronous buck (TI), SOT-583/VSON-8.",
     ))
     parts.append(gen_inductor_smd_5x5_pcb_footprint(
-        x=+3.3, y=-40.7, rotation=0,
+        x=+3.3, y=-41.5, rotation=0,
         reference="L2", value="2.2uH",
         uuid_tag="l2-buck2",
         descr="2.2 µH ≥2 A SMD shielded power inductor for U2 buck.",
     ))
     parts.append(gen_resistor_0603_pcb_footprint(
-        x=-8.05, y=-33.5, rotation=0,
+        x=-8.05, y=-32.5, rotation=0,
         reference="R2", value="100k",
         uuid_tag="r2-fb-top",
         descr="FB top divider for TPS62933 (sets +3.3V).",
     ))
     parts.append(gen_resistor_0603_pcb_footprint(
-        x=-3.65, y=-33.5, rotation=0,
+        x=-3.65, y=-32.5, rotation=0,
         reference="R3", value="30.9k",
         uuid_tag="r3-fb-bot",
         descr="FB bottom divider for TPS62933 (sets +3.3V).",
@@ -679,25 +688,25 @@ def gen_power_pcb_footprints() -> str:
     # C13 (U1 VIN HF) Row N; C14 (+5V HF) Row S; C9 (ESP32 +3V3 bulk)
     # Row S east; C17 (ESP32 +3V3 HF) Row N east by the I2C pull-ups.
     parts.append(gen_capacitor_0603_pcb_footprint(
-        x=-16.85, y=-33.5, rotation=0,
+        x=-16.85, y=-32.5, rotation=0,
         reference="C13", value="100nF",
         uuid_tag="c13-u1-vin-hf",
         descr="100 nF input HF ceramic bypass at U1.VIN (paired with C3).",
     ))
     parts.append(gen_capacitor_0603_pcb_footprint(
-        x=-17.7, y=-40.7, rotation=0,
+        x=-17.7, y=-41.5, rotation=0,
         reference="C14", value="100nF",
         uuid_tag="c14-u1-vout-hf",
         descr="100 nF HF ceramic bypass on +5V rail (paired with C4).",
     ))
     parts.append(gen_capacitor_0805_pcb_footprint(
-        x=+13.5, y=-40.7, rotation=0,
+        x=+13.5, y=-41.5, rotation=0,
         reference="C9", value="10uF",
         uuid_tag="c9-esp32-bulk",
         descr="10 µF 0805 ceramic bulk on ESP32 +3V3.",
     ))
     parts.append(gen_capacitor_0603_pcb_footprint(
-        x=+5.15, y=-33.5, rotation=0,
+        x=+5.15, y=-32.5, rotation=0,
         reference="C17", value="100nF",
         uuid_tag="c17-esp32-hf",
         descr="100 nF HF ceramic decoupling on ESP32 +3V3.",
@@ -710,13 +719,13 @@ def gen_power_pcb_footprints() -> str:
     # datasheet §3.1 *recommends* 10 kΩ but does not mandate it; lower
     # values are explicitly allowed.
     parts.append(gen_resistor_0603_pcb_footprint(
-        x=+9.55, y=-33.5, rotation=0,
+        x=+9.55, y=-32.5, rotation=0,
         reference="R5", value="4.7k",
         uuid_tag="r5-i2c-sda-pullup",
         descr="I²C SDA 4.7 kΩ pull-up to +3V3 (v0.22 spec — sized for bus rise time at realized ~60-100 mm bus length, see CLAUDE.md M1).",
     ))
     parts.append(gen_resistor_0603_pcb_footprint(
-        x=+14.0, y=-33.5, rotation=0,
+        x=+14.0, y=-32.5, rotation=0,
         reference="R6", value="4.7k",
         uuid_tag="r6-i2c-scl-pullup",
         descr="I²C SCL 4.7 kΩ pull-up to +3V3 (v0.22 spec — see R5).",
@@ -724,7 +733,7 @@ def gen_power_pcb_footprints() -> str:
     # R7 — GPIO 8 boot-strap 10 kΩ pull-up to +3V3 (v0.22, Task #18 M2).
     # See R7 schematic block for rationale.
     parts.append(gen_resistor_0603_pcb_footprint(
-        x=+18.4, y=-33.5, rotation=0,
+        x=+18.4, y=-32.5, rotation=0,
         reference="R7", value="10k",
         uuid_tag="r7-gpio8-bootstrap-pullup",
         descr="GPIO 8 boot-strap 10 kΩ pull-up to +3V3 (v0.22, see CLAUDE.md M2). Replaces the DevKitM-1's onboard pull-up that doesn't work in OAS (VCC_5V unpowered).",
@@ -734,26 +743,26 @@ def gen_power_pcb_footprints() -> str:
     # C5/C15 (VIN, Row S west of U2), C6/C16 (VOUT, +3.3V rail),
     # C7 (BST, Row S between U2 and L2), C8 (SS, Row N above U2).
     parts.append(gen_capacitor_0805_pcb_footprint(
-        x=-13.6, y=-40.7, rotation=0,
+        x=-13.6, y=-41.5, rotation=0,
         reference="C5", value="10uF",
         uuid_tag="c5-u2-vin-bulk",
         descr="10 µF 0805 ceramic input bulk for U2.VIN (+5V).",
     ))
     # C15 -- buck2 VIN HF bypass, Row S between C5 and U2.
     parts.append(gen_capacitor_0603_pcb_footprint(
-        x=-9.5, y=-40.7, rotation=0,
+        x=-9.5, y=-41.5, rotation=0,
         reference="C15", value="100nF",
         uuid_tag="c15-u2-vin-hf",
         descr="100 nF input HF ceramic bypass at U2.VIN.",
     ))
     parts.append(gen_capacitor_0805_pcb_footprint(
-        x=+9.05, y=-40.7, rotation=0,
+        x=+9.05, y=-41.5, rotation=0,
         reference="C6", value="22uF",
         uuid_tag="c6-u2-vout-bulk",
         descr="22 µF 0805 ceramic output bulk on +3.3V rail.",
     ))
     parts.append(gen_capacitor_0603_pcb_footprint(
-        x=+0.75, y=-33.5, rotation=0,
+        x=+0.75, y=-32.5, rotation=0,
         reference="C16", value="100nF",
         uuid_tag="c16-u2-vout-hf",
         descr="100 nF HF ceramic bypass on +3.3V rail.",
@@ -765,13 +774,13 @@ def gen_power_pcb_footprints() -> str:
     # (without it the high-side gate driver supply is undersized and the
     # converter cannot start). Aligning PCB-generator to the schematic.
     parts.append(gen_capacitor_0603_pcb_footprint(
-        x=-2.1, y=-40.7, rotation=0,
+        x=-2.1, y=-41.5, rotation=0,
         reference="C7", value="100nF",
         uuid_tag="c7-u2-bst",
         descr="Bootstrap cap C(BST) between U2.SW and U2.BST. REQUIRED.",
     ))
     parts.append(gen_capacitor_0603_pcb_footprint(
-        x=-12.45, y=-33.5, rotation=0,
+        x=-12.45, y=-32.5, rotation=0,
         reference="C8", value="47nF",
         uuid_tag="c8-u2-ss",
         descr="Soft-start cap C(SS) between U2.SS and GND. Sets ramp time.",
@@ -782,7 +791,7 @@ def gen_power_pcb_footprints() -> str:
     # under the ESP32 shadow. C2 bridges GND <-> Earth_Protective; its
     # Earth_Protective trace runs back to J1.3 (24 V terminal block).
     parts.append(gen_capacitor_0805_pcb_footprint(
-        x=+18.0, y=-40.7, rotation=0,
+        x=+18.0, y=-41.5, rotation=0,
         reference="C2", value="10nF Y2",
         uuid_tag="c2-y2",
         descr="10 nF Y2 safety class — GND ↔ Earth_Protective EMI bridge. v0.50 Task-3: re-placed at the east end of Row S (+18.0, -40.7).",
