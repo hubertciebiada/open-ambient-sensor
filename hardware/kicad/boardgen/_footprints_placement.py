@@ -1084,7 +1084,9 @@ def gen_silk_labels() -> str:
                     pin_map: dict[int, str],
                     label_offset: tuple[float, float],
                     layer: str, tag: str,
-                    size: float = 0.8, angle: float = 0.0) -> list[str]:
+                    size: float = 0.8, angle: float = 0.0,
+                    per_pin_nudge: dict[int, tuple[float, float]] | None = None,
+                    ) -> list[str]:
         """Emit one `gr_text` per connector pin.
 
         Every pad's PCB position is DERIVED from the footprint placement
@@ -1093,15 +1095,19 @@ def gen_silk_labels() -> str:
         coordinates. `pin1_local` is pad 1 in footprint-local mm,
         `step_local` the local delta to the next pad; `label_offset` is a
         PCB-space nudge applied to every label to clear the pad row.
+        `per_pin_nudge` adds an extra PCB-space (dx, dy) for individual
+        pins whose default spot collides with something (document WHY at
+        the call site).
         """
         out: list[str] = []
         for pin, text in sorted(pin_map.items()):
             lx = pin1_local[0] + (pin - 1) * step_local[0]
             ly = pin1_local[1] + (pin - 1) * step_local[1]
             rdx, rdy = _rotate_local(lx, ly, rotation)
+            ndx, ndy = (per_pin_nudge or {}).get(pin, (0.0, 0.0))
             out.append(_silk(text,
-                             origin_x + rdx + label_offset[0],
-                             origin_y + rdy + label_offset[1],
+                             origin_x + rdx + label_offset[0] + ndx,
+                             origin_y + rdy + label_offset[1] + ndy,
                              f"{tag}-p{pin}", size=size, layer=layer,
                              angle=angle))
         return out
@@ -1338,6 +1344,18 @@ def gen_silk_labels() -> str:
         pin1_local=(0.0, 0.0), step_local=(0.0, 2.54),
         pin_map=J10_PIN_MAP, label_offset=(0.0, +3.8),
         layer="F.SilkS", tag="j10-pin", size=1.0, angle=90.0,
+        # Pin 6 "BOOT" nudged 0.91 mm EAST: the issue-#8 route drops an
+        # I2C_SDA layer-change via at (1.40, -14.91) right under the
+        # label's default column (JLCDFM "Silkscreen to hole" Danger,
+        # Lesson 14), and a second via sits at (3.91, -16.41) further
+        # east. The copper below is boxed in (Earth/+5V/WS2812 tracks on
+        # both layers), so the LABEL moves instead of the via -- to the
+        # exact midpoint between the two via holes (X = 2.65; pin 6 is
+        # the east end of the row, so the spot is free and the label
+        # still reads as pin 6's). Hole-edge -> glyph-column clearance
+        # ~0.5 mm on both sides (>= 0.25 mm under a worst-case
+        # glyph-width estimate).
+        per_pin_nudge={6: (+0.91, 0.0)},
     ))
     # J10 connector ID — moved EAST of the pad row (user request: the old
     # placement, 7.5 mm SOUTH of the pads, had drifted far from the
