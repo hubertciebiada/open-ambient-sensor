@@ -560,3 +560,28 @@ def test_board_id_block_fits_west_pocket() -> None:
     # a typo here ships an unreachable link on every physical board.
     assert "".join(OAS_REPO_URL_SILK_LINES) == (
         "github.com/hubertciebiada/open-ambient-sensor")
+
+
+# ---------------------------------------------------------------------------
+# _routing_pad_db rotation (issue #8 bugfix regression)
+# ---------------------------------------------------------------------------
+
+def test_routing_pad_db_rotated_footprint_positions() -> None:
+    """KiCad footprint rotation is CLOCKWISE (rotate pad offset by -angle).
+    The pre-fix CCW formula mislocated every rotated part; e.g. J3 (placed
+    at 90 deg) landed pad 2 at (166.85, 136.625) instead of the true
+    (163.15, 140.375). Parses the committed oas.kicad_pcb (no KiCad needed).
+    """
+    from boardgen._routing import _routing_pad_db
+    pads, _nets = _routing_pad_db()
+    PAGE = (148.5, 105.0)
+    expected_page = {
+        ("J3", "2"): (163.150, 140.375),   # SEN66 connector, 90 deg
+        ("J3", "5"): (163.150, 136.625),
+        ("D11", "4"): (159.650, 103.250),  # SK6812 LED, ring angle
+        ("D14", "4"): (137.964, 118.011),
+    }
+    for (ref, pin), (ex, ey) in expected_page.items():
+        px, py, _code, _name = pads[(ref, pin)]
+        assert abs((px + PAGE[0]) - ex) < 5e-3, f"{ref}.{pin} X off"
+        assert abs((py + PAGE[1]) - ey) < 5e-3, f"{ref}.{pin} Y off"

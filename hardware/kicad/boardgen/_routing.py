@@ -111,10 +111,9 @@ def _routing_pad_db() -> tuple[dict, dict]:
 
     Coordinates are in PCB-local mm (origin = PCB centre, +Y = downward
     on screen = toward chord), already adjusted for PAGE_CENTRE_X/Y.
-    Footprint rotation is correctly composed with pad local offset using
-    the standard 2D rotation matrix (math CCW; KiCad's +Y-down screen
-    convention is preserved by leaving both PCB-local and pad-local in
-    +Y-down sign space).
+    Footprint rotation is composed with the pad local offset using KiCad's
+    CLOCKWISE footprint-rotation convention in the Y-down file frame (see
+    the gx/gy computation below).
     """
     import math
     import re
@@ -212,11 +211,19 @@ def _routing_pad_db() -> tuple[dict, dict]:
                         else:
                             net_code = 0
                             net_name = ""
-                    # Compute global position via rotation + translation
+                    # Compute global position via rotation + translation.
+                    # KiCad footprint rotation is CLOCKWISE in the file's
+                    # Y-down frame (i.e. rotate the pad offset by -fp_ang):
+                    #   gx = fx + cos(a)*lx + sin(a)*ly
+                    #   gy = fy - sin(a)*lx + cos(a)*ly
+                    # The prior CCW form (ca*lx - sa*ly / sa*lx + ca*ly)
+                    # mislocated every rotated footprint's pads (e.g. J3 at
+                    # 90 deg landed pad 2 at 166.85,136.625 instead of the
+                    # true 163.15,140.375). Verified against J3/D11/D14.
                     a = math.radians(fp_ang)
                     ca, sa = math.cos(a), math.sin(a)
-                    gx_page = fp_x + (ca * lx - sa * ly)
-                    gy_page = fp_y + (sa * lx + ca * ly)
+                    gx_page = fp_x + (ca * lx + sa * ly)
+                    gy_page = fp_y + (-sa * lx + ca * ly)
                     # Convert to PCB-local (origin = centre)
                     px = gx_page - PAGE_CENTRE_X
                     py = gy_page - PAGE_CENTRE_Y
