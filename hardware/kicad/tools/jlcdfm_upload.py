@@ -834,7 +834,18 @@ def run(headless: bool, resume: bool, pcb_only: bool = False) -> int:
             print("  uploading gerber ZIP ...")
             _attach_file(page, lambda: page.get_by_role("button", name="Upload file"),
                          ZIP_PATH, "ZIP")
-            page.wait_for_url("**/viewer**", timeout=60_000)
+            # 2026-07-19: jlcdfm.com now enters the viewer via
+            # history.pushState — no 'load' event ever fires, so
+            # page.wait_for_url(..., waitUntil='load') times out even
+            # though the URL has long changed. Poll the URL instead
+            # (the transition itself takes ~10 s server-side).
+            for _ in range(120):
+                if "/viewer" in (page.url or ""):
+                    break
+                page.wait_for_timeout(1000)
+            else:
+                raise RuntimeError(
+                    "gerber upload did not reach the /viewer URL within 120 s")
             page.wait_for_timeout(6000)
             _save_resume_url(page.url)
         print(f"  viewer: {page.url}")
