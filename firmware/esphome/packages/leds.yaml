@@ -250,6 +250,8 @@ number:
   # Night-mode window — when the local hour is inside [start, end)
   # (wrapping through midnight if end < start), the auto-dim interval
   # scales the ring to 5 % of the user's max-brightness setting.
+  # The whole feature is gated by the "Night Mode" switch below — turning
+  # it off keeps full day brightness around the clock on that unit.
   - platform: template
     id: oas_night_start
     name: "Night Mode Start Hour"
@@ -271,6 +273,22 @@ number:
     step: 1
     restore_value: yes
     mode: BOX
+
+# ---------------------------------------------------------------------------
+# Night-mode master toggle
+# ---------------------------------------------------------------------------
+# Per-unit enable for the night-dim schedule above. Plain state holder with
+# no turn_on/turn_off actions, so the boot-time state restore cannot call
+# into anything (see the issue-#4 note in bt-proxy.yaml for why boot-fired
+# switch actions are dangerous); the auto-dim interval just reads the state.
+switch:
+  - platform: template
+    name: "Night Mode"
+    id: oas_night_mode_enabled
+    icon: "mdi:weather-night"
+    optimistic: true
+    restore_mode: RESTORE_DEFAULT_ON
+    entity_category: config
 
 # ---------------------------------------------------------------------------
 # Critical-alert override
@@ -358,8 +376,8 @@ interval:
           int s = (int) id(oas_night_start).state;
           int e = (int) id(oas_night_end).state;
           bool night;
-          if (s == e) {
-            night = false;                          // window disabled
+          if (!id(oas_night_mode_enabled).state || s == e) {
+            night = false;                          // feature off / window disabled
           } else if (s < e) {
             night = (h >= s) && (h < e);            // same-day window
           } else {
