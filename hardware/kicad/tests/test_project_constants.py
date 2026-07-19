@@ -429,10 +429,11 @@ def test_esp32_antenna_tab_constants() -> None:
 
 
 def test_esp32_body_nw_corner_inside_outline() -> None:
-    # Post-offset-fix: the body NW corner sits INSIDE the R60 outline by
-    # ~0.85 mm — NO overhang. (The pre-review "1.264 mm accepted overhang"
-    # was an artifact of the wrong 5.37 pin offset drawing the body 3.795 mm
-    # too far west.) Assert the exact clearance so drift is caught.
+    # Post-offset-fix + 1 mm east trim: the body NW corner sits INSIDE the
+    # R60 outline by ~1.364 mm — NO overhang. (The pre-review "1.26 mm
+    # accepted overhang" was an artifact of the wrong 5.37 pin offset
+    # drawing the body 3.795 mm too far west.) Assert the exact clearance
+    # so drift is caught.
     # NW corner PCB = (anchor_x, anchor_y - body_w) under the rot-90 daughter-
     # board transform LIB(lx,ly) -> PCB(anchor_x+ly, anchor_y-lx).
     nx = _project.ESP32_ANCHOR_X

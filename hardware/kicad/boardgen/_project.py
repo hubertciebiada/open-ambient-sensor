@@ -415,8 +415,8 @@ SEN66_CUTOUT_Y_MAX = max(c[1] for c in _sen66_body_corners_pcb) + SEN66_CUTOUT_M
 # short axis (local Y = -5 / +30.6, was -3 / +28.6 = 5 mm past each long edge)
 # so their holes clear the recess cutout. At the v0.53 anchor these land at
 # PCB (16.5, 0) / (52.1, 0) / (16.5, -8) / (52.1, -8) — the 16.5 / 52.1 X
-# columns sit 4.2 / 4.25 mm outside the cutout X edges (20.70 / 47.85), i.e. a
-# ~2.7 / 2.75 mm FR4 web from each Ø3 hole edge to the cutout edge. With the
+# columns sit 4.0 / 4.25 mm outside the cutout X edges (20.50 / 47.85), i.e. a
+# ~2.5 / 2.75 mm FR4 web from each Ø3 hole edge to the cutout edge. With the
 # module recessed, the zip ties now cross UNDER the module's protruding back
 # (counts against the 5 mm back-side budget — physical check at next order).
 # Y = -5 and Y = body_y + 5 = 30.6 (5 mm clearance past each long edge).
@@ -448,7 +448,7 @@ SEN66_ZIPTIE_LOCAL = [
 #     +13.30 → 0.57 mm X gap (courtyards DISJOINT in X → no overlap).
 #   - J1 east courtyard +9.15; J3 west edge +13.30 → 4.15 mm (and no Y overlap).
 #   - flat chord +43.52; J3 south courtyard edge +39.48 → 4.04 mm clear.
-#   - cutout west edge +20.70; J3 east courtyard edge +19.70 → 1.0 mm clear.
+#   - cutout west edge +20.50; J3 east courtyard edge +19.70 → 0.8 mm clear.
 J3_X = 16.5   # v0.53-b (issue #2): user change order — align with ZT3's X
               #   (SEN66_ZIPTIE ZT3 lands at PCB X=16.5) so J3 sits in the
               #   ZT1/ZT3 column, giving the SEN66 lead a long sweeping bend.
@@ -656,8 +656,8 @@ def _ld2410_local_to_pcb(lx: float, ly: float) -> tuple[float, float]:
 # -----------------------------------------------------------------------------
 # ESP32-C6 DevKitM-1-N4 — PCB shadow reservation
 # -----------------------------------------------------------------------------
-# The devkit is a daughterboard mounted on FEMALE pin sockets ("goldpiny
-# żeńskie") on the OAS PCB. The board sits ~3-7 mm above the PCB on the
+# The devkit is a daughterboard mounted on FEMALE pin sockets on the
+# OAS PCB. The board sits ~3-7 mm above the PCB on the
 # standoff of its pin headers, so SMD components on the OAS PCB CAN be
 # placed under its shadow (within the standoff Z budget of ~3-5 mm).
 #
@@ -724,8 +724,8 @@ ESP32_PIN_START_OFFSET = 1.575     # distance from antenna short edge (LIB
                                     # misattributed) until the issue-#3
                                     # review — see HISTORY above.
 
-# Placement (v0.15): ESP32 HORIZONTAL, UPPER-LEFT. User instruction:
-# "ESP mocno w dół i w lewo" — historically bounded from below by the
+# Placement (v0.15): ESP32 HORIZONTAL, UPPER-LEFT. User instruction
+# (translated): "ESP far down and to the left" — historically bounded from below by the
 # (since-removed, issue #7) NFC daughterboard sharing LD2410's Y band.
 # ESP32 stays horizontal, shifted LEFT, dropped as far down as the
 # then-present NFC top edge allowed. Body X range leaves a 2.5 mm gap

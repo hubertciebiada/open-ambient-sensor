@@ -38,11 +38,15 @@ from boardgen._project import (
 # thermal reliefs — eliminating the need to route ~60 GND pads as tracks.
 #
 # Design rules used here (must match `gen_pro()`'s design rule set):
-#   - Track widths:
-#       0.5 mm — 24 V power chain (J1 → D1 → Q1 → F1 → C1 → U1.VIN)
-#       0.5 mm — +5 V rail (U1.OUT → C4 → U2.VIN, LED ring)
-#       0.4 mm — +3.3 V rail (U2.OUT → all chip VDDs)
-#       0.25 mm — every signal (I2C, UART, GPIO, WS2812, USB, EN, BOOT)
+#   - Track width: 0.25 mm for EVERY routed net — the issue-#8 snapshot
+#     (like v0.50 before it) was routed against the JLCDFM-strict DSN
+#     rule set, which fixes a single 0.25 mm width for signals and power
+#     alike. Power-rail ampacity at 0.25 mm is enforced by
+#     pipeline/oas/07_check_ampacity.py (IPC-2221); the thinnest margin
+#     is +5V at 0.88 A capacity vs 0.84 A budget (ΔT = 10 °C). If a
+#     future re-route wants per-class widths (0.5 mm power / 0.4 mm
+#     +3V3), wire them into the DSN export — an unused width map lived
+#     here as dead code until the v0.51→HEAD review (see git history).
 #   - Clearance: 0.20 mm (v0.50 — JLCPCB DFM-warning-free floor)
 #   - Vias: 0.70 mm diameter, 0.30 mm drill (0.20 mm annular ring)
 #
@@ -84,35 +88,17 @@ ROUTING_CHUNKS: tuple[str, ...] = (
 )
 
 
-# v0.53 issue #8: F.Cu copperpour keepout rectangles (PCB-local mm:
+# v0.53 issue #8: F.Cu copper-pour keepout rectangle(s) (PCB-local mm:
 # x0, y0, x1, y1, tag) that suppress tiny isolated GND pour slivers the
-# full re-route leaves behind. Each is a <2 mm² fragment that no 0.7 mm
-# stitch via can seat (inter-pin gaps around the J5 header + I2C_SCL trunk,
-# plus two stray slivers near the cable hole and the buck). Removing the
-# F.Cu pour there deletes the island; THT GND pins in the pocket keep their
-# B.Cu-plane connection through the barrel. Centroids from the filled-gerber
-# G36 island scan (tools/pour_islands helper).
+# full re-route leaves behind — <2 mm² fragments too small to seat a
+# 0.7 mm stitch via. Removing the F.Cu pour there deletes the island;
+# the B.Cu-plane connection is unaffected. ONE such sliver survived the
+# final route (a pad-less fragment NE of the central cable hole); its
+# bounds came from a filled-gerber G36 island scan done with ad-hoc
+# session tooling (not committed — regenerate if ever needed).
 _GND_FCU_SLIVER_KEEPOUTS: tuple[tuple[float, float, float, float, str], ...] = (
     (8.40, -2.30, 10.10, -0.50, "hole_ne_sliver"),    # padless @157.76,103.58
 )
-
-
-# Track width selectors (mm). The cascade through `_track_width_for_net`
-# picks 0.5 mm for known power rails, 0.4 mm for +3V3, else 0.25 mm.
-_NET_TRACK_WIDTH: dict[str, float] = {
-    "+24V": 0.5,
-    "+5V": 0.5,
-    "+3V3": 0.4,
-    "Net-(D1-A2)": 0.5,         # input protection chain (24 V)
-    "Net-(F1-Pad2)": 0.5,       # PTC output, protected 24 V
-    "Net-(D2-K)": 0.5,          # buck1 switch node (high di/dt — keep wide)
-    "Net-(U2-SW)": 0.4,         # buck2 switch node
-}
-
-
-def _track_width_for_net(net_name: str) -> float:
-    """Return track width in mm for a given net name."""
-    return _NET_TRACK_WIDTH.get(net_name, 0.25)
 
 
 def _routing_pad_db() -> tuple[dict, dict]:

@@ -3,7 +3,7 @@
 	(generator "pcbnew")
 	(generator_version "10.0")
 	(layer "F.Cu")
-	(descr "Espressif ESP32-C6-DevKitM-1-N4 daughterboard mechanical reference (no pads). EAN 5904422385651. Body 25.4×48.26 mm + 13.20×5.37 mm ESP32-C6-MINI-1 antenna tab (total envelope ~53.6×25.4 mm), 8.6 mm tall. Mounts on 2× 1x15 P2.54 mm female pin sockets; antenna tab overhangs one short edge, dual USB-C at the other. Pin block offset 5.37 mm from the antenna edge per Espressif dimensions PDF. F.Fab shows the true outline incl. tab; no F.SilkS (issue #3).")
+	(descr "Espressif ESP32-C6-DevKitM-1-N4 daughterboard mechanical reference (no pads). EAN 5904422385651. Body 25.4×48.26 mm + 13.20×5.37 mm ESP32-C6-MINI-1 antenna tab (total envelope ~53.6×25.4 mm), 8.6 mm tall. Mounts on 2× 1x15 P2.54 mm female pin sockets; antenna tab overhangs one short edge, dual USB-C at the other. Pin block offset 1.575 mm from the antenna edge (48.26 − 14×2.54 − 11.125 per the Espressif dimensions PDF — Lesson 22). F.Fab shows the true outline incl. tab; F.SilkS carries four corner L-ticks (issue #3).")
 	(tags "esp32-c6-devkitm-1_reference oas mechanical reference daughterboard")
 	(attr board_only exclude_from_pos_files exclude_from_bom)
 	(property "Reference" "REF**"
@@ -38,7 +38,7 @@
 		(uuid "3be94b82-d252-54ca-9647-752ce930b38f")
 		(effects (font (size 1.27 1.27)))
 	)
-	(property "Description" "Espressif ESP32-C6-DevKitM-1-N4 daughterboard mechanical reference (no pads). EAN 5904422385651. Body 25.4×48.26 mm + 13.20×5.37 mm ESP32-C6-MINI-1 antenna tab (total envelope ~53.6×25.4 mm), 8.6 mm tall. Mounts on 2× 1x15 P2.54 mm female pin sockets; antenna tab overhangs one short edge, dual USB-C at the other. Pin block offset 5.37 mm from the antenna edge per Espressif dimensions PDF. F.Fab shows the true outline incl. tab; no F.SilkS (issue #3)."
+	(property "Description" "Espressif ESP32-C6-DevKitM-1-N4 daughterboard mechanical reference (no pads). EAN 5904422385651. Body 25.4×48.26 mm + 13.20×5.37 mm ESP32-C6-MINI-1 antenna tab (total envelope ~53.6×25.4 mm), 8.6 mm tall. Mounts on 2× 1x15 P2.54 mm female pin sockets; antenna tab overhangs one short edge, dual USB-C at the other. Pin block offset 1.575 mm from the antenna edge (48.26 − 14×2.54 − 11.125 per the Espressif dimensions PDF — Lesson 22). F.Fab shows the true outline incl. tab; F.SilkS carries four corner L-ticks (issue #3)."
 		(at 0 0 0)
 		(unlocked yes)
 		(layer "F.Fab")

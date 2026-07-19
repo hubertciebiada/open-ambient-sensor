@@ -1049,9 +1049,9 @@ def gen_silk_labels() -> str:
     Per the CLAUDE.md "PCB silkscreen documentation" convention, every
     major component / connector gets a short, ≤20-char identifier on
     F.SilkS, ~1.0-1.5 mm height. Labels emitted here:
-      - "SEN66 air quality"  — names the SEN66 recess-cutout zone
-      - "SEN66 SIN-T"        — SEN66 module MPN (east rim, vertical)
-      - board name + version — SE pocket identification block
+      - "SEN66 SIN-T"        — SEN66 module MPN (south of the recess cutout)
+      - board-id block       — name + version + repo URL (west pocket)
+      - "SEN66 lead"         — J3 cable-slot hint (web between J3 and slot)
       - LD2410 body / antenna labels
     (No "-> J3" / "to SEN66" cable-direction arrows — dropped in v0.9;
     the J3 designator + F.Fab connector value carry that context.)
