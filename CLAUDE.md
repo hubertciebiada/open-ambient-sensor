@@ -314,7 +314,7 @@ Current firmware skeleton (added v0.40-post-order):
 - SEN66 sensor offsets (temperature, humidity, CO2) exposed as `number:` entities preserved across reboots.
 - STAR-Engine IAQM Light preset (T1=1000, T2=3000, K=200, P=200 raw I²C 16-bit, ×10 of post-scale display values) re-uploaded on every boot via `on_boot:` lambda (Sensirion params are volatile per datasheet).
 - LD2410 per-gate sensitivity, max-distance, and timeout exposed as `number:` / `select:` entities.
-- Bluetooth proxy DISABLED (package commented out in `oas.yaml`) — it crash-looped on the v0.51 bring-up (GitHub issue #4); retest with a newer ESPHome before re-enabling.
+- Bluetooth proxy RE-ENABLED (issue #4 closed 2026-07-19). The bring-up crash-loop was NOT an ESPHome bug: the package's own "BLE Proxy" kill-switch (`restore_mode: RESTORE_DEFAULT_ON` + raw `global_esp32_ble_tracker->start_scan()` lambda) fired during the template switch's setup() at priority 798, while the BLE globals are only assigned in the BLE components' setup() at priority 350/300 — null-deref (MTVAL 0xc) before WiFi init. Fixed by switching to the null-guarded native `ble.enable` / `ble.disable` actions, `restore_mode: DISABLED`, and a state lambda reading `id(oas_ble).is_active()`. Bench-verified on a v0.51 board: stable boot, BLE active after every reboot, kill-switch toggles both ways. Rule: never call BLE `global_*` singletons from YAML lambdas that can fire at boot (see the kill-switch note in `packages/bt-proxy.yaml`).
 
 Documentation: `firmware/README.md`.
 

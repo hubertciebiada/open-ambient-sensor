@@ -54,6 +54,15 @@
 # =============================================================================
 
 # ---------------------------------------------------------------------------
+# BLE stack handle
+# ---------------------------------------------------------------------------
+# Normally esp32_ble is auto-instantiated as a dependency of
+# esp32_ble_tracker; declared explicitly here only so the kill-switch
+# lambda below can reference the component by id.
+esp32_ble:
+  id: oas_ble
+
+# ---------------------------------------------------------------------------
 # BLE tracker — the underlying scanner that bluetooth_proxy plugs into.
 # ---------------------------------------------------------------------------
 esp32_ble_tracker:
@@ -100,26 +109,31 @@ bluetooth_proxy:
 # is suspected — toggle off, watch whether SEN66 / WiFi behavior
 # changes, toggle back on if not implicated.
 #
-# Implementation note: ESPHome does not expose a runtime on/off knob
-# for the bluetooth_proxy component itself. This switch instead toggles
-# whether the esp32_ble_tracker is doing anything at all — turning it
-# off effectively silences the BLE radio (no scans, no connections,
-# advertisements that arrived are dropped). The bluetooth_proxy
-# component continues to exist but has nothing to forward.
+# Implementation note (GitHub issue #4 — read before touching this block):
+# an earlier revision of this switch used raw lambdas on
+# `global_esp32_ble_tracker` with `restore_mode: RESTORE_DEFAULT_ON`.
+# That crash-looped the whole firmware at boot: the template switch runs
+# its state restore inside setup() at priority HARDWARE-2 (798) and fires
+# turn_on_action right there, while the BLE globals are only assigned in
+# the BLE components' own setup() (priority BLUETOOTH 350 /
+# AFTER_BLUETOOTH 300) — so the lambda dereferenced a null pointer
+# (Guru Meditation Load access fault, MTVAL 0xc) before WiFi ever came up.
+# The rules derived from that:
+#   - use the native ble.enable / ble.disable actions, which are
+#     null-guarded upstream — never raw global_* lambdas;
+#   - restore_mode stays DISABLED so no action can fire during early
+#     boot; BLE always starts enabled after a reboot (fail-safe for a
+#     diagnostic toggle), and the switch state is READ from the actual
+#     BLE stack state instead of being book-kept optimistically.
 switch:
   - platform: template
     name: "BLE Proxy"
     id: oas_ble_proxy_enabled
     icon: "mdi:bluetooth"
-    optimistic: true
-    restore_mode: RESTORE_DEFAULT_ON
     entity_category: config
+    restore_mode: DISABLED
+    lambda: "return id(oas_ble).is_active();"
     turn_on_action:
-      # Re-enable the tracker. Uses the global singleton because
-      # esp32_ble_tracker does not expose a stable id() handle across
-      # ESPHome versions.
-      - lambda: |-
-          esphome::esp32_ble_tracker::global_esp32_ble_tracker->start_scan();
+      - ble.enable:
     turn_off_action:
-      - lambda: |-
-          esphome::esp32_ble_tracker::global_esp32_ble_tracker->stop_scan();
+      - ble.disable:
