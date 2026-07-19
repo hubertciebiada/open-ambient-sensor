@@ -354,8 +354,8 @@ Do not propose these again without new information:
 ## Open work / TODO
 
 ### Hardware
-- [x] **Routing rework (v0.50) — DONE.** Board fully routed, `ROUTING_CHUNKS = ("gnd", "autoroute")`, `build.py` 30/30 PASS, DRC 0/0. Snapshot in `oas_routes.py` (613 seg + 42 via after the post-v0.50 DFM via removals).
-- [ ] Re-run the JLCPCB DFM check on the fully-routed gerbers (target 0 Danger / 0 Warning).
+- [x] **Routing rework (v0.50) — DONE.** Board fully routed, `ROUTING_CHUNKS = ("gnd", "autoroute")`, `build.py` 30/30 PASS, DRC 0/0. Snapshot in `oas_routes.py` (613 seg + 42 via after the post-v0.50 DFM via removals). (Superseded by the issue-#8 v0.53 re-route: 390 seg + 45 via.)
+- [x] **JLCDFM on the fully-routed v0.53 gerbers — DONE (2026-07-19): PCB 0 Danger.** Two real finding classes fixed (13× silkscreen-to-hole from route vias — 4 via moves + the J10 "BOOT" label nudge; 1× mask-opening-exposing-trace — +3V3 chain shifted 0.13 mm east). Remaining 4× "Negative soldermask expansion 0.04 mm" is a PROVEN scanner-side phantom: the flagged mask and copper apertures are bit-identical RoundRects (0.95×0.8, R1/R4 pads), a flash-by-flash gerber audit shows zero pads with mask < copper, and the identical geometry scanned 0 W on 2026-05-21. Do NOT chase it with global mask expansion (would shrink U2 SOT-583 mask webs toward a real soldermask-bridge warning).
 - [ ] Receive v0.40 prototypes from JLCPCB; hand-solder the 7 THT components (J1 / J4 / J5 / J6 / C1 / C3 / C4).
 - [ ] Optional v2 substitutions (deferred): Q1 → AON7415 for actual positive Vds margin (-40 V vs SMBJ24A 38.9 V clamp); L1 → 6045 / 1264 body if production load grows beyond 1.2 A continuous.
 - [ ] Foam shroud / cover baffle separating SEN66 inlet zone from outlet zone (open mitigation; decision pending physical-prototype recirculation measurement).
