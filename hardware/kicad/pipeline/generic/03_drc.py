@@ -59,20 +59,28 @@ def main() -> int:
 
         # Unconnected-pad baseline.
         #
-        # GitHub issue #8 re-route COMPLETE: ROUTING_CHUNKS = ("gnd",
-        # "autoroute") in boardgen/_routing.py replays the full Freerouting
-        # snapshot (oas_routes.py) + GND stitch vias, so the board is fully
-        # routed. This MUST be 0 — any non-zero value is a routing regression
-        # (a pad stranded, moved, appeared, or vanished). DRC *violations*
-        # stay hard-zero throughout.
-        EXPECTED_UNCONNECTED = 0
+        # TEMPORARY (GitHub issue #9 — J4 rework for the HLK-LD2410C): signal
+        # routing is switched OFF (`ROUTING_CHUNKS = ("gnd",)` in
+        # boardgen/_routing.py) because the J4 header changes pitch, pin order
+        # and position, which invalidates the issue-#8 snapshot. With GND pours
+        # only, every GND pad still connects through the pour and every other
+        # pad legitimately reads as unconnected — 83 of them on the current
+        # placement. DRC *violations* stay hard-zero throughout.
+        #
+        # The count is pinned rather than ignored so a placement change that
+        # strands or duplicates a pad still trips the stage. If a deliberate
+        # change alters it (e.g. a connector gains/loses pins), update this
+        # constant IN THE SAME COMMIT and say why. Restore 0 together with the
+        # fresh full re-route that closes issue #9.
+        EXPECTED_UNCONNECTED = 83
         if n_unc != EXPECTED_UNCONNECTED:
             st.fail(
                 f"{n_unc} unconnected pads — expected exactly "
-                f"{EXPECTED_UNCONNECTED} (board fully routed, issue #8). A "
-                f"non-zero count is a routing regression — see {drc_report}."
+                f"{EXPECTED_UNCONNECTED} (signal routing OFF for the issue-#9 "
+                f"J4 rework; GND pours only). A different count means the "
+                f"placement changed the pad inventory — see {drc_report}."
             )
-        st.ok(f"{n_unc} unconnected pads — fully routed (issue #8)")
+        st.ok(f"{n_unc} unconnected pads — routing OFF (issue #9, expected)")
     return 0
 
 

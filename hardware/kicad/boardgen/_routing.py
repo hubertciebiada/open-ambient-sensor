@@ -67,24 +67,34 @@ from boardgen._project import (
 # v0.50 (2026-05-22): "autoroute" was RE-ENABLED after re-extracting a
 # fresh Freerouting 2.2.4 snapshot against the committed placement.
 #
-# v0.53 (GitHub issue #2 → routing deferred to issue #8): "autoroute" is
-# DELIBERATELY DISABLED. The SEN66 recess cutout (issue #2) plus the
-# other placement tasks moved/removed pads all over the board, so the
-# v0.50 signal snapshot in oas_routes.py is stale — replaying it would
-# short moved pads and cross the new cutout. Rather than re-route
-# incrementally after every placement task, the full re-route happens
-# ONCE at the end, tracked by GitHub issue #8. Until then the board ships
-# with GND pours only: every GND pad connects through the pour, and the
-# non-GND pads legitimately read as "unconnected" in DRC (stage 03 bakes
-# in that exact expected count, flagged temporary per issue #8).
+# v0.53 (GitHub issue #2 → routing deferred to issue #8): "autoroute" was
+# DELIBERATELY DISABLED while placement was in flux, then RE-ENABLED when
+# issue #8 delivered a full re-route against the final placement.
 #
-# oas_routes.py is LEFT ON DISK untouched (reference for the eventual
-# re-route) but is NOT emitted while "autoroute" is absent. Route-dependent
-# checks (stage 26 I2C rise-time; the extract_routes / snapshot test
-# suites) skip themselves when "autoroute" not in ROUTING_CHUNKS.
+# GitHub issue #9 (J4 rework for the HLK-LD2410C): "autoroute" is DISABLED
+# AGAIN, for the same reason as during issue #2. The J4 header changes
+# pitch (1.27 → 2.54 mm), pin order and position, so every track landing on
+# its pads — UART_TX, UART_RX, LD2410_OUT, +5V, GND — is stale, and the
+# module body shadow moves with it. Replaying the issue-#8 snapshot onto
+# the new placement would short moved pads (exactly the Lesson 11 failure).
+# Rather than patch the snapshot incrementally, the board runs unrouted
+# through the placement work and gets ONE clean full re-route afterwards.
+#
+# Until then the board ships with GND pours only: every GND pad connects
+# through the pour, and the non-GND pads legitimately read as "unconnected"
+# in DRC (stage 03 bakes in that exact expected count, flagged temporary).
+#
+# oas_routes.py is LEFT ON DISK untouched (reference only — its coordinates
+# predate the J4 rework) but is NOT emitted while "autoroute" is absent.
+# Route-dependent checks (stage 26 I2C rise-time; the extract_routes /
+# snapshot test suites) skip themselves when "autoroute" not in
+# ROUTING_CHUNKS.
 ROUTING_CHUNKS: tuple[str, ...] = (
     "gnd",         # Chunk 1 — F.Cu + B.Cu GND copper pour. ALWAYS on.
-    "autoroute",   # Chunk 2 — Freerouting snapshot replay from oas_routes.py.
+    # "autoroute" — Chunk 2, Freerouting snapshot replay from oas_routes.py.
+    #               OFF for the issue-#9 J4 rework; re-enable with a FRESH
+    #               snapshot once placement is final (Lesson 11: the snapshot
+    #               commit must be replay-verified by build.py before commit).
 )
 
 
