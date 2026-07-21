@@ -41,18 +41,14 @@
 	(constraint annular_width (min 0.25mm))
 	(condition "A.Type == 'Pad' && A.isPlated()"))
 
-# Domain-specific exception: fine-pitch hand-solder THT headers
-# (P1.27mm) carry annular 0.175 mm in KiCad stock library — this
-# is acceptable for HAND SOLDER (J4 LD2410 connector). JLCPCB
-# documents 0.15 mm as the absolute 2-layer PTH minimum; the
-# 0.25 mm rule above protects auto-assembly tape-feeder tolerance
-# which does NOT apply to hand-solder operations. J4 is in
-# THT_REFERENCES (pipeline/_project.py) — flagged for hand-
-# solder by exclusion from JLCPCB SMT.
-(rule "Fine-Pitch Hand-Solder PTH Annular"
-	(constraint annular_width (min 0.15mm))
-	(condition "A.Type == 'Pad' && A.isPlated() && A.Parent.Reference == 'J4'"))
-
+# (v0.53 / issue #9: the 'Fine-Pitch Hand-Solder PTH Annular'
+# exception that used to sit here is GONE. It relaxed the 0.25 mm
+# annular rule to 0.15 mm for J4 alone, because the P1.27mm stock
+# header the HLK-LD2410B needed carries only 0.175 mm. The
+# HLK-LD2410C mounts on a P2.54mm header whose stock pads are
+# 1.7 mm over a 1.0 mm drill = 0.35 mm annular, so J4 now clears
+# the general rule outright and the whole-board rule set is free
+# of per-designator special cases again.)
 (rule "Min. Plated Slot Width"
 	(constraint hole_size (min 0.5mm))
 	(condition "(A.Hole_Size_X != A.Hole_Size_Y) && A.isPlated()"))

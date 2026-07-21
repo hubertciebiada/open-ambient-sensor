@@ -101,18 +101,47 @@ EXTERNAL_MODULES = {
             "in single ~25 x 55 x 21.5 mm module."
         ),
     },
-    "HLK-LD2410B": {
+    "HLK-LD2410C": {
         "manufacturer": "Hi-Link",
-        "mpn": "HLK-LD2410B",
-        "supplier": "HiLink direct / TME / AliExpress",
-        "datasheet": "https://www.hlktech.net (search LD2410B)",
+        "mpn": "HLK-LD2410C",
+        "supplier": "HiLink direct / reputable distributor",
+        "supplier_note": (
+            "Buy from a reputable distributor, NOT the cheapest "
+            "marketplace listing (GitHub issue #9: two LD2410B units from "
+            "different sellers, both on firmware build 2.44.25070917, "
+            "shipped with a permanently mute UART TX). LCSC lists a "
+            "HLK-LD2410C-P variant (C19723500) whose -P suffix is not "
+            "documented by Hi-Link — confirm what it denotes before "
+            "ordering that SKU."
+        ),
+        "datasheet": "https://www.hlktech.net/index.php?id=1095",
         "note": (
-            "Specifically -B variant. -C variant has different pin order "
-            "and body dims; NOT interchangeable. Connector pinout (HLK "
-            "datasheet Figure 1 + Table 1): pins 1..5 = OUT, UART_Tx, "
-            "UART_Rx, GND, VCC. Physical board order (antenna end -> "
-            "connector tip) = VCC, GND, Rx, Tx, OUT — drives the J4 "
-            "footprint orientation (see J4_PCB_* block)."
+            "Specifically the -C variant (v0.53, GitHub issue #9). The "
+            "-B variant it replaces is a 35 x 7 mm strip with a 1.27 mm "
+            "castellated pad row and pin order OUT/Tx/Rx/GND/VCC; the -C "
+            "is a 22 x 16 mm board with a 2.54 mm through-hole row and "
+            "pin order Tx/Rx/OUT/GND/VCC — same radar, same 256000-baud "
+            "protocol, NOT footprint- or pin-compatible. Pinout per "
+            "HLK-LD2410C manual V1.00 (2022-11-07) Table 1, section 4.2; "
+            "pin 1 (Tx) carries the square pad, pins 2..5 are round. "
+            "See CLAUDE.md Lesson 20."
+        ),
+        "derived_dimensions": (
+            "PCB body 22.0 x 16.0 mm (manual V1.00 section 4.1 + Table "
+            "2). 5 plated holes, 2.54 mm pitch, hole Ø0.9 mm, on the "
+            "22 mm long edge, row centred (pin 1 at 5.92 mm = "
+            "(22 - 4x2.54)/2 from the adjacent short edge). Pin-row "
+            "inset from the pinned long edge ~1.42 mm and the two "
+            "antenna patches (each ~3.95 x 5.42 mm, spanning 4.50..9.92 "
+            "mm from that edge, at 3.28..7.23 and 14.83..18.78 mm from "
+            "the short edge) are MEASURED off the to-scale Figure 5 of "
+            "the manual, not dimensioned by Hi-Link — RE-VERIFY WITH "
+            "CALIPERS ON THE DELIVERED MODULE BEFORE THE NEXT PCB ORDER "
+            "(issue #9 acceptance criterion). Module thickness is not "
+            "stated anywhere by Hi-Link; components sit on BOTH faces "
+            "(radar QFN + patches on the antenna face, LDO + 2 crystals "
+            "on the back), so the standoff budget also needs a caliper "
+            "check."
         ),
     },
     "SZOMK AK-N-94": {
@@ -515,136 +544,202 @@ BOARD_ID_CENTER_Y = 0.0       # user spec: on the central hole's horizontal axis
 BOARD_ID_ROW_PITCH = 2.4      # mm between the 5 text baselines (size 1.0)
 
 # -----------------------------------------------------------------------------
-# LD2410 PCB placement (mechanical reference + J4 pin header) — chunk #5b
+# LD2410C PCB placement (J4 pin header + mechanical reference) — chunk #5b
 # -----------------------------------------------------------------------------
-# HLK-LD2410B mounts as a soldered daughterboard:
-#   - LD2410's onboard 1.27 mm pin row passes through J4's 5 plated
-#     through-holes on the OAS PCB.
-#   - Pins are soldered from the OAS PCB bottom side; the solder joints
-#     provide BOTH electrical and mechanical retention.
-#   - LD2410 lies face-up ABOVE the OAS PCB (pin-header standoff ~3-5 mm),
-#     antenna patches pointing AWAY from the OAS PCB (toward the AK-N-94
-#     perforated cover); 24 GHz beam radiates straight through the ABS
-#     cover into the room.
-#   - Orientation (v0.11): VERTICAL — long axis along OAS Y. Connector
-#     short edge faces SOUTH (PCB +Y, toward the chord; "piny u dołu");
-#     antenna short edge faces NORTH (PCB -Y, toward 12:00). LD2410
-#     ROTATION = 270° (mathematical CCW; visually maps local +X to
-#     PCB +Y so the connector edge ends up at body bottom).
-#   - Position (v0.15): body pushed against the LEFT wall — body
-#     left edge at PCB X=-54.90, ~2 mm from PCB outline at the
-#     bottom-left corner (Y=+19.05 → x_min=-56.90). Body right edge
-#     at PCB X=-39.66 → 33.66 mm clear from cable hole +X edge.
+# v0.53 (GitHub issue #9): the HLK-LD2410B was replaced by the HLK-LD2410C.
+# Same radar, same 256000-baud protocol (same ESPHome `ld2410` component),
+# but a completely different board: 22 x 16 mm carrying FIVE PLATED HOLES
+# on a 2.54 mm pitch (Ø0.9 mm) instead of the -B's 35 x 7 mm strip with a
+# 1.27 mm castellated edge. The -B edge was miserable to hand-solder (this
+# project was burned by it twice), and both -B samples sourced for the
+# prototype shipped with a permanently mute UART TX.
 #
-# Dimensions: LD2410B body ~30-33 × 15-16 mm in datasheet (varies by
-# revision). LD2410_BODY_W/H below are slightly enlarged + grid-aligned
-# (multiples of 1.27 mm) for keep-out planning. The mechanical-reference
-# footprint claims this rectangle so future PCB components (Qwiic,
-# decoupling caps) keep clear of the LD2410 shadow.
-LD2410_BODY_W = 35.56            # mm, long axis (28 × 1.27). Matches the
-                                  # HLK-LD2410B datasheet V1.04 §4.1
-                                  # "Module size: 7mm × 35mm", with a small
-                                  # margin (0.56 mm) for silkscreen breathing
-                                  # room.
-LD2410_BODY_H = 7.62             # mm, short axis (6 × 1.27). v0.15.8 fix:
-                                  # corrected from 15.24 — datasheet V1.04
-                                  # §4.1 specifies 7 mm; the older 15.24 mm
-                                  # value matched the LD2410C (16 × 22 mm,
-                                  # different variant) or a dev-kit carrier
-                                  # board, NOT the bare HLK-LD2410B. Gives
-                                  # silk breathing room over the 7 mm spec.
-LD2410_BODY_Z = 7.0              # mm, approx height above PCB (pin-header
-                                  # standoff + LD2410 PCB + onboard SMD).
-                                  # Well within the 17 mm front-side limit.
-LD2410_SILK_INSET = 0.2          # F.SilkS inset from F.Fab outline (top/
-                                  # bottom/left).
-LD2410_SILK_INSET_CONN = 1.8     # v0.15.9: inset on the connector-side short
-                                  # edge needs to be large enough that the
-                                  # two LD2410 long-edge silk lines stop
-                                  # BEFORE entering the J4 silk frame zone.
-                                  # J4's stock silk frame spans PCB Y =
-                                  # +17.50..+20.21 (rotated 270° from lib
-                                  # Y = -1.14..+6.22). LD2410 long edges end
-                                  # at LD2410-local X = 35.56 - 1.8 = 33.76,
-                                  # which maps to PCB Y = -16.51 + 33.76 =
-                                  # +17.25 — leaving a ~0.25 mm gap before
-                                  # the J4 silk frame starts at PCB Y=+17.50.
-LD2410_EMIT_SILK_OUTLINE = True   # v0.15.9: F.SilkS U-shaped silk RESTORED.
-                                  # Earlier (v0.15.8) the body silk was
-                                  # dropped because a body-extent rect
-                                  # collided with J4's stock silk frame.
-                                  # Now we emit 3 fp_line elements instead of
-                                  # a closed fp_rect: antenna short edge +
-                                  # 2 long edges. The connector-side short
-                                  # edge is omitted so the U opens toward
-                                  # the J4 pin row (which has its own silk
-                                  # frame from the stock footprint). Net
-                                  # result: the LD2410 body silhouette is
-                                  # visible on the assembled PCB silkscreen,
-                                  # plus the board-level "HLK-LD2410B"
-                                  # gr_text label that already reads
-                                  # horizontally regardless of footprint
-                                  # rotation.
-LD2410_ANTENNA_X_END = 12.7      # mm — LD2410-local X end of antenna zone
-                                  # (patches sit at LD2410-local X ≈ 0..12 mm,
-                                  # at the short edge OPPOSITE the connector).
-LD2410_CONNECTOR_X = 35.56       # mm — LD2410-local X of the pin row (the
-                                  # +X short edge, the connector end).
-LD2410_CONNECTOR_Y = LD2410_BODY_H / 2.0   # mm — LD2410-local Y center of
-                                            # the 5-pin row (centred on the
-                                            # short edge). v0.15.8: derived
-                                            # from LD2410_BODY_H so the pin
-                                            # row marker remains centred on
-                                            # the short edge for any body_h.
+# MOUNTING: a plain 1x5 gold-pin header at 2.54 mm pitch (J4, stock KiCad
+# `Connector_PinHeader_2.54mm:PinHeader_1x05_P2.54mm_Vertical`) is soldered
+# into the OAS PCB; the module drops onto the protruding pins from above
+# and is soldered on its own top face. The solder joints are BOTH the
+# electrical and the mechanical retention — no cable, no bracket.
+#
+# ORIENTATION — the convention the pin order is DEFINED AGAINST (board-owner
+# spec, 2026-07-21; see CLAUDE.md Lesson 20):
+#   The module's two copper patch antennas face UP, AWAY from the OAS PCB
+#   and toward the AK-N-94 perforated cover, because the radar must look
+#   into the room. Viewed antenna-face-toward-the-observer with the pin row
+#   along the module's NORTH edge — which is exactly the ordinary PCB top
+#   view, looking down at the board — the pins run FROM LEFT (west):
+#       1 = Tx, 2 = Rx, 3 = OUT, 4 = GND, 5 = VCC
+#   (Hi-Link HLK-LD2410C manual V1.00, 2022-11-07, Table 1 / section 4.2;
+#   pin 1 = Tx carries the SQUARE pad, pins 2..5 are round.) On the OAS PCB
+#   that means the J4 hole row runs east-west along PCB +X with pin 1 at
+#   the WEST end, and the module body extends SOUTH from the row.
+#   This is the MIRROR of the -B order (1 = OUT .. 5 = VCC) — the reversal
+#   is the whole point of the redesign, so the -B mapping must NOT be
+#   carried over. A secondary web source (espboards.dev) lists the row as
+#   "VCC, GND, TX, RX, OUT", which is the same row read from the far end;
+#   the manual's Table 1 plus the square pin-1 pad settle it.
+#
+# J4 is the PHYSICAL DATUM (CLAUDE.md Lesson 22 corollary): the hole row is
+# where the real module is forced to sit, so J4_PCB_X / J4_PCB_Y are the
+# authored numbers and the body outline below is DERIVED from them. Never
+# author the body anchor directly.
+J4_PCB_X = -37.0             # mm — PCB X of pad 1 (Tx) at the WEST end of
+                              # the row. Pads land at -37.00 / -34.46 /
+                              # -31.92 / -29.38 / -26.84 (2.54 mm pitch).
+J4_PCB_Y = +12.0             # mm — PCB Y of the pad row.
+J4_PCB_ROTATION = 90         # degrees. Empirical stock-footprint rotation
+                              # convention (unchanged from the -B era): a
+                              # native pad at local (0, +k) lands at PCB
+                              # (anchor_x + k, anchor_y) under rotation 90,
+                              # so rotation 90 puts pad 1 AT the anchor
+                              # (WEST end) and pad 5 at anchor_x + 10.16
+                              # (EAST end) — the orientation the spec above
+                              # requires. Enforced by pipeline stage 19
+                              # check D together with the schematic net
+                              # binding in _sch_sensors.py.
 
-# Placement on OAS PCB (v0.11 — vertical, left side, pins south).
-# Anchored at the LD2410-local (0, 0) corner. With rotation 270°,
-# LD2410-local +X maps to PCB +Y and LD2410-local +Y maps to PCB -X.
-# So body extends in +Y and -X from the anchor.
+# ---- HLK-LD2410C body geometry (module-local mm) ----------------------------
+# Local frame: origin at the body corner that is NORTH-WEST on the OAS PCB
+# (the west end of the pinned long edge); local +X runs along the pin row,
+# local +Y runs into the body. LD2410_ROTATION = 0, so local X/Y map
+# straight onto PCB X/Y — no rotation bookkeeping (the -B needed 270°).
 #
-# Body shadow on OAS PCB (v0.15.8, after LD2410_BODY_H 15.24 → 7.62 fix):
-#   X range: anchor_x - LD2410_BODY_H .. anchor_x  =  -51.09 .. -43.47
-#   Y range: anchor_y .. anchor_y + LD2410_BODY_W  =  -16.51 .. +19.05
-# Body centre X = anchor_x - LD2410_BODY_H/2 = -47.28 — aligned with
-# J4 pin 3 (middle of the 5-pin row) at PCB X=-47.28. The pin row
-# stays at OAS PCB X = -44.74..-49.82 (J4_PCB_X=-44.74 unchanged).
+# SOURCES. Body 22.0 x 16.0 mm, pitch 2.54 mm and hole Ø0.9 mm are
+# DATASHEET-STATED (manual V1.00 section 4.1 + Table 2). The pin-row inset
+# from the pinned edge and the antenna-patch rectangle are MEASURED off the
+# manual's Figure 5, which is genuinely to scale (its two independent
+# mm/px scales agree to 0.1 % and the measured pad pitch reproduces the
+# stated 2.54 mm to within 0.6 %) — Hi-Link dimensions neither of them.
+# ⚠ RE-VERIFY WITH CALIPERS ON THE DELIVERED MODULE BEFORE THE NEXT PCB
+# ORDER (issue #9 acceptance criterion). The numbers at risk and what they
+# would cost if wrong:
+#   - LD2410_PIN_ROW_INSET_Y (±0.15 mm): shifts the DERIVED body outline
+#     0.15 mm north or south. The nearest neighbour on that axis is C11
+#     (0.90 mm north of the body), so the error is absorbed.
+#   - LD2410_PIN1_INSET_X: derived arithmetically from "row centred on the
+#     22 mm edge" ((22 - 4x2.54)/2 = 5.92) and bracketed by the measured
+#     end insets (6.02 / 5.84). NOT cosmetic — J4 is nailed to the PCB, so
+#     this constant says where the PHYSICAL module sits relative to it. An
+#     error moves the real module west, into the only tight clearance on
+#     the board: 1.80 mm from the body corner to the edge of H2's M3 pan
+#     head (true 2D distance). The module underside sits ~2.5 mm up and an
+#     M3 pan head is ~2.4 mm tall, so there is NO vertical escape — that
+#     lateral gap is load-bearing. A module whose row is off-centre by
+#     >1.8 mm westward cannot be assembled with the H2 screw fitted, and
+#     it would only be discovered at prototype assembly, after the boards
+#     are paid for. THIS is the caliper measurement that matters most:
+#     measure the pin-1 end inset and confirm the resulting west body edge
+#     keeps clear of H2, not just that the silk looks right.
+#   - LD2410_BODY_Z / the standoff budget: Hi-Link states NO thickness
+#     anywhere and the module carries components on BOTH faces, so this is
+#     the other number that could bite mechanically.
+# The ELECTRICAL layer is independent of all of them: the pads come from
+# the stock 2.54 mm footprint and their pitch is datasheet-stated.
+LD2410_BODY_W = 22.0             # mm, local +X extent — the pinned LONG edge
+                                  # (manual V1.00 section 4.1: "Module size:
+                                  # 16mm x 22mm", Figure 5 dimensions 22.00
+                                  # along the pin row).
+LD2410_BODY_H = 16.0             # mm, local +Y extent — the SHORT edge; the
+                                  # body runs SOUTH from the pin row.
+LD2410_BODY_Z = 6.0              # mm, approx height above the OAS PCB:
+                                  # ~2.5 mm gold-pin spacer + ~1.6 mm module
+                                  # PCB + ~2 mm of top-face components.
+                                  # NOT datasheet-backed (see the caliper
+                                  # note above); well inside the 17 mm
+                                  # front-side limit either way.
+LD2410_PIN_PITCH = 2.54          # mm (datasheet-stated)
+LD2410_PIN_COUNT = 5
+LD2410_PIN1_INSET_X = (LD2410_BODY_W - (LD2410_PIN_COUNT - 1)
+                       * LD2410_PIN_PITCH) / 2.0      # = 5.92 mm; the 5-hole
+                                  # row is CENTRED on the 22 mm edge
+                                  # (measured pin-1 / pin-5 end insets 6.02
+                                  # and 5.84 mm bracket the ideal 5.92).
+LD2410_PIN_ROW_INSET_Y = 1.42    # mm — pad-centre row to the pinned long
+                                  # edge. MEASURED (±0.15), see above.
+                                  # ⚠ Figure 5 carries a second "2.54mm"
+                                  # callout drawn vertically near this
+                                  # dimension; its extension lines land on
+                                  # the silkscreen text and the antenna
+                                  # ground pour, NOT on the pad row — it is
+                                  # a duplicated pitch label, do not read it
+                                  # as the inset.
+
+# Antenna patches (local mm) — two identical microstrip patches on the top
+# (antenna) face. Drawn dashed on F.Fab so the layout shows where the
+# 24 GHz beam leaves the module and nothing tall is parked in front of it.
+LD2410_ANTENNA_Y_MIN = 4.50      # from the pinned long edge (measured)
+LD2410_ANTENNA_Y_MAX = 9.92
+LD2410_ANTENNA_PATCH_X: tuple[tuple[float, float], ...] = (
+    (3.28, 7.23),                 # west patch
+    (14.83, 18.78),               # east patch
+)
+
+# ---- Silkscreen geometry (module-local mm) ----------------------------------
+LD2410_SILK_INSET = 0.2          # F.SilkS body outline drawn 0.2 mm inside
+                                  # the F.Fab body rectangle.
+# The north (pinned-edge) silk line cannot be drawn across the connector:
+# it would sit 0.16 mm from the J4 stock silk frame's own north edge
+# (0.04 mm edge-to-edge after the 0.12 mm strokes) — a silk_overlap.
+# It is therefore emitted as TWO CORNER STUBS that stop clear of the whole
+# J4 footprint. Keep-out span in local X = pin 1 - 1.38 (the stock frame's
+# pin-1 marker) .. pin 1 + 11.54 (the frame's far end), widened by
+# LD2410_SILK_CONN_GAP on both sides. Same reasoning as the -B era U-shape
+# and the MOD1 corner ticks: mark the corners, skip the congested span.
+_J4_SILK_WEST_OF_PIN1 = 1.38     # stock PinHeader_1x05_P2.54mm_Vertical silk
+_J4_SILK_EAST_OF_PIN1 = 11.54    # frame extents, relative to pad 1
+LD2410_SILK_CONN_GAP = 0.5       # mm of clear board between stub end and
+                                  # the J4 silk frame
+LD2410_SILK_NORTH_STUB_X_END = (LD2410_PIN1_INSET_X - _J4_SILK_WEST_OF_PIN1
+                                - LD2410_SILK_CONN_GAP)          # 4.04
+LD2410_SILK_NORTH_STUB_X_START = (LD2410_PIN1_INSET_X + _J4_SILK_EAST_OF_PIN1
+                                  + LD2410_SILK_CONN_GAP)        # 17.96
+
+# ---- Placement on the OAS PCB -----------------------------------------------
+# DERIVED from the J4 datum (see the Lesson-22 note above). With the -C body
+# the module claims a 22 x 16 mm shadow instead of the -B's 7.6 x 35.6 mm
+# strip, so it can no longer hug the west rim: the old strip spanned PCB
+# X -51.09..-43.47 / Y -16.51..+19.05, straight across H2's X column. The
+# new spot is the south-west pocket, EAST and SOUTH of the -B position
+# (which is also where the board owner expected it to go).
 #
-# Clearance checks vs the rest of the PCB (post-shrink, with body_h=7.62):
-#   - PCB outline at body bottom-left corner Y=+19.05: x_min=-56.90,
-#     body left at -51.09 → 5.81 mm clear (more than v0.15's 2.0 mm).
-#   - PCB outline at body top-left corner Y=-16.51:    x_min=-57.68,
-#     body left at -51.09 → 6.59 mm clear.
-#   - H2 mounting hole at (-47.6, +27.5) — H2 at X=-47.6 sits within
-#     body X range [-51.09, -43.47] but Y separation 5.6 mm.
-#     No overlap.
-#   - Cutout zone C1 at (X -33.8..-21.8, Y 31.5..42.5) — body Y < +19.05
-#     < 31.5; no Y overlap.
-#   - Cable hole at PCB centre (Ø12 / radius 6) — body right edge
-#     at X=-43.47 → 37.47 mm clear from the cable hole +X edge at X=-6.
-LD2410_ANCHOR_X = -43.47         # v0.15.8: shifted +3.81 mm from -39.66
-                                  # to recentre the (now smaller) body
-                                  # shadow on the J4 pin row at PCB X=-47.28.
-                                  # = -39.66 + (15.24 - 7.62)/2; body
-                                  # centerline X = anchor - body_h/2 = -47.28.
-                                  # Body X range -51.09..-43.47.
-LD2410_ANCHOR_Y = -16.51         # mm — OAS PCB Y of LD2410-local (0, 0).
-                                  # = -1.27 × 13 (on 1.27 mm grid).
-LD2410_ROTATION = 270            # degrees; long axis along PCB Y. With
-                                  # this rotation, LD2410-local +X → PCB +Y
-                                  # (so the connector short edge at
-                                  # LD2410-local X=W lands at PCB Y=+19.05),
-                                  # and LD2410-local +Y → PCB -X.
+# Body shadow on the OAS PCB (rotation 0, so local == PCB axes):
+#   X  -42.92 .. -20.92   (anchor_x .. anchor_x + LD2410_BODY_W)
+#   Y  +10.58 .. +26.58   (anchor_y .. anchor_y + LD2410_BODY_H)
+#
+# Clearance survey (all against the emitted courtyards / silk):
+#   - H2 mounting hole (-47.63, +27.5), Ø3.8 NPTH, courtyard r=2.85 →
+#     X -50.48..-44.78. Body west edge -42.92 → 1.86 mm clear, and 1.71 mm
+#     to the rim of a Ø6 M3 pan head. The body must NOT reach over H2: the
+#     module sits only ~2.5 mm up on its header, far below a screw head.
+#     This is what stops the module moving further west.
+#   - AQI LED ring, west extent: D14 courtyard X -13.40..-10.54 (Y
+#     +9.19..+14.11), D15 courtyard X -12.25..-9.85. Body east edge -20.92
+#     → 7.52 mm clear. This is what stops it moving further east.
+#   - Board-id silk block (X -41.92..-16.08, Y -4.80..+4.80, text band to
+#     +5.30): body north silk +10.78 → 5.48 mm, which is the strip the five
+#     per-pin labels live in (see gen_silk_labels).
+#   - J1 terminal block courtyard X -9.13..+9.12 and its mating-plug no-go
+#     rectangle (X ≈ -8.2..+8.2): body east edge → >11.7 mm clear.
+#   - R60 outline: body SW corner (-42.92, +26.58) sits at r=50.48 →
+#     9.52 mm inside; the flat chord (+43.52) is 16.94 mm south of the body.
+#   - Nothing at all is placed under the shadow (checked by the Z-clearance
+#     guardrail in _postprocess.py, budget DAUGHTERBOARD_Z_CLEARANCE
+#     ["LDR1"]). C11, the module's +5V decoupling cap, sits just NORTH of
+#     the pin row and clear of the shadow — see gen_sensors_decoupling.
+LD2410_ROTATION = 0              # degrees — the -C needs no rotation: its
+                                  # pin row already runs along the module's
+                                  # long axis, which is the OAS PCB's +X.
+                                  # (The -B was mounted at 270°, standing
+                                  # its 35 mm strip on end along PCB Y.)
+LD2410_ANCHOR_X = J4_PCB_X - LD2410_PIN1_INSET_X        # -42.92 (DERIVED)
+LD2410_ANCHOR_Y = J4_PCB_Y - LD2410_PIN_ROW_INSET_Y     # +10.58 (DERIVED)
 
 
 def _ld2410_local_to_pcb(lx: float, ly: float) -> tuple[float, float]:
-    """Transform a footprint-local LD2410 coordinate to PCB-local mm.
+    """Transform a footprint-local LD2410C coordinate to PCB-local mm.
 
-    Mirrors _sen66_local_to_pcb. With LD2410_ROTATION = 270 (v0.11+,
-    vertical daughterboard mount), LD2410-local +X maps to PCB +Y and
-    LD2410-local +Y maps to PCB -X; the resulting coordinate is then
-    translated by the LD2410_ANCHOR_X / Y placement. The rotation matrix
-    below stays generic in case orientation needs to change to fit other
-    components.
+    Mirrors `_sen66_local_to_pcb`. With LD2410_ROTATION = 0 this is a
+    pure translation by the (DERIVED) anchor, but the rotation matrix is
+    kept generic so the module can be turned without touching callers.
     """
     a = math.radians(LD2410_ROTATION)
     cos_a, sin_a = math.cos(a), math.sin(a)
@@ -792,42 +887,10 @@ ESP32_ROTATION = 90                # KiCad rotation applied to helper output
 
 
 # -----------------------------------------------------------------------------
-# J4 — stock KiCad PinHeader_1x05_P1.27mm_Vertical at the LD2410 connector
-# short edge. With LD2410 in its vertical orientation (LD2410_ROTATION=270
-# in the .kicad_pcb file, which puts the connector edge at PCB Y=+19.05),
-# the 5 pads run along a HORIZONTAL line at Y=+19.05.
-#
-# Pad-end orientation (v0.43 fix — the pre-v0.43 state was WRONG end-for-end):
-#   The LD2410 module's own 5-pin row, per HLK datasheet Figure 1, is
-#   physically ordered VCC, GND, Rx, Tx, OUT (antenna-side end → connector
-#   tip). LD2410 sits antenna-NORTH / connector-SOUTH (ROTATION=270), which
-#   maps the module's OUT pin to the WEST end of the J4 row and VCC to the
-#   EAST end (see _ld2410_local_to_pcb: larger LD2410-local Y → more
-#   negative PCB X). J4 pad 1 carries the LD2410_OUT net, so pad 1 MUST
-#   land at the WEST end of the row.
-#
-# Rotation convention (empirical, from rendered output): a stock footprint
-# native pad at local (0, +5.08) ends up at PCB (anchor_x + 5.08, anchor_y)
-# under rotation 90° and at (anchor_x - 5.08, anchor_y) under rotation 270°.
-# rotation 90° therefore puts pad 1 at the anchor (WEST) and pad 5 at
-# anchor_x + 5.08 (EAST) — the orientation we need.
-#
-# anchor_x = -49.82 → pad 1 (OUT) at PCB X=-49.82 (WEST), pad 5 (+5V) at
-# X=-44.74 (EAST). Pin row spans X=-49.82..-44.74, centre X=-47.28 =
-# LD2410 body long-axis centerline (LD2410_ANCHOR_X - LD2410_BODY_H/2). ✓
-#
-# WHY this was wrong before: the pre-v0.43 comment reasoned "we want pin 5
-# WEST of pin 1 → rotation 270" — backwards. The v0.15.8 "fix" then papered
-# over the symptom by reversing the SCHEMATIC net order instead of the
-# footprint. v0.43 reverses the FOOTPRINT (rotation 270→90, anchor X) and
-# leaves the schematic net mapping (pad 1 = OUT) untouched and correct.
-J4_PCB_X = -49.82            # mm — v0.43: pad 1 (OUT) at the WEST end of
-                              # the row, where the LD2410 module's OUT pin
-                              # physically lands. Row spans -49.82..-44.74,
-                              # centred X=-47.28 on the LD2410 body centerline.
-J4_PCB_Y = +19.05            # mm — OAS PCB Y of the pin row (unchanged).
-J4_PCB_ROTATION = 90         # degrees — v0.43: was 270 (end-for-end wrong);
-                              # 90 puts pad 1 at the anchor (WEST end).
+# J4 (the LD2410C pin header) lives in the LD2410C block ABOVE — it is the
+# physical datum the module body is derived from, so the two must be read
+# together. See J4_PCB_X / J4_PCB_Y / J4_PCB_ROTATION there.
+# -----------------------------------------------------------------------------
 
 # -----------------------------------------------------------------------------
 # J1 PCB placement (v0.18; supersedes v0.17) — 24 V Phoenix MSTBA terminal block
@@ -1053,20 +1116,21 @@ J10_PCB_ROTATION = 90        # LIB +Y → PCB +X (horizontal pad row east).
 # -----------------------------------------------------------------------------
 # J2 — UART/Boot recovery header (DNP), 1x06 P2.54 mm
 # -----------------------------------------------------------------------------
-# v0.43: relocated from the cramped NW corner to the free pocket NORTH of
-# the LD2410 presence sensor, and rotated HORIZONTAL (pad row along PCB +X,
-# like J10). The cramped NW corner could not host printed F.SilkS per-pin
-# labels; the LD2410-north pocket can. C2 and C3 were evicted from this
-# pocket (see gen_power_pcb_footprints). With rotation 90 the 1x06 row runs
-# +X from pin 1 (west) to pin 6 (east); the row is centred above the
-# LD2410 body (X centre ≈ -47.3) and sits ~4.5 mm north of the LD2410 top
-# edge (Y=-16.51). Per-pin signal labels go on F.SilkS just NORTH of the
-# row (gen_silk_labels).
+# v0.43: relocated from the cramped NW corner to the free west pocket, and
+# rotated HORIZONTAL (pad row along PCB +X, like J10). The cramped NW corner
+# could not host printed F.SilkS per-pin labels; this pocket can. C2 and C3
+# were evicted from it (see gen_power_pcb_footprints). With rotation 90 the
+# 1x06 row runs +X from pin 1 (west) to pin 6 (east). Per-pin signal labels
+# go on F.SilkS just NORTH of the row (gen_silk_labels).
+# The pocket was originally framed as "north of the LD2410" — that framing
+# died in v0.53 / issue #9 when the LD2410C moved to the south-west pocket
+# (LD2410_ANCHOR_* above). J2 stayed put: the strip it occupies is simply
+# free board now, ~4 mm south of the J5 socket row.
 J2_PCB_X = -51.0             # PCB X of pad 1 (west end); row spans
                               # -51.0..-38.3 (6 pins, 2.54 mm pitch).
-                              # Shifted east of dead-centre over the
-                              # LD2410 so the pin-1 per-pin label clears
-                              # the curving west board edge.
+                              # Placed east of the pocket's west end so the
+                              # pin-1 per-pin label clears the curving west
+                              # board edge.
 J2_PCB_Y = -21.0             # PCB Y of the pad row.
 J2_PCB_ROTATION = 90         # LIB +Y → PCB +X (horizontal pad row east).
 
@@ -1081,9 +1145,21 @@ J2_PCB_ROTATION = 90         # LIB +Y → PCB +X (horizontal pad row east).
 #   J2     — _sch_mcu.py      (UART/Boot recovery header)
 #   J9     — _sch_io.py       (standard Qwiic: GND / +3V3 / SDA / SCL)
 #   J10    — _sch_io.py       (native-USB recovery header)
+#   J4     — _sch_sensors.py  (HLK-LD2410C module row, see below)
 J1_PIN_MAP: dict[int, str] = {1: "24V", 2: "GND", 3: "PE"}
 J2_PIN_MAP: dict[int, str] = {1: "+3V3", 2: "GND", 3: "TX", 4: "RX",
                               5: "EN", 6: "BOOT"}
+# J4 — HLK-LD2410C. v0.53 (issue #9): every one of the five holes is
+# labelled, not just the row ends — the -C is a hand-soldered module on a
+# plain 2.54 mm header, so an assembler wants to read each pin off the
+# board. The strings are the MODULE's own silkscreen (Tx / Rx / OUT / GND /
+# VCC, printed left-to-right on its antenna face), so the board silk lines
+# up 1:1 with what is printed on the part being fitted. NOTE the deliberate
+# mismatch with the NET names: J4 pin 1 "TX" is the module's transmitter
+# and therefore lands on the MCU-centric net UART_RX, and pin 2 "RX" on
+# UART_TX (see _sch_sensors.py and CLAUDE.md Lesson 20).
+J4_PIN_MAP: dict[int, str] = {1: "TX", 2: "RX", 3: "OUT", 4: "GND",
+                              5: "VCC"}
 J10_PIN_MAP: dict[int, str] = {1: "GND", 2: "+3V3", 3: "USB-", 4: "USB+",
                                5: "EN", 6: "BOOT"}
 
@@ -1092,14 +1168,12 @@ J10_PIN_MAP: dict[int, str] = {1: "GND", 2: "+3V3", 3: "USB-", 4: "USB+",
 # Signal names (not bare pin numbers) are used: they tell the assembler at
 # a glance which way round the module goes. Only the first + last pad of a
 # row carry a label (see gen_silk_labels). Keyed by footprint pad number.
-# Used for J4/J5/J6.
+# Used for J5/J6 only — J4 carries a full per-pin map (J4_PIN_MAP above)
+# since v0.53 / issue #9.
 #   ESP32-C6-DevKitM-1 — verified vs _lib_symbols.ESP32C6_DEVKITM1_PINS:
 #     J5 = module header J1 (pad 1 = 3V3 … pad 15 = GND)
 #     J6 = module header J3 (pad 1 = GND … pad 15 = GND — both rails GND
 #          at the J3 header ends; J5's 3V3/GND orients the module)
-#   HLK-LD2410B — HiLink datasheet V1.04 Table 1 (see _sch_sensors.py):
-#     J4 (pad 1 = OUT … pad 5 = VCC)
-J4_END_SIGNALS: dict[int, str] = {1: "OUT", 5: "VCC"}
 J5_END_SIGNALS: dict[int, str] = {1: "3V3", 15: "GND"}
 # v0.53 (issue #3): J6's WEST end (pin 1) label dropped — after the -7.5 mm
 # DevKit move it fell over the SW board arc and could not be placed clear of
@@ -1487,14 +1561,18 @@ POWER_BUDGET: list[PowerBudgetEntry] = [
         ),
     },
     {
-        "name": "HLK-LD2410B mmWave radar",
+        "name": "HLK-LD2410C mmWave radar",
         "rail": "5V",
-        "typ_ma": 65.0,
-        "peak_ma": 80.0,
-        "datasheet": "https://www.hlktech.net (search LD2410B)",
+        "typ_ma": 79.0,
+        "peak_ma": 130.0,
+        "datasheet": "https://www.hlktech.net/index.php?id=1095",
         "note": (
-            "Hi-Link LD2410B datasheet — typical ~65 mA, peak ~80 mA "
-            "during active radar sweep."
+            "Hi-Link HLK-LD2410C manual V1.00 (2022-11-07) Table 2 + the "
+            "Figure 11 Keithley capture: average working current 79 mA, "
+            "max 129.77 mA, min 62.48 mA. Hi-Link asks for a 5 V supply "
+            "with >200 mA capacity. v0.53 / issue #9 raised this entry "
+            "from the -B's 65/80 mA — the -C peak is ~50 mA higher, which "
+            "the +5V rail absorbs comfortably (LM2596S-5.0, 3 A)."
         ),
     },
     {

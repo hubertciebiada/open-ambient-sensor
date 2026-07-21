@@ -522,38 +522,169 @@ def test_j3_cable_slot_webs_and_outline() -> None:
             _assert_inside_outline(cx, cy, "J3 cable slot corner")
 
 
-def test_board_id_block_fits_west_pocket() -> None:
-    # The board-id silk block (name + version + repo URL, 5 rows) must fit
-    # the west pocket freed by the NFC removal: east of the LD2410
-    # daughterboard (body east edge = LD2410_ANCHOR_X) and west of the
-    # LED ring's west extent (westmost LED at ring radius 13 -> body /
-    # courtyard west edge ≈ -15.4; -16.0 used as the conservative bound).
-    # User spec: block centred on the central hole's horizontal axis
-    # (Y = 0). Widest rows are 19 chars; KiCad stroke-font advance at the
-    # 1.0 mm min_text_height is ~1.36 mm/char (measured on the emitted
-    # board via a DRC silk_overlap hit) -> half-width ~12.9 mm.
+def _board_id_block_extent() -> tuple[float, float, float, float]:
+    """(x_min, x_max, y_min, y_max) of the board-id silk block.
+
+    Widest rows are 19 chars; the KiCad stroke-font advance at the 1.0 mm
+    min_text_height is ~1.36 mm/char (measured on the emitted board via a
+    DRC silk_overlap hit). The vertical extent adds 0.7 mm past the outer
+    baselines for the glyph height.
+    """
     from boardgen._common import (
         OAS_NAME_SHORT, OAS_REPO_URL_SILK_LINES, OAS_VERSION_LINE,
     )
     rows = (OAS_NAME_SHORT, OAS_VERSION_LINE) + OAS_REPO_URL_SILK_LINES
     half_w = max(len(r) for r in rows) * 1.36 / 2.0
+    half_h = (len(rows) - 1) * _project.BOARD_ID_ROW_PITCH / 2.0 + 0.7
+    return (_project.BOARD_ID_CENTER_X - half_w,
+            _project.BOARD_ID_CENTER_X + half_w,
+            _project.BOARD_ID_CENTER_Y - half_h,
+            _project.BOARD_ID_CENTER_Y + half_h)
+
+
+def test_board_id_block_fits_west_pocket() -> None:
+    # The board-id silk block (name + version + repo URL, 5 rows) lives in
+    # the west pocket freed by the NFC removal, centred on the central
+    # hole's horizontal axis (Y = 0, user spec). Its neighbours:
+    #   - EAST: the LED ring's west extent (westmost LED at ring radius 13
+    #     -> body / courtyard west edge ~= -15.4; -16.0 as a conservative
+    #     bound).
+    #   - SOUTH: the LD2410C body (v0.53 / issue #9 moved the module out of
+    #     this pocket's west wall and into the south-west pocket, so it now
+    #     bounds the block from BELOW, not from the side).
+    #   - WEST / NORTH: open board, so only the R60 outline applies.
+    from boardgen._common import OAS_REPO_URL_SILK_LINES
+    x_min, x_max, y_min, y_max = _board_id_block_extent()
     assert _project.BOARD_ID_CENTER_Y == 0.0
-    x_min = _project.BOARD_ID_CENTER_X - half_w
-    x_max = _project.BOARD_ID_CENTER_X + half_w
-    assert x_min >= _project.LD2410_ANCHOR_X + 1.0, (
-        f"board-id west edge {x_min:.2f} crowds the LD2410 (east edge "
-        f"{_project.LD2410_ANCHOR_X})")
     assert x_max <= -16.0, (
         f"board-id east edge {x_max:.2f} crowds the LED ring")
-    half_h = (len(rows) - 1) * _project.BOARD_ID_ROW_PITCH / 2.0 + 0.7
+    assert y_max <= _project.LD2410_ANCHOR_Y - 1.0, (
+        f"board-id south edge {y_max:.2f} crowds the LD2410C body "
+        f"(north edge {_project.LD2410_ANCHOR_Y})")
     for cx in (x_min, x_max):
-        for cy in (_project.BOARD_ID_CENTER_Y - half_h,
-                   _project.BOARD_ID_CENTER_Y + half_h):
+        for cy in (y_min, y_max):
             _assert_inside_outline(cx, cy, "board-id block corner")
     # The three URL rows must join back into the canonical repo path —
     # a typo here ships an unreachable link on every physical board.
     assert "".join(OAS_REPO_URL_SILK_LINES) == (
         "github.com/hubertciebiada/open-ambient-sensor")
+
+
+# ---------------------------------------------------------------------------
+# HLK-LD2410C body + J4 placement (GitHub issue #9)
+# ---------------------------------------------------------------------------
+
+def test_ld2410c_body_derived_from_j4_datum() -> None:
+    """J4 is the physical datum; the body outline must be DERIVED from it.
+
+    CLAUDE.md Lesson 22 corollary: the connector is where the real module
+    is forced to sit, so authoring the body anchor independently is how
+    the drawn model drifts away from the bench. Re-deriving here is the
+    regression guard.
+    """
+    assert _project.LD2410_ANCHOR_X == pytest.approx(
+        _project.J4_PCB_X - _project.LD2410_PIN1_INSET_X, abs=1e-9)
+    assert _project.LD2410_ANCHOR_Y == pytest.approx(
+        _project.J4_PCB_Y - _project.LD2410_PIN_ROW_INSET_Y, abs=1e-9)
+    # Datasheet-stated geometry (HLK-LD2410C manual V1.00 section 4.1).
+    assert (_project.LD2410_BODY_W, _project.LD2410_BODY_H) == (22.0, 16.0)
+    assert _project.LD2410_PIN_PITCH == 2.54
+    assert _project.LD2410_PIN_COUNT == 5
+    # The 5-hole row is centred on the 22 mm pinned edge.
+    span = (_project.LD2410_PIN_COUNT - 1) * _project.LD2410_PIN_PITCH
+    assert _project.LD2410_PIN1_INSET_X == pytest.approx(
+        (_project.LD2410_BODY_W - span) / 2.0, abs=1e-9)
+    assert _project.LD2410_PIN1_INSET_X + span <= _project.LD2410_BODY_W
+    # Rotation 0 keeps module-local axes == PCB axes; the pin row runs
+    # along PCB +X with pad 1 at the WEST end (J4_PCB_ROTATION 90 is what
+    # puts a stock local +Y pad column onto PCB +X — stage 19 check D).
+    assert _project.LD2410_ROTATION == 0
+    assert _project.J4_PCB_ROTATION == 90
+
+
+def test_ld2410c_pin_map_matches_module_silkscreen() -> None:
+    # J4_PIN_MAP prints the MODULE's own silk left-to-right on the antenna
+    # face. Order per HLK-LD2410C manual V1.00 Table 1 / section 4.2 — the
+    # MIRROR of the -B's OUT/TX/RX/GND/VCC (CLAUDE.md Lesson 20).
+    assert _project.J4_PIN_MAP == {
+        1: "TX", 2: "RX", 3: "OUT", 4: "GND", 5: "VCC"}
+
+
+def test_ld2410c_body_clears_neighbours() -> None:
+    """Body shadow vs the fixed features of the south-west pocket."""
+    x_min = _project.LD2410_ANCHOR_X
+    x_max = x_min + _project.LD2410_BODY_W
+    y_min = _project.LD2410_ANCHOR_Y
+    y_max = y_min + _project.LD2410_BODY_H
+
+    # Whole body inside the D-shape outline.
+    for cx in (x_min, x_max):
+        for cy in (y_min, y_max):
+            _assert_inside_outline(cx, cy, "LD2410C body corner")
+
+    # H2 mounting hole: the module stands only ~2.5 mm up on its header,
+    # far below an M3 screw head, so the body must not reach over H2 at
+    # all. H2 courtyard half-extent = HOLE_DIAMETER * 0.75.
+    h2_x, h2_y = -_project.HOLE_OFFSET_X, _project.HOLE_OFFSET_Y
+    h2_r = _project.HOLE_DIAMETER * 0.75
+    assert x_min - (h2_x + h2_r) >= 1.0, (
+        f"LD2410C west edge {x_min:.2f} crowds H2 courtyard "
+        f"(east edge {h2_x + h2_r:.2f})")
+
+    # AQI LED ring: keep the body out of the ring's annulus so it does not
+    # stand in front of the side-emitting LEDs. Derive the ring's western
+    # extent from the ACTUAL placed LED positions — the base radius alone
+    # lies, because per-slot overrides push some LEDs outward (D14 sits at
+    # R=16.5, further west in X than D15 on the 180 deg axis at R=11).
+    # Deriving it means a future override cannot silently invalidate the
+    # bound the way a hardcoded radius would.
+    led_body_half = 2.0   # SK6812-SIDE 4020 long axis / 2, worst case
+    ring_west = min(
+        _project._led_ring_position(i)[0]
+        for i in range(_project.LED_RING_COUNT)
+        if i not in _project.LED_RING_SKIP_INDICES
+    ) - led_body_half
+    assert ring_west - x_max >= 5.0, (
+        f"LD2410C east edge {x_max:.2f} crowds the LED ring "
+        f"(west extent {ring_west:.2f})")
+
+    # J1 terminal-block column (pin row centred on X = 0, body half-width
+    # ~8.7 mm) and the flat chord.
+    assert x_max <= -12.0, "LD2410C body reaches the central J1 column"
+    assert _project.Y_CHORD - y_max >= 5.0, "LD2410C body crowds the chord"
+
+
+def test_ld2410c_silk_north_stubs_clear_the_j4_frame() -> None:
+    """The body silk's north edge must break around the J4 silk frame.
+
+    Drawn straight across, it would sit 0.16 mm from the stock header's
+    own frame (0.04 mm edge-to-edge after the 0.12 mm strokes) — a
+    silk_overlap. The two stubs must therefore stop clear of the frame on
+    both sides, and still be long enough to read as corner marks.
+    """
+    inset = _project.LD2410_SILK_INSET
+    west_end = _project.LD2410_SILK_NORTH_STUB_X_END
+    east_start = _project.LD2410_SILK_NORTH_STUB_X_START
+    frame_w = _project.LD2410_PIN1_INSET_X - _project._J4_SILK_WEST_OF_PIN1
+    frame_e = _project.LD2410_PIN1_INSET_X + _project._J4_SILK_EAST_OF_PIN1
+    assert frame_w - west_end >= 0.3, "west stub runs into the J4 silk frame"
+    assert east_start - frame_e >= 0.3, "east stub runs into the J4 silk frame"
+    assert west_end - inset >= 2.0, "west stub too short to read as a corner"
+    assert (_project.LD2410_BODY_W - inset) - east_start >= 2.0, (
+        "east stub too short to read as a corner")
+    # Stubs stay inside the body.
+    assert inset < west_end < east_start < _project.LD2410_BODY_W - inset
+
+
+def test_ld2410c_antenna_patches_inside_body() -> None:
+    # F.Fab antenna art must sit inside the body and clear of the pin row,
+    # otherwise the "where does the beam leave" drawing is misleading.
+    assert 0.0 < _project.LD2410_ANTENNA_Y_MIN < _project.LD2410_ANTENNA_Y_MAX
+    assert _project.LD2410_ANTENNA_Y_MAX < _project.LD2410_BODY_H
+    assert _project.LD2410_ANTENNA_Y_MIN > _project.LD2410_PIN_ROW_INSET_Y + 1.0
+    assert len(_project.LD2410_ANTENNA_PATCH_X) == 2
+    for px0, px1 in _project.LD2410_ANTENNA_PATCH_X:
+        assert 0.0 < px0 < px1 < _project.LD2410_BODY_W
 
 
 # ---------------------------------------------------------------------------

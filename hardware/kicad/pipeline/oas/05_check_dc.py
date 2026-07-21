@@ -93,9 +93,9 @@ V24_PROT_WINDOW = (23.5, 24.05)   # After Q1 (45 mΩ * ~0.5A = 22.5 mV drop) + F
 
 # Per-component current budgets derived from datasheets (typical operating,
 # not peak). Sources: SEN66 datasheet §4 (~130 mA), Espressif ESP32-C6 §4
-# active+RF (~80 mA), HLK-LD2410B datasheet (~80 mA), SK6812-SIDE x11
-# at 50% brightness (~80 mA avg).
-LOAD_5V_TYPICAL_A = 0.16    # LED ring avg 80 mA + LD2410 80 mA
+# active+RF (~80 mA), HLK-LD2410C manual V1.00 Table 2 (79 mA avg),
+# SK6812-SIDE x7 at 50% brightness (~80 mA avg).
+LOAD_5V_TYPICAL_A = 0.16    # LED ring avg 80 mA + LD2410C 79 mA
 LOAD_3V3_TYPICAL_A = 0.22   # ESP32 80 mA + SEN66 130 mA + 10 mA misc/margin
 TOTAL_INPUT_TYPICAL_A = 0.5  # rough total after buck efficiency losses
 

@@ -22,8 +22,8 @@ def gen_sensors_sch() -> str:
     """Sensors sub-sheet — chunks #5a + #5b.
 
     Chunk #5a — SEN66 connection (J3 + C10).
-    Chunk #5b — HLK-LD2410B mmWave radar (J4 + C11). LD2410 mounts as a
-                soldered daughterboard via a 5-pin 1.27 mm through-hole
+    Chunk #5b — HLK-LD2410C mmWave radar (J4 + C11). The module mounts as
+                a soldered daughterboard on a 5-pin 2.54 mm through-hole
                 header at J4; mechanical retention is the solder joint.
                 Antenna faces the AK-N-94 perforated cover (away from
                 the OAS PCB) per the HiLink §5.5 antenna-clearance rule
@@ -269,73 +269,72 @@ def gen_sensors_sch() -> str:
     ))
 
     # =========================================================================
-    # chunk #5b — HLK-LD2410B mmWave radar (J4 + C11)
+    # chunk #5b — HLK-LD2410C mmWave radar (J4 + C11)
     # =========================================================================
-    # Mounting strategy: LD2410 module is soldered as a daughterboard
-    # directly into J4 — a 5-pin 1.27 mm pitch THROUGH-HOLE pin header on
-    # the OAS PCB. The HLK-LD2410B's onboard 1.27 mm pin row passes
-    # through OAS J4 holes; the pins are then soldered from the OAS PCB
-    # bottom side. The solder joint IS the mechanical retention — no
-    # cable, no zip-tie, no bracket. The LD2410 sits flat above the OAS
-    # PCB, antenna face oriented AWAY from the OAS PCB (towards the
-    # AK-N-94 perforated cover) so the radar beam radiates straight out
-    # through the cover into the room. This matches the universal
-    # community pattern (Apollo MSR-2, jonnybergdahl Sensor_LD2410B,
-    # p2baron Thingiverse 5782554) and the HiLink datasheet §5.5
-    # "antenna facing the area to be detected, surrounding area open and
-    # unobstructed" requirement.
+    # Mounting strategy: the LD2410C is soldered as a daughterboard onto
+    # J4 — a 5-pin 2.54 mm pitch THROUGH-HOLE gold-pin header on the OAS
+    # PCB. The module's own five Ø0.9 mm plated holes drop over the
+    # protruding pins and are soldered on its top face. The solder joint
+    # IS the mechanical retention — no cable, no zip-tie, no bracket. The
+    # module sits flat above the OAS PCB with its antenna face oriented
+    # AWAY from the OAS PCB (toward the AK-N-94 perforated cover) so the
+    # radar beam radiates straight out through the cover into the room —
+    # the HiLink datasheet §5.5 requirement ("antenna facing the area to
+    # be detected, surrounding area open and unobstructed").
     #
-    # WHY through-hole (not the JST-GH cable variant): the HiLink
-    # datasheet §5.5 prohibits "metal materials or materials with
-    # shielding effect" in the radome path — a copper-pour FR4 PCB
-    # between the antenna and the user counts as such. Mounting the
-    # LD2410 as a vertical daughterboard with antenna pointing toward
-    # the cover keeps the OAS main PCB *behind* the antenna (where
-    # there is no detection requirement) and the antenna *front* face
-    # clear to radiate through the ABS cover.
+    # WHY board-to-board (not a cable variant): the HiLink datasheet §5.5
+    # prohibits "metal materials or materials with shielding effect" in
+    # the radome path — a copper-pour FR4 PCB between the antenna and the
+    # user counts as such. Stacking the module above the OAS PCB with the
+    # antenna pointing at the cover keeps the main PCB *behind* the
+    # antenna (where there is no detection requirement) and leaves the
+    # antenna face clear to radiate through the ABS cover.
     #
-    # Pin order per HiLink HLK-LD2410B Datasheet V1.04 (2022-06-29, FCC-filed),
-    # Table 1 page 7. Pin 1 is nearest the silk "1" marker on the module's
-    # short edge opposite the 1T2R antenna patches. (NOTE: the HLK-LD2410C
-    # variant has a DIFFERENT pin order — see datasheet revisions for the
-    # -C variant; OAS is wired strictly for -B.)
+    # v0.53 / GitHub issue #9 replaced the HLK-LD2410B with the -C. Same
+    # radar, same 256000-baud protocol, but a different board — and, the
+    # part that matters here, a DIFFERENT PIN ORDER. The -B ran
+    # 1=OUT, 2=Tx, 3=Rx, 4=GND, 5=VCC; the -C runs Tx, Rx, OUT, GND, VCC.
+    # Do not carry the -B mapping over. See CLAUDE.md Lesson 20.
     #
-    #   Pin 1: OUT   — digital presence output (HIGH = target detected,
+    # Pin order per the Hi-Link HLK-LD2410C manual V1.00 (2022-11-07),
+    # Table 1 / section 4.2, read with the module antenna-face-up and the
+    # pin row along its north edge (the orientation the OAS PCB forces —
+    # see the LD2410C block in _project.py). Pin 1 carries the SQUARE pad
+    # on the module; pins 2..5 are round. There is no printed "1".
+    #
+    #   Pin 1: UART_Tx — UART output FROM the radar (data flowing → MCU
+    #                  GPIO 17). Net name UART_RX in this sheet: the
+    #                  signal ARRIVES at the MCU's RX pin, so we keep the
+    #                  MCU-centric net name (matches the hier label
+    #                  declared by the mcu sub-sheet).
+    #   Pin 2: UART_Rx — UART input TO the radar (MCU GPIO 16 drives it).
+    #                  Net name UART_TX (MCU-centric, see above).
+    #   Pin 3: OUT   — digital presence output (HIGH = target detected,
     #                  3.3 V CMOS). Wires to MCU GPIO 2 via the LD2410_OUT
     #                  net so ESPHome can attach a binary_sensor without
     #                  polling the UART. Useful for fast wake-up; the UART
     #                  data still drives the full ESPHome ld2410 component.
-    #   Pin 2: UART_Tx — UART output FROM the radar (data flowing → MCU GPIO 17).
-    #                  Net name UART_RX in this sheet: the signal is the MCU's
-    #                  RX, i.e. it ARRIVES at the MCU's RX pin, so we keep
-    #                  the MCU-centric net name (matches the hier label
-    #                  declared by the mcu sub-sheet).
-    #   Pin 3: UART_Rx — UART input TO the radar (MCU GPIO 16 drives it).
-    #                  Net name UART_TX (MCU-centric, see above).
     #   Pin 4: GND
-    #   Pin 5: VCC   — 5 V supply (range 5-12 V). The HLK-LD2410B is a 5 V
-    #                  module; TX/RX/OUT logic levels are 3.3 V TTL so the
-    #                  ESP32-C6 UART and GPIO see compatible levels without
-    #                  a level shifter. Power comes from the +5V rail
-    #                  produced by U1 (LM2596S-5.0) in the power sheet.
+    #   Pin 5: VCC   — 5 V supply (range 5-12 V, 5 V recommended). The
+    #                  module is a 5 V part; Tx/Rx/OUT logic levels are
+    #                  3.3 V so the ESP32-C6 UART and GPIO see compatible
+    #                  levels without a level shifter. Power comes from
+    #                  the +5V rail produced by U1 (LM2596S-5.0) in the
+    #                  power sheet — the manual asks for >200 mA of
+    #                  supply capacity against a 79 mA average / ~130 mA
+    #                  peak draw.
     #
-    # Local decoupling: C11 (100 nF 0402 X7R) between VCC and GND of the
-    # LD2410 supply pins. The radar's switching draw can pull noticeable
+    # Local decoupling: C11 (100 nF 0603 X7R) between VCC and GND of the
+    # module supply pins. The radar's switching draw pulls noticeable
     # transient current on the +5V rail; cheap insurance at the
     # daughterboard.
     #
-    # Connector: J4 is a 5-pin 1.27 mm pitch through-hole pin header /
-    # pin socket. The schematic symbol stays Conn_01x05 (same as the
-    # JST-GH variant); the difference is purely in the PCB footprint
-    # assignment, which is set in chunk #7 (PCB placement) to one of:
-    #   Connector_PinHeader_1.27mm:PinHeader_1x05_P1.27mm_Vertical
-    # or
-    #   Connector_PinSocket_1.27mm:PinSocket_1x05_P1.27mm_Vertical
-    # depending on whether the OAS PCB uses pin or socket geometry. The
-    # decision (pin vs socket on the OAS side) is mechanical-only — the
-    # net list is identical.
+    # Connector: J4 is a 5-pin 2.54 mm pitch through-hole header. The
+    # schematic symbol stays Conn_01x05; everything that changed between
+    # the -B and the -C lives in the PCB footprint assignment (chunk #7,
+    # PCB placement) and in the pin-to-net binding below.
 
-    # ===== J4: LD2410 JST-GH 5-pin connector =====
+    # ===== J4: LD2410C 5-pin header =====
     # Placed below J3 in the schematic. With angle=0 + _sch_conn_01x05's
     # layout, lib pin positions map to (J4_X-5.08, J4_Y + 2.54*(n-3)) for
     # pin n = 1..5. Pin tips on the LEFT side.
@@ -343,67 +342,68 @@ def gen_sensors_sch() -> str:
     # picking a non-grid Y (e.g. 145.00) triggers `endpoint_off_grid` ERC
     # warnings on every pin/wire of J4 + C11.
     #
-    # Pin order per HiLink HLK-LD2410B datasheet V1.04 (FCC-filed),
-    # Table 1 page 7. The PCB pad numbering of J4 (1..5) corresponds 1:1
-    # with the LD2410 module's onboard pin row:
-    #   Pin 1 = OUT (target-status digital output, 3.3 V level)
-    #   Pin 2 = UART_Tx (output from LD2410 → MCU input UART_RX)
-    #   Pin 3 = UART_Rx (input  to  LD2410 ← MCU output UART_TX)
+    # Pin order per the Hi-Link HLK-LD2410C manual V1.00 (2022-11-07),
+    # Table 1 / section 4.2. The PCB pad numbering of J4 (1..5) corresponds
+    # 1:1 with the module's hole row, pad 1 at the row's WEST end:
+    #   Pin 1 = UART_Tx (output from the module → MCU input, net UART_RX)
+    #   Pin 2 = UART_Rx (input  to  the module ← MCU output, net UART_TX)
+    #   Pin 3 = OUT (target-status digital output, 3.3 V level)
     #   Pin 4 = GND
     #   Pin 5 = VCC (5 V supply, range 5-12 V)
     #
-    # This schematic pad-to-net mapping (pad 1 = OUT … pad 5 = VCC) is
-    # CORRECT and matches the datasheet — do not touch it. The v0.15.8
-    # "fix" that reversed these nets was misdiagnosed: the real defect was
-    # the J4 PCB footprint placement (rotation put pad 1 at the wrong
-    # physical end vs where the LD2410 module's OUT pin lands). That was
-    # corrected at the footprint layer in v0.43 — see the J4_PCB_* block in
-    # _project.py. The schematic stays as-is.
+    # ⚠ This is the MIRROR of what stood here until v0.53 / issue #9, when
+    # the module was still the -B (pad 1 = OUT … pad 5 = VCC). The pin
+    # order is a module property, not a board choice: it changed because
+    # the PART changed. Enforced by pipeline stage 19 check D, which reads
+    # the `j4-p*` wire uuid tags below. See CLAUDE.md Lesson 20 for the
+    # orientation convention the order is defined against, and for the
+    # -B-era history (a v0.15.8 schematic reversal that was really a
+    # footprint-orientation bug, re-fixed at the footprint layer in v0.43).
     J4_X = 180.34
     J4_Y = 146.05
     J4_PIN_X = J4_X - 5.08    # 175.26 — tip column for all 5 pin tips
     J4_PIN_Y = {
-        1: J4_Y - 5.08,        # 140.97 — OUT (presence interrupt, top)
-        2: J4_Y - 2.54,        # 143.51 — UART_Tx (LD2410 → MCU)
-        3: J4_Y,               # 146.05 — UART_Rx (MCU → LD2410)
+        1: J4_Y - 5.08,        # 140.97 — UART_Tx (module → MCU, top)
+        2: J4_Y - 2.54,        # 143.51 — UART_Rx (MCU → module)
+        3: J4_Y,               # 146.05 — OUT (presence interrupt)
         4: J4_Y + 2.54,        # 148.59 — GND
         5: J4_Y + 5.08,        # 151.13 — VCC (bottom)
     }
 
     # ===== C11: 100 nF local decoupling cap =====
-    # Sits to the LEFT of J4, BELOW the J4 pin row. After the v0.15.8
-    # J4 pin-order end-for-end fix, VCC moved from pin 1 (top) to pin 5
-    # (bottom, Y=151.13) and GND moved from pin 2 to pin 4 (Y=148.59).
-    # C11 placed below J4 so its top pin aligns with J4 pin 5 (VCC) and
-    # the cap's bottom pin terminates at a local GND flag.
+    # Sits to the LEFT of J4, BELOW the J4 pin row: VCC is pin 5 (bottom,
+    # Y=151.13) and GND pin 4 (Y=148.59) on both the -B and the -C, so
+    # this corner of the sheet was untouched by the issue-#9 rework.
+    # C11's top pin aligns with J4 pin 5 (VCC); its bottom pin terminates
+    # at a local GND flag.
     C11_X = 170.18
     C11_Y = 154.94            # = 1.27 × 122 (on connection grid). Top pin
                               # at 151.13 = J4 pin 5 (VCC).
     C11_TOP_Y = C11_Y - 3.81   # 151.13 — pin 1 (top) → +5V (= J4 pin 5)
     C11_BOT_Y = C11_Y + 3.81   # 158.75 — pin 2 (bottom) → GND
 
-    # ----- Pin 1 (OUT, top): wire LEFT to LD2410_OUT hier label -----
-    parts.append(_sch_wire(J4_PIN_X, J4_PIN_Y[1], HLABEL_LEFT_X, J4_PIN_Y[1], "j4-p1-out"))
-    parts.append(_sch_hierarchical_label(
-        name="LD2410_OUT", shape="output",
-        x=HLABEL_LEFT_X, y=J4_PIN_Y[1], angle=180, justify="right",
-        uuid_tag="ld2410-out-j4",
-    ))
-
-    # ----- Pin 2 (LD2410 Tx → MCU RX): wire LEFT to UART_RX hier label -----
-    parts.append(_sch_wire(J4_PIN_X, J4_PIN_Y[2], HLABEL_LEFT_X, J4_PIN_Y[2], "j4-p2-tx"))
+    # ----- Pin 1 (module Tx → MCU RX, top): wire LEFT to UART_RX hier label ---
+    parts.append(_sch_wire(J4_PIN_X, J4_PIN_Y[1], HLABEL_LEFT_X, J4_PIN_Y[1], "j4-p1-tx"))
     parts.append(_sch_hierarchical_label(
         name="UART_RX", shape="output",
-        x=HLABEL_LEFT_X, y=J4_PIN_Y[2], angle=180, justify="right",
+        x=HLABEL_LEFT_X, y=J4_PIN_Y[1], angle=180, justify="right",
         uuid_tag="uart-rx-j4",
     ))
 
-    # ----- Pin 3 (LD2410 Rx ← MCU TX): wire LEFT to UART_TX hier label -----
-    parts.append(_sch_wire(J4_PIN_X, J4_PIN_Y[3], HLABEL_LEFT_X, J4_PIN_Y[3], "j4-p3-rx"))
+    # ----- Pin 2 (module Rx ← MCU TX): wire LEFT to UART_TX hier label -----
+    parts.append(_sch_wire(J4_PIN_X, J4_PIN_Y[2], HLABEL_LEFT_X, J4_PIN_Y[2], "j4-p2-rx"))
     parts.append(_sch_hierarchical_label(
         name="UART_TX", shape="input",
-        x=HLABEL_LEFT_X, y=J4_PIN_Y[3], angle=180, justify="right",
+        x=HLABEL_LEFT_X, y=J4_PIN_Y[2], angle=180, justify="right",
         uuid_tag="uart-tx-j4",
+    ))
+
+    # ----- Pin 3 (OUT): wire LEFT to LD2410_OUT hier label -----
+    parts.append(_sch_wire(J4_PIN_X, J4_PIN_Y[3], HLABEL_LEFT_X, J4_PIN_Y[3], "j4-p3-out"))
+    parts.append(_sch_hierarchical_label(
+        name="LD2410_OUT", shape="output",
+        x=HLABEL_LEFT_X, y=J4_PIN_Y[3], angle=180, justify="right",
+        uuid_tag="ld2410-out-j4",
     ))
 
     # ----- Pin 4 (GND): hop LEFT and place a local GND flag -----
@@ -449,7 +449,7 @@ def gen_sensors_sch() -> str:
     parts.append(_sch_conn_01x05(
         x=J4_X, y=J4_Y, angle=0,
         reference="J4",
-        value="1x5 P1.27mm through-hole header (HLK-LD2410B daughterboard, soldered)",
+        value="1x5 P2.54mm through-hole header (HLK-LD2410C daughterboard, soldered)",
         uuid_tag="j4-ld2410",
         sheet_key="sensors",
     ))

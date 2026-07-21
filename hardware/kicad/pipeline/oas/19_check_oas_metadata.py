@@ -30,24 +30,28 @@ C. `boardgen._project.POWER_BUDGET` schema (Lesson 6 — don't hallucinate
    the same class of "I remember the AO3401A is ±20 V Vgs" error
    audit-16 caught (actually ±12 V) before it can land in the budget.
 
-D. J4 (HLK-LD2410B) pin order vs Lesson 20 canonical mapping. Authority:
-   HLK V1.04 datasheet Table 1 (page 7), user-verified 2026-05-23 —
-   pin 1 = OUT, pin 2 = UART TX, pin 3 = UART RX, pin 4 = GND,
-   pin 5 = VCC. Two anchors are verified:
+D. J4 (HLK-LD2410C) pin order vs Lesson 20 canonical mapping. Authority:
+   Hi-Link HLK-LD2410C manual V1.00 (2022-11-07) Table 1 / section 4.2,
+   read with the module ANTENNA-FACE UP and its pin row along the north
+   edge (board-owner spec, 2026-07-21) — pin 1 = UART Tx, pin 2 = UART
+   Rx, pin 3 = OUT, pin 4 = GND, pin 5 = VCC. Two anchors are verified:
      - `boardgen/_sch_sensors.py` J4 wiring block: each J4 pin's wire
-       (uuid tags "j4-p1-out" … "j4-p5-vcc-down") must terminate at the
+       (uuid tags "j4-p1-tx" … "j4-p5-vcc-down") must terminate at the
        canonical net. Net-name nuance: the OAS net names are MCU-centric,
-       so J4 pin 2 (the LD2410's UART_Tx OUTPUT) lands on net UART_RX
-       (it arrives at the ESP32's RX, GPIO 17) and J4 pin 3 (the
-       LD2410's UART_Rx INPUT) lands on net UART_TX (driven by GPIO 16)
+       so J4 pin 1 (the module's UART_Tx OUTPUT) lands on net UART_RX
+       (it arrives at the ESP32's RX, GPIO 17) and J4 pin 2 (the
+       module's UART_Rx INPUT) lands on net UART_TX (driven by GPIO 16)
        — the standard TX/RX crossover.
-     - `boardgen/_project.py::J4_PCB_ROTATION` must stay 90 — the v0.43
-       footprint-orientation fix that puts pad 1 (OUT) at the WEST end
-       of the row, where the LD2410 module's OUT pin physically lands.
-   The history (v0.15.8 schematic-reversal + v0.43 footprint-flip +
-   re-revert) makes this exact spot regression-prone; the check also
-   FAILS LOUDLY if any anchor vanishes (a moved/renamed structure means
-   the check is blind, which is itself a failure).
+     - `boardgen/_project.py::J4_PCB_ROTATION` must stay 90 — the
+       rotation that puts pad 1 at the WEST end of the row, where the
+       module's Tx pin physically lands under the orientation above.
+   This spot is regression-prone twice over: the -B era already burned a
+   v0.15.8 schematic reversal that was really a footprint-orientation bug
+   (re-fixed at the footprint layer in v0.43), and v0.53 / issue #9 then
+   MIRRORED the whole order when the part changed from -B (1 = OUT … 5 =
+   VCC) to -C. The check also FAILS LOUDLY if any anchor vanishes (a
+   moved/renamed structure means the check is blind, which is itself a
+   failure).
 
 E. J3 (SEN66) pin order vs Lesson 21 canonical mapping. Authority:
    Sensirion SEN6x datasheet v0.92 (Dec 2025), Table 16 (p. 15) gives
@@ -84,7 +88,7 @@ LIBRARY_TIERS = {"Basic", "Extended", "N/A"}
 # POWER_BUDGET entries must cite a real datasheet URL (Lesson 6 — don't
 # hallucinate datasheet values). Empty / placeholder / "TBD" strings are
 # rejected. We require the value to START with an http(s):// URL token;
-# anything after (e.g. " (search LD2410B)") is descriptive and tolerated
+# anything after (e.g. " (search LD2410C)") is descriptive and tolerated
 # because some manufacturer datasheet roots have no direct deep-link.
 DATASHEET_URL_PATTERN = re.compile(r"^https?://\S+")
 POWER_BUDGET_REQUIRED_KEYS = ("name", "rail", "typ_ma", "peak_ma", "datasheet")
@@ -96,9 +100,17 @@ POWER_BUDGET_VALID_RAILS = {"3V3", "5V", "24V"}
 IDENTITY_KEYS = ("mpn", "ean", "material")
 IDENTITY_KEY_PREFIXES = ("supplier",)
 
-# --- Check D: J4 / LD2410B pin order (Lesson 20) ------------------------------
-# Canonical order per HLK V1.04 datasheet Table 1 (page 7), user-verified
-# 2026-05-23: pin 1 = OUT, 2 = UART TX, 3 = UART RX, 4 = GND, 5 = VCC.
+# --- Check D: J4 / LD2410C pin order (Lesson 20) ------------------------------
+# Canonical order per the Hi-Link HLK-LD2410C manual V1.00 (2022-11-07)
+# Table 1 / section 4.2, read against the board-owner's orientation spec
+# (2026-07-21 — antennas UP, pin row along the module's north edge, pin 1
+# at the WEST end): pin 1 = UART Tx, 2 = UART Rx, 3 = OUT, 4 = GND,
+# 5 = VCC.
+#
+# ⚠ This is the MIRROR of the -B order this check enforced before v0.53 /
+# issue #9 (1 = OUT, 2 = Tx, 3 = Rx, 4 = GND, 5 = VCC). A future audit
+# quoting the -B mapping — or quoting espboards.dev's "VCC, GND, TX, RX,
+# OUT", which is the -C row read from the far end — is wrong.
 #
 # The schematic source of truth is the J4 wiring block in
 # boardgen/_sch_sensors.py (no importable pin→net dict exists — the mapping
@@ -106,16 +118,16 @@ IDENTITY_KEY_PREFIXES = ("supplier",)
 # text anchored on the deterministic wire uuid tags. Each entry:
 #   pin -> (wire uuid tag, anchor kind, expected net/lib_id).
 #
-# TX/RX crossover: net names are MCU-centric. J4 pin 2 is the LD2410's
+# TX/RX crossover: net names are MCU-centric. J4 pin 1 is the module's
 # UART_Tx OUTPUT — it drives the ESP32's RX (GPIO 17), hence net UART_RX.
-# J4 pin 3 is the LD2410's UART_Rx INPUT — driven by the ESP32's TX
+# J4 pin 2 is the module's UART_Rx INPUT — driven by the ESP32's TX
 # (GPIO 16), hence net UART_TX. Pin 5 (VCC) is fed from the +5V rail
 # (LM2596S), so its anchor is the power:+5V flag.
 SCH_SENSORS_SOURCE_REL = Path("boardgen") / "_sch_sensors.py"
 J4_EXPECTED: dict[int, tuple[str, str, str]] = {
-    1: ("j4-p1-out", "label", "LD2410_OUT"),
-    2: ("j4-p2-tx", "label", "UART_RX"),    # LD2410 TX -> MCU RX (crossover)
-    3: ("j4-p3-rx", "label", "UART_TX"),    # LD2410 RX <- MCU TX (crossover)
+    1: ("j4-p1-tx", "label", "UART_RX"),    # module TX -> MCU RX (crossover)
+    2: ("j4-p2-rx", "label", "UART_TX"),    # module RX <- MCU TX (crossover)
+    3: ("j4-p3-out", "label", "LD2410_OUT"),
     4: ("j4-p4-gnd-hop", "power", "power:GND"),
     5: ("j4-p5-vcc-down", "power", "power:+5V"),
 }
@@ -144,10 +156,12 @@ J3_EXPECTED: dict[int, tuple[str, str, str]] = {
     5: ("j3-p5-gnd-hop", "power", "power:GND"),
     6: ("j3-p6-vdd-down", "power", "power:+3V3"),
 }
-# v0.43 footprint-orientation fix: rotation 90 puts pad 1 (OUT) at the WEST
-# end of the row, where the LD2410 module's OUT pin physically lands
-# (rotation 270 was the pre-v0.43 end-for-end-wrong state). A deliberate
-# placement rework must update BOTH J4_PCB_ROTATION and this constant.
+# Rotation 90 puts pad 1 at the WEST end of the row, where the module's Tx
+# pin physically lands under the antennas-up orientation (rotation 270 was
+# the pre-v0.43 end-for-end-wrong state of the -B era, and the requirement
+# survived the -C rework unchanged even though the pin ORDER mirrored). A
+# deliberate placement rework must update BOTH J4_PCB_ROTATION and this
+# constant.
 J4_EXPECTED_PCB_ROTATION = 90
 
 
@@ -326,12 +340,12 @@ def _check_connector_pin_anchors(
 def _check_j4_pin_order(errors: list[str]) -> int:
     """Check D: J4 pin 1..5 net order vs Lesson 20 canonical mapping.
 
-    Authority: HLK V1.04 datasheet Table 1 (page 7) — 1=OUT, 2=UART TX,
-    3=UART RX, 4=GND, 5=VCC (MCU-centric net names UART_RX / UART_TX on
-    pins 2 / 3 — see the J4_EXPECTED comment for the TX/RX crossover).
-    Fails loudly if any anchor vanished: a moved/renamed J4 wiring block
-    or J4_PCB_* constant means this check is blind, which is itself a
-    failure.
+    Authority: Hi-Link HLK-LD2410C manual V1.00 Table 1 / section 4.2 —
+    1=UART Tx, 2=UART Rx, 3=OUT, 4=GND, 5=VCC (MCU-centric net names
+    UART_RX / UART_TX on pins 1 / 2 — see the J4_EXPECTED comment for
+    the TX/RX crossover). Fails loudly if any anchor vanished: a
+    moved/renamed J4 wiring block or J4_PCB_* constant means this check
+    is blind, which is itself a failure.
     """
     sys.path.insert(0, str(KICAD_ROOT))
     import boardgen._project as _bg_project  # noqa: E402
@@ -342,9 +356,11 @@ def _check_j4_pin_order(errors: list[str]) -> int:
         lesson="Lesson-20",
         expected=J4_EXPECTED,
         canon_msg=(
-            "Lesson 20 / HLK V1.04 datasheet Table 1 (page 7): "
-            "1=OUT, 2=LD2410 TX (net UART_RX), 3=LD2410 RX (net "
-            "UART_TX), 4=GND, 5=VCC"
+            "Lesson 20 / HLK-LD2410C manual V1.00 Table 1 (section 4.2), "
+            "read antennas-up with the pin row north: 1=module TX (net "
+            "UART_RX), 2=module RX (net UART_TX), 3=OUT, 4=GND, 5=VCC. "
+            "The MIRRORED order 1=OUT..5=VCC belonged to the HLK-LD2410B "
+            "and was retired in v0.53 / issue #9"
         ),
     )
 
@@ -357,11 +373,11 @@ def _check_j4_pin_order(errors: list[str]) -> int:
     elif rotation != J4_EXPECTED_PCB_ROTATION:
         errors.append(
             f"J4_PCB_ROTATION = {rotation!r} != {J4_EXPECTED_PCB_ROTATION} "
-            f"— v0.43 fixed the footprint end-for-end orientation (rotation "
-            f"90 puts pad 1 = OUT at the WEST end where the LD2410's OUT "
-            f"pin physically lands; 270 was the pre-v0.43 wrong state). A "
-            f"deliberate placement rework must update both the constant "
-            f"and this check (Lesson 20)"
+            f"— rotation 90 puts pad 1 at the WEST end of the row, where "
+            f"the LD2410C's TX pin physically lands when the module is "
+            f"seated antennas-up (270 was the pre-v0.43 end-for-end wrong "
+            f"state). A deliberate placement rework must update both the "
+            f"constant and this check (Lesson 20)"
         )
     return checked
 
@@ -414,7 +430,8 @@ def main() -> int:
             f"{n_lcsc} LCSC_MAPPING entries match expected schema; "
             f"{n_budget} POWER_BUDGET entries have valid datasheet URLs; "
             f"{n_j4}/5 J4 pins match Lesson-20 canonical order "
-            f"(1=OUT 2=TX 3=RX 4=GND 5=VCC, HLK V1.04 Table 1); "
+            f"(1=TX 2=RX 3=OUT 4=GND 5=VCC, HLK-LD2410C manual V1.00 "
+            f"Table 1); "
             f"{n_j3}/6 J3 pins match Lesson-21 canonical order "
             f"(1=VDD 2=GND 3=SCL 4=SDA 5=GND 6=VDD — mirror of SEN6x "
             f"v0.92 Table 16)"

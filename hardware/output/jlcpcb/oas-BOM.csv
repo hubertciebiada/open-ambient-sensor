@@ -11,7 +11,7 @@ Comment,Designator,Footprint,Manufacturer,MPN,LCSC Part #,JLCPCB_Library,Qty
 10V Zener 200mW,D3,D_SOD-323,Nanjing Semtech Electronics,BZT52C10S,C19334,Extended,1
 1x15 P2.54 mm female socket (ESP32 J1 antenna-side row),J5,PinSocket_1x15_P2.54mm_Vertical,,,,THT (hand-solder),1
 1x15 P2.54 mm female socket (ESP32 J3 USB-side row),J6,PinSocket_1x15_P2.54mm_Vertical,,,,THT (hand-solder),1
-"1x5 P1.27mm through-hole header (HLK-LD2410B daughterboard, soldered)",J4,PinHeader_1x05_P1.27mm_Vertical,,,,THT (hand-solder),1
+"1x5 P2.54mm through-hole header (HLK-LD2410C daughterboard, soldered)",J4,PinHeader_1x05_P2.54mm_Vertical,,,,THT (hand-solder),1
 2.2uH 2A,L2,L_Cenker_CKCS5040,CENKER,CKCS5040-2.2uH/M,C354602,Extended,1
 220uF 10V,C4,CP_Radial_D6.3mm_P2.50mm,,,,THT (hand-solder),1
 22uF 10V,C6,C_0805_2012Metric,Samsung Electro-Mechanics,CL21A226MAQNNNE,C45783,Basic,1

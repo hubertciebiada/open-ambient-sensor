@@ -456,8 +456,8 @@ def SENSORS_LIB_SYMBOLS() -> str:
     any future symbol-definition fix lands in exactly one place.
 
     Chunk #5b adds:
-      - Connector_Generic:Conn_01x05  (5-pin connector for the HLK-LD2410B
-                                       presence radar cable)
+      - Connector_Generic:Conn_01x05  (5-pin header for the HLK-LD2410C
+                                       presence radar daughterboard)
       - power:+5V                     (LD2410 module supply rail)
 
     (Chunk #5c — the MIKROE-2462 mikroBUS socket symbols Conn_01x08 +

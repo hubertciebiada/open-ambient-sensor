@@ -35,6 +35,7 @@ from boardgen._common import HERE
 from boardgen._project import (
     PAGE_CENTRE_X, PAGE_CENTRE_Y,
     LD2410_ANCHOR_X, LD2410_ANCHOR_Y, LD2410_BODY_W, LD2410_BODY_H,
+    LD2410_BODY_Z,
     ESP32_ANCHOR_X, ESP32_ANCHOR_Y, ESP32_BODY_W, ESP32_BODY_L,
     ESP32_ANTENNA_TAB_PROTRUSION,
 )
@@ -566,7 +567,7 @@ BARE_FOOTPRINT_TO_LIB: dict[str, str] = {
 # v0.26 — Z-CLEARANCE GUARDRAIL
 # -----------------------------------------------------------------------------
 # The OAS PCB carries two daughterboards mounted on pin sockets/headers:
-# ESP32-C6 DevKitM-1-N4 (MOD1, ~8.6 mm above PCB) and HLK-LD2410B
+# ESP32-C6 DevKitM-1-N4 (MOD1, ~8.6 mm above PCB) and HLK-LD2410C
 # (LDR1, ~7 mm above PCB).
 # The daughterboard mech-ref footprints intentionally do NOT carry an
 # F.CrtYd (see _emit_daughterboard_reference_pcb_footprint) so KiCad's
@@ -680,7 +681,11 @@ FOOTPRINT_HEIGHT: dict[str, float] = {
     "Connector_JST:JST_GH_SM06B-GHS-TB_1x06-1MP_P1.25mm_Horizontal": 4.25,
     "Connector_JST:JST_SH_SM04B-SRSS-TB_1x04-1MP_P1.00mm_Horizontal": 1.5,
     "Connector_Phoenix_MSTB:PhoenixContact_MSTBA_2,5_3-G-5,08_1x03_P5.08mm_Horizontal": 14.0,
-    "Connector_PinHeader_1.27mm:PinHeader_1x05_P1.27mm_Vertical": 10.0,
+    # J4 — 1x5 gold-pin header carrying the HLK-LD2410C. A standard 2.54 mm
+    # male strip stands ~11.5 mm proud of the PCB (≈6 mm pin + 2.5 mm
+    # spacer + the part of the tail left above the board); the module is
+    # soldered part-way up it. v0.53 / issue #9 replaced the 1.27 mm entry.
+    "Connector_PinHeader_2.54mm:PinHeader_1x05_P2.54mm_Vertical": 11.5,
     "Connector_PinHeader_2.54mm:PinHeader_1x06_P2.54mm_Vertical": 14.0,
     "Connector_PinSocket_2.54mm:PinSocket_1x08_P2.54mm_Vertical": 8.5,
     "Connector_PinSocket_2.54mm:PinSocket_1x15_P2.54mm_Vertical": 8.5,
@@ -697,7 +702,8 @@ FOOTPRINT_HEIGHT: dict[str, float] = {
     # value is informational only (the body Z of the part itself above
     # the PCB).
     "oas:SEN66_Mechanical_Reference": 21.5,
-    "oas:LD2410_Mechanical_Reference": 7.0,
+    # Sourced from the single geometry constant so the two cannot drift.
+    "oas:LD2410_Mechanical_Reference": LD2410_BODY_Z,
     "oas:ESP32-C6-DevKitM-1_Reference": 8.6,
 }
 
@@ -710,14 +716,18 @@ FOOTPRINT_HEIGHT: dict[str, float] = {
 #   - ESP32 daughterboard on 2× PinSocket_1x15_P2.54mm_Vertical (8.5 mm
 #     plastic body): conservative 5.5 mm budget. Top of the socket plastic
 #     less ~3 mm of male pin tail protrusion from the DevKitM-1.
-#   - LD2410 mounted on a 1×5 vertical 1.27 mm pin header (J4); the
-#     LD2410 PCB sits only ~3 mm above the OAS PCB and its bottom side
-#     carries ~1.5 mm of small bypass / SoC SMDs. Net budget ~2 mm. No
-#     OAS-side components currently inside the LD2410 shadow, but the
-#     guardrail flags any that creep in.
+#   - HLK-LD2410C on a 1×5 vertical 2.54 mm gold-pin header (J4): the
+#     module PCB rests on the ~2.5 mm header spacer, and its UNDERSIDE
+#     carries the LDO, two crystals and an inductor (~1.5 mm). Net budget
+#     ~1 mm — tighter than the -B's 2 mm, so v0.53 / issue #9 placed
+#     NOTHING under the shadow at all (C11, the module's own decoupling
+#     cap, sits just north of the pin row). The guardrail flags anything
+#     that creeps in. Both the header spacer height and the underside
+#     component height are estimates: Hi-Link publishes no thickness for
+#     the -C — CONFIRM WITH CALIPERS on the delivered module.
 DAUGHTERBOARD_Z_CLEARANCE: dict[str, float] = {
     "MOD1": 5.5,   # ESP32-C6 DevKitM-1-N4
-    "LDR1": 2.0,   # HLK-LD2410B (direct 1.27 mm pin header, low stand-off)
+    "LDR1": 1.0,   # HLK-LD2410C (2.54 mm header, components on its underside)
 }
 
 
@@ -728,8 +738,8 @@ DAUGHTERBOARD_Z_CLEARANCE: dict[str, float] = {
 _DAUGHTERBOARD_REFS: frozenset[str] = frozenset({"MOD1", "LDR1", "SENS1"})
 
 # Per-daughterboard intentional mounting sockets — these are the female
-# pin sockets (J5/J6 for ESP32) and the LD2410's
-# 1.27 mm pin header (J4) that the daughterboards PLUG INTO. They live
+# pin sockets (J5/J6 for ESP32) and the LD2410C's
+# 2.54 mm gold-pin header (J4) that the daughterboards PLUG INTO. They live
 # under the daughterboard shadow by design — their "height" is the
 # daughterboard's standoff, not an obstruction. Excluded per-shadow so
 # the J5 socket (mounting MOD1) doesn't trigger a violation for MOD1,
@@ -771,14 +781,17 @@ def _daughterboard_body_shadows() -> dict[str, tuple[float, float, float, float]
     esp_ymax = ESP32_ANCHOR_Y
     shadows["MOD1"] = (esp_xmin, esp_xmax, esp_ymin, esp_ymax)
 
-    # LD2410 (LDR1): rotation 270, LIB +X → PCB +Y, LIB +Y → PCB -X.
-    # LIB rect (0,0) → (LD2410_BODY_W, LD2410_BODY_H) maps to PCB X in
-    # [anchor_x - LD2410_BODY_H, anchor_x] and Y in
-    # [anchor_y, anchor_y + LD2410_BODY_W].
-    ld_xmin = LD2410_ANCHOR_X - LD2410_BODY_H
-    ld_xmax = LD2410_ANCHOR_X
+    # HLK-LD2410C (LDR1): rotation 0 since v0.53 / issue #9 (the -B stood
+    # its 35 mm strip on end at 270°), so the LIB rect (0,0) →
+    # (LD2410_BODY_W, LD2410_BODY_H) maps straight onto PCB X in
+    # [anchor_x, anchor_x + LD2410_BODY_W] and Y in
+    # [anchor_y, anchor_y + LD2410_BODY_H]. The anchor is the body corner
+    # that is NORTH-WEST on the board and is itself DERIVED from the J4
+    # pin-1 datum — see the LD2410C block in _project.py.
+    ld_xmin = LD2410_ANCHOR_X
+    ld_xmax = LD2410_ANCHOR_X + LD2410_BODY_W
     ld_ymin = LD2410_ANCHOR_Y
-    ld_ymax = LD2410_ANCHOR_Y + LD2410_BODY_W
+    ld_ymax = LD2410_ANCHOR_Y + LD2410_BODY_H
     shadows["LDR1"] = (ld_xmin, ld_xmax, ld_ymin, ld_ymax)
 
     return shadows
@@ -896,9 +909,18 @@ _FOOTPRINT_HALF_EXTENT: dict[str, tuple[float, float]] = {
     "Connector_JST:JST_SH_SM04B-SRSS-TB_1x04-1MP_P1.00mm_Horizontal": (2.7, 1.5),
     # J1 — Phoenix MSTBA 3-pin terminal block, rotation 180
     "Connector_Phoenix_MSTB:PhoenixContact_MSTBA_2,5_3-G-5,08_1x03_P5.08mm_Horizontal": (8.5, 6.5),
-    # J4 — LD2410 1.27 mm pin header, rotation 270 (long axis along PCB Y)
-    "Connector_PinHeader_1.27mm:PinHeader_1x05_P1.27mm_Vertical": (1.5, 3.5),
-    # J2, J10 — 6-pin 2.54 mm vertical pin header, rotation 0/180
+    # J4 — LD2410C 2.54 mm gold-pin header, rotation 90 (pad row along
+    # PCB +X). Courtyard 3.54 x 13.70 mm about the row, i.e. half-extent
+    # (10.16/2 + 1.77, 1.77) = (6.85, 1.77) measured from the ROW CENTRE.
+    # Pin headers are anchored at PAD 1, not the row centre, so the check
+    # re-centres the test point first (see the row-centre shift in
+    # check_z_clearance_violations) — the same treatment radial caps get.
+    "Connector_PinHeader_2.54mm:PinHeader_1x05_P2.54mm_Vertical": (6.85, 1.77),
+    # J2, J10 — 6-pin 2.54 mm vertical pin header, rotation 0/180. Row
+    # 5 x 2.54 = 12.70 mm + 2 x 1.77 courtyard -> half 8.12 along the row;
+    # the historical 7.6 predates the row-centre shift and is kept because
+    # it is the tighter (non-conservative direction is now handled by the
+    # re-centring, and both refs are far from every daughterboard shadow).
     "Connector_PinHeader_2.54mm:PinHeader_1x06_P2.54mm_Vertical": (1.5, 7.6),
     # J5/J6 — 15-pin ESP32 sockets, rotation 90 (long axis along PCB +X)
     "Connector_PinSocket_2.54mm:PinSocket_1x15_P2.54mm_Vertical": (19.6, 1.8),
@@ -912,7 +934,7 @@ _FOOTPRINT_HALF_EXTENT: dict[str, tuple[float, float]] = {
     # in _DAUGHTERBOARD_REFS so the guardrail skips them; values are
     # informational only.
     "oas:SEN66_Mechanical_Reference": (12.8, 27.6),
-    "oas:LD2410_Mechanical_Reference": (3.81, 17.78),
+    "oas:LD2410_Mechanical_Reference": (11.0, 8.0),
     "oas:ESP32-C6-DevKitM-1_Reference": (24.13, 12.7),
 }
 
@@ -996,6 +1018,20 @@ def check_z_clearance_violations() -> list[str]:
             th = math.radians(rotation)
             px = px + hp * math.cos(th)
             py = py + hp * math.sin(th)
+        # Pin headers / sockets: the (at) anchor is PAD 1 at one END of the
+        # row, but the half-extents above are measured from the ROW CENTRE.
+        # Shift the test point to that centre, else the AABB is displaced by
+        # half the row length — it would model empty laminate on one side
+        # and miss real header body on the other (a silent false negative
+        # for anything parked off the far end). Stock KiCad 1xN headers lay
+        # their pads along footprint-local +Y, which the OAS rotation
+        # convention maps to (sin, cos) on the PCB.
+        m_row = re.search(r"Pin(?:Header|Socket)_1x(\d+)_P([\d.]+)mm", fp_prop)
+        if m_row:
+            span = (int(m_row.group(1)) - 1) * float(m_row.group(2)) / 2.0
+            th = math.radians(rotation)
+            px = px + span * math.sin(th)
+            py = py + span * math.cos(th)
         # Footprint body AABB (axis-aligned bounding box) on the PCB.
         body_xmin, body_xmax = px - half_x, px + half_x
         body_ymin, body_ymax = py - half_y, py + half_y

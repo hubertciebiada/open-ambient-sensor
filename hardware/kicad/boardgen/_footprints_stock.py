@@ -31,9 +31,7 @@ from boardgen._project import (  # noqa: F401
     SEN66_ANCHOR_X, SEN66_ANCHOR_Y, SEN66_ROTATION,
     SEN66_ZIPTIE_LOCAL, _sen66_local_to_pcb,
     J3_X, J3_Y, J3_ROTATION,
-    LD2410_BODY_W, LD2410_BODY_H,
-    LD2410_SILK_INSET, LD2410_SILK_INSET_CONN, LD2410_EMIT_SILK_OUTLINE,
-    LD2410_ANTENNA_X_END, LD2410_CONNECTOR_X, LD2410_CONNECTOR_Y,
+    LD2410_BODY_W, LD2410_BODY_H, LD2410_BODY_Z,
     LD2410_ANCHOR_X, LD2410_ANCHOR_Y, LD2410_ROTATION,
     _ld2410_local_to_pcb,
     J4_PCB_X, J4_PCB_Y, J4_PCB_ROTATION,
@@ -63,6 +61,10 @@ from boardgen._footprints_custom import (  # noqa: F401
     SEN66_INLET2_CX, SEN66_INLET2_CY, SEN66_INLET2_DX, SEN66_INLET2_DY,
     SEN66_OUTLET_CX, SEN66_OUTLET_CY, SEN66_OUTLET_DIA,
     SEN66_CONNECTOR_X, SEN66_CONNECTOR_Y, SEN66_DIVIDER_X,
+    # LD2410C mech-ref graphics + shared description — ONE source shared
+    # with the `oas.pretty` library definition so the two copies KiCad
+    # compares (lib_footprint_issues) cannot drift apart.
+    _ld2410c_body_content, LD2410_FP_DESCR,
 )
 
 
@@ -253,9 +255,13 @@ _J3_LIB_FOOTPRINT_PATH = (
     / "JST_GH_SM06B-GHS-TB_1x06-1MP_P1.25mm_Horizontal.kicad_mod"
 )
 
+# v0.53 / GitHub issue #9: J4 moved from the 1.27 mm to the 2.54 mm pitch
+# when the HLK-LD2410B (castellated 1.27 mm edge) was replaced by the
+# HLK-LD2410C (five Ø0.9 mm plated holes on a 2.54 mm pitch), which mounts
+# on an ordinary gold-pin header.
 _J4_LIB_FOOTPRINT_PATH = (
-    _kicad_install_path() / "footprints" / "Connector_PinHeader_1.27mm.pretty"
-    / "PinHeader_1x05_P1.27mm_Vertical.kicad_mod"
+    _kicad_install_path() / "footprints" / "Connector_PinHeader_2.54mm.pretty"
+    / "PinHeader_1x05_P2.54mm_Vertical.kicad_mod"
 )
 
 # v0.17: J1 — 24 V Phoenix MSTBA 5.08 mm pitch 3-pin pluggable terminal
@@ -685,62 +691,28 @@ def gen_j3_jst_gh_pcb_footprint(x: float, y: float, rotation: int) -> str:
 def gen_ld2410_reference_pcb_footprint(x: float, y: float, rotation: int) -> str:
     """Emit the placed LD2410_Mechanical_Reference footprint instance.
 
-    Mirrors `gen_sen66_reference_pcb_footprint`: this is the embedded
-    full-body copy that pcbnew needs alongside the library definition,
-    positioned at PCB-local (x, y) with `rotation` degrees. No pads —
-    purely F.Fab + F.SilkS + F.CrtYd graphics marking the LD2410
-    daughterboard's projected shadow on the OAS PCB as a keep-out zone.
+    Mirrors `gen_sen66_reference_pcb_footprint`: the embedded full-body
+    copy that pcbnew needs alongside the `oas.pretty` library definition,
+    positioned at PCB-local (x, y) with `rotation` degrees.
 
-    Mechanical-only: no pads, no plated holes. The 5 electrical
-    connections live in J4 (stock PinHeader_1x05_P1.27mm_Vertical
-    footprint placed separately).
+    Mechanical-only: no pads, no plated holes, no F.CrtYd. The five
+    electrical connections live in J4 (stock
+    `Connector_PinHeader_2.54mm:PinHeader_1x05_P2.54mm_Vertical`, placed
+    separately) whose pads sit INSIDE this body rectangle — which is
+    exactly why a courtyard would be wrong here; see
+    `gen_ld2410_mechanical_footprint`.
+
+    The F.Fab / F.SilkS graphics come from `_ld2410c_body_content`, the
+    same helper the library definition uses (different UUID namespace —
+    the two are distinct KiCad objects).
     """
-    x_min, y_min = 0.0, 0.0
-    x_max, y_max = LD2410_BODY_W, LD2410_BODY_H
-    inset = LD2410_SILK_INSET
     uuid_tag = "ld2410-pcb"
-
-    conn_x = LD2410_CONNECTOR_X
-    conn_y_top = LD2410_CONNECTOR_Y - 2.54
-    conn_y_bot = LD2410_CONNECTOR_Y + 2.54
-
-    # v0.15.9: U-shaped silk silhouette (3 fp_line). See library footprint
-    # function gen_ld2410_mechanical_footprint() for the geometry rationale
-    # — connector-side short edge is omitted so the U opens onto J4's stock
-    # silk frame; both long edges stop short of the J4 silk-frame Y zone
-    # via LD2410_SILK_INSET_CONN = 1.8.
-    x_silk_end = x_max - LD2410_SILK_INSET_CONN
-    y_silk_top = y_min + inset
-    y_silk_bot = y_max - inset
-    silk_outline = "" if not LD2410_EMIT_SILK_OUTLINE else textwrap.dedent(f"""\
-        \t\t(fp_line
-        \t\t\t(start {fmt(x_min + inset)} {fmt(y_silk_top)})
-        \t\t\t(end {fmt(x_min + inset)} {fmt(y_silk_bot)})
-        \t\t\t(stroke (width 0.12) (type solid))
-        \t\t\t(layer "F.SilkS")
-        \t\t\t(uuid "{U('fp-silk-antenna-edge:' + uuid_tag)}")
-        \t\t)
-        \t\t(fp_line
-        \t\t\t(start {fmt(x_min + inset)} {fmt(y_silk_top)})
-        \t\t\t(end {fmt(x_silk_end)} {fmt(y_silk_top)})
-        \t\t\t(stroke (width 0.12) (type solid))
-        \t\t\t(layer "F.SilkS")
-        \t\t\t(uuid "{U('fp-silk-long-edge-1:' + uuid_tag)}")
-        \t\t)
-        \t\t(fp_line
-        \t\t\t(start {fmt(x_min + inset)} {fmt(y_silk_bot)})
-        \t\t\t(end {fmt(x_silk_end)} {fmt(y_silk_bot)})
-        \t\t\t(stroke (width 0.12) (type solid))
-        \t\t\t(layer "F.SilkS")
-        \t\t\t(uuid "{U('fp-silk-long-edge-2:' + uuid_tag)}")
-        \t\t)""")
-
     return textwrap.dedent(f"""\
         \t(footprint "oas:LD2410_Mechanical_Reference"
         \t\t(layer "F.Cu")
         \t\t(uuid "{U('fp-inst:' + uuid_tag)}")
         \t\t(at {fx(x)} {fy(y)} {rotation})
-        \t\t(descr "HiLink HLK-LD2410B mechanical-reference (no pads). 24 GHz mmWave presence radar daughterboard. Body ~35x7x7 mm above OAS PCB on 1.27 mm pin header (J4). Antenna patches on the LD2410 top face point through the enclosure cover.")
+        \t\t(descr "{LD2410_FP_DESCR}")
         \t\t(attr board_only exclude_from_pos_files exclude_from_bom)
         \t\t(property "Reference" "LDR1"
         \t\t\t(at {fmt(LD2410_BODY_W / 2.0)} -1.5 0)
@@ -763,53 +735,34 @@ def gen_ld2410_reference_pcb_footprint(x: float, y: float, rotation: int) -> str
         \t\t\t(uuid "{U('fp-prop-fp:' + uuid_tag)}")
         \t\t\t(effects (font (size 1.27 1.27)))
         \t\t)
-        \t\t(property "Datasheet" "https://www.hlktech.net/index.php?id=988"
+        \t\t(property "Datasheet" "https://www.hlktech.net/index.php?id=1095"
         \t\t\t(at 0 0 0)
         \t\t\t(layer "F.Fab")
         \t\t\t(hide yes)
         \t\t\t(uuid "{U('fp-prop-ds:' + uuid_tag)}")
         \t\t\t(effects (font (size 1.27 1.27)))
         \t\t)
-        \t\t(property "Description" "HiLink HLK-LD2410B 24 GHz mmWave presence radar daughterboard mechanical-reference. Body ~35x7x7 mm. Mounts via 5-pin 1.27 mm pin header (J4) above the OAS PCB; antenna patches on the LD2410 top face point toward the AK-N-94 cover."
+        \t\t(property "Description" "{LD2410_FP_DESCR}"
         \t\t\t(at 0 0 0)
         \t\t\t(layer "F.Fab")
         \t\t\t(hide yes)
         \t\t\t(uuid "{U('fp-prop-desc:' + uuid_tag)}")
         \t\t\t(effects (font (size 1.27 1.27)))
         \t\t)
-        \t\t(fp_rect
-        \t\t\t(start {fmt(x_min)} {fmt(y_min)})
-        \t\t\t(end {fmt(x_max)} {fmt(y_max)})
-        \t\t\t(stroke (width 0.1) (type solid))
-        \t\t\t(fill no)
-        \t\t\t(layer "F.Fab")
-        \t\t\t(uuid "{U('fp-fab-outline:' + uuid_tag)}")
-        \t\t)
-        \t\t(fp_rect
-        \t\t\t(start {fmt(x_min + 1.0)} {fmt(y_min + 1.0)})
-        \t\t\t(end {fmt(LD2410_ANTENNA_X_END)} {fmt(y_max - 1.0)})
-        \t\t\t(stroke (width 0.1) (type dash))
-        \t\t\t(fill no)
-        \t\t\t(layer "F.Fab")
-        \t\t\t(uuid "{U('fp-antenna:' + uuid_tag)}")
-        \t\t)
-        \t\t(fp_rect
-        \t\t\t(start {fmt(conn_x - 1.5)} {fmt(conn_y_top - 0.7)})
-        \t\t\t(end {fmt(conn_x)} {fmt(conn_y_bot + 0.7)})
-        \t\t\t(stroke (width 0.1) (type solid))
-        \t\t\t(fill no)
-        \t\t\t(layer "F.Fab")
-        \t\t\t(uuid "{U('fp-conn-marker:' + uuid_tag)}")
-        \t\t)
-        """) + silk_outline + "\n\t)"
+        """) + _ld2410c_body_content(
+            "\t\t", lambda k: U(f"fp-{k}:{uuid_tag}")) + "\n\t)"
 
 
 def gen_j4_pinheader_pcb_footprint(x: float, y: float, rotation: int) -> str:
-    """Emit the placed J4 — stock 5-pin 1.27 mm vertical THROUGH-HOLE pin
-    header where the HLK-LD2410B daughterboard's pins are soldered in.
+    """Emit the placed J4 — stock 5-pin 2.54 mm vertical THROUGH-HOLE pin
+    header that the HLK-LD2410C daughterboard is soldered onto.
+
+    v0.53 / GitHub issue #9 swapped this from the 1.27 mm variant: the
+    LD2410C mounts on a plain 1x5 gold-pin header at 2.54 mm (its own
+    holes are Ø0.9 mm) instead of the -B's castellated 1.27 mm edge.
 
     Loads the KiCad 10 stock footprint
-    `Connector_PinHeader_1.27mm:PinHeader_1x05_P1.27mm_Vertical` and
+    `Connector_PinHeader_2.54mm:PinHeader_1x05_P2.54mm_Vertical` and
     patches it the same way as `gen_j3_jst_gh_pcb_footprint` does for
     the SEN66 socket: drop version/generator/embedded_fonts/model;
     rewrite the OAS-side Reference / Value / Footprint / Datasheet /
@@ -905,20 +858,39 @@ def gen_j4_pinheader_pcb_footprint(x: float, y: float, rotation: int) -> str:
     if rotation != 0:
         body_text = _annotate_pad_rotations(body_text, rotation)
 
+    # Visible "J4" designator on F.SilkS. Its LOCAL position is chosen so
+    # that at the board's rotation 90 (local +Y -> PCB +X, local +X ->
+    # PCB -Y) it lands 3.0 mm WEST and 3.8 mm NORTH of pad 1 — i.e. at the
+    # west end of the per-pin label row that gen_silk_labels() prints
+    # north of the holes, reading "J4  TX RX OUT GND VCC" left to right.
+    # The obvious spot (the stock library's own (0, -2.38), which maps to
+    # 2.38 mm west of pad 1 ON the row axis) collides with the stock silk
+    # frame's pin-1 marker; the label row has room and reads better.
+    _ref_local_x, _ref_local_y = 3.8, -3.0     # = (+3.8 north, -3.0 west)
+    # The F.Fab Value string renders VERTICALLY (its angle follows the
+    # footprint rotation) and is ~43 mm long, so wherever it goes it draws
+    # a full-height column. Park it 7.5 mm WEST of pad 1 — i.e. in the
+    # 2.06 mm gap between the module body's west silk edge (-42.72) and
+    # H2's courtyard (-44.78) — so it runs OUTSIDE the body instead of
+    # straight down the middle of the assembly drawing, over the
+    # "antennas up" orientation hint and the antenna-patch art. Same
+    # intent as the -B layout, where the value column sat just east of
+    # that module's body. F.Fab, so no silk/DRC constraint applies.
+    _val_local_y = -7.5
     properties = textwrap.dedent(f"""\
         \t\t(property "Reference" "J4"
-        \t\t\t(at 0 -1.9 {rotation})
+        \t\t\t(at {fmt(_ref_local_x)} {fmt(_ref_local_y)} {rotation})
         \t\t\t(layer "F.SilkS")
         \t\t\t(uuid "{U('fp-prop-ref:' + uuid_tag)}")
         \t\t\t(effects (font (size 1 1) (thickness 0.15)))
         \t\t)
-        \t\t(property "Value" "1x5 P1.27mm header (HLK-LD2410B)"
-        \t\t\t(at 0 6.98 {rotation})
+        \t\t(property "Value" "1x5 P2.54mm header (HLK-LD2410C)"
+        \t\t\t(at 0 {fmt(_val_local_y)} {rotation})
         \t\t\t(layer "F.Fab")
         \t\t\t(uuid "{U('fp-prop-val:' + uuid_tag)}")
         \t\t\t(effects (font (size 1 1) (thickness 0.15)))
         \t\t)
-        \t\t(property "Footprint" "Connector_PinHeader_1.27mm:PinHeader_1x05_P1.27mm_Vertical"
+        \t\t(property "Footprint" "Connector_PinHeader_2.54mm:PinHeader_1x05_P2.54mm_Vertical"
         \t\t\t(at 0 0 0)
         \t\t\t(layer "F.Fab")
         \t\t\t(hide yes)
@@ -932,7 +904,7 @@ def gen_j4_pinheader_pcb_footprint(x: float, y: float, rotation: int) -> str:
         \t\t\t(uuid "{U('fp-prop-ds:' + uuid_tag)}")
         \t\t\t(effects (font (size 1.27 1.27)))
         \t\t)
-        \t\t(property "Description" "Generic 5-pin 1.27 mm pitch vertical through-hole pin header. Carries the HLK-LD2410B daughterboard's pin row: VCC/GND/TX/RX/OUT. The LD2410 body sits ~5-7 mm above the OAS PCB on these pins; the solder joints provide both electrical and mechanical retention."
+        \t\t(property "Description" "Generic 5-pin 2.54 mm pitch vertical through-hole pin header. Carries the HLK-LD2410C daughterboard: pad 1 = module Tx (WEST end), then Rx, OUT, GND, VCC. The module is soldered onto the protruding pins with its antenna face UP, away from the OAS PCB; the solder joints provide both electrical and mechanical retention."
         \t\t\t(at 0 0 0)
         \t\t\t(layer "F.Fab")
         \t\t\t(hide yes)
@@ -941,7 +913,7 @@ def gen_j4_pinheader_pcb_footprint(x: float, y: float, rotation: int) -> str:
         \t\t)""")
 
     return textwrap.dedent(f"""\
-        \t(footprint "Connector_PinHeader_1.27mm:{fp_name}"
+        \t(footprint "Connector_PinHeader_2.54mm:{fp_name}"
         \t\t(layer "F.Cu")
         \t\t(uuid "{U('fp-inst:' + uuid_tag)}")
         \t\t(at {fx(x)} {fy(y)} {rotation})

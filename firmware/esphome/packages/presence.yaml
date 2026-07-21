@@ -1,26 +1,29 @@
 # =============================================================================
-# OAS — presence package (HLK-LD2410B mmWave radar)
+# OAS — presence package (HLK-LD2410C mmWave radar)
 # =============================================================================
 #
-# HiLink HLK-LD2410B 24 GHz FMCW mmWave human-presence radar daughterboard,
-# mounted vertically on the OAS PCB via J4 (1x5 P1.27 mm pin header).
+# HiLink HLK-LD2410C 24 GHz FMCW mmWave human-presence radar daughterboard,
+# seated on the OAS PCB via J4 (1x5 P2.54 mm gold-pin header), body flat
+# above the board with its antenna face UP toward the perforated cover.
 #
-# Datasheet: HLK-LD2410B V1.04 (FCC-filed). See EXTERNAL_MODULES['HLK-LD2410B']
+# Datasheet: HLK-LD2410C manual V1.00. See EXTERNAL_MODULES['HLK-LD2410C']
 # in hardware/kicad/boardgen/_project.py for the part metadata.
 #
 # ---------------------------------------------------------------------------
-# Pin order on the LD2410 module (datasheet Table 1; verified in v0.15.8 after
-# a critical fix — earlier J4 mapping was end-for-end reversed):
-#   Pin 1 = OUT       (digital presence, 3.3 V, active HIGH idle LOW)
-#   Pin 2 = UART_Tx   (LD2410 -> ESP32 RX)
-#   Pin 3 = UART_Rx   (ESP32 TX -> LD2410)
+# Pin order on the LD2410C module. Read with the antenna face toward you and
+# the pin row at the top, pins run left to right (CLAUDE.md Lesson 20 — this
+# is the MIRROR of the LD2410B order the board carried before issue #9, so
+# never carry the old table over):
+#   Pin 1 = UART_Tx   (LD2410 -> ESP32 RX)
+#   Pin 2 = UART_Rx   (ESP32 TX -> LD2410)
+#   Pin 3 = OUT       (digital presence, 3.3 V, active HIGH idle LOW)
 #   Pin 4 = GND
 #   Pin 5 = VCC       (+5 V from LM2596S buck, ~79 mA typical, >200 mA capable)
 #
 # ESP32-C6 wiring (CLAUDE.md pinout table):
-#   GPIO 16 (UART1 TX, ESP32 -> LD2410 pin 3)
-#   GPIO 17 (UART1 RX, ESP32 <- LD2410 pin 2)
-#   GPIO 2  (binary input, ESP32 <- LD2410 pin 1, OUT)
+#   GPIO 16 (UART1 TX, ESP32 -> LD2410 pin 2)
+#   GPIO 17 (UART1 RX, ESP32 <- LD2410 pin 1)
+#   GPIO 2  (binary input, ESP32 <- LD2410 pin 3, OUT)
 #
 # ---------------------------------------------------------------------------
 # LD2410 gate concept
@@ -36,18 +39,18 @@
 #
 # After first deployment in a room, tune per-gate sensitivities via the
 # ESPHome web_server (the number entities below appear as sliders) or via
-# the HLKRadarTools Android/iOS app over BLE (the LD2410B's own Bluetooth
+# the HLKRadarTools Android/iOS app over BLE (the LD2410C's own Bluetooth
 # stack is independent of the UART).
 #
 # ---------------------------------------------------------------------------
 # Baud rate note
 # ---------------------------------------------------------------------------
-# The LD2410B default UART speed is 256000 baud — non-standard but supported
+# The LD2410C default UART speed is 256000 baud — non-standard but supported
 # natively by the ESP32-C6 hardware UART controller (the C6 UART clock
 # divider can land on 256000 with <0.5 % error from the 80 MHz APB clock,
 # well within UART tolerance). No software UART needed, no special config
 # required beyond setting baud_rate: 256000. Confirmed by the official
-# ESPHome ld2410 component docs and by community ESP32-C6 + LD2410B builds
+# ESPHome ld2410 component docs and by community ESP32-C6 + LD2410 builds
 # in 2025-2026.
 # =============================================================================
 
@@ -60,7 +63,7 @@ uart:
     rx_pin: GPIO17
     baud_rate: 256000
     # parity NONE, data_bits 8, stop_bits 1 are the defaults — match the
-    # LD2410B 8N1 protocol spec.
+    # LD2410 8N1 protocol spec.
     parity: NONE
     stop_bits: 1
     data_bits: 8
@@ -100,7 +103,7 @@ binary_sensor:
       id: oas_still_target
       device_class: occupancy
 
-  # Hardware OUT pin (J4 pin 1 -> GPIO 2). This is the fastest path to a
+  # Hardware OUT pin (J4 pin 3 -> GPIO 2). This is the fastest path to a
   # presence signal: the LD2410 asserts OUT high within ~50 ms of target
   # acquisition, no UART parsing involved. Use this as the authoritative
   # source for instant-response automations (e.g. lights-on); use the
@@ -202,10 +205,12 @@ button:
 select:
   - platform: ld2410
     # 0.75 m (default, 9 gates over 0..6 m) or 0.2 m (33 gates over
-    # 0..6.6 m, finer resolution, only LD2410B firmware >= 1.07.16B).
-    # The OAS PCB silk reads "HLK-LD2410B" so the higher-resolution mode
-    # is supported. Reduce to 0.2 m for small rooms where 0.75 m gates
-    # over-quantize the bedroom-sized space.
+    # 0..6.6 m, finer resolution). The fine mode needs module firmware
+    # >= 1.07.16B; whether the fitted module accepts it is a property of
+    # the module, not of the board, so confirm it on the unit rather than
+    # assuming (the OAS board carries HLK-LD2410C as of issue #9, and
+    # Hi-Link does not document the fine mode for that variant). Reduce to
+    # 0.2 m for small rooms where 0.75 m gates over-quantize the space.
     distance_resolution:
       name: "Distance Resolution"
       entity_category: config
@@ -221,7 +226,7 @@ select:
 # ---------------------------------------------------------------------------
 switch:
   - platform: ld2410
-    # The LD2410B's onboard BLE stack — independent from the OAS ESP32-C6's
+    # The LD2410C's onboard BLE stack — independent from the OAS ESP32-C6's
     # BLE. Used by the HLKRadarTools phone app for sensitivity tuning.
     # Disable in production to avoid stray BLE advertisements once tuning
     # is complete (and to reduce 2.4 GHz noise for the OAS's own BLE proxy).

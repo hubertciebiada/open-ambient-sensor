@@ -28,9 +28,7 @@ from boardgen._project import (  # noqa: F401
     J3_X, J3_Y, J3_ROTATION,
     _J3_COURTYARD_HALF_X, J3_CABLE_SLOT_X_MIN,
     BOARD_ID_CENTER_X, BOARD_ID_CENTER_Y, BOARD_ID_ROW_PITCH,
-    LD2410_BODY_W, LD2410_BODY_H,
-    LD2410_SILK_INSET, LD2410_SILK_INSET_CONN, LD2410_EMIT_SILK_OUTLINE,
-    LD2410_ANTENNA_X_END, LD2410_CONNECTOR_X, LD2410_CONNECTOR_Y,
+    LD2410_BODY_W, LD2410_BODY_H, LD2410_PIN_PITCH,
     LD2410_ANCHOR_X, LD2410_ANCHOR_Y, LD2410_ROTATION,
     _ld2410_local_to_pcb,
     J4_PCB_X, J4_PCB_Y, J4_PCB_ROTATION,
@@ -43,8 +41,8 @@ from boardgen._project import (  # noqa: F401
     J2_PCB_X, J2_PCB_Y, J2_PCB_ROTATION,
     J9_PCB_X, J9_PCB_Y, J9_PCB_ROTATION,
     J10_PCB_X, J10_PCB_Y, J10_PCB_ROTATION,
-    J1_PIN_MAP, J2_PIN_MAP, J10_PIN_MAP,
-    J4_END_SIGNALS, J5_END_SIGNALS, J6_END_SIGNALS,
+    J1_PIN_MAP, J2_PIN_MAP, J4_PIN_MAP, J10_PIN_MAP,
+    J5_END_SIGNALS, J6_END_SIGNALS,
     LED_RING_COUNT, LED_RING_THETA_START_DEG, LED_RING_THETA_STEP_DEG,
     LED_RING_SKIP_INDICES,
     SK6812SIDE_BODY_W, SK6812SIDE_BODY_H,
@@ -265,7 +263,7 @@ def gen_cutouts() -> tuple[str, str]:
 #     C1 (100µF bulk) + C2 (10 nF Y2) — sits closest to J1 / cable hole.
 #   MCU decoupling: C9, C17, R5, R6 (I2C pull-ups). Sits near J5/J6
 #     ESP32 socket.
-#   Sensor decoupling: C10 (SEN66), C11 (LD2410) — near each
+#   Sensor decoupling: C10 (SEN66), C11 (LD2410C) — near each
 #     sensor's socket.
 #   J2 — DNP recovery header, placed off in a free corner.
 #
@@ -797,7 +795,7 @@ def gen_power_pcb_footprints() -> str:
         descr="10 nF Y2 safety class — GND ↔ Earth_Protective EMI bridge. v0.50 Task-3: re-placed at the east end of Row S (+18.0, -40.7).",
     ))
 
-    # Sensor decoupling caps: C10 (SEN66 +3V3), C11 (LD2410 +5V).
+    # Sensor decoupling caps: C10 (SEN66 +3V3), C11 (LD2410C +5V).
     # v0.26: C10 shifted from (+42, +33) to (+46, +32) to clear C1
     # (relocated to (+40, +36) — 12 mm-tall D8 radial bulk for the
     # protected +24V rail). New C10 position sits east of C1 (gap 0.75
@@ -810,25 +808,34 @@ def gen_power_pcb_footprints() -> str:
         uuid_tag="c10-sen66-decoupling",
         descr="100 nF local decoupling for SEN66 (J3 +3V3 pin 1/6). v0.43: hand-tuned to (+32, -47) in the NE radial cluster.",
     ))
-    # LD2410 J4 pads at PCB X=-44.74, Y=+19.05 (1×5 P1.27 row going south
-    # from anchor; pad 1 north Y=+13.97, pad 5 south Y=+19.05). Pre-
-    # routing rework 3: C11 moved SOUTH of J4 row (was north between
-    # J4 row and LD2410 body, at -42, +14). New anchor (-43, +22):
-    # body Y ∈ [+21.1, +22.9] is fully south of LD2410 body shadow
-    # (Y_max=+19.05). J4 stock 1×5 P1.27 courtyard south edge ≈
-    # +20.05 → C11 body north edge +21.1 clears by 1.05 mm. Frees
-    # the LD2410 west strip for routing.
+    # C11 — LD2410C +5V decoupling. v0.53 (issue #9): moved with J4. The
+    # cap must sit OUTSIDE the LDR1 body shadow (PCB X -42.92..-20.92,
+    # Y +10.58..+26.58) — the module stands only ~2.5 mm up on its
+    # gold-pin header and carries components on its own underside, so
+    # nothing may live beneath it (enforced by the Z-clearance guardrail).
+    # That leaves the strip NORTH of the pin row, which the five per-pin
+    # silk labels also use. C11 goes one pitch EAST of pad 5 (+5V) at
+    # X = -26.84 + 2.54 = -24.30, on the label row Y = +8.2:
+    #   - pad 5 (+5V) 4.5 mm away diagonally — a big improvement on the
+    #     -B layout, where C11 sat 7.8 mm from the VCC pin;
+    #   - body (rot 90: half-extent 0.9 x 1.0) spans Y +7.2..+9.2, so it
+    #     clears the LDR1 shadow north edge (+10.58) by 1.38 mm;
+    #   - the "VCC" label column (X -27.34..-26.34) clears the cap body
+    #     west edge (-25.10) by 1.24 mm;
+    #   - nearest J4 THT pad (pad 5, (-26.84, +12.0)) is 4.5 mm away,
+    #     clear of the >3.05 mm JLCDFM "tht to smd" rule that forced the
+    #     v0.45 nudge on the old position.
     parts.append(gen_capacitor_0603_pcb_footprint(
-        x=-52.5, y=+14.0, rotation=270,
+        x=-24.30, y=+8.2, rotation=270,
         reference="C11", value="100nF",
         uuid_tag="c11-ld2410-decoupling-pcb",
-        descr="100 nF local decoupling for LD2410 (J4 pin 5 / +5V). v0.45: vertical, placed at the 11-o'clock of J4's west end — west of the LD2410 body (LDR1, X>=97.4) in open copper. Nudged 0.5 mm north of the v0.44 spot (Y +14.5 -> +14.0) — the v0.44 position left C11.1 only 2.98 mm from the nearest J4 THT pad (JLCDFM 'tht to smd' warning); +0.5 mm lifts that to ~3.4 mm, clear of the >3.05 mm rule. North field is open (no neighbour within 4 mm).",
+        descr="100 nF local decoupling for the HLK-LD2410C (J4 pin 5 / +5V). v0.53 (issue #9): moved with the J4 rework to (-24.30, +8.2), one 2.54 mm pitch east of pad 5 and just north of the module body shadow.",
     ))
     # (C12 — the NFC +3V3 decoupling cap — was removed together with the
     # MIKROE-2462 daughterboard, issue #7.)
 
     # J2 — DNP recovery pin header. v0.43: relocated from the cramped NW
-    # corner to the free pocket NORTH of the LD2410, placed HORIZONTAL
+    # corner to the free west pocket, placed HORIZONTAL
     # (rotation 90 → pad row along PCB +X). See the J2_PCB_* block in
     # _project.py for the placement rationale. The horizontal row lets the
     # per-pin signal labels go on real F.SilkS (gen_silk_labels).
@@ -892,10 +899,13 @@ def gen_sensors_pcb_footprints() -> str:
         x=J3_X, y=J3_Y, rotation=J3_ROTATION,
     ))
 
-    # J4 — stock KiCad PinHeader_1x05_P1.27mm_Vertical at the LD2410
-    # connector edge. The HLK-LD2410B's onboard 1.27 mm pin row passes
-    # through these 5 plated through-holes; pins are soldered from the
-    # OAS PCB bottom side, providing electrical + mechanical retention.
+    # J4 — stock KiCad PinHeader_1x05_P2.54mm_Vertical (v0.53 / issue #9,
+    # was the 1.27 mm variant for the -B). An ordinary gold-pin header is
+    # soldered here; the HLK-LD2410C then drops onto the protruding pins
+    # through its own five Ø0.9 mm holes and is soldered on its top face,
+    # antenna side UP. The solder joints provide electrical + mechanical
+    # retention. Pad 1 (module Tx) lands at the WEST end — see the
+    # LD2410C block in _project.py for the orientation spec.
     parts.append(gen_j4_pinheader_pcb_footprint(
         x=J4_PCB_X, y=J4_PCB_Y, rotation=J4_PCB_ROTATION,
     ))
@@ -1153,24 +1163,42 @@ def gen_silk_labels() -> str:
     # connector)" and by the "SEN66 SIN-T" board label; the cable slot east
     # of J3 carries its own "SEN66 lead" hint (see below).
 
-    # ---- v0.15.8: LD2410 board-level labels (board-level gr_text so
-    # they read horizontally even with the LD2410 footprint rotated 270°).
-    # Replaces in-footprint fp_text "HLK-LD2410B" + "antenna ^" + "J4 pins"
-    # which became cramped after LD2410_BODY_H was corrected from 15.24
-    # to 7.62 mm (datasheet short-axis spec).
-    # Convert LD2410-local positions to PCB via the helper.
-    ld_body_pcb = _ld2410_local_to_pcb(LD2410_BODY_W / 2.0, LD2410_BODY_H / 2.0)
-    ld_antenna_pcb = _ld2410_local_to_pcb((1.0 + LD2410_ANTENNA_X_END) / 2.0,
-                                            LD2410_BODY_H / 2.0)
-    # v0.15.9: rotated 90° so the labels run along the LD2410's long
-    # axis (PCB Y direction). Without rotation, the horizontal text bbox
-    # would exceed the 7.22 mm internal width between the U-shaped silk
-    # long edges and trigger silk_overlap DRC. Long-axis rotation fits
-    # the 11-char body label comfortably along the 35.56 mm long edge.
-    parts.append(_silk("HLK-LD2410B", ld_body_pcb[0], ld_body_pcb[1],
-                       "ld2410-body", size=1.0, angle=90.0))
-    parts.append(_silk("antenna ^", ld_antenna_pcb[0], ld_antenna_pcb[1],
-                       "ld2410-antenna", size=1.0, angle=90.0))
+    # ---- LD2410C board-level labels (v0.53, issue #9) ----
+    # Board-level gr_text rather than in-footprint fp_text so they read
+    # horizontally regardless of the mech-ref footprint's rotation, and so
+    # each one can be positioned against its real neighbours.
+    #
+    # Two labels, deliberately on opposite sides of the body outline:
+    #   - "HLK-LD2410C" goes OUTSIDE, 1.6 mm SOUTH of the body silk, in
+    #     open board. The module sits only ~2.5 mm up on its gold-pin
+    #     header and covers its own footprint completely, so an MPN label
+    #     printed inside the outline would be invisible on a populated
+    #     board — the "SEN66 SIN-T" convention (identify the part to a
+    #     stranger holding the board) needs it readable.
+    #   - "antennas up" goes INSIDE the outline, where the orientation it
+    #     describes applies. It is assembly-time documentation, same
+    #     precedent as the ESP32 body label under MOD1: getting the module
+    #     the right way round matters exactly once, while it is being
+    #     fitted, and at that moment the board is bare.
+    # ASSEMBLY HAZARD this silk exists to prevent: a 5-pin row on a uniform
+    # 2.54 mm pitch is mechanically symmetric, so the module physically
+    # fits rotated 180 deg in-plane — which would land +5V on the module's
+    # Tx pin and GND on OUT. Four independent cues guard against it: the
+    # square pad 1, the per-pin labels (TX at the WEST end), this body
+    # outline showing the body runs SOUTH, and the "antennas up" text.
+    # Keep all four; each one alone is easy to overlook at the bench.
+    # Both are 11 chars (~15.0 mm at the 1.0 mm min_text_height and the
+    # ~1.36 mm/char stroke-font advance), centred on the body mid-X
+    # (-31.92): X -39.4..-24.4, i.e. ~3.3 mm inside both body silk edges.
+    ld_body_mid_x = LD2410_ANCHOR_X + LD2410_BODY_W / 2.0
+    # "antennas up" at 8.0 mm into the body: 4.7 mm clear of the J4 silk
+    # frame's south edge (+13.38) and 7.3 mm clear of the body silk south
+    # edge (+26.38).
+    parts.append(_silk("antennas up", ld_body_mid_x,
+                       LD2410_ANCHOR_Y + 8.0, "ld2410-antenna", size=1.0))
+    parts.append(_silk("HLK-LD2410C", ld_body_mid_x,
+                       LD2410_ANCHOR_Y + LD2410_BODY_H + 1.6,
+                       "ld2410-body", size=1.0))
 
     # (v0.53-c: the former dedicated MPN label on the east rim — vertical
     # "SEN66 SIN-T" at (+52, -20), uuid tag "sen66-mpn" — was REMOVED per
@@ -1542,15 +1570,14 @@ def gen_silk_labels() -> str:
         # offset bumps the "C10" text into one of the bigger bodies.
         # Push label to F.Fab — body silk identifies the cap visually.
         ("C10", 0.0, +2.0, "F.Fab"),
-        # C11 west of LD2410 (LD2410 has F.CrtYd but no daughterboard
-        # shadow per se — body label gr_text is at center; C11 at
-        # X=-42 is INSIDE LD2410 X range -51..-43.47 but C11 sits south
-        # of LD2410 silk frame Y=-16.51-0.5=-17.01 to ~-15.91.
-        # Historically moved to F.Fab to avoid silk_overlap with the
-        # (since-removed, issue #7) MOD2 west silk at X=-40.16.
+        # C11 sits in the LD2410C's per-pin label row (v0.53 / issue #9),
+        # between the "VCC" label column and the module body silk — no
+        # room for a silk designator, so it stays on F.Fab (it was on
+        # F.Fab in the -B layout too, then to avoid the since-removed
+        # MOD2 silk). Offset NORTH, away from the label row.
         ("C11", 0.0, -2.0, "F.Fab"),
-        # J2 DNP recovery — v0.43: relocated horizontal north of the
-        # LD2410. Designator sits just EAST of the pad row, in the pocket
+        # J2 DNP recovery — v0.43: relocated horizontal into the west
+        # pocket. Designator sits just EAST of the pad row, in the space
         # vacated by C3, clear of the per-pin labels (which sit north of
         # the row).
         ("J2",  +15.5, 0.0, "F.SilkS"),
@@ -1592,7 +1619,7 @@ def gen_silk_labels() -> str:
         "C8":  (-12.45, -33.5),
         "C2":  (+18.0, -40.7),
         "C10": (+32, -47),
-        "C11": (-52.5, +14.0),
+        "C11": (-24.30, +8.2),
         "J2":  (J2_PCB_X, J2_PCB_Y),
     }
     for entry in POWER_LABELS:
@@ -1663,15 +1690,32 @@ def gen_silk_labels() -> str:
         pin_map=J6_END_SIGNALS, label_offset=(0.0, -2.9),
         layer="F.SilkS", tag="j6-end", size=1.0,
     ))
-    # LD2410 J4 — 1x05 P1.27 mm header at the LD2410 body's south edge;
-    # end labels (OUT / VCC signal names) rotated 90° (vertical) and
-    # pushed well SOUTH so they clear both the body silk and the C11
-    # decoupling cap pads that sit at the same Y as a smaller offset.
+    # LD2410C J4 — 1x05 P2.54 mm header along the module body's north
+    # edge. v0.53 (issue #9): ALL FIVE pins are labelled now, not just the
+    # row ends. The -C is hand-soldered onto a plain gold-pin header, so
+    # the assembler reads the module's own silk (TX RX OUT GND VCC, left
+    # to right on its antenna face) against the board and wants the same
+    # five names printed underneath — J4_PIN_MAP carries exactly those
+    # strings (see _project.py for the net-name crossover caveat).
+    #
+    # Layout: each label rotated 90° (vertical), so a 3-char name occupies
+    # ~1 mm of the 2.54 mm pitch instead of ~4 mm — the same trick J2 and
+    # J10 use on their 2.54 mm rows. The row sits 3.8 mm NORTH of the
+    # holes, i.e. on the far side from the module body:
+    #   - label band Y +6.15..+10.25 (3-char names) — 0.90 mm clear of the
+    #     pad copper (+11.15) and 0.53 mm clear of the module body silk
+    #     (+10.78), which is where it must go: south of the row the labels
+    #     would be printed under the module and invisible;
+    #   - 0.85 mm clear of the board-id silk block's bottom row (text band
+    #     ends +5.30), which is what caps the offset — a larger push north
+    #     would collide with it.
+    # The "J4" designator itself is emitted by the footprint at the west
+    # end of this same row (see gen_j4_pinheader_pcb_footprint).
     parts.extend(_pin_labels(
         origin_x=J4_PCB_X, origin_y=J4_PCB_Y, rotation=J4_PCB_ROTATION,
-        pin1_local=(0.0, 0.0), step_local=(0.0, 1.27),
-        pin_map=J4_END_SIGNALS, label_offset=(0.0, +4.5),
-        layer="F.SilkS", tag="j4-end", size=1.0, angle=90.0,
+        pin1_local=(0.0, 0.0), step_local=(0.0, LD2410_PIN_PITCH),
+        pin_map=J4_PIN_MAP, label_offset=(0.0, -3.8),
+        layer="F.SilkS", tag="j4-pin", size=1.0, angle=90.0,
     ))
 
     # ---- 3) Mounting holes H1/H2/H3 ----

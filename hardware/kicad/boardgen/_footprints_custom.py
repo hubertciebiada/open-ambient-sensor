@@ -12,6 +12,7 @@ within typical LLM context window.
 from __future__ import annotations
 
 import textwrap
+from collections.abc import Callable
 
 from boardgen._common import (  # noqa: F401
     U, fmt,
@@ -23,9 +24,12 @@ from boardgen._project import (  # noqa: F401
     SEN66_ANCHOR_X, SEN66_ANCHOR_Y, SEN66_ROTATION,
     SEN66_ZIPTIE_LOCAL, _sen66_local_to_pcb,
     J3_X, J3_Y, J3_ROTATION,
-    LD2410_BODY_W, LD2410_BODY_H,
-    LD2410_SILK_INSET, LD2410_SILK_INSET_CONN, LD2410_EMIT_SILK_OUTLINE,
-    LD2410_ANTENNA_X_END, LD2410_CONNECTOR_X, LD2410_CONNECTOR_Y,
+    LD2410_BODY_W, LD2410_BODY_H, LD2410_BODY_Z,
+    LD2410_SILK_INSET,
+    LD2410_SILK_NORTH_STUB_X_START, LD2410_SILK_NORTH_STUB_X_END,
+    LD2410_PIN_PITCH, LD2410_PIN_COUNT,
+    LD2410_PIN1_INSET_X, LD2410_PIN_ROW_INSET_Y,
+    LD2410_ANTENNA_Y_MIN, LD2410_ANTENNA_Y_MAX, LD2410_ANTENNA_PATCH_X,
     LD2410_ANCHOR_X, LD2410_ANCHOR_Y, LD2410_ROTATION,
     _ld2410_local_to_pcb,
     J4_PCB_X, J4_PCB_Y, J4_PCB_ROTATION,
@@ -426,116 +430,141 @@ def gen_sen66_mechanical_footprint() -> str:
 
 
 # -----------------------------------------------------------------------------
-# 1ab) LD2410 mechanical-reference footprint (own library)
+# 1ab) LD2410C mechanical-reference footprint (own library)
 # -----------------------------------------------------------------------------
+def _ld2410c_body_content(indent: str, uuid_for: Callable[[str], str]) -> str:
+    """Emit the LD2410C mech-ref graphics (F.Fab + F.SilkS), no metadata.
+
+    ONE source for the two copies KiCad needs: the `oas.pretty`
+    library-file definition (`gen_ld2410_mechanical_footprint`, 1-tab
+    indent) and the embedded placed instance inside `oas.kicad_pcb`
+    (`gen_ld2410_reference_pcb_footprint` in `_footprints_stock.py`,
+    2-tab indent). They MUST stay geometrically identical or KiCad's
+    `lib_footprint_issues` DRC fires — writing the S-expressions twice by
+    hand is exactly how that drift happens, so don't.
+
+    `uuid_for(key)` supplies the deterministic UUID for each primitive;
+    the two callers pass different namespaces because the library
+    definition and the placed instance are distinct objects.
+
+    Geometry (module-local mm, origin at the body corner that is
+    NORTH-WEST on the PCB; +X along the pin row, +Y into the body):
+      - F.Fab body rectangle 0..LD2410_BODY_W x 0..LD2410_BODY_H (the
+        22 x 16 mm module outline).
+      - F.Fab dashed rectangles for the two antenna patches, so the
+        layout shows where the 24 GHz beam leaves the module.
+      - F.Fab circles marking the 5 module holes — these are DOCUMENTATION
+        only; the electrical pads live in J4 (stock
+        `Connector_PinHeader_2.54mm:PinHeader_1x05_P2.54mm_Vertical`).
+      - F.SilkS body outline inset LD2410_SILK_INSET, with the north
+        (pinned) edge broken into two corner stubs that clear the J4 silk
+        frame — see the LD2410_SILK_* block in `_project.py`.
+    """
+    parts: list[str] = []
+    x_min, y_min = 0.0, 0.0
+    x_max, y_max = LD2410_BODY_W, LD2410_BODY_H
+    i = indent
+
+    parts.append(
+        f"{i}(fp_rect\n"
+        f"{i}\t(start {fmt(x_min)} {fmt(y_min)})\n"
+        f"{i}\t(end {fmt(x_max)} {fmt(y_max)})\n"
+        f"{i}\t(stroke (width 0.1) (type solid))\n"
+        f"{i}\t(fill no)\n"
+        f'{i}\t(layer "F.Fab")\n'
+        f'{i}\t(uuid "{uuid_for("fab-outline")}")\n'
+        f"{i})"
+    )
+    for idx, (patch_x0, patch_x1) in enumerate(LD2410_ANTENNA_PATCH_X):
+        parts.append(
+            f"{i}(fp_rect\n"
+            f"{i}\t(start {fmt(patch_x0)} {fmt(LD2410_ANTENNA_Y_MIN)})\n"
+            f"{i}\t(end {fmt(patch_x1)} {fmt(LD2410_ANTENNA_Y_MAX)})\n"
+            f"{i}\t(stroke (width 0.1) (type dash))\n"
+            f"{i}\t(fill no)\n"
+            f'{i}\t(layer "F.Fab")\n'
+            f'{i}\t(uuid "{uuid_for(f"antenna-{idx}")}")\n'
+            f"{i})"
+        )
+    for pin in range(LD2410_PIN_COUNT):
+        cx = LD2410_PIN1_INSET_X + pin * LD2410_PIN_PITCH
+        parts.append(
+            f"{i}(fp_circle\n"
+            f"{i}\t(center {fmt(cx)} {fmt(LD2410_PIN_ROW_INSET_Y)})\n"
+            f"{i}\t(end {fmt(cx + 0.45)} {fmt(LD2410_PIN_ROW_INSET_Y)})\n"
+            f"{i}\t(stroke (width 0.08) (type solid))\n"
+            f"{i}\t(fill no)\n"
+            f'{i}\t(layer "F.Fab")\n'
+            f'{i}\t(uuid "{uuid_for(f"pin-{pin}")}")\n'
+            f"{i})"
+        )
+
+    sx0, sy0 = x_min + LD2410_SILK_INSET, y_min + LD2410_SILK_INSET
+    sx1, sy1 = x_max - LD2410_SILK_INSET, y_max - LD2410_SILK_INSET
+    silk_lines = (
+        ("silk-west",    (sx0, sy0), (sx0, sy1)),
+        ("silk-east",    (sx1, sy0), (sx1, sy1)),
+        ("silk-south",   (sx0, sy1), (sx1, sy1)),
+        # North (pinned) edge — two stubs, gap left for the J4 silk frame.
+        ("silk-north-w", (sx0, sy0), (LD2410_SILK_NORTH_STUB_X_END, sy0)),
+        ("silk-north-e", (LD2410_SILK_NORTH_STUB_X_START, sy0), (sx1, sy0)),
+    )
+    for key, (ax, ay), (bx, by) in silk_lines:
+        parts.append(
+            f"{i}(fp_line\n"
+            f"{i}\t(start {fmt(ax)} {fmt(ay)})\n"
+            f"{i}\t(end {fmt(bx)} {fmt(by)})\n"
+            f"{i}\t(stroke (width 0.12) (type solid))\n"
+            f'{i}\t(layer "F.SilkS")\n'
+            f'{i}\t(uuid "{uuid_for(key)}")\n'
+            f"{i})"
+        )
+    return "\n".join(parts)
+
+
+# Shared prose for the two `descr` / `Description` strings so the library
+# file and the placed instance describe the same part.
+LD2410_FP_DESCR = (
+    "HiLink HLK-LD2410C 24 GHz mmWave presence radar daughterboard "
+    "mechanical-reference (no pads). Body 22 x 16 mm, approx "
+    f"{fmt(LD2410_BODY_Z)} mm above the OAS PCB on a 1x5 P2.54 mm gold-pin "
+    "header (J4). MOUNT ANTENNA-FACE UP, away from the OAS PCB and toward "
+    "the AK-N-94 perforated cover, so the radar looks into the room; the "
+    "module then reads Tx/Rx/OUT/GND/VCC from the WEST end of the hole row."
+)
+
+
 def gen_ld2410_mechanical_footprint() -> str:
     """Custom LD2410_Mechanical_Reference footprint (mechanical-only).
 
-    No pads — the LD2410 module sits ABOVE the OAS PCB on its own 1.27 mm
-    pin row (the stock KiCad PinHeader_1x05_P1.27mm_Vertical footprint
-    at J4 carries the electrical pads). This mechanical-reference
-    footprint exists so the PCB designer sees a "LD2410 shadow" in
-    2D/3D views, claiming the body-projected rectangle as a keep-out
-    zone for other components (Qwiic, decoupling caps, etc.).
+    No pads — the HLK-LD2410C sits ABOVE the OAS PCB on a plain 1x5
+    P2.54 mm gold-pin header, and the stock KiCad
+    `PinHeader_1x05_P2.54mm_Vertical` footprint at J4 carries the
+    electrical pads. This mechanical-reference exists so the layout shows
+    an "LD2410C shadow" in the 2D/3D views and the Z-clearance guardrail
+    in `_postprocess.py` has a body rectangle to test against.
 
-    Geometry (LD2410-local, anchor at body corner (0, 0)):
-      - Body rectangle: 0..LD2410_BODY_W × 0..LD2410_BODY_H
-      - Antenna patches sit roughly at LD2410-local X = 0..12.7 (the
-        -X far end). A dashed marker on F.Fab outlines the antenna zone
-        so the PCB layout knows where the 24 GHz beam emanates.
-      - Connector pin row at LD2410-local X = LD2410_BODY_W = 35.56,
-        centered at Y = 7.62. A solid marker on F.Fab outlines the
-        5-pad column footprint (pin 1 at bottom, pin 5 at top by
-        convention; matches stock PinHeader_1x05_P1.27mm_Vertical).
+    v0.53 / GitHub issue #9 replaced the -B geometry here (a 35.56 x 7.62
+    mm strip mounted at 270 deg, silk drawn as a U opening onto a 1.27 mm
+    header) with the -C's 22 x 16 mm body at rotation 0. Graphics come
+    from `_ld2410c_body_content` — see its docstring.
     """
-    x_min, y_min = 0.0, 0.0
-    x_max, y_max = LD2410_BODY_W, LD2410_BODY_H
-    inset = LD2410_SILK_INSET
-
-    fab_outline = textwrap.dedent(f"""\
-        \t(fp_rect
-        \t\t(start {fmt(x_min)} {fmt(y_min)})
-        \t\t(end {fmt(x_max)} {fmt(y_max)})
-        \t\t(stroke (width 0.1) (type solid))
-        \t\t(fill no)
-        \t\t(layer "F.Fab")
-        \t\t(uuid "{U('ld2410:fp:fab-outline')}")
-        \t)""")
-    # v0.15.9: F.SilkS body silhouette emitted as a U-shape (3 fp_line,
-    # NO closed rect). The U opens at LD2410-local X = LD2410_BODY_W (the
-    # connector short edge), so the J4 stock-footprint silk frame at the
-    # connector handles the bottom of the silhouette. The 3 lines we emit:
-    #   • antenna short edge at LD2410-local X = inset
-    #   • long edge 1 at LD2410-local Y = inset
-    #   • long edge 2 at LD2410-local Y = y_max - inset
-    # Both long edges stop at LD2410-local X = x_max - LD2410_SILK_INSET_CONN
-    # (~33.76 mm) so they clear J4's silk frame zone with margin.
-    x_silk_end = x_max - LD2410_SILK_INSET_CONN
-    y_silk_top = y_min + inset
-    y_silk_bot = y_max - inset
-    silk_outline = "" if not LD2410_EMIT_SILK_OUTLINE else textwrap.dedent(f"""\
-        \t(fp_line
-        \t\t(start {fmt(x_min + inset)} {fmt(y_silk_top)})
-        \t\t(end {fmt(x_min + inset)} {fmt(y_silk_bot)})
-        \t\t(stroke (width 0.12) (type solid))
-        \t\t(layer "F.SilkS")
-        \t\t(uuid "{U('ld2410:fp:silk-antenna-edge')}")
-        \t)
-        \t(fp_line
-        \t\t(start {fmt(x_min + inset)} {fmt(y_silk_top)})
-        \t\t(end {fmt(x_silk_end)} {fmt(y_silk_top)})
-        \t\t(stroke (width 0.12) (type solid))
-        \t\t(layer "F.SilkS")
-        \t\t(uuid "{U('ld2410:fp:silk-long-edge-1')}")
-        \t)
-        \t(fp_line
-        \t\t(start {fmt(x_min + inset)} {fmt(y_silk_bot)})
-        \t\t(end {fmt(x_silk_end)} {fmt(y_silk_bot)})
-        \t\t(stroke (width 0.12) (type solid))
-        \t\t(layer "F.SilkS")
-        \t\t(uuid "{U('ld2410:fp:silk-long-edge-2')}")
-        \t)""")
-
-    # Antenna zone on F.Fab — dashed rectangle at the -X end of the body.
-    # Marks where the 1T2R microstrip patches sit on the LD2410 PCB so
-    # the PCB designer keeps obstacles (tall components, copper pours) out
-    # of the beam path.
-    antenna_marker = textwrap.dedent(f"""\
-        \t(fp_rect
-        \t\t(start {fmt(x_min + 1.0)} {fmt(y_min + 1.0)})
-        \t\t(end {fmt(LD2410_ANTENNA_X_END)} {fmt(y_max - 1.0)})
-        \t\t(stroke (width 0.1) (type dash))
-        \t\t(fill no)
-        \t\t(layer "F.Fab")
-        \t\t(uuid "{U('ld2410:fp:antenna')}")
-        \t)""")
-    # v0.15.8: "antenna ^", "J4 pins", and "HLK-LD2410B" labels removed
-    # from the footprint and emitted as board-level gr_text by
-    # gen_silk_labels() so they remain rotation-independent and read
-    # horizontally even though the LD2410 footprint is rotated 270°.
-    # With the body shrunk from 15.24 mm to 7.62 mm (correct datasheet
-    # short-axis spec), the rotated in-footprint text bboxes triggered
-    # silk_overlap DRC violations against the silk rect; moving to
-    # board-level gr_text eliminates the rotation issue entirely.
-
-    # Connector pin-row marker on F.Fab — solid rectangle showing the
-    # 5-pin column footprint at the +X short edge. The actual electrical
-    # pads live in J4 (stock PinHeader_1x05_P1.27mm_Vertical, separate
-    # footprint placed at OAS PCB X=-10.16).
-    conn_x = LD2410_CONNECTOR_X
-    conn_y_top = LD2410_CONNECTOR_Y - 2.54   # pin 1 row
-    conn_y_bot = LD2410_CONNECTOR_Y + 2.54   # pin 5 row
-    conn_marker = textwrap.dedent(f"""\
-        \t(fp_rect
-        \t\t(start {fmt(conn_x - 1.5)} {fmt(conn_y_top - 0.7)})
-        \t\t(end {fmt(conn_x)} {fmt(conn_y_bot + 0.7)})
-        \t\t(stroke (width 0.1) (type solid))
-        \t\t(fill no)
-        \t\t(layer "F.Fab")
-        \t\t(uuid "{U('ld2410:fp:conn-marker')}")
-        \t)""")
-
-    ref_block = textwrap.dedent(f"""\
+    # No F.CrtYd, same as the -B era but for a sharper reason: J4's five
+    # pads now sit INSIDE the body rectangle (1.42 mm south of its north
+    # edge), so a body-sized courtyard would trip `courtyards_overlap`
+    # against J4 AND `pth_inside_courtyard` on every one of its pads. The
+    # module physically stands ~6 mm above the OAS PCB on its header, so
+    # its "shadow" is a Z-stack question, not a 2D courtyard one — it is
+    # enforced by check_z_clearance_violations() in _postprocess.py.
+    return textwrap.dedent(f"""\
+        (footprint "LD2410_Mechanical_Reference"
+        \t(version {PCB_VERSION})
+        \t(generator "pcbnew")
+        \t(generator_version "{GEN_VERSION}")
+        \t(layer "F.Cu")
+        \t(descr "{LD2410_FP_DESCR}")
+        \t(tags "ld2410c hilink mmwave radar mechanical reference daughterboard")
+        \t(attr board_only exclude_from_pos_files exclude_from_bom)
         \t(property "Reference" "REF**"
         \t\t(at {fmt(LD2410_BODY_W / 2.0)} -1.5 0)
         \t\t(unlocked yes)
@@ -543,8 +572,7 @@ def gen_ld2410_mechanical_footprint() -> str:
         \t\t(hide yes)
         \t\t(uuid "{U('ld2410:fp:prop-ref')}")
         \t\t(effects (font (size 1 1) (thickness 0.15)))
-        \t)""")
-    value_block = textwrap.dedent(f"""\
+        \t)
         \t(property "Value" "LD2410_Mechanical_Reference"
         \t\t(at {fmt(LD2410_BODY_W / 2.0)} {fmt(LD2410_BODY_H + 1.5)} 0)
         \t\t(unlocked yes)
@@ -552,8 +580,7 @@ def gen_ld2410_mechanical_footprint() -> str:
         \t\t(hide yes)
         \t\t(uuid "{U('ld2410:fp:prop-val')}")
         \t\t(effects (font (size 1 1) (thickness 0.15)))
-        \t)""")
-    footprint_block = textwrap.dedent(f"""\
+        \t)
         \t(property "Footprint" ""
         \t\t(at 0 0 0)
         \t\t(unlocked yes)
@@ -561,53 +588,24 @@ def gen_ld2410_mechanical_footprint() -> str:
         \t\t(hide yes)
         \t\t(uuid "{U('ld2410:fp:prop-fp')}")
         \t\t(effects (font (size 1.27 1.27)))
-        \t)""")
-    datasheet_block = textwrap.dedent(f"""\
-        \t(property "Datasheet" "https://www.hlktech.net/index.php?id=988"
+        \t)
+        \t(property "Datasheet" "https://www.hlktech.net/index.php?id=1095"
         \t\t(at 0 0 0)
         \t\t(unlocked yes)
         \t\t(layer "F.Fab")
         \t\t(hide yes)
         \t\t(uuid "{U('ld2410:fp:prop-ds')}")
         \t\t(effects (font (size 1.27 1.27)))
-        \t)""")
-    desc_block = textwrap.dedent(f"""\
-        \t(property "Description" "HiLink HLK-LD2410B 24 GHz mmWave presence radar daughterboard mechanical-reference. ~35x7x7 mm. Mounts via 5-pin 1.27 mm pin header (J4) above the OAS PCB; antenna patches on the LD2410 top face point toward the AK-N-94 cover."
+        \t)
+        \t(property "Description" "{LD2410_FP_DESCR}"
         \t\t(at 0 0 0)
         \t\t(unlocked yes)
         \t\t(layer "F.Fab")
         \t\t(hide yes)
         \t\t(uuid "{U('ld2410:fp:prop-desc')}")
         \t\t(effects (font (size 1.27 1.27)))
-        \t)""")
-
-    # No F.CrtYd: J4's pads sit AT the LD2410 body's connector edge by
-    # design (LD2410 plugs into J4). A body-sized courtyard would
-    # trigger `courtyards_overlap` against J4 and `pth_inside_courtyard`
-    # for every J4 pad. The LD2410 daughterboard physically sits ABOVE
-    # the OAS PCB on its pin-header standoff (~3-5 mm), so the "shadow"
-    # is a Z-stack clearance question, not a 2D courtyard one. Designers
-    # read the F.Fab outline + Description to know what's where.
-
-    body_blocks = "\n".join(
-        block for block in (
-            ref_block, value_block, footprint_block, datasheet_block, desc_block,
-            fab_outline, silk_outline,
-            antenna_marker,
-            conn_marker,
-        ) if block
-    )
-
-    return textwrap.dedent(f"""\
-        (footprint "LD2410_Mechanical_Reference"
-        \t(version {PCB_VERSION})
-        \t(generator "pcbnew")
-        \t(generator_version "{GEN_VERSION}")
-        \t(layer "F.Cu")
-        \t(descr "HiLink HLK-LD2410B mechanical-reference (no pads). 24 GHz mmWave presence radar daughterboard. Body ~35x7x7 mm above OAS PCB on 1.27 mm pin header (J4). Antenna patches on the top face point through the enclosure cover.")
-        \t(tags "ld2410 hilink mmwave radar mechanical reference daughterboard")
-        \t(attr board_only exclude_from_pos_files exclude_from_bom)
-        """) + body_blocks + "\n)\n"
+        \t)
+        """) + _ld2410c_body_content("\t", lambda k: U(f"ld2410:fp:{k}")) + "\n)\n"
 
 
 # -----------------------------------------------------------------------------

@@ -59,7 +59,7 @@ Plan defensively: verbatim stock library is the only way to be safe at BOTH chec
 
 The audit-16 sweep almost mis-recorded the TPS62933 pinout as "1=SW, 2=PG..." until pdftotext extraction of TI SLUSEA4D Rev D Table 7-1 revealed the truth: "1=RT, 2=EN, 3=VIN, 4=GND, 5=SW, 6=BST, 7=SS, 8=FB". When in doubt, extract from the authoritative source.
 
-The same class of mistake hit ESP32-C6 GPIO 10 / 11 (v0.3 prescribed them as pin reassignment targets — but those pins are physically NOT bonded out on any ESP32-C6 SiP-flash variant); the LD2410 pin order (pre-v0.15.8 had VCC ↔ OUT reversed); the Q1 D3 dissipation math (off by 100×); and the AO3401A Vgs_max value (one audit doc said ±20 V, datasheet says ±12 V).
+The same class of mistake hit ESP32-C6 GPIO 10 / 11 (v0.3 prescribed them as pin reassignment targets — but those pins are physically NOT bonded out on any ESP32-C6 SiP-flash variant); the LD2410 pin order (pre-v0.15.8 had VCC ↔ OUT reversed — see Lesson 20); the Q1 D3 dissipation math (off by 100×); and the AO3401A Vgs_max value (one audit doc said ±20 V, datasheet says ±12 V).
 
 ### 7. Per-component paranoid audit catches what batch-grouped audits miss
 
@@ -152,9 +152,23 @@ Fallback: behavioural averaged model (~40 SPICE lines) with datasheet-derived pa
 
 The same trick applies the other direction: stage 08's LM2596-alone check uses the REAL TI PSpice model (small 3 ms window — converges fine); the cascade portion switches to a behavioural LM2596 too (60 ms window with switching detail = millions of timesteps, exceeds the 300 s ngspice timeout).
 
-### 20. LD2410B pin order — authoritative confirmation (user-verified 2026-05-23)
+### 20. A pin order is meaningless without the orientation it is read against — and it changes when the PART changes (LD2410C, GitHub issue #9)
 
-J4 pin numbering on OAS, FROM LEFT (as physically soldered) when looking at the LD2410B daughterboard face-up: **pin 1 = OUT, pin 2 = UART TX, pin 3 = UART RX, pin 4 = GND, pin 5 = VCC**. This matches the `J4_PCB_X / J4_PCB_Y / J4_PCB_ROTATION` block in `boardgen/_project.py` and the J4 wiring block in `boardgen/_sch_sensors.py` (wire uuid tags `j4-p1-out` … `j4-p5-vcc-down`) exactly — enforced automatically since v0.52 by stage 19 check D (note the net-name crossover: J4 pin 2 = LD2410 TX lands on the `UART_RX` net, pin 3 = LD2410 RX on `UART_TX`). The historical v0.15.8 schematic-reversal + v0.43 footprint-flip + re-revert was a CORRECTED sequence — current state is right. Do NOT rely on memory or web snippets for LD2410 pin order — quote this Lesson + the HLK V1.04 datasheet Table 1 (page 7) as the authoritative source. Any future audit-prompt that asserts a different mapping (e.g. "1=VCC..5=OUT") is wrong.
+**Orientation convention (this is the definition; the pin order below is only valid against it).** The HLK-LD2410C mounts with its two copper patch antennas facing **UP** — away from the OAS PCB, toward the AK-N-94 perforated cover — because the radar has to look into the room. Viewed antenna-face-toward-the-observer with the pin row along the module's NORTH edge (which is exactly the ordinary PCB top view, looking down at the board), the pins run **FROM LEFT (west)**:
+
+**pin 1 = UART Tx, pin 2 = UART Rx, pin 3 = OUT, pin 4 = GND, pin 5 = VCC**
+
+On the OAS PCB that means: the J4 hole row runs east–west along PCB +X with pin 1 at the WEST end, and the module body extends SOUTH from the row. Authority: board owner, 2026-07-21, plus Hi-Link HLK-LD2410C manual V1.00 (2022-11-07) Table 1 / §4.2 — pin 1 carries the **square** pad, pins 2..5 are round; there is no printed "1". The mapping is enforced by stage 19 check D against the `j4-p1-tx` … `j4-p5-vcc-down` wire uuid tags in `boardgen/_sch_sensors.py` plus `J4_PCB_ROTATION == 90` in `boardgen/_project.py`. Note the net-name crossover: J4 pin 1 = module TX lands on the `UART_RX` net (it arrives at the ESP32's RX), pin 2 = module RX on `UART_TX`.
+
+**This is the MIRROR of what this Lesson said until v0.53.** The HLK-LD2410B ran `1 = OUT, 2 = TX, 3 = RX, 4 = GND, 5 = VCC` on a 1.27 mm castellated edge. Same manufacturer, same radar, same 256000-baud protocol — different pin order, because the -B and the -C are different boards. Anything quoting the -B mapping for the current design is wrong, and so is espboards.dev's "VCC, GND, TX, RX, OUT", which is the -C row read from the far end (the failure this Lesson is about: a row of pins has two ends, and a bare list of names does not say which one it starts at).
+
+Two independent ways this project has been bitten here, both worth remembering:
+- **Reading a row from the wrong end.** The pre-v0.15.8 -B schematic had VCC ↔ OUT reversed. The v0.15.8 "fix" reversed the SCHEMATIC nets — wrong layer; the real defect was the J4 footprint rotation putting pad 1 at the wrong physical end. Corrected structurally at the footprint layer in v0.43.
+- **Assuming a variant suffix is cosmetic.** The -B → -C swap changes pin order, pitch (1.27 → 2.54 mm), body (35 × 7 → 22 × 16 mm) and mounting style. Re-read the manual for the exact variant; do not carry a mapping across a part change.
+
+Do NOT rely on memory or a web snippet for LD2410 pin order. Quote this Lesson plus the manual for the specific variant, and state the viewing orientation alongside the order.
+
+⚠ **Open verification (issue #9 acceptance criterion).** The physical LD2410C had not been delivered when the J4 rework landed. Body 22 × 16 mm, 2.54 mm pitch and Ø0.9 mm holes are datasheet-stated; the pin-row inset from the pinned edge (1.42 mm), the pin-1 end inset (5.92 mm, derived from "row centred"), the antenna-patch rectangle and the module thickness are MEASURED off the manual's Figure 5 or estimated. Check them with calipers on the delivered module before the next PCB order — see the ⚠ block at `LD2410_BODY_W` in `boardgen/_project.py` for what each one would cost if wrong (all silk-only except the standoff budget).
 
 ---
 
@@ -206,7 +220,7 @@ Firmware skeleton (5-package ESPHome config) landed v0.40-post-order; awaiting h
 
 Per-room sensor measures:
 - **Air quality**: CO2, PM1 / 2.5 / 4 / 10, VOC index, NOx index, temperature, humidity (Sensirion SEN66)
-- **Occupancy / presence**: mmWave radar with stillness detection (HiLink HLK-LD2410B)
+- **Occupancy / presence**: mmWave radar with stillness detection (HiLink HLK-LD2410C)
 
 Additional features:
 - RGB AQI status ring (7 × SK6812-SIDE LEDs) with breathing effect; color reflects aggregated air quality index
@@ -234,7 +248,7 @@ Additional features:
 |---|---|---|---|
 | MCU | **ESP32-C6-DevKitM-1-N4** (Espressif, EAN 5904422385651) | Botland | USB / GPIO |
 | Air quality combo | Sensirion **SEN66-SIN-T** (material 3.001.030) + JST GH 6-pin cable accessory (50 cm AWG26, separately ordered — Sensirion ships SEN66 without cable) | Sensirion / LaskaKit / ThePiHut | I²C 0x6B |
-| Presence | **HiLink HLK-LD2410B** (-B variant specifically — NOT -C; pin order and body dims differ per HLK datasheet) | HiLink / TME / AliExpress | UART 256000 baud |
+| Presence | **HiLink HLK-LD2410C** (-C variant specifically — the -B has a different pin order, pitch and body; see Lesson 20) | HiLink direct / reputable distributor | UART 256000 baud |
 | Visual indicator | **7 × SK6812-SIDE** (OPSCO SK6812SIDE-A, 4020 side-emit) on Ø26 mm pitch ring, 8 slots at 45° pitch with D13 skipped for J1 cable area | LCSC C5378721 | 1-wire WS281x |
 | Power input | Phoenix Contact MSTBA 2,5/3-G-5,08 3-pos terminal | THT hand-solder | 24 V DC |
 | Reverse-polarity | **AO3401A** P-MOSFET (SOT-23) + BZT52C10S Zener clamp (SOD-323) + 100 k pull-down + 1 k gate series | LCSC C15127 / C19334 / C25803 / C21190 | — |
@@ -279,6 +293,7 @@ ESP32-C6-DevKitM-1-N4 is the Espressif official devkit (ESP32-C6-MINI-1 SoM + tw
 - **GPIO 8 external pull-up R7 = 10 kΩ to +3V3** — required because the DevKitM-1's onboard pull-up relies on VCC_5V (which OAS leaves floating; we feed +3V3 directly into J5.1).
 - **Onboard DevKitM-1 NeoPixel is unreachable** in deployed units (its VDD ties to VCC_5V). The external SK6812-SIDE ring is the active indicator; the onboard pixel is a no-op in firmware.
 - **ESP32-C6 DevKitM-1 placement** (v0.53, GitHub issue #3 + its review): the J5/J6 pin sockets sit a net 6.5 mm WEST of the v0.51 position (pin 1 at PCB X = −28.89 — the sockets are the PHYSICAL datum; the user measured a 7.5 mm move then trimmed 1.0 mm back east after a live fit check, for west-side safety margin since the room toward the THT caps / SEN66 was ample). Seating the module next to the THT bulk caps — the body east edge (+17.795) clears the C3 Ø8 mm can's west rim (+21.75) by 3.955 mm, and the SEN66 cutout west edge (+20.50) by 2.7 mm. The DevKitM-1 is NOT a plain rectangle: the ESP32-C6-MINI-1 PCB antenna adds a 13.20 × 5.37 mm tab overhanging the west short edge (both dimensions read from the Espressif dimensions PDF; see Lesson 22 for the pin-1 offset the same review corrected). `ESP32_ANCHOR_X = −30.465` is DERIVED (pin-1 datum − 1.575 pin offset); body X −30.465..+17.795. **No board-edge overhang**: the body NW corner sits 1.364 mm INSIDE the R60 outline and the antenna tab far corner 3.25 mm inside (the earlier "1.26 mm accepted overhang" was an artifact of the wrong pin offset — Lesson 22). The mech-ref draws the FULL true outline (body + tab) on F.Fab and four corner L-ticks on F.SilkS (a full silk rect is impossible there — the short edges would cross the U1 lead-pad ends and the J5/J6 socket-frame ends on the west, and skirt the C2 pad column on the east; the ticks mark the corners and skip the congested mid-spans). It carries NO F.CrtYd (daughterboards sit ~8.6 mm up on their sockets, so SMDs live under them — U1 TO-263 4.83 mm < the 5.5 mm socket budget); the Z-clearance guardrail's MOD1 shadow is extended west over the tab so U1 is actually checked (and passes).
+- **LD2410C mounts board-to-board on a plain 2.54 mm gold-pin header, antennas UP** (v0.53, GitHub issue #9). The module's five Ø0.9 mm plated holes drop over the pins of a stock 1×5 P2.54 header at J4 (`Connector_PinHeader_2.54mm:PinHeader_1x05_P2.54mm_Vertical`) and are soldered on its top face; the joints are both the electrical and the mechanical retention. This replaces the HLK-LD2410B, whose 5-pad 1.27 mm castellated edge was hand-soldered directly into a P1.27 header — miserable to work with (the project was burned twice: a cold VCC joint at bring-up, then repeated resolder cycles) and the trigger for the swap was that **two independent -B units from different sellers, both on firmware build 2.44.25070917, had a permanently mute UART TX** (board side exhaustively exonerated with a standalone ESP-IDF test firmware). Antenna face points AWAY from the OAS PCB toward the perforated cover, per HiLink §5.5 — the main PCB stays *behind* the antenna where there is no detection requirement. **Placement**: J4 pin 1 at PCB (−37.0, +12.0), row running east to (−26.84, +12.0); the body (22 × 16 mm) hangs SOUTH of it over PCB X −42.92..−20.92 / Y +10.58..+26.58, in the south-west pocket. J4 is the PHYSICAL DATUM and the body anchor is DERIVED from it (Lesson 22 corollary). What fixes the position: the body cannot reach over the **H2** mounting hole (1.86 mm clear of its courtyard — the module sits only ~2.5 mm up, well below an M3 screw head), which stops it moving west, and it must stay out of the **AQI ring's** annulus (7.5 mm clear of D14's courtyard), which stops it moving east. Nothing is placed under the body shadow at all: the -C carries its LDO, two crystals and an inductor on its UNDERSIDE, so the under-board budget dropped to 1.0 mm (`DAUGHTERBOARD_Z_CLEARANCE["LDR1"]`); C11, the module's +5 V decoupling cap, sits just north of the pin row. **Silk**: all five holes carry the module's own pin names (TX / RX / OUT / GND / VCC) in a vertical-text row 3.8 mm north of the holes, the "J4" designator at that row's west end, an F.SilkS body outline whose north edge breaks into two corner stubs around the J4 silk frame, "antennas up" inside the outline (assembly-time orientation hint) and the MPN "HLK-LD2410C" printed just south of it, outside the body so it stays readable on a populated board.
 - **Bluetooth proxy** = software-only; no extra hardware.
 
 ### Deviation budget — components not under KiCad stock library
@@ -288,7 +303,7 @@ Every placed footprint is verbatim KiCad stock OR a project-local OAS footprint 
 | Designator(s) | Footprint | Reason |
 |---|---|---|
 | MOD1 | `oas:ESP32-C6-DevKitM-1_Reference` | Mechanical reference for the ESP32-C6-DevKitM-1 daughterboard (no pads, body shadow only). No KiCad stock entry exists. |
-| LDR1 | `oas:LD2410_Mechanical_Reference` | Mechanical reference for the HLK-LD2410B daughterboard (no pads, body shadow only). No KiCad stock entry exists. |
+| LDR1 | `oas:LD2410_Mechanical_Reference` | Mechanical reference for the HLK-LD2410C daughterboard (no pads, body shadow only — 22 × 16 mm outline + the two antenna patches on F.Fab). No KiCad stock entry exists. Name kept variant-neutral across the v0.53 -B → -C swap. |
 | SENS1 | `oas:SEN66_Mechanical_Reference` | Mechanical reference for the Sensirion SEN66 module (no pads, body shadow only). No KiCad stock entry exists. |
 | H1..H3 | `oas:MountingHole_3.8mm_M3` | Custom Ø3.8 mm NPTH for SZOMK AK-N-94 manufacturer spec (between stock Ø3.2 mm and Ø4.0 mm sizes). |
 | ZT1..ZT4 | `oas:ZipTieHole_3mm_NPTH` | Custom Ø3.0 mm NPTH for SEN66 zip-tie retention. |
@@ -355,7 +370,8 @@ Do not propose these again without new information:
 
 ### Hardware
 - [x] **Routing rework (v0.50) — DONE.** Board fully routed, `ROUTING_CHUNKS = ("gnd", "autoroute")`, `build.py` 30/30 PASS, DRC 0/0. Snapshot in `oas_routes.py` (613 seg + 42 via after the post-v0.50 DFM via removals). (Superseded by the issue-#8 v0.53 re-route: 390 seg + 45 via.)
-- [x] **JLCDFM on the fully-routed v0.53 gerbers — DONE (2026-07-19): PCB 0 Danger.** Two real finding classes fixed (13× silkscreen-to-hole from route vias — 4 via moves + the J10 "BOOT" label nudge; 1× mask-opening-exposing-trace — +3V3 chain shifted 0.13 mm east). Remaining 4× "Negative soldermask expansion 0.04 mm" is a PROVEN scanner-side phantom, closed by a CONTROL EXPERIMENT: the byte-identical May ZIP (commit 4618d36) that scanned **0 Danger / 0 Warning on 2026-05-21** was re-uploaded on 2026-07-19 and scanned **0 Danger / 6 Warning** — same file, two verdicts, so the scanner changed, not the board. Local evidence agrees: the flagged mask and copper apertures are bit-identical RoundRects (0.95×0.8, R1/R4 pads) and a flash-by-flash gerber audit shows zero pads with mask < copper. Do NOT chase it with global mask expansion (would shrink U2 SOT-583 mask webs toward a real soldermask-bridge warning). Treat 0 D + these mask-expansion phantoms as the clean baseline for any future scan.
+- [x] **JLCDFM on the fully-routed v0.53 gerbers — DONE (2026-07-19): PCB 0 Danger.** Two real finding classes fixed (13× silkscreen-to-hole from route vias — 4 via moves + the J10 "BOOT" label nudge; 1× mask-opening-exposing-trace — +3V3 chain shifted 0.13 mm east). Remaining 4× "Negative soldermask expansion 0.04 mm" is a PROVEN scanner-side phantom, closed by a CONTROL EXPERIMENT: the byte-identical May ZIP (commit 4618d36) that scanned **0 Danger / 0 Warning on 2026-05-21** was re-uploaded on 2026-07-19 and scanned **0 Danger / 6 Warning** — same file, two verdicts, so the scanner changed, not the board. Local evidence agrees: the flagged mask and copper apertures are bit-identical RoundRects (0.95×0.8, R1/R4 pads) and a flash-by-flash gerber audit shows zero pads with mask < copper. Do NOT chase it with global mask expansion (would shrink U2 SOT-583 mask webs toward a real soldermask-bridge warning). Treat 0 D + these mask-expansion phantoms as the clean baseline for any future scan. **SUPERSEDED by issue #9** — that result belongs to the pre-#9 gerbers. The J4 rework changed the drill file (Ø1.0 mm holes at new positions), moved C11, and added a whole silk block beside the new hole row, so a FRESH JLCDFM pass is owed before the next order. Run it after the re-route, not before (the re-route changes the copper again).
+- [ ] **JLCDFM re-run on the post-issue-#9 gerbers** — after the full re-route. Baseline to compare against: 0 Danger + the 4 proven mask-expansion phantoms above.
 - [ ] Receive v0.40 prototypes from JLCPCB; hand-solder the 7 THT components (J1 / J4 / J5 / J6 / C1 / C3 / C4).
 - [ ] Optional v2 substitutions (deferred): Q1 → AON7415 for actual positive Vds margin (-40 V vs SMBJ24A 38.9 V clamp); L1 → 6045 / 1264 body if production load grows beyond 1.2 A continuous.
 - [ ] Foam shroud / cover baffle separating SEN66 inlet zone from outlet zone (open mitigation; decision pending physical-prototype recirculation measurement).
@@ -367,7 +383,7 @@ Do not propose these again without new information:
 - [ ] HA discovery / device class metadata validation.
 
 ### Logistics
-- [ ] Receive ordered AK-N-94 enclosure + SEN66 + LD2410B samples.
+- [ ] Receive ordered AK-N-94 enclosure + SEN66 + LD2410C samples (bench-test the LD2410C on flying leads with the standalone UART test firmware BEFORE anything is soldered — issue #9).
 - [ ] Optional re-order at higher quantity if v1 validates.
 
 ---
@@ -620,7 +636,7 @@ Freerouting is used as a congestion **diagnostic**, not as the routing source of
 - AirGradient ONE (open-source inspiration): https://github.com/airgradienthq/arduino
 - Sensirion SEN66 product page: https://sensirion.com/products/catalog/SEN66
 - Sensirion SEN6x datasheet: https://sensirion.com/resource/datasheet/SEN6x
-- HiLink LD2410 documentation: https://www.hlktech.net
+- HiLink LD2410C product page: https://www.hlktech.net/index.php?id=1095
 - SZOMK AK-N-94 enclosure: https://www.chinaenclosure.com
 - ESPHome documentation: https://esphome.io
 - JLCPCB component library: https://jlcpcb.com/parts
