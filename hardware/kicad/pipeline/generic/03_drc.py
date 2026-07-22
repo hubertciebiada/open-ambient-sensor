@@ -57,30 +57,18 @@ def main() -> int:
             st.fail(f"{n_viol} DRC violation(s) — see {drc_report}")
         st.ok(f"{n_viol} violations")
 
-        # Unconnected-pad baseline.
-        #
-        # TEMPORARY (GitHub issue #9 — J4 rework for the HLK-LD2410C): signal
-        # routing is switched OFF (`ROUTING_CHUNKS = ("gnd",)` in
-        # boardgen/_routing.py) because the J4 header changes pitch, pin order
-        # and position, which invalidates the issue-#8 snapshot. With GND pours
-        # only, every GND pad still connects through the pour and every other
-        # pad legitimately reads as unconnected — 83 of them on the current
-        # placement. DRC *violations* stay hard-zero throughout.
-        #
-        # The count is pinned rather than ignored so a placement change that
-        # strands or duplicates a pad still trips the stage. If a deliberate
-        # change alters it (e.g. a connector gains/loses pins), update this
-        # constant IN THE SAME COMMIT and say why. Restore 0 together with the
-        # fresh full re-route that closes issue #9.
-        EXPECTED_UNCONNECTED = 83
+        # Unconnected-pad baseline: the board is FULLY routed, so this is 0 and
+        # any non-zero count is a regression. Restored here after the v0.53
+        # post-issue-#9 re-route (it had been pinned at 83 while signal routing
+        # was switched off for the J4 rework and the GPIO16/17 UART re-pin).
+        EXPECTED_UNCONNECTED = 0
         if n_unc != EXPECTED_UNCONNECTED:
             st.fail(
                 f"{n_unc} unconnected pads — expected exactly "
-                f"{EXPECTED_UNCONNECTED} (signal routing OFF for the issue-#9 "
-                f"J4 rework; GND pours only). A different count means the "
-                f"placement changed the pad inventory — see {drc_report}."
+                f"{EXPECTED_UNCONNECTED} (the board is fully routed). See "
+                f"{drc_report}."
             )
-        st.ok(f"{n_unc} unconnected pads — routing OFF (issue #9, expected)")
+        st.ok(f"{n_unc} unconnected pads")
     return 0
 
 

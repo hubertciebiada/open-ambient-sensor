@@ -91,10 +91,10 @@ from boardgen._project import (
 # ROUTING_CHUNKS.
 ROUTING_CHUNKS: tuple[str, ...] = (
     "gnd",         # Chunk 1 — F.Cu + B.Cu GND copper pour. ALWAYS on.
-    # "autoroute" — Chunk 2, Freerouting snapshot replay from oas_routes.py.
-    #               OFF for the issue-#9 J4 rework; re-enable with a FRESH
-    #               snapshot once placement is final (Lesson 11: the snapshot
-    #               commit must be replay-verified by build.py before commit).
+    "autoroute",   # Chunk 2 — Freerouting snapshot replay from oas_routes.py.
+                   #           Re-armed after the issue-#9 J4 rework + the
+                   #           GPIO16/17 UART re-pin, against a FRESH snapshot
+                   #           routed on the current placement (Lesson 11).
 )
 
 
@@ -410,7 +410,20 @@ class _RouteEmitter:
             f'\t\t(layer "{layer}")\n'
             f'\t\t(uuid "{u}")\n'
             f'\t\t(hatch edge 0.5)\n'
-            f'\t\t(connect_pads\n'
+            # `thru_hole_only` = thermal reliefs for PTH pads, SOLID fill onto
+            # SMD pads. With plain thermal reliefs (the KiCad default) a GND pad
+            # needs room for a 0.5 mm spoke through its 0.3 mm clearance ring;
+            # on this board's dense corners many SMD GND pads have no such room,
+            # so the pour reaches them but never bonds and DRC reports them
+            # unconnected. Worse, WHICH pads lose their spoke depends on how the
+            # signal routing happens to crowd them, so every re-route orphaned a
+            # different set (v0.53 re-route: C8.2/J3.2/J3.5 -> U2.1 -> C15.2 ->
+            # D14.4/U2.4/C20.2/D12.4 -> D15.4/C25.2/J5.13/J9.1). Solid SMD
+            # connections remove the whole failure class at the source.
+            # PTH keeps its reliefs deliberately: J1/J4/J5/J6/C1/C3/C4 are
+            # hand-soldered, and a pin bonded solid to both ground planes is
+            # miserable to heat.
+            f'\t\t(connect_pads thru_hole_only\n'
             f'\t\t\t(clearance 0.3)\n'
             f'\t\t)\n'
             f'\t\t(min_thickness 0.25)\n'

@@ -229,13 +229,17 @@ def test_projected_24v_input_within_derated_f1_hold() -> None:
 
 @_routing_deferred
 def test_routes_snapshot_counts() -> None:
-    # v0.53 issue #8 full re-route on the widened-buck-corridor placement:
-    # Freerouting 2.2.4 (100% coverage, 0 unrouted) + the GND stitch vias
-    # (island-to-plane bridges tying every isolated F.Cu GND pour fragment
-    # down to the B.Cu plane) + a couple of hand-nudged power tracks off the
-    # cable hole / SEN66-cutout edges. Snapshot: 390 segments, 45 vias.
-    assert len(oas_routes.ROUTES_SEGMENTS) == 390
-    assert len(oas_routes.ROUTES_VIAS) == 45
+    # v0.53 post-issue-#9 full re-route (J4 reworked for the LD2410C, LD2410
+    # UART moved off GPIO16/17). Freerouting 2.2.4 against a DSN whose
+    # Edge.Cuts keepouts were grown 0.12 mm — the DSN only carries the 0.20 mm
+    # copper clearance, so without that the router parks tracks ~0.21 mm off
+    # the cable-hole rim and trips 'Trace to Outline' (0.30 mm). On top of the
+    # autorouted signals: 10 GND pad rescues pre-placed BEFORE routing (a pad
+    # boxed in by its neighbours' escape tracks has no via spot afterwards),
+    # the GND island-to-plane stitch vias, and three hand-closed links the
+    # router left short (+5V into U2). Snapshot: 375 segments, 38 vias.
+    assert len(oas_routes.ROUTES_SEGMENTS) == 375
+    assert len(oas_routes.ROUTES_VIAS) == 38
 
 
 @_routing_deferred
