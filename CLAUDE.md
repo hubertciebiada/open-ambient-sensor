@@ -214,6 +214,8 @@ Two halves, learned in one JLCDFM cycle on the post-#9 re-route.
 
 **The cheap sanity check that catches all of it:** if a computed FOREIGN-net gap comes out below the DRC clearance rule while DRC reports zero violations, the computation is wrong, not the board. DRC does the geometry properly; disagreement means the model is broken. Reach for that check before reporting anything, and never hand a "finding" to the user without it.
 
+**Now enforced, not just documented:** `tests/test_via_geometry.py` (pytest, so it runs in stage 16 on every `build.py`) asserts that no via's copper ring reaches any pad's copper edge on ANY net, and that no two vias sit closer than 0.90 mm. It models circle / oval / rect / roundrect pads in closed form — deliberately no bounding boxes, per the trap above — and carries a parse guard (a regex that stops matching would otherwise make every assertion vacuously true, the Lesson 12 failure mode). The threshold is the manufacturing hazard (0.05 mm between the via's 0.35 mm ring and pad copper), NOT Lesson 25's 0.60 mm placement target: two vias on the current board sit at 0.563 / 0.600 mm centre-to-edge and are physically fine, and churning good geometry to satisfy a round number is not a fix. Verified to bite: re-injecting the exact via JLCDFM scored 0/0/0 on reports −0.2736 mm and fails the suite. Silkscreen-to-hole is deliberately NOT covered — it needs stroke-rendered text from the silk gerber, which does not exist until stage 20, and JLCDFM has caught that class reliably on every pass.
+
 Corollary on reading a scanner: JLCDFM's "Solder mask opening exposing trace" reports ~0.045 mm *less* than the true copper-to-copper gap (it applies its own mask expansion — the July pass said 0.15 mm for a track measured at 0.196 mm). So with a 0.20 mm clearance rule, a track routed at exactly the design clearance necessarily trips it. Calibrate a vendor metric against a known case before chasing it.
 
 ---
@@ -511,7 +513,7 @@ open-ambient-sensor/
     │   │       ├── 33_check_dnp_consistency.py  # DNP refdes leak audit (BOM + CPL)
     │   │       ├── 34_check_lcsc_offline.py  # LCSC# class/value match vs jlcparts SQLite (Lesson 5)
     │   │       └── 35_audit_zip_content.py   # oas-jlcpcb.zip inventory + non-empty assert
-    │   ├── tests/                  # pytest unit suite (UUID determinism, geometry invariants, POWER_BUDGET, routes snapshot, extract_routes round-trip) — run by stage 16
+    │   ├── tests/                  # pytest unit suite (UUID determinism, geometry invariants, POWER_BUDGET, routes snapshot, extract_routes round-trip, via geometry) — run by stage 16
     │   └── tools/                  # MANUAL-trigger scripts (extract_routes, jlcdfm_upload, setup_jlcparts_cache)
     ├── build/                      # INTERMEDIATE artifacts (gitignored)
     │   └── gerbers/                # raw Protel gerbers + Excellon drill + drill_map PDF
@@ -574,7 +576,7 @@ The boardgen walker lives at `pipeline/generic/01_emit_sources.py` (stage 01 of 
    - `10_render_2d` / `11_render_sch` / `12_render_png` / `13_render_3d` — re-renders SVG + PNG + 3D into `renders/`. `12_render_png` hard-fails if `cairosvg` is not importable (committed PNGs must never silently drift from their SVGs).
    - `14_check_refdes_unique` — designator uniqueness across the schematic.
    - `15_lint_typecheck` — `mypy` on `boardgen/` + `pipeline/` (real-bug flags: `--check-untyped-defs --warn-unused-ignores --warn-redundant-casts --warn-unreachable --no-implicit-optional`). Hard-fails if mypy missing.
-   - `16_lint_compileall` — `python -m compileall` over `boardgen/` + `pipeline/` + `tools/` + `tests/` (catches syntax errors in modules not on the happy path), then runs the pytest unit suite in `tests/` (UUID determinism, geometry invariants, POWER_BUDGET sums, routing-snapshot sanity, extract_routes round-trip). Hard-fails if `pytest` is not importable.
+   - `16_lint_compileall` — `python -m compileall` over `boardgen/` + `pipeline/` + `tools/` + `tests/` (catches syntax errors in modules not on the happy path), then runs the pytest unit suite in `tests/` (UUID determinism, geometry invariants, POWER_BUDGET sums, routing-snapshot sanity, extract_routes round-trip, **via geometry**). Hard-fails if `pytest` is not importable.
    - `17_lint_kicad_pro` — Lesson 3 enforcement: `board.design_settings.rule_severities` and `erc.rule_severities` MUST be empty in `oas.kicad_pro`. Hard-fails on any suppression entry.
    - `18_lint_no_hand_pads` — Lesson 1 enforcement: every `gen_*_pcb_footprint` delegates to `_emit_stock_lib_footprint` or parses a `_*_lib_footprint_path` file. Whitelist: 8 documented OAS custom footprints in CLAUDE.md "Deviation budget".
    - `19_check_oas_metadata` — Lesson 10 + Gap H + Lesson 6: every `EXTERNAL_MODULES` entry has at least one identifier (`mpn` / `ean` / `material` / `supplier_*`); every `lcsc_mapping` entry matches the expected schema (LCSC# `^C\d+$`, library tier ∈ {Basic, Extended, N/A}, manufacturer + MPN non-empty); every `POWER_BUDGET` entry has a non-empty HTTP(S) datasheet URL; J4 pin-1..5 order matches the Lesson 20 canon (check D — anchored to the `j4-p*` wire tags in `_sch_sensors.py` + `J4_PCB_ROTATION`, fails loudly if the anchors vanish).
