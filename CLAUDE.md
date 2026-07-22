@@ -202,6 +202,20 @@ So GND rescue track+via pairs go on the board FIRST, then the DSN is exported, t
 
 Rescue-geometry rules, both of which DRC will NOT enforce for you because it ignores same-net conflicts: a via must clear every pad's **copper edge** (≥0.60 mm centre-to-edge, Lesson 14) — measuring from the pad CENTRE silently puts the via on top of its own pad — and two vias must stay ≥0.90 mm apart centre-to-centre, or two same-net GND stitches will share a drill.
 
+### 26. Nobody checks same-net geometry for you — and a local audit that models pads as boxes will invent findings instead
+
+Two halves, learned in one JLCDFM cycle on the post-#9 re-route.
+
+**The fab's DFM is not a backstop for same-net defects.** A GND stitch via sat with its **drill 0.07 mm inside D18.4's pad copper** — a broken solder land. JLCDFM scored **0/0/0 on BOTH** "Via to pad" and "Via placed within a pad", and DRC is silent by definition (same net is not a clearance conflict). It surfaced only in an offline audit. The same scan *did* catch a via ring overlapping C17.2 and two vias under silk, so the scanner is not blind in general — it is blind on this class. Anything that places copper programmatically (the island stitcher here, which only asks "is this point inside GND on both layers" and knows nothing about pads or silk) must be audited locally against pad copper edges, silk strokes, foreign copper and via-to-via spacing before the gerbers go out.
+
+**But the audit itself is where the traps are**, and all of them push the same way — toward fake findings:
+- **Pad shape.** A rotated-rectangle model turns a circular THT pad into its circumscribed square, whose corners stick out 0.207·d beyond real copper. Every 45° fanout track clips that phantom corner: ten "traces crossing a mask opening", all ten diagonals, all ten false. Roundrect pads have the same bug more mildly — enough to fabricate sub-0.20 mm foreign-net gaps on a board DRC calls clean. The rect hull is the right *conservative* model for placing a via (it over-reserves space); it is the wrong model for *judging* an existing feature.
+- **Track end caps.** Where segment A ends and segment B begins, both round caps are the *same disc at the same point*. If A legitimately lands on a pad, B "penetrating" that pad adds **zero** copper — flagging B fires on every corner just outside a land, which is how fanout normally leaves a pad.
+
+**The cheap sanity check that catches all of it:** if a computed FOREIGN-net gap comes out below the DRC clearance rule while DRC reports zero violations, the computation is wrong, not the board. DRC does the geometry properly; disagreement means the model is broken. Reach for that check before reporting anything, and never hand a "finding" to the user without it.
+
+Corollary on reading a scanner: JLCDFM's "Solder mask opening exposing trace" reports ~0.045 mm *less* than the true copper-to-copper gap (it applies its own mask expansion — the July pass said 0.15 mm for a track measured at 0.196 mm). So with a 0.20 mm clearance rule, a track routed at exactly the design clearance necessarily trips it. Calibrate a vendor metric against a known case before chasing it.
+
 ---
 
 ## 🔴 Public repository rules
