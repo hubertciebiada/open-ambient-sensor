@@ -19,29 +19,51 @@ from boardgen._sch_helpers import (
 # gen_power_sch
 # -----------------------------------------------------------------------------
 def gen_power_sch() -> str:
-    """Power sub-sheet — J1 input + D1 surge clamp + Q1 reverse-polarity + R4/D3 Vgs clamp + R1 pulldown + F1 polyfuse + C1/C2 caps + U1 24V->5V buck.
+    """Power sub-sheet — J1 input + F1 polyfuse + D1 surge clamp + Q1 reverse-polarity + R4/D3 Vgs clamp + R1 pulldown + C1/C2 caps + U1 24V->5V buck.
 
-    Power flow runs LEFT-TO-RIGHT and UPWARD on screen:
+    Power flow runs LEFT-TO-RIGHT and UPWARD on screen. GitHub issue #10
+    (v0.53) corrected TWO input-protection defects at once — Q1's source
+    and drain were swapped (making the P-FET a load switch, useless for
+    reverse polarity), and F1 sat DOWNSTREAM of the crowbarring D1/Q1
+    instead of protecting them. The canonical order is now
+    `J1 → F1 → D1 → Q1 → +24V`:
 
-        J1 (input) ──┬── Q1.S → Q1.D → F1 → +24V (protected rail, exits up-right)
-                     │     │            ↑
-                     │     │            D3 (10V Zener, cathode → S net,
-                     │     │                 anode → R4/R1 junction)
-                     │     │
-                     │     Q1.G → R4 (1k series) → (junction) → R1 (100k) → GND
-                     │                              │
-                     │                              D3.anode lands here
+        J1.1 ── F1 ──┬── D1.K ──┬── Q1.DRAIN (bottom pin, on the input row)
+                     │          │
+                     │      Q1.SOURCE (top pin) ──┬── +24V (protected rail →
+                     │          │                 │        C1/C3/C13/U1, exits
+                     │      Q1.G → R4 → (junc)     └── D3.K  right/up)
+                     │          │        │  ↑ R1 → GND
+                     │          │        └─ D3.anode lands here
+                     │          │
+                     │        D3 (10V Zener, cathode → SOURCE (+24V) node,
+                     │             anode → R4/R1 junction — source-referenced
+                     │             Vgs clamp; cathode rerouted up-and-over to
+                     │             the source rail after the S/D swap)
                      │
-                     D1 (TVS surge clamp, shunts excess voltage to GND below)
-                     │
-                     └── J1.2 (GND), J1.3 (PE) — drop down to their own flags
+                     D1.A ── GND (TVS surge clamp shunts excess V to GND)
 
-    The TVS D1 sits BEFORE Q1 in the chain (tap point on the J1.1 → Q1.S
-    wire). A surge that exceeds Q1's Vds_max would destroy Q1 before its
-    reverse-polarity function could engage, so D1 must clamp upstream of
-    Q1. SMBJ24A clamps at ~38.9V at 1A peak, leaving comfortable margin
-    below Q1's absolute maximum (AO3401A Vds_max = -30V; comfortable
-    margin even at the worst-case 38.9V clamp event).
+    Q1 is a P-MOSFET reverse-polarity switch: its body diode points
+    DRAIN→SOURCE, so the drain must sit on the input (D1) side and the
+    source on the +24V side. With the source on +24V, the body diode is
+    reverse-biased under a backwards supply and the (open) channel blocks
+    the fault — the orientation reverse-polarity protection requires. The
+    pre-#10 wiring had this mirrored: body diode in-line with the fault
+    path, protection defeated. On the schematic Q1 is drawn with
+    `mirror="x"` (angle 0), which swaps the drain/source pins vertically
+    while leaving the gate — and therefore the whole R4/R1/D3 gate network
+    — exactly where it was.
+
+    F1 sits FIRST, right at J1.1, so the polyfuse limits the current D1
+    carries when the TVS crowbars (reverse-polarity or sustained
+    overvoltage). Placing F1 downstream of D1/Q1 (the pre-#10 error) left
+    the TVS unfused — 1.9..11.4 A through D1 with nothing to trip. D1
+    still sits BEFORE Q1 (tap on the F1→Q1.DRAIN node): a surge exceeding
+    Q1's Vds_max would destroy Q1 before its reverse-polarity function
+    could engage, so D1 must clamp on Q1's drain side. SMBJ24A clamps at
+    ~38.9V at 1A peak, leaving margin below Q1's absolute maximum
+    (AO3401A Vds_max = -30V; comfortable even at the worst-case 38.9V
+    clamp event).
 
     The Q1 gate-source clamp (R4 + D3) is mandatory because AO3401A
     (v0.36 swap from PMV65XP) has Vgs_max = +/-12V, while the natural
@@ -56,33 +78,44 @@ def gen_power_sch() -> str:
     Layout (page-absolute mm, KiCad +Y is down on screen):
 
         - J1 placed on the LEFT (mirror_y so pins face RIGHT into the circuit)
-        - D1 mid-VIN (angle=270, body vertical), top pin on VIN wire, bottom
-          pin drops to a local GND symbol. No new PWR_FLAG sentinel — the
-          existing GND sentinel on J1.2 covers the global GND net.
-        - Q1 placed to the right of D1, angle=0:
-            Q1.D on top  → wire goes UP through F1 to the +24V power flag
-            Q1.S on bottom-right (Y aligns with J1.1)
+        - F1 (Polyfuse, angle=90 so it lies HORIZONTAL) sits FIRST on the
+          input row, immediately east of J1.1: pin 1 (west) → J1.1, pin 2
+          (east) → the D1.K / Q1.DRAIN node. This is the issue-#10 move —
+          the fuse now protects D1 and Q1 instead of sitting behind them.
+        - D1 (TVS, angle=270, body vertical) taps the input row EAST of Q1
+          (past the drain pin, in clear space) with its top pin on the row
+          and its bottom pin dropping to a local GND symbol. No new
+          PWR_FLAG sentinel — the existing GND sentinel on J1.2 covers the
+          global GND net. D1.K therefore shares the F1→Q1.DRAIN node.
+        - Q1 placed to the right of F1, angle=0 with mirror="x":
+            Q1.SOURCE on TOP → wire goes straight UP the source rail to the
+              +24V power flag (C1/C3/C13/U1 tap off this rail).
+            Q1.DRAIN on bottom-right (Y aligns with J1.1 / the input row) →
+              the row runs west through D1's tap and F1 back to J1.1.
             Q1.G on left side → wire drops DOWN through R4 (series) →
                                 R4/R1 junction → R1 (pulldown) → GND.
-                                (Crosses J1.1 row at X=Q1_G_X without a
-                                 junction — KiCad convention for the
+                                (Crosses the input row at X=Q1_G_X without
+                                 a junction — KiCad convention for the
                                  non-connected crossing.)
+          The mirror swaps DRAIN/SOURCE vertically but leaves the gate on
+          the left, so R4/R1/D3 do not move.
         - R4 (1k, series gate resistor) directly below Q1.G in the same
-          column as R1. Body fits in clear Y band between VIN row (93.98)
+          column as R1. Body fits in clear Y band between the input row
           and the R4/R1 junction.
         - R1 (100k, gate pulldown) below R4; R1.bot → dedicated GND flag.
         - D3 (10V Zener, angle=270) placed LEFT of the R4/R1 column with
-          its CATHODE wired UP to the VIN net (Q1.S side, via a T-tap on
-          the existing vin-horiz wire) and its ANODE wired DOWN-and-RIGHT
-          via an L-route to the R4/R1 junction. Clamp current at steady
-          state flows S -> D3 (reverse breakdown at Vz=10V) -> junction
-          -> R1 -> GND, drawing only (24V - 10V) / 100k = 0.14 mA
-          (P_D3 = 1.4 mW, 143x under BZT52C10S 200 mW rating). R4
-          (1 kohm gate series) carries NO steady-state current because
-          gate is DC high-impedance (Igss <= 100 nA). v0.40 post-order
-          math fix: pre-fix said "14 mA × 10 V = 140 mW" — used R4 (1k)
-          instead of R1 (100k) for the current loop, off by 100x.
-        - F1 above Q1.D, vertical Polyfuse
+          its ANODE wired DOWN-and-RIGHT via an L-route to the R4/R1
+          junction (UNCHANGED) and its CATHODE rerouted UP-and-OVER to the
+          SOURCE (+24V) rail — the source moved to the top pin of Q1 in the
+          #10 S/D swap, and the Vgs clamp must stay source-referenced, so
+          the cathode follows it. Clamp current at steady state flows
+          S(+24V) -> D3 (reverse breakdown at Vz=10V) -> junction -> R1 ->
+          GND, drawing only (24V - 10V) / 100k = 0.14 mA (P_D3 = 1.4 mW,
+          143x under BZT52C10S 200 mW rating). R4 (1 kohm gate series)
+          carries NO steady-state current because gate is DC
+          high-impedance (Igss <= 100 nA). v0.40 post-order math fix:
+          pre-fix said "14 mA × 10 V = 140 mW" — used R4 (1k) instead of
+          R1 (100k) for the current loop, off by 100x.
         - +24V flag, GND flag, Earth_Protective flag — each in its own column
           with ≥15 mm horizontal spacing between independent columns so the
           value-text labels of adjacent symbols cannot overlap.
@@ -149,36 +182,47 @@ def gen_power_sch() -> str:
     PIN3_Y = J1_Y + 2.54     # 99.06 — PE
     PIN_X  = J1_X + 5.08     # 92.71 — pin tips on right side of mirrored body
 
-    # ----- Q1: P-MOSFET reverse-polarity (PMV65XP), angle=0, no mirror -----
-    # With angle=0, pin schematic positions are:
-    #   D = (Q1_X + 2.54, Q1_Y - 5.08)   TOP-right    → goes UP to F1 → +24V
-    #   G = (Q1_X - 5.08, Q1_Y)          LEFT side   → drops DOWN through
-    #                                                  R4 (series) → junction
-    #                                                  with D3.anode → R1 → GND
-    #   S = (Q1_X + 2.54, Q1_Y + 5.08)   BOTTOM-right → wires to J1.1
-    # Y is set so Q1.S aligns with J1.1's row (PIN1_Y = 93.98).
+    # ----- Q1: P-MOSFET reverse-polarity (AO3401A), angle=0, mirror="x" -----
+    # issue #10: mirror="x" swaps DRAIN and SOURCE vertically (leaving the
+    # gate on the LEFT untouched) so the P-FET body diode points the right
+    # way for reverse-polarity protection. With angle=0 + mirror="x", pin
+    # schematic positions are:
+    #   S = (Q1_X + 2.54, Q1_Y - 5.08)   TOP-right    → straight UP the
+    #                                                    source rail to +24V
+    #   G = (Q1_X - 5.08, Q1_Y)          LEFT side    → drops DOWN through
+    #                                                    R4 (series) → junction
+    #                                                    with D3.anode → R1 → GND
+    #   D = (Q1_X + 2.54, Q1_Y + 5.08)   BOTTOM-right → onto the input row
+    #                                                    (D1.K / F1 node)
+    # Y is set so Q1.DRAIN aligns with J1.1's row (PIN1_Y).
     Q1_X = 113.03 + PWR_X_SHIFT
     Q1_Y = 88.9 + PWR_Y_SHIFT
-    Q1_D_X = Q1_X + 2.54     # 115.57
-    Q1_D_Y = Q1_Y - 5.08     # 83.82
+    Q1_S_X = Q1_X + 2.54     # 115.57 — SOURCE now the TOP pin (mirror x)
+    Q1_S_Y = Q1_Y - 5.08     # 83.82
     Q1_G_X = Q1_X - 5.08     # 107.95
     Q1_G_Y = Q1_Y            # 88.9
-    Q1_S_X = Q1_X + 2.54     # 115.57
-    Q1_S_Y = Q1_Y + 5.08     # 93.98 — matches PIN1_Y; same horizontal row as J1.1
+    Q1_D_X = Q1_X + 2.54     # 115.57 — DRAIN now the BOTTOM pin (mirror x)
+    Q1_D_Y = Q1_Y + 5.08     # 93.98 — matches PIN1_Y; same row as J1.1
 
-    # ----- F1: PTC polyfuse (Littelfuse 1812L075/33DR), angle=0 -----
-    # In series between Q1.D and the +24V power flag.
-    # With angle=0:
-    #   F1.1 (top)    = (F1_X, F1_Y - 3.81)
-    #   F1.2 (bottom) = (F1_X, F1_Y + 3.81)
-    # Provides resettable overcurrent protection on the protected +24V rail.
-    # 750 mA hold current gives ~2x margin over the ~350 mA combined load
-    # while still well below the 1.5 A trip threshold. 33V rating gives
-    # comfortable margin over the 24V SELV rail (D1 SMBJ24A clamps surges).
-    F1_X = Q1_D_X            # 115.57 — same vertical column as Q1.D
-    F1_Y = 76.2 + PWR_Y_SHIFT
-    F1_TOP_Y = F1_Y - 3.81   # 72.39
-    F1_BOT_Y = F1_Y + 3.81   # 80.01
+    # ----- F1: PTC polyfuse (Littelfuse 1812L075/33DR), angle=90 -----
+    # issue #10: F1 now sits FIRST, in series on the input row directly
+    # east of J1.1, ahead of D1 and Q1 (was: in the vertical column above
+    # Q1.D, downstream of the crowbarring TVS). angle=90 lays the symbol
+    # HORIZONTAL so it drops into the row:
+    #   F1 pin 1 (west) = (F1_X - 3.81, F1_Y) → J1.1 side
+    #   F1 pin 2 (east) = (F1_X + 3.81, F1_Y) → D1.K / Q1.DRAIN node
+    # Provides resettable overcurrent protection for the whole input,
+    # including the current D1 carries when it crowbars. 750 mA hold gives
+    # ~2x margin over the ~350 mA combined load, well below the 1.5 A trip;
+    # 33V rating clears the 24V SELV rail (D1 SMBJ24A clamps surges).
+    F1_X = 97.79 + PWR_X_SHIFT   # on the input row, west of the gate cluster
+    F1_Y = PIN1_Y                # in series on the J1.1 → Q1.DRAIN input row
+    F1_W_X = F1_X - 3.81         # pin 1 (west) — J1.1 side
+    F1_E_X = F1_X + 3.81         # pin 2 (east) — D1.K / Q1.DRAIN node
+    # +24V bus row Y (the horizontal rail that feeds C1/C3/C13/U1). Kept at
+    # the pre-#10 value so the entire buck block downstream is unchanged;
+    # decoupled from F1's position (F1 no longer lives on this rail).
+    BUS_24V_Y = 72.39 + PWR_Y_SHIFT   # 62.23 post-shift — was F1_TOP_Y
 
     # ----- R4: 1k series gate resistor, angle=0 -----
     # In series with Q1.G, between Q1.G and the R4/R1 junction where D3
@@ -225,35 +269,42 @@ def gen_power_sch() -> str:
     # Pin 1 in Device:D_Zener is the CATHODE (K, lib (-3.81, 0)), pin 2 is
     # the ANODE (A, lib (3.81, 0)). With angle=270, the cathode (pin 1)
     # lands at the TOP (Y - 3.81) and the anode (pin 2) at the BOTTOM
-    # (Y + 3.81) of the rotated body. The top pin connects to the VIN
-    # net (Q1.S side, via a T-tap on the existing vin-horiz wire); the
-    # bottom pin routes via an L-wire (down-then-right) to the R4/R1
-    # junction.
+    # (Y + 3.81) of the rotated body. The ANODE routes via an L-wire
+    # (down-then-right) to the R4/R1 junction — UNCHANGED by issue #10.
+    # The CATHODE previously stubbed UP to the (then adjacent) VIN row;
+    # after the #10 S/D swap the source moved to Q1's TOP pin, so the
+    # cathode is rerouted UP past the input row then EAST to the source
+    # (+24V) rail at X=COL_24V (see the D3-cathode wires below). D3's own
+    # position is UNCHANGED; only its cathode wiring moved.
     #
-    # X is set so D3 sits in clear space between D1 (now at X=96.52, one
-    # grid step left of its original 100.33 to give breathing room for
-    # text labels) and the R1 column (X=107.95). With D3_X=102.87 and
-    # body half-width ~1.27 mm, D3 body X range is ~101.60 to 104.14 —
-    # well clear of D1 (body ends at X=97.79) and the R1 column (X=107.95).
+    # X keeps D3 in clear space west of the R4/R1 column (X=107.95). With
+    # D3_X=102.87 and body half-width ~1.27 mm, D3 body X range is ~101.60
+    # to 104.14 — clear of the R1 column and of D1 (now relocated EAST of
+    # Q1, well away from this cluster).
     D3_X = 102.87 + PWR_X_SHIFT
-    D3_Y = 99.06 + PWR_Y_SHIFT  # centred between VIN row and R4/R1 junction row
-    D3_K_Y = D3_Y - 3.81     # 95.25 — short stub up to VIN row (93.98)
+    D3_Y = 99.06 + PWR_Y_SHIFT  # centred between input row and R4/R1 junction
+    D3_K_Y = D3_Y - 3.81     # 95.25 — cathode; riser goes UP to D3_RISER_Y
     D3_A_Y = D3_Y + 3.81     # 102.87 — short stub down-then-right to junction
+    # Y row on which the D3 cathode riser turns EAST to reach the source
+    # (+24V) rail. Set ABOVE Q1's source pin (Q1_S_Y = 73.66 post) so the
+    # horizontal run clears Q1's body, joining the source rail on the
+    # segment between Q1.S (73.66) and the +24V bus tap (62.23).
+    # 81.28 pre-shift = 71.12 post-shift; on the 1.27 mm grid.
+    D3_RISER_Y = 81.28 + PWR_Y_SHIFT   # 71.12 post-shift
 
     # ----- D1: TVS surge-clamp diode (SMBJ24A), Device:D_Zener, angle=270 -----
-    # Tap point on the J1.1 -> Q1.S wire (the UNPROTECTED VIN net). With
-    # angle=270, lib pin 1 K (-3.81, 0) -> schem (D1_X, D1_Y - 3.81) is the
-    # TOP pin and lib pin 2 A (3.81, 0) -> schem (D1_X, D1_Y + 3.81) is the
-    # BOTTOM pin. The top pin (K, cathode) lands on the VIN row (Y = PIN1_Y
-    # = 93.98) so D1_Y = 93.98 + 3.81 = 97.79. X chosen between J1.1 (X = 92.71) and
-    # Q1.S (X = 115.57), leaving the existing R1 column (X = 107.95) and
-    # its value-text untouched. X = 96.52 (= 76 × 1.27) was moved one
-    # grid step LEFT of the previous 100.33 to give breathing room
-    # between D1's "SMBJ24A" value text (at X=100.33+, ~5 mm wide) and
-    # D3's vertical body at X=102.87.
-    D1_X = 96.52 + PWR_X_SHIFT
+    # issue #10: D1 now taps the input row EAST of Q1 (past the drain pin),
+    # dropping to a local GND symbol in clear space — the crowded west
+    # cluster (F1/D3/R4/R1) left no room for a clean GND drop between F1
+    # and Q1. D1.K stays on the F1→Q1.DRAIN node (electrically identical:
+    # D1 clamps Q1's drain side). With angle=270, lib pin 1 K (-3.81, 0) ->
+    # schem (D1_X, D1_Y - 3.81) is the TOP pin (on the input row, Y =
+    # PIN1_Y) and lib pin 2 A (3.81, 0) -> schem (D1_X, D1_Y + 3.81) is the
+    # BOTTOM pin (drops to GND). D1_Y = PIN1_Y + 3.81. X is EAST of Q1's
+    # drain column (Q1_D_X = 115.57 pre-shift) in clear space.
+    D1_X = 119.38 + PWR_X_SHIFT   # east of Q1.DRAIN column, clear GND-drop lane
     D1_Y = 97.79 + PWR_Y_SHIFT
-    D1_TOP_Y = D1_Y - 3.81   # 93.98 — matches PIN1_Y / VIN wire row
+    D1_TOP_Y = D1_Y - 3.81   # 93.98 — matches PIN1_Y / input-row row
     D1_BOT_Y = D1_Y + 3.81   # 101.60 — wire continues DOWN to local GND symbol
     # GND symbol for D1's bottom pin. Local-only — no extra PWR_FLAG
     # sentinel: the J1.2 GND drop already supplies the ERC power-source
@@ -314,13 +365,14 @@ def gen_power_sch() -> str:
     # "100uF" of C1 to visibly touch in the rendered PNG. The extra
     # 7.62 mm of column spacing gives a clear visual gap.
     #
-    # C1.top is at the SAME Y as F1.top (72.39), so the +24V tap wire
-    # is a single horizontal segment from F1.top to C1.top. The F1.top
-    # pin then has three connections (F1 body, f1-to-junc24v upward,
-    # f1-to-c1 rightward) — a junction dot at (F1_X, F1_TOP_Y) marks it.
+    # C1.top is at the SAME Y as the +24V bus row (BUS_24V_Y), so the tap
+    # wire is a single horizontal segment from the source rail to C1.top.
+    # The rail tap (COL_24V, BUS_24V_Y) then has three connections (rail up
+    # to the flag, rail down to Q1.S, horizontal to C1) — a junction dot
+    # marks it (issue #10 moved this node off F1.top onto the source rail).
     C1_X = 142.24 + PWR_X_SHIFT
     C1_Y = 76.2 + PWR_Y_SHIFT
-    C1_TOP_Y = C1_Y - 3.81   # 72.39 — matches F1_TOP_Y
+    C1_TOP_Y = C1_Y - 3.81   # 72.39 — matches BUS_24V_Y
     C1_BOT_Y = C1_Y + 3.81   # 80.01
     # GND symbol for C1.bottom — independent column, separated >5 cm
     # vertically from any other GND label so its "GND" text cannot
@@ -355,19 +407,26 @@ def gen_power_sch() -> str:
     # ----- Wires -----
     parts: list[str] = []
 
-    # J1.1 (unprotected +24V) → Q1.S: horizontal wire across the schematic.
-    # D1's top pin taps off this wire at (D1_X, PIN1_Y) — a junction dot is
-    # added below to make the T-connection electrically valid.
-    parts.append(_sch_wire(PIN_X, PIN1_Y, Q1_S_X, Q1_S_Y, "vin-horiz"))
-
-    # D1.top (on VIN) → D1.bottom is internal to the symbol; we only need
-    # the wire from D1.bottom down to its local GND symbol.
+    # === Input row (Y = PIN1_Y): J1.1 → F1 → D1.K / Q1.DRAIN (issue #10) ===
+    # J1.1 → F1 pin 1 (west): short stub into the polyfuse.
+    parts.append(_sch_wire(PIN_X, PIN1_Y, F1_W_X, PIN1_Y, "j1-to-f1"))
+    # F1 pin 2 (east) → Q1.DRAIN: the protected-input node. This wire
+    # CROSSES the D3 cathode riser at (D3_X, PIN1_Y) and the gate chain at
+    # (Q1_G_X, PIN1_Y) — both non-connected crossings (no junction dots).
+    parts.append(_sch_wire(F1_E_X, PIN1_Y, Q1_D_X, Q1_D_Y, "f1-to-q1d"))
+    # Q1.DRAIN → D1.K: east extension of the row to D1's tap. A junction
+    # dot at Q1.DRAIN makes the 3-way (west row, east to D1, Q1 pin) valid.
+    parts.append(_sch_wire(Q1_D_X, Q1_D_Y, D1_X, D1_TOP_Y, "q1d-to-d1"))
+    # D1.bottom → local GND symbol.
     parts.append(_sch_wire(D1_X, D1_BOT_Y, D1_X, D1_GND_Y, "d1bot-to-gnd"))
 
-    # Q1.D → F1.bot: short vertical hop.
-    parts.append(_sch_wire(Q1_D_X, Q1_D_Y, F1_X, F1_BOT_Y, "q1d-to-f1"))
-    # F1.top → +24V junction (where PWR_FLAG sentinel taps off).
-    parts.append(_sch_wire(F1_X, F1_TOP_Y, COL_24V, JUNC_24V_Y, "f1-to-junc24v"))
+    # === Source (+24V) rail (X = COL_24V): Q1.SOURCE → +24V flag ===
+    # Q1.SOURCE (top pin) → D3 cathode tap row.
+    parts.append(_sch_wire(Q1_S_X, Q1_S_Y, COL_24V, D3_RISER_Y, "q1s-to-d3tap"))
+    # D3 cathode tap → +24V bus row (where C1/C3/C13/U1 branch off east).
+    parts.append(_sch_wire(COL_24V, D3_RISER_Y, COL_24V, BUS_24V_Y, "d3tap-to-bus"))
+    # +24V bus row → +24V junction (where PWR_FLAG sentinel taps off).
+    parts.append(_sch_wire(COL_24V, BUS_24V_Y, COL_24V, JUNC_24V_Y, "bus-to-junc24v"))
     # +24V junction → +24V flag.
     parts.append(_sch_wire(COL_24V, JUNC_24V_Y, COL_24V, FLAG_24V_Y, "junc24v-to-flag"))
 
@@ -379,12 +438,15 @@ def gen_power_sch() -> str:
     parts.append(_sch_wire(R4_X, R4_BOT_Y, R4_X, R4_R1_JUNC_Y, "r4-to-junction"))
     parts.append(_sch_wire(R4_X, R4_R1_JUNC_Y, R1_X, R1_TOP_Y, "junction-to-r1"))
 
-    # D3 (Zener) clamp wires.
-    # D3.K (top) -> VIN net (T-tap on the existing vin-horiz wire at
-    # (D3_X, PIN1_Y) — a junction dot is added below to mark the tap).
-    parts.append(_sch_wire(D3_X, D3_K_Y, D3_X, PIN1_Y, "d3k-to-vin"))
+    # D3 (Zener) clamp wires. issue #10: the CATHODE must stay on the
+    # SOURCE node, which moved to Q1's top pin (+24V rail). It is rerouted
+    # UP-and-OVER: a riser from D3.K up past the input row to D3_RISER_Y,
+    # then EAST to the source rail at COL_24V. The riser CROSSES the input
+    # row at (D3_X, PIN1_Y) — a non-connected crossing (no junction).
+    parts.append(_sch_wire(D3_X, D3_K_Y, D3_X, D3_RISER_Y, "d3k-riser"))
+    parts.append(_sch_wire(D3_X, D3_RISER_Y, COL_24V, D3_RISER_Y, "d3k-to-rail"))
     # D3.A (bottom) -> R4/R1 junction via an L-route: drop down to the
-    # junction Y row, then run east to the junction X column.
+    # junction Y row, then run east to the junction X column. UNCHANGED.
     parts.append(_sch_wire(D3_X, D3_A_Y, D3_X, R4_R1_JUNC_Y, "d3a-vert"))
     parts.append(_sch_wire(D3_X, R4_R1_JUNC_Y, R4_X, R4_R1_JUNC_Y, "d3a-horiz"))
 
@@ -412,11 +474,12 @@ def gen_power_sch() -> str:
     parts.append(_sch_wire(COL_PE, PE_TURN_Y, COL_PE, JUNC_PE_Y, "pe-vert-mid"))
     parts.append(_sch_wire(COL_PE, JUNC_PE_Y, COL_PE, FLAG_PE_Y, "pe-vert-low"))
 
-    # C1: +24V rail tap from F1.top → C1.top, then C1.bot → C1-local GND.
-    # The F1.top pin becomes a 3-way (F1 body, vertical wire upward to the
-    # +24V flag, horizontal wire rightward to C1) — a junction dot below
-    # marks the T-connection.
-    parts.append(_sch_wire(F1_X, F1_TOP_Y, C1_X, C1_TOP_Y, "f1top-to-c1"))
+    # C1: +24V bus tap → C1.top, then C1.bot → C1-local GND. issue #10: the
+    # bus tap point (COL_24V, BUS_24V_Y) is now on the SOURCE rail (Q1.S →
+    # +24V), where it used to be F1.top. C1_TOP_Y == BUS_24V_Y, so this is a
+    # single horizontal segment east. The tap becomes a 3-way (rail up to
+    # the flag, rail down to Q1.S, horizontal to C1) — junction dot below.
+    parts.append(_sch_wire(COL_24V, BUS_24V_Y, C1_X, C1_TOP_Y, "bus-to-c1"))
     parts.append(_sch_wire(C1_X, C1_BOT_Y, C1_X, C1_GND_Y, "c1bot-to-gnd"))
 
     # C2: PE flag pin → C2.top via a horizontal wire at Y=FLAG_PE_Y.
@@ -432,16 +495,18 @@ def gen_power_sch() -> str:
     parts.append(_sch_junction(COL_24V, JUNC_24V_Y, "24v"))
     parts.append(_sch_junction(COL_GND, JUNC_GND_Y, "gnd"))
     parts.append(_sch_junction(COL_PE,  JUNC_PE_Y,  "pe"))
-    # T-branch where D1's top pin taps the J1 → Q1 VIN wire.
-    parts.append(_sch_junction(D1_X, PIN1_Y, "vin-d1"))
-    # T-branch where D3's cathode taps the same J1 → Q1 VIN wire.
-    parts.append(_sch_junction(D3_X, PIN1_Y, "vin-d3"))
+    # 3-way on the input row at Q1.DRAIN: west row (F1 side), east row
+    # (to D1.K), and Q1's drain pin (issue #10).
+    parts.append(_sch_junction(Q1_D_X, Q1_D_Y, "q1d-row"))
+    # 3-way on the source rail where D3's cathode joins: rail up (to bus),
+    # rail down (to Q1.S), and the D3 cathode run from the west (issue #10).
+    parts.append(_sch_junction(COL_24V, D3_RISER_Y, "d3-src-tap"))
     # 3-way junction where R4.bot wire, R1.top wire, and D3.anode L-wire
     # meet on the gate-pulldown column.
     parts.append(_sch_junction(R4_X, R4_R1_JUNC_Y, "r4-r1-d3"))
-    # T-branch where C1's +24V tap meets the F1.top → +24V flag wire at
-    # the F1 pin location.
-    parts.append(_sch_junction(F1_X, F1_TOP_Y, "vin-c1"))
+    # T-branch where C1's +24V tap meets the source rail at the +24V bus
+    # row (was F1.top pre-#10; same coords, now on the Q1.S → +24V rail).
+    parts.append(_sch_junction(COL_24V, BUS_24V_Y, "bus-c1"))
     # T-branch where C2's GND tap meets the existing GND horizontal at
     # the COL_GND corner (where gnd-horiz-left ends and gnd-vert-low
     # starts; the third wire is C2's new c2-to-gnd-horiz).
@@ -578,7 +643,12 @@ def gen_power_sch() -> str:
 
     # ----- Q1: P-MOSFET reverse-polarity protection (AO3401A) -----
     # v0.36 substitution from PMV65XP (Vds=-20V was insufficient).
-    # Source = J1.1 (unprotected input), Drain = +24V protected rail.
+    # issue #10 (v0.53): DRAIN = D1/F1 input-side node, SOURCE = +24V
+    # protected rail (was mirrored — the pre-#10 wiring put source on the
+    # input, making the body diode conduct along the fault path so reverse
+    # polarity was NOT blocked). A P-FET body diode points DRAIN→SOURCE; for
+    # a reverse-polarity switch the source must sit on +24V so the diode is
+    # reverse-biased under a backwards supply. Drawn with mirror="x".
     # When input polarity is correct, the body diode conducts initially,
     # then the gate is pulled negative through R4 + R1 to GND. The D3
     # 10 V Zener clamp (v0.37) limits |Vgs| to <=10V, so the channel turns
@@ -595,7 +665,7 @@ def gen_power_sch() -> str:
     # 90 mΩ). Same SOT-23 footprint, same G/S/D pin order.
     # JLCPCB Extended Library, mass stock.
     parts.append(_sch_q_pmos(
-        x=Q1_X, y=Q1_Y, angle=0,
+        x=Q1_X, y=Q1_Y, angle=0, mirror="x",
         reference="Q1", value="AO3401A", uuid_tag="q1",
     ))
 
@@ -609,9 +679,15 @@ def gen_power_sch() -> str:
     # the ~350 mA combined load budget. v0.42: the earlier LCSC
     # C262023 was a SKU error (TLC-MSMD050, 15 V / 500 mA — under-rated
     # for 24 V); corrected to C151170 — see lcsc_mapping.py notes.
+    # angle=90 (horizontal, in-line on the input row). Labels go NORTH of
+    # the body into clear space (Y decreasing), horizontal, with
+    # autoplace_fields=False so kicad-cli keeps them horizontal instead of
+    # rotating the value to follow the 90° symbol (which overlapped J1).
     parts.append(_sch_polyfuse(
-        x=F1_X, y=F1_Y, angle=0,
+        x=F1_X, y=F1_Y, angle=90,
         reference="F1", value="PTC 750mA / 33V", uuid_tag="f1",
+        ref_offset=(1.27, -3.81), val_offset=(-4.0, -6.35),
+        autoplace_fields=False,
     ))
 
     # ----- R1: 100 kΩ gate-GND pulldown -----
@@ -910,7 +986,7 @@ def gen_power_sch() -> str:
     # +24V bus extension from C1.top (142.24, 72.39) RIGHT to U1.VIN
     # (165.10, 72.39). Single wire segment; junctions added at C3.top and
     # C13.top tap points, and at the (now 3-way) C1.top corner.
-    parts.append(_sch_wire(C1_X, F1_TOP_Y, U1_VIN_X, U1_VIN_Y, "vin-c1-to-u1"))
+    parts.append(_sch_wire(C1_X, BUS_24V_Y, U1_VIN_X, U1_VIN_Y, "vin-c1-to-u1"))
 
     # C3.bot → C3-GND
     parts.append(_sch_wire(C3_X, C3_BOT_Y, C3_X, C3_GND_Y, "c13ot-to-gnd"))
@@ -953,7 +1029,7 @@ def gen_power_sch() -> str:
     # ----- Buck-block junctions -----
     # C1.top is now a 3-way: existing f1-to-c1 enters from left, NEW
     # vin-c1-to-u1 exits right, C1's body pin drops down.
-    parts.append(_sch_junction(C1_X, F1_TOP_Y, "vin-c1-extended"))
+    parts.append(_sch_junction(C1_X, BUS_24V_Y, "vin-c1-extended"))
     # C3.top tap on +24V bus.
     parts.append(_sch_junction(C3_X, C3_TOP_Y, "24v-c3"))
     # C13.top tap on +24V bus.

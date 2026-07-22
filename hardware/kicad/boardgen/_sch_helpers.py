@@ -140,24 +140,50 @@ def _sch_power_flag(
 
 def _sch_q_pmos(
     x: float, y: float, angle: int, reference: str, value: str, uuid_tag: str,
+    mirror: str | None = None,
+    ref_offset: tuple[float, float] = (5.08, -2.54),
+    val_offset: tuple[float, float] = (5.08, 0.0),
+    text_justify: str = "left",
 ) -> str:
-    """Emit a P-MOSFET (Device:Q_PMOS) symbol instance.
+    """Emit a P-MOSFET (OAS:Q_PMOS_GDS) symbol instance.
 
-    Pin numbers in the stock Device:Q_PMOS are letters: "D", "G", "S".
-    With angle=0, lib pin positions map to schematic as:
-      D pin: (x + 2.54, y - 5.08)   [upper-right of body]
-      G pin: (x - 5.08, y)          [left of body]
-      S pin: (x + 2.54, y + 5.08)   [lower-right of body]
+    Pin NUMBERS are numeric 1/2/3 (pin NAMES are G/S/D) so the netlist
+    binds canonically to the stock SOT-23 pads — see CLAUDE.md Lesson 8.
+    With angle=0 and no mirror, lib pin positions map to schematic as:
+      D pin (3): (x + 2.54, y - 5.08)   [upper-right of body]
+      G pin (1): (x - 5.08, y)          [left of body]
+      S pin (2): (x + 2.54, y + 5.08)   [lower-right of body]
+
+    `mirror="x"` mirrors the symbol about the horizontal axis, which maps
+    a lib pin (px, py) to (x + px, y + py) instead of (x + px, y - py):
+      D pin (3): (x + 2.54, y + 5.08)   [LOWER-right of body]
+      G pin (1): (x - 5.08, y)          [left of body — UNCHANGED]
+      S pin (2): (x + 2.54, y - 5.08)   [UPPER-right of body]
+    i.e. it swaps drain and source vertically while leaving the gate (and
+    therefore the whole R4/R1/D3 gate network) exactly where it is.
+    `mirror="y"` mirrors about the vertical axis: (x - px, y - py).
+
+    Text placement is overridable because a mirrored instance often needs
+    its labels on the opposite side of the crowded column.
     """
     sym_uuid = U("sym:" + uuid_tag)
     pin_d_uuid = U("sym-pin:" + uuid_tag + "-d")
     pin_g_uuid = U("sym-pin:" + uuid_tag + "-g")
     pin_s_uuid = U("sym-pin:" + uuid_tag + "-s")
     sheet_path = f"/{ROOT_SHEET_UUID}/{SHEET_BLOCK_UUIDS['power']}"
+    if mirror is not None and mirror not in ("x", "y"):
+        raise ValueError(f"_sch_q_pmos: mirror must be 'x', 'y' or None, got {mirror!r}")
+    # NOTE: the injected line carries the SAME 8-space source indent as the
+    # rest of the here-doc so textwrap.dedent() below still finds a common
+    # prefix and strips it uniformly (a bare "\n\t\t..." would defeat dedent
+    # and leak 8 literal spaces into the emitted s-expression).
+    mirror_line = f"\n        \t\t(mirror {mirror})" if mirror else ""
+    rx, ry = ref_offset
+    vx, vy = val_offset
     return textwrap.dedent(f"""\
         \t(symbol
         \t\t(lib_id "OAS:Q_PMOS_GDS")
-        \t\t(at {fmt(x)} {fmt(y)} {angle})
+        \t\t(at {fmt(x)} {fmt(y)} {angle}){mirror_line}
         \t\t(unit 1)
         \t\t(exclude_from_sim no)
         \t\t(in_bom yes)
@@ -166,21 +192,21 @@ def _sch_q_pmos(
         \t\t(fields_autoplaced yes)
         \t\t(uuid "{sym_uuid}")
         \t\t(property "Reference" "{reference}"
-        \t\t\t(at {fmt(x + 5.08)} {fmt(y - 2.54)} 0)
+        \t\t\t(at {fmt(x + rx)} {fmt(y + ry)} 0)
         \t\t\t(effects
         \t\t\t\t(font
         \t\t\t\t\t(size 1.27 1.27)
         \t\t\t\t)
-        \t\t\t\t(justify left)
+        \t\t\t\t(justify {text_justify})
         \t\t\t)
         \t\t)
         \t\t(property "Value" "{value}"
-        \t\t\t(at {fmt(x + 5.08)} {fmt(y + 0.0)} 0)
+        \t\t\t(at {fmt(x + vx)} {fmt(y + vy)} 0)
         \t\t\t(effects
         \t\t\t\t(font
         \t\t\t\t\t(size 1.27 1.27)
         \t\t\t\t)
-        \t\t\t\t(justify left)
+        \t\t\t\t(justify {text_justify})
         \t\t\t)
         \t\t)
         \t\t(property "Footprint" ""
@@ -323,6 +349,9 @@ def _sch_resistor(
 
 def _sch_polyfuse(
     x: float, y: float, angle: int, reference: str, value: str, uuid_tag: str,
+    ref_offset: tuple[float, float] = (3.81, -1.27),
+    val_offset: tuple[float, float] = (3.81, 1.27),
+    autoplace_fields: bool = True,
 ) -> str:
     """Emit a polyfuse (Device:Polyfuse) symbol instance.
 
@@ -330,14 +359,24 @@ def _sch_polyfuse(
       Pin 1 (top):    (x, y - 3.81)
       Pin 2 (bottom): (x, y + 3.81)
 
-    Reference text is placed to the left of the symbol, value text to the
-    right, matching the stock symbol convention (which has Reference at
-    lib (-2.54, 0, 90) and Value at lib (2.54, 0, 90)).
+    Default text placement puts Reference/Value to the right of the body,
+    matching the stock symbol convention. A HORIZONTAL fuse (angle=90) wants
+    its labels moved off the wire row and `autoplace_fields=False` so
+    kicad-cli does not re-rotate the text to follow the rotated symbol
+    (which otherwise renders the value vertically) — F1 does exactly that
+    after the issue-#10 move onto the input row.
     """
     sym_uuid = U("sym:" + uuid_tag)
     pin1_uuid = U("sym-pin:" + uuid_tag + "-1")
     pin2_uuid = U("sym-pin:" + uuid_tag + "-2")
     sheet_path = f"/{ROOT_SHEET_UUID}/{SHEET_BLOCK_UUIDS['power']}"
+    autoplace = "yes" if autoplace_fields else "no"
+    rx, ry = ref_offset
+    vx, vy = val_offset
+    # KiCad renders property text at (symbol_angle + text_angle). To keep
+    # labels HORIZONTAL on a rotated symbol, store text_angle = -symbol_angle
+    # (same trick as _sch_diode_zener). For angle=0 this is 0 (unchanged).
+    text_angle = (-angle) % 360
     return textwrap.dedent(f"""\
         \t(symbol
         \t\t(lib_id "Device:Polyfuse")
@@ -347,10 +386,10 @@ def _sch_polyfuse(
         \t\t(in_bom yes)
         \t\t(on_board yes)
         \t\t(dnp no)
-        \t\t(fields_autoplaced yes)
+        \t\t(fields_autoplaced {autoplace})
         \t\t(uuid "{sym_uuid}")
         \t\t(property "Reference" "{reference}"
-        \t\t\t(at {fmt(x + 3.81)} {fmt(y - 1.27)} 0)
+        \t\t\t(at {fmt(x + rx)} {fmt(y + ry)} {text_angle})
         \t\t\t(effects
         \t\t\t\t(font
         \t\t\t\t\t(size 1.27 1.27)
@@ -359,7 +398,7 @@ def _sch_polyfuse(
         \t\t\t)
         \t\t)
         \t\t(property "Value" "{value}"
-        \t\t\t(at {fmt(x + 3.81)} {fmt(y + 1.27)} 0)
+        \t\t\t(at {fmt(x + vx)} {fmt(y + vy)} {text_angle})
         \t\t\t(effects
         \t\t\t\t(font
         \t\t\t\t\t(size 1.27 1.27)

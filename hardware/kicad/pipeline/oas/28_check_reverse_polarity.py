@@ -31,12 +31,26 @@ peak is limited.
 Acceptance criteria (tight, per spec):
     |vgs_steady| <= 11.0 V   (Scenario A, measured at t = 2 ms)
     |vgs_peak|   <= 11.0 V   (Scenario B, MAX abs over 0-2 us window)
+    rail - input >= 5.0 V   (BOTH scenarios — the protected +24V rail
+                              must sit well ABOVE the reversed input, i.e.
+                              Q1 must BLOCK the fault rather than pass it
+                              through its body diode)
 
 11.0 V leaves only 1.0 V buffer under AO3401A's hard +/-12 V Vgs_max.
 DO NOT relax this threshold if a check fails - the failure means R4
 is too high, the Zener is too slow, or the gate dV/dt overshoot races
 the Zener engagement, all of which need a board-level fix, not a
 test-bench fix.
+
+issue #10 (the reason this stage now measures the rail): the pre-#10
+deck only checked the gate clamp and wrote the isolation assumption
+("Q1 OFF ... means the rail is isolated from vin") straight into the
+SPICE deck, so it could never catch a Q1 whose SOURCE and DRAIN were
+swapped. It now (a) READS Q1's actual source/drain wiring from the board
+and builds the deck to match, and (b) probes the protected rail (Q1's
++24V side, node `rail`). A correctly-wired Q1 blocks the reversed supply
+(rail ~0 V); a backwards Q1 conducts it through the body diode (rail
+~-23 V), failing the rail check. So a re-swapped Q1 fails this stage.
 
 Run modes
 ---------
@@ -156,6 +170,104 @@ R_R1_OHM = 100_000.0
 # is a load, not a stress factor; conservative 100 uF.
 C_DRAIN_F = 100e-6
 
+# F1 polyfuse cold resistance between the input terminal and Q1's
+# input-side pad (Littelfuse 1812L075/33DR datasheet R_min midpoint).
+R_F1_OHM = 0.1
+
+# Protected-rail ISOLATION margin under reverse polarity (issue #10).
+#
+# The metric is v(rail) - v(dnode): how far the protected +24V rail sits
+# ABOVE the reversed input node at Q1. A CORRECTLY-wired Q1 blocks the
+# reversed supply and drops (almost) the whole reverse voltage across its
+# own reverse-biased junction, so the rail sits FAR above the input
+# (Scenario A: ~+16 V of separation). A BACKWARDS Q1 (issue-#10 defect)
+# passes the fault straight through its FORWARD body diode, so the rail is
+# only one diode drop above the input (~+0.7 V).
+#
+# We assert the separation, NOT an absolute rail voltage, on purpose: the
+# rdmeneze AO3401A LEVEL-3 subckt has an enormous device width and shows
+# a few volts of drain-source leakage in deep cutoff at large reverse
+# Vds, so a correctly-blocked rail floats to ~-4..-8 V in this model
+# (the real part would sit at ~0 V). That leakage artifact is the SAME in
+# both orientations and cancels in the separation metric, which stays a
+# clean ~16 V (correct) vs ~0.7 V (backwards) discriminator.
+RAIL_ISOLATION_MIN_V = 5.0
+
+# PCB (source of the real Q1 orientation - issue #10).
+PCB_PATH = HERE.parent.parent / "oas.kicad_pcb"
+
+
+def _fp_block(pcb_text: str, reference: str) -> str | None:
+    """Return the (footprint ...) s-expr whose Reference == `reference`."""
+    i = 0
+    while True:
+        idx = pcb_text.find("(footprint ", i)
+        if idx == -1:
+            return None
+        depth = 0
+        j = idx
+        while j < len(pcb_text):
+            c = pcb_text[j]
+            if c == "(":
+                depth += 1
+            elif c == ")":
+                depth -= 1
+                if depth == 0:
+                    j += 1
+                    break
+            j += 1
+        block = pcb_text[idx:j]
+        m = re.search(r'\(property "Reference" "([^"]+)"', block)
+        if m and m.group(1) == reference:
+            return block
+        i = j
+
+
+def _pad_net(fp_block: str, pad_number: str) -> str | None:
+    """Return the net name on pad `pad_number` of a footprint block."""
+    for pm in re.finditer(r'\(pad "([^"]+)"', fp_block):
+        if pm.group(1) != pad_number:
+            continue
+        i = pm.start()
+        depth = 0
+        j = i
+        while j < len(fp_block):
+            c = fp_block[j]
+            if c == "(":
+                depth += 1
+            elif c == ")":
+                depth -= 1
+                if depth == 0:
+                    j += 1
+                    break
+            j += 1
+        m = re.search(r'\(net \d+ "([^"]*)"\)', fp_block[i:j])
+        return m.group(1) if m else None
+    return None
+
+
+def read_q1_source_on_rail() -> bool:
+    """Read Q1's actual source/drain wiring from the board and return True
+    iff the SOURCE (OAS:Q_PMOS_GDS pad 2) sits on the +24V rail that feeds
+    U1.Vin (pad 1) — i.e. the orientation that makes reverse-polarity
+    protection work (issue #10).
+
+    The stage builds its SPICE deck to match this, so a re-swapped Q1 makes
+    the deck backwards and the reverse-polarity rail probe FAILS. Aborts if
+    Q1 or U1 is missing."""
+    pcb_text = PCB_PATH.read_text(encoding="utf-8")
+    q1 = _fp_block(pcb_text, "Q1")
+    u1 = _fp_block(pcb_text, "U1")
+    if q1 is None or u1 is None:
+        sys.exit("[FAIL] Q1 or U1 missing from oas.kicad_pcb - "
+                 "cannot read reverse-polarity orientation.")
+    source_net = _pad_net(q1, "2")
+    rail_net = _pad_net(u1, "1")
+    if not (source_net and rail_net):
+        sys.exit(f"[FAIL] could not read Q1.pad2 / U1.pad1 nets "
+                 f"(source={source_net!r} rail={rail_net!r}).")
+    return source_net == rail_net
+
 
 # ---------------------------------------------------------------------
 # Model fetchers
@@ -247,22 +359,22 @@ def extract_bzt52c10s_subckt(pack_path: Path) -> str | None:
 # ---------------------------------------------------------------------
 # Net naming convention (shared between Scenario A and Scenario B):
 #   0         : local GND reference (J1.2 in the schematic).
-#   vin       : J1.1 net = Q1 SOURCE = D3 CATHODE = D1 (TVS) cathode in
-#               the surge stage; here D1 is omitted because its forward-
-#               direction current under reverse polarity is negligible
-#               (SMBJ24A forward Vf < 1 V at low current; effectively a
-#               short from vin to 0 V when vin < -0.7 V, BUT the analysis
-#               is for the GATE clamp, not for the TVS limiter. Including
-#               D1 only adds a near-short to 0V which CHANGES the topology
-#               under test. We model just the gate-clamp loop in
-#               isolation; the upstream-rail behaviour is the surge
-#               stage's concern).
 #   pwlnode   : PWL source positive terminal (Vsrc); Rsrc between it and
 #               vin to give the voltage source a small impedance.
-#   drain     : Q1 drain = downstream protected rail (loaded with Cdrain
-#               + Rload).
-#   gate      : Q1 gate = the node we measure Vgs against.
-#   gnode     : the R4/R1 junction = anode of D3.
+#   vin       : the reverse-polarity input terminal (J1.1).
+#   dnode     : Q1 input-side pad, after F1 (board net Net-(D1-K)). D1
+#               (TVS) is OMITTED here (its forward clamp under reverse
+#               would mask the rail question and does not change the gate
+#               clamp loop under test — see the module docstring).
+#   rail      : the PROTECTED +24V rail = Q1's OTHER pad; loaded with
+#               Cdrain + Rload. This is the drain-node probe issue #10
+#               added. Which FET pad (S or D) lands on `rail` depends on
+#               Q1's real orientation, read from the board.
+#   gate      : Q1 gate.
+#   gnode     : the R4/R1 junction = anode of D3 (cathode on the SOURCE).
+#
+# Vgs is measured gate-to-SOURCE, where the SOURCE node is `rail` when
+# Q1 is correctly wired and `dnode` when it is backwards (source_node()).
 
 # AO3401A subckt header from rdmeneze .mod:
 #   .SUBCKT AO3401A 4 1 2
@@ -301,76 +413,84 @@ def _build_cir_common_header(*, ao3401_subckt: str,
     return "\n".join(parts)
 
 
-def _build_clamp_topology() -> str:
-    """Emit the R4 + R1 + D3 + Q1 + drain-load topology. Identical
-    between Scenario A and Scenario B; only the PWL source changes."""
-    return f"""\
-* === Q1 AO3401A P-MOS: (D G S) = (drain gate vin) ===
-XQ1 drain gate vin AO3401A
+def source_node(source_on_rail: bool) -> str:
+    """SPICE node that Q1's SOURCE connects to (== the Vgs reference)."""
+    return "rail" if source_on_rail else "dnode"
 
-* === Gate clamp network ===
-* R4 (1 k) in series between Q1.G and the R4/R1 junction (gnode).
-* R1 (100 k) from gnode to GND.
-* D3 BZT52C10S: cathode = vin (Q1.S side), anode = gnode.
-*   - Forward (normal +24 V): D3 reverse-biased; breaks down at
-*     Vz~=10 V to clamp Vgs at -10 V.
-*   - Reverse polarity (this stage): D3 forward-biased; conducts at
-*     Vf~=0.7 V to clamp Vgs at +0.7 V.
+
+def _build_clamp_topology(*, source_on_rail: bool, zener_is_subckt: bool) -> str:
+    """Emit the F1 + Q1 + gate-clamp + protected-rail topology, wired to
+    match Q1's ACTUAL orientation on the board (issue #10).
+
+    Nodes:
+      vin   : reverse-polarity input terminal (J1.1); the PWL drives it.
+      dnode : Q1 input-side pad, after F1 (board net Net-(D1-K)).
+      rail  : the PROTECTED +24V rail (Q1's other pad); loaded by
+              Cdrain + Rload — THIS is the node the new probe measures.
+      gate  : Q1 gate; gnode : R4/R1/D3-anode junction.
+
+    `source_on_rail=True` wires source->rail / drain->dnode — the correct
+    reverse-polarity switch (body diode reverse-biased under a backwards
+    supply, rail stays ~0). `False` wires source->dnode / drain->rail — the
+    pre-#10 defect (body diode in the fault path, rail dragged to ~-23 V).
+
+    D1 (TVS) is deliberately OMITTED so the rail-protection question is not
+    masked by D1's forward clamp under reverse polarity — the gate-clamp
+    loop under test is unaffected by D1 (see the module docstring)."""
+    src = source_node(source_on_rail)               # Q1 SOURCE node
+    drn = "dnode" if source_on_rail else "rail"     # Q1 DRAIN node
+    label = ("source->rail (protected), drain->input — CORRECT (issue #10)"
+             if source_on_rail else
+             "source->input, drain->rail — BACKWARDS (pre-#10 defect)")
+    if zener_is_subckt:
+        # DI_BZT52C10S subckt terminals (A K) -> (gnode, SOURCE).
+        d3_line = f"XD3 gnode {src} DI_BZT52C10S"
+    else:
+        # Generic-fallback .MODEL: plain D, anode=gnode, cathode=SOURCE.
+        d3_line = f"D3 gnode {src} DZ_BZT52C10S"
+    return f"""\
+* === Input protection topology: {label} ===
+* F1 polyfuse (cold) from the input terminal to Q1's input-side pad.
+RF1 vin dnode {R_F1_OHM:.3f}
+* Q1 AO3401A: external subckt pin order (D G S).
+XQ1 {drn} gate {src} AO3401A
+
+* === Gate clamp network (SOURCE-referenced) ===
+* R4 (1 k) Q1.G -> gnode; R1 (100 k) gnode -> GND; D3 cathode on SOURCE.
+*   - Forward (normal +24 V): D3 reverse-biased; breaks down at Vz~=10 V
+*     to clamp Vgs at -10 V.
+*   - Reverse polarity: D3 forward-biased; conducts at Vf to clamp Vgs.
 R4 gate gnode {R_R4_OHM:.3f}
 R1 gnode 0 {R_R1_OHM:.3f}
-* For the BZT52C10S Diodes subckt, terminals are (A K) -> (gnode vin).
-* For the generic-fallback .MODEL DZ_BZT52C10S, the same node order
-* matches (D model: anode then cathode for a forward-biased instance).
-XD3 gnode vin DI_BZT52C10S
-* Conditional alias: if the subckt was not found and we are using the
-* generic .MODEL fallback, the XD3 line above is invalid (no subckt
-* DI_BZT52C10S exists). The _render_cir code path injects a plain D
-* element instead in that branch; see render_*_cir(zener_subckt=...).
+{d3_line}
 
-* === Protected-rail load + bulk approximation ===
-* Q1 OFF (Vgs ~= 0 V under reverse polarity) means the rail is isolated
-* from vin. Just a small load + bulk cap so the drain node has a defined
-* DC bias and the simulator can solve the operating point.
-Rload drain 0 10k
-Cdrain drain 0 {C_DRAIN_F:.3e} IC=0
-"""
-
-
-def _build_clamp_topology_generic_zener() -> str:
-    """Variant of _build_clamp_topology() that uses a plain D element
-    against the generic-Zener fallback .MODEL (no XD3 subckt call)."""
-    return f"""\
-* === Q1 AO3401A P-MOS: (D G S) = (drain gate vin) ===
-XQ1 drain gate vin AO3401A
-
-* === Gate clamp network (generic .MODEL fallback) ===
-R4 gate gnode {R_R4_OHM:.3f}
-R1 gnode 0 {R_R1_OHM:.3f}
-* Plain D element against the .MODEL DZ_BZT52C10S declared above.
-* Anode = gnode, Cathode = vin.
-D3 gnode vin DZ_BZT52C10S
-
-Rload drain 0 10k
-Cdrain drain 0 {C_DRAIN_F:.3e} IC=0
+* === Protected +24V rail: load + bulk cap (defines its DC bias) ===
+* CORRECT Q1 keeps this near 0 V under reverse polarity (body diode
+* reverse-biased, channel off). BACKWARDS Q1's body diode drags it to
+* ~one diode drop above the reversed input (~-23 V) — the drain-node
+* probe (v(rail)) is what catches that.
+Rload rail 0 10k
+Cdrain rail 0 {C_DRAIN_F:.3e} IC=0
 """
 
 
 def render_scenario_a_cir(*, ao3401_subckt: str,
-                          zener_subckt: str | None) -> str:
+                          zener_subckt: str | None,
+                          source_on_rail: bool) -> str:
     """Scenario A: sustained reverse polarity.
 
     VIN PWL: 0 V at t=0, fall to -24 V across a 100 ns edge, hold for
-    5 ms total. Measure vgs at t = 2 ms (steady-state).
+    5 ms total. Measure vgs AND the protected rail at t = 2 ms.
     """
     header = _build_cir_common_header(
         ao3401_subckt=ao3401_subckt, zener_subckt=zener_subckt)
-    topology = (
-        _build_clamp_topology()
-        if zener_subckt is not None
-        else _build_clamp_topology_generic_zener()
+    topology = _build_clamp_topology(
+        source_on_rail=source_on_rail,
+        zener_is_subckt=zener_subckt is not None,
     )
+    src = source_node(source_on_rail)   # Vgs reference = Q1 SOURCE node
     return f"""\
-* OAS reverse-polarity Vgs check: Scenario A (sustained -24 V)
+* OAS reverse-polarity check: Scenario A (sustained -24 V)
 {header}
 
 * === PWL source: 0 V at t=0, -24 V at t=100 ns, hold to t=5 ms ===
@@ -388,20 +508,25 @@ Rsrc pwlnode vin {R_SOURCE_OHM:.3f}
 
 .control
 run
-* Steady-state Vgs at t = 2 ms (well after the 100 ns edge has fully
-* propagated; R4*Cgs ~= 7 ns RC tau, settling is ~50 ns - 2 ms is
-* essentially infinity on that timescale).
-let vgs = v(gate)-v(vin)
+* Steady-state Vgs at t = 2 ms (Vgs referenced to Q1 SOURCE = {src}).
+let vgs = v(gate)-v({src})
 let vgs_abs = abs(vgs)
 meas tran vgs_steady FIND vgs AT=2m
 meas tran vgs_steady_abs FIND vgs_abs AT=2m
-* Worst-case abs(Vgs) anywhere in the 0.5 - 5 ms window (after the
-* initial 100 ns edge settles); catches any oscillation we missed.
+* Worst-case abs(Vgs) anywhere in the 0.5 - 5 ms window.
 meas tran vgs_a_max MAX vgs_abs FROM=0.5m TO=5m
-* Also report the Q1 source and gate node voltages for sanity.
-meas tran vs_steady FIND v(vin) AT=2m
+* PROTECTED-RAIL + INPUT-NODE PROBE (issue #10): the +24V rail and the
+* reversed input node (dnode) at steady state. Isolation = rail - dnode.
+* A correct Q1 blocks the reversed supply so the rail sits FAR above
+* dnode (~+16 V); a backwards Q1 conducts it through the body diode so
+* the rail is only ~one diode drop above dnode (~+0.7 V).
+meas tran vrail_steady FIND v(rail) AT=2m
+meas tran vrail_min MIN v(rail) FROM=0.5m TO=5m
+meas tran vdnode_steady FIND v(dnode) AT=2m
+* Report Q1 source and gate node voltages for sanity.
+meas tran vs_steady FIND v({src}) AT=2m
 meas tran vg_steady FIND v(gate) AT=2m
-print vgs_steady vgs_steady_abs vgs_a_max vs_steady vg_steady
+print vgs_steady vgs_steady_abs vgs_a_max vrail_steady vrail_min vdnode_steady vs_steady vg_steady
 quit
 .endc
 .end
@@ -409,7 +534,8 @@ quit
 
 
 def render_scenario_b_cir(*, ao3401_subckt: str,
-                          zener_subckt: str | None) -> str:
+                          zener_subckt: str | None,
+                          source_on_rail: bool) -> str:
     """Scenario B: transient arc-during-mating.
 
     VIN PWL: 0 V flat for 100 ns, fall to -60 V across 20 ns, hold for
@@ -418,11 +544,11 @@ def render_scenario_b_cir(*, ao3401_subckt: str,
     """
     header = _build_cir_common_header(
         ao3401_subckt=ao3401_subckt, zener_subckt=zener_subckt)
-    topology = (
-        _build_clamp_topology()
-        if zener_subckt is not None
-        else _build_clamp_topology_generic_zener()
+    topology = _build_clamp_topology(
+        source_on_rail=source_on_rail,
+        zener_is_subckt=zener_subckt is not None,
     )
+    src = source_node(source_on_rail)
     # PWL: t=0 v=0, t=100 ns v=0, t=120 ns v=-60, t=1.12 us v=-60,
     #      t=1.14 us v=0, t=2 us v=0. Total ~2 us.
     pwl = (
@@ -451,7 +577,7 @@ Rsrc pwlnode vin {R_SOURCE_OHM:.3f}
 
 .control
 run
-let vgs = v(gate)-v(vin)
+let vgs = v(gate)-v({src})
 let vgs_abs = abs(vgs)
 * MAX abs Vgs across the full 2 us window.
 meas tran vgs_peak MAX vgs_abs
@@ -459,10 +585,15 @@ meas tran vgs_peak MAX vgs_abs
 * 120 ns and 1.14 us).
 meas tran vgs_peak_signed MAX vgs
 meas tran vgs_peak_neg MIN vgs
-meas tran vs_min MIN v(vin)
+* PROTECTED-RAIL + INPUT-NODE PROBE (issue #10). The 100 uF bulk keeps a
+* correct rail near 0 on this fast timescale; isolation = rail - dnode is
+* measured at the moment of the deepest input excursion.
+meas tran vrail_min MIN v(rail)
+meas tran vdnode_min MIN v(dnode)
+meas tran vs_min MIN v({src})
 meas tran vg_min MIN v(gate)
 meas tran vg_max MAX v(gate)
-print vgs_peak vgs_peak_signed vgs_peak_neg vs_min vg_min vg_max
+print vgs_peak vgs_peak_signed vgs_peak_neg vrail_min vdnode_min vs_min vg_min vg_max
 quit
 .endc
 .end
@@ -477,16 +608,20 @@ class ScenarioResult:
     label: str
     vgs_value: float           # Scenario A: vgs_steady; B: vgs_peak (already abs).
     vgs_signed: float | None   # For diagnostic - signed peak / steady.
-    vs: float | None           # Q1 source voltage (vin) at measure point.
+    vrail: float | None        # PROTECTED-RAIL probe (issue #10): rail voltage.
+    isolation: float | None    # rail - dnode: how far the rail sits above the reversed input.
+    vs: float | None           # Q1 source voltage at measure point.
     vg: float | None           # Q1 gate voltage at measure point.
     raw_output: str            # full ngspice stdout for forensic dump on fail.
 
 
 def run_scenario_a(*, workdir: Path, ngspice: Path,
                    ao3401_subckt: str,
-                   zener_subckt: str | None) -> ScenarioResult:
+                   zener_subckt: str | None,
+                   source_on_rail: bool) -> ScenarioResult:
     cir_text = render_scenario_a_cir(
-        ao3401_subckt=ao3401_subckt, zener_subckt=zener_subckt)
+        ao3401_subckt=ao3401_subckt, zener_subckt=zener_subckt,
+        source_on_rail=source_on_rail)
     cir_path = workdir / "rev_scenario_a.cir"
     cir_path.write_text(cir_text, encoding="utf-8")
     print("  Scenario A: sustained -24 V (100 ns edge, 5 ms hold)")
@@ -495,6 +630,8 @@ def run_scenario_a(*, workdir: Path, ngspice: Path,
     vgs_signed = parse_meas(output, "vgs_steady")
     vgs_abs = parse_meas(output, "vgs_steady_abs")
     vgs_max_window = parse_meas(output, "vgs_a_max")
+    vrail_steady = parse_meas(output, "vrail_steady")
+    vdnode_steady = parse_meas(output, "vdnode_steady")
     vs = parse_meas(output, "vs_steady")
     vg = parse_meas(output, "vg_steady")
 
@@ -504,21 +641,31 @@ def run_scenario_a(*, workdir: Path, ngspice: Path,
             "[FAIL] could not parse vgs_steady / vgs_a_max from Scenario A "
             "ngspice output. Check meas syntax / model identifiers."
         )
+    if vrail_steady is None or vdnode_steady is None:
+        print(output)
+        sys.exit(
+            "[FAIL] could not parse vrail_steady / vdnode_steady (the "
+            "issue-#10 protected-rail probe) from Scenario A ngspice output."
+        )
     # Take the WORST of the steady-state point and the windowed max -
     # protects against the unlikely case of a slow oscillation that's
     # zero-crossing at exactly 2 ms.
     vgs_value = max(abs(vgs_abs), abs(vgs_max_window))
+    isolation = vrail_steady - vdnode_steady
     return ScenarioResult(
         label="A_sustained", vgs_value=vgs_value, vgs_signed=vgs_signed,
-        vs=vs, vg=vg, raw_output=output,
+        vrail=vrail_steady, isolation=isolation, vs=vs, vg=vg,
+        raw_output=output,
     )
 
 
 def run_scenario_b(*, workdir: Path, ngspice: Path,
                    ao3401_subckt: str,
-                   zener_subckt: str | None) -> ScenarioResult:
+                   zener_subckt: str | None,
+                   source_on_rail: bool) -> ScenarioResult:
     cir_text = render_scenario_b_cir(
-        ao3401_subckt=ao3401_subckt, zener_subckt=zener_subckt)
+        ao3401_subckt=ao3401_subckt, zener_subckt=zener_subckt,
+        source_on_rail=source_on_rail)
     cir_path = workdir / "rev_scenario_b.cir"
     cir_path.write_text(cir_text, encoding="utf-8")
     print("  Scenario B: -60 V / 1 us arc pulse (20 ns edges)")
@@ -527,6 +674,8 @@ def run_scenario_b(*, workdir: Path, ngspice: Path,
     vgs_peak = parse_meas(output, "vgs_peak")
     vgs_signed_max = parse_meas(output, "vgs_peak_signed")
     vgs_signed_min = parse_meas(output, "vgs_peak_neg")
+    vrail_min = parse_meas(output, "vrail_min")
+    vdnode_min = parse_meas(output, "vdnode_min")
     vs_min = parse_meas(output, "vs_min")
     vg_min = parse_meas(output, "vg_min")
 
@@ -536,6 +685,12 @@ def run_scenario_b(*, workdir: Path, ngspice: Path,
             "[FAIL] could not parse vgs_peak from Scenario B ngspice output. "
             "Check meas syntax / model identifiers."
         )
+    if vrail_min is None or vdnode_min is None:
+        print(output)
+        sys.exit(
+            "[FAIL] could not parse vrail_min / vdnode_min (the issue-#10 "
+            "protected-rail probe) from Scenario B ngspice output."
+        )
     # vgs_peak is already abs() inside ngspice; pick the more extreme of
     # the two signed peaks for the diagnostic.
     signed: float | None = None
@@ -543,9 +698,11 @@ def run_scenario_b(*, workdir: Path, ngspice: Path,
         signed = (vgs_signed_max
                   if abs(vgs_signed_max) >= abs(vgs_signed_min)
                   else vgs_signed_min)
+    isolation = vrail_min - vdnode_min
     return ScenarioResult(
         label="B_transient", vgs_value=vgs_peak, vgs_signed=signed,
-        vs=vs_min, vg=vg_min, raw_output=output,
+        vrail=vrail_min, isolation=isolation, vs=vs_min, vg=vg_min,
+        raw_output=output,
     )
 
 
@@ -554,12 +711,22 @@ def run_scenario_b(*, workdir: Path, ngspice: Path,
 # ---------------------------------------------------------------------
 def main() -> int:
     with Stage("check_reverse_polarity") as s:
-        s.info("OAS reverse-polarity Vgs(Q1) clamp verification (ngspice)")
+        s.info("OAS reverse-polarity Q1 clamp + rail verification (ngspice)")
         s.info("AO3401A Vgs_max = +/-12 V (datasheet, NOT +/-20 V - Lesson 6)")
         s.info(f"Acceptance: |Vgs| <= {VGS_THRESH_V:.1f} V "
                f"(1 V buffer under {VGS_MAX_V:.1f} V hard max)")
+        s.info(f"           rail isolation >= {RAIL_ISOLATION_MIN_V:.1f} V "
+               "(issue #10 — rail must sit above the reversed input)")
         s.info("Scenarios: A=sustained -24 V (100 ns edge, 5 ms hold); "
                "B=-60 V / 1 us arc pulse (20 ns edges)")
+
+        # Read Q1's ACTUAL source/drain orientation from the board and build
+        # the deck to match (issue #10). Correct wiring -> rail blocked ->
+        # PASS; a re-swapped Q1 -> deck backwards -> rail ~-23 V -> FAIL.
+        source_on_rail = read_q1_source_on_rail()
+        s.info(f"Q1 orientation (from oas.kicad_pcb): source_on_rail="
+               f"{source_on_rail} "
+               f"({'CORRECT' if source_on_rail else 'BACKWARDS — DEFECT'})")
 
         REV_CACHE.mkdir(parents=True, exist_ok=True)
 
@@ -602,10 +769,12 @@ def main() -> int:
             scen_a = run_scenario_a(
                 workdir=workdir, ngspice=ngspice,
                 ao3401_subckt=ao_subckt, zener_subckt=zener_subckt,
+                source_on_rail=source_on_rail,
             )
             scen_b = run_scenario_b(
                 workdir=workdir, ngspice=ngspice,
                 ao3401_subckt=ao_subckt, zener_subckt=zener_subckt,
+                source_on_rail=source_on_rail,
             )
         except SystemExit:
             # _spice.run_ngspice() / parse_meas() failure - error already
@@ -620,6 +789,10 @@ def main() -> int:
               if scen_a.vgs_signed is not None else
               "    vgs_steady (signed):  N/A")
         print(f"    vgs_steady (abs):     {scen_a.vgs_value:.3f} V")
+        if scen_a.vrail is not None and scen_a.isolation is not None:
+            print(f"    v(rail) steady:       {scen_a.vrail:+.3f} V")
+            print(f"    rail - input:         {scen_a.isolation:+.3f} V  "
+                  "<- isolation probe (issue #10)")
         if scen_a.vs is not None and scen_a.vg is not None:
             print(f"    v(Q1.S) at 2 ms:      {scen_a.vs:+.3f} V")
             print(f"    v(Q1.G) at 2 ms:      {scen_a.vg:+.3f} V")
@@ -628,12 +801,21 @@ def main() -> int:
         if scen_b.vgs_signed is not None:
             print(f"    vgs_peak (signed):    {scen_b.vgs_signed:+.3f} V")
         print(f"    vgs_peak (abs):       {scen_b.vgs_value:.3f} V")
+        if scen_b.vrail is not None and scen_b.isolation is not None:
+            print(f"    v(rail) min:          {scen_b.vrail:+.3f} V")
+            print(f"    rail - input:         {scen_b.isolation:+.3f} V  "
+                  "<- isolation probe (issue #10)")
         if scen_b.vs is not None and scen_b.vg is not None:
             print(f"    v(Q1.S) min:          {scen_b.vs:+.3f} V")
             print(f"    v(Q1.G) min:          {scen_b.vg:+.3f} V")
         print()
 
-        # Build CheckResults.
+        # Build CheckResults. The Vgs checks (gate clamp) plus the NEW
+        # rail-isolation probes (issue #10) — the isolation check is what
+        # fails on a backwards Q1, whose body diode conducts the reversed
+        # supply onto the +24V rail (rail only ~1 diode drop above the
+        # input, vs ~16 V of isolation when Q1 is wired correctly).
+        assert scen_a.isolation is not None and scen_b.isolation is not None
         results = [
             CheckResult(
                 name="Vgs steady (Scenario A, sustained -24 V)",
@@ -647,32 +829,53 @@ def main() -> int:
                 spec=f"<= {VGS_THRESH_V:.1f} V",
                 passed=scen_b.vgs_value <= VGS_THRESH_V,
             ),
+            CheckResult(
+                name="Rail isolation (Scenario A, sustained -24 V)",
+                value=f"{scen_a.isolation:+.3f} V (rail-input)",
+                spec=f">= {RAIL_ISOLATION_MIN_V:.1f} V",
+                passed=scen_a.isolation >= RAIL_ISOLATION_MIN_V,
+            ),
+            CheckResult(
+                name="Rail isolation (Scenario B, -60 V / 1 us)",
+                value=f"{scen_b.isolation:+.3f} V (rail-input)",
+                spec=f">= {RAIL_ISOLATION_MIN_V:.1f} V",
+                passed=scen_b.isolation >= RAIL_ISOLATION_MIN_V,
+            ),
         ]
         for r in results:
             print(r)
         print()
 
         failed = [r for r in results if not r.passed]
+        rail_failed = any("rail" in r.name.lower() and not r.passed
+                          for r in results)
+        vgs_failed = any("Vgs" in r.name and not r.passed for r in results)
         if failed:
-            print(f"  AO3401A Vgs_max = +/-{VGS_MAX_V:.1f} V (datasheet).")
-            print(f"  Threshold {VGS_THRESH_V:.1f} V leaves only "
-                  f"{VGS_MAX_V - VGS_THRESH_V:.1f} V buffer.")
-            print()
-            print("  The reverse-polarity gate clamp (D3 BZT52C10S + R4 + R1)")
-            print("  fails to hold Vgs within spec under at least one of the")
-            print("  two scenarios. Possible board-level fixes (DO NOT relax")
-            print("  this stage's threshold to paper over):")
-            print("    - reduce R4 below 1 kOhm so the Zener engages faster")
-            print("    - switch D3 to a faster / lower-Vz Zener (e.g.")
-            print("      BZT52C7V5 at 7.5 V) for more headroom")
-            print("    - substitute Q1 to a part with wider Vgs envelope")
-            print("      (e.g. AO3401A -> a +/-20 V Vgs PMOS).")
+            if rail_failed:
+                print("  *** Q1 REVERSE-POLARITY ORIENTATION DEFECT (issue #10) ***")
+                print("  The protected +24V rail goes strongly NEGATIVE under a")
+                print("  reversed supply — Q1's body diode is in the fault path.")
+                print("  For a P-MOSFET reverse-polarity switch the SOURCE must")
+                print("  sit on the +24V rail (U1.Vin) and the DRAIN on the D1")
+                print("  input side. Fix the wiring in boardgen/_sch_power.py")
+                print("  (Q1 mirror / pin nets); do NOT relax this check.")
+                print()
+            if vgs_failed:
+                print(f"  AO3401A Vgs_max = +/-{VGS_MAX_V:.1f} V (datasheet). "
+                      f"Threshold {VGS_THRESH_V:.1f} V leaves only "
+                      f"{VGS_MAX_V - VGS_THRESH_V:.1f} V buffer.")
+                print("  The gate clamp (D3 BZT52C10S + R4 + R1) fails to hold")
+                print("  Vgs within spec. Board-level fixes (DO NOT relax the")
+                print("  threshold): reduce R4 so the Zener engages faster; use")
+                print("  a faster / lower-Vz Zener; or a wider-Vgs PMOS.")
             s.fail(f"{len(failed)} of {len(results)} reverse-polarity "
-                   "Vgs checks failed")
+                   "checks failed")
 
-        s.ok(f"all {len(results)} reverse-polarity Vgs checks passed - "
-             f"D3+R4+R1 gate clamp holds |Vgs| <= {VGS_THRESH_V:.1f} V "
-             "under both -24 V sustained and -60 V / 1 us transient.")
+        s.ok(f"all {len(results)} reverse-polarity checks passed - "
+             f"D3+R4+R1 gate clamp holds |Vgs| <= {VGS_THRESH_V:.1f} V and Q1 "
+             f"isolates the rail (>= {RAIL_ISOLATION_MIN_V:.1f} V above the "
+             "reversed input) under both -24 V sustained and -60 V / 1 us "
+             "transient.")
         return 0
 
 

@@ -80,7 +80,7 @@
 	(net 24 "Net-(D15-DOUT)")
 	(net 25 "Net-(D16-DOUT)")
 	(net 26 "Net-(D17-DOUT)")
-	(net 27 "Net-(Q1-D)")
+	(net 27 "Net-(J1-Pin_1)")
 	(net 28 "Net-(Q1-G)")
 	(net 29 "Net-(U2-BST)")
 	(net 30 "Net-(U2-FB)")
@@ -1829,7 +1829,7 @@
 			(layers "*.Cu" "*.Mask")
 			(remove_unused_layers no)
 			(roundrect_rratio 0.120192)
-			(net 18 "Net-(D1-K)")
+			(net 27 "Net-(J1-Pin_1)")
 		)
 	(pad "2" thru_hole oval
 			(at 5.08 0 180)
@@ -5072,7 +5072,7 @@
 (footprint "Diode_SMD:D_SMB"
 	(layer "F.Cu")
 	(uuid "b592b8bd-36da-5190-b9bd-3e6c8df8d207")
-	(at 165.5 127.5 90)
+	(at 165.5 121 90)
 (property "Reference" "D1"
 	(at 0 -3.1 90)
 	(layer "F.SilkS")
@@ -5348,7 +5348,7 @@
 (footprint "Package_TO_SOT_SMD:SOT-23"
 	(layer "F.Cu")
 	(uuid "11285b0b-fd6a-58c0-9ff9-df963c386c25")
-	(at 165.5 120.5 90)
+	(at 165.5 114.5 90)
 (property "Reference" "Q1"
 	(at 0 -2.4 90)
 	(layer "F.SilkS")
@@ -5638,14 +5638,14 @@
 			(size 1.475 0.6)
 			(layers "F.Cu" "F.Mask" "F.Paste")
 			(roundrect_rratio 0.25)
-			(net 18 "Net-(D1-K)")
+			(net 3 "+24V")
 		)
 	(pad "3" smd roundrect
 			(at 0.9375 0 90)
 			(size 1.475 0.6)
 			(layers "F.Cu" "F.Mask" "F.Paste")
 			(roundrect_rratio 0.25)
-			(net 27 "Net-(Q1-D)")
+			(net 18 "Net-(D1-K)")
 		)
 	(model "${KICAD10_3DMODEL_DIR}/Package_TO_SOT_SMD.3dshapes/SOT-23.step"
 			(offset
@@ -5913,7 +5913,7 @@
 			(layers "F.Cu" "F.Mask" "F.Paste")
 			(roundrect_rratio 0.25)
 			(uuid "8ca31b66-f8b6-45f9-8378-2150b0b7a501")
-			(net 18 "Net-(D1-K)")
+			(net 3 "+24V")
 		)
 	(pad "2" smd roundrect
 			(at 1.05 0 90)
@@ -5938,7 +5938,7 @@
         	(footprint "oas:Fuse_1812L_4532Metric"
         		(layer "F.Cu")
         		(uuid "c4743922-4c9e-5f76-be7b-33a0edb7b266")
-        		(at 165.5 114.5 90)
+        		(at 165.5 128.5 90)
         		(descr "PTC polyfuse 750 mA hold / 1.5 A trip / 33 V (Littelfuse 1812L075/33DR, LCSC C151170, 1812 SMD).")
         		(attr smd)
         		(property "Reference" "F1"
@@ -6017,14 +6017,14 @@
 	(size 1.4067 3.4992)
 	(layers "F.Cu" "F.Mask" "F.Paste")
 	(uuid "6f3fe2c3-9fec-5e26-83cb-f48e0a3f0264")
-	(net 3 "+24V")
+	(net 27 "Net-(J1-Pin_1)")
 )
 (pad "2" smd rect
 	(at 1.8534 0 90)
 	(size 1.4067 3.4992)
 	(layers "F.Cu" "F.Mask" "F.Paste")
 	(uuid "264332e5-3b98-58ed-b8b1-98c59a6ccdb7")
-	(net 27 "Net-(Q1-D)")
+	(net 18 "Net-(D1-K)")
 )
 (model "${KICAD10_3DMODEL_DIR}/Resistor_SMD.3dshapes/R_1812_4532Metric.step"
 	(offset (xyz 0 0 0))
@@ -14222,7 +14222,7 @@
 	)
 )
 (gr_text "D1"
-	(at 169 127.5 0)
+	(at 169 121 0)
 	(layer "F.Fab")
 	(uuid "03713f03-7912-54fa-b1ef-4ee07db084a6")
 	(effects
@@ -14230,7 +14230,7 @@
 	)
 )
 (gr_text "F1"
-	(at 169.2 114.5 90)
+	(at 169.2 128.5 90)
 	(layer "F.Fab")
 	(uuid "50e74881-d8fe-51f5-97c6-40a04bcad359")
 	(effects
@@ -14238,7 +14238,7 @@
 	)
 )
 (gr_text "Q1"
-	(at 165.5 123.5 0)
+	(at 165.5 117.5 0)
 	(layer "F.Fab")
 	(uuid "636d0008-4c86-5526-a00e-1407bbfc623d")
 	(effects

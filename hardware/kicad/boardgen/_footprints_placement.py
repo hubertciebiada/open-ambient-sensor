@@ -414,7 +414,7 @@ def gen_power_pcb_footprints() -> str:
     # pad 1 (cathode, KiCad D_SMB KLC) on the EAST physical side, facing
     # the Q1 source.
     parts.append(gen_diode_smb_pcb_footprint(
-        x=+17, y=+22.5, rotation=90,
+        x=+17, y=+16.0, rotation=90,
         reference="D1", value="SMBJ24A",
         uuid_tag="d1-tvs-smbj24a",
         descr="SMBJ24A TVS surge clamp, 24 V standoff, 38.9 V clamp.",
@@ -464,8 +464,14 @@ def gen_power_pcb_footprints() -> str:
     # at rotation 90) → east courtyard edge +19.25, i.e. 1.25 mm clear of the
     # cutout west edge. Left column west edge (R1/R4 0603, half-X ~0.8, +12)
     # clears the J1 terminal-block east edge (+9.15) by ~2.05 mm.
+    # issue #10 (reverse-polarity rework): the input-protection parts are
+    # re-ordered along the power path J1 → F1 → D1 → Q1 → +24V so the copper
+    # can follow it. In PCB-local Y (+Y toward the chord = toward J1 at
+    # Y=+32), that means F1 SOUTH (nearest J1), D1 middle, Q1 NORTH (its
+    # source exits north to the +24V rail / U1). The right column stays at
+    # X=+17; the gate cluster (D3/R4/R1) at X=+12 is unchanged.
     parts.append(gen_sot23_3pin_pcb_footprint(
-        x=+17, y=+15.5, rotation=90,
+        x=+17, y=+9.5, rotation=90,
         reference="Q1", value="AO3401A",
         uuid_tag="q1-pmos",
         descr="P-MOSFET reverse-polarity protection. SOT-23. AO3401A: Vds=-30 V, Vgs=±12 V, RDS(on)=60 mΩ @ Vgs=-10 V.",
@@ -493,7 +499,7 @@ def gen_power_pcb_footprints() -> str:
     # columns instead of one tall stack. v0.53: right column X=+20→+17
     # (see the cluster note above D1).
     parts.append(gen_fuse_1812l_pcb_footprint(
-        x=+17, y=+9.5, rotation=90,
+        x=+17, y=+23.5, rotation=90,
         reference="F1", value="1812L075/33DR",
         uuid_tag="f1-ptc",
         descr="PTC polyfuse 750 mA hold / 1.5 A trip / 33 V (Littelfuse 1812L075/33DR, LCSC C151170, 1812 SMD).",
@@ -1588,9 +1594,9 @@ def gen_silk_labels() -> str:
         # v0.53 (issue #2): protection cluster moved 3 mm west with the
         # SEN66 recess cutout — keep these anchors in lock-step with
         # gen_power_pcb_footprints() (right column X=+17, left column X=+12).
-        "D1":  (+17, +22.5),
-        "F1":  (+17, +9.5),
-        "Q1":  (+17, +15.5),
+        "D1":  (+17, +16.0),
+        "F1":  (+17, +23.5),
+        "Q1":  (+17, +9.5),
         "D3":  (+12, +16.5),
         "R4":  (+12, +21.5),
         "R1":  (+12, +26.5),

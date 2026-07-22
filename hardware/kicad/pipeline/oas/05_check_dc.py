@@ -68,6 +68,7 @@ HERE = Path(__file__).parent
 KICAD_DIR = HERE.parent.parent  # pipeline/oas/ -> pipeline/ -> hardware/kicad
 POWER_SCH = KICAD_DIR / "power.kicad_sch"
 MCU_SCH = KICAD_DIR / "mcu.kicad_sch"
+PCB_PATH = KICAD_DIR / "oas.kicad_pcb"
 
 # ---------------------------------------------------------------------------
 # Component datasheet constants (sourced from datasheets, not LLM memory).
@@ -84,7 +85,14 @@ SMBJ24A_VCL = 38.9          # Clamp voltage at 15.4 A peak (600 W)
 AO3401A_VDS_MAX_ABS = 30.0  # AOS AO3401A absolute max Vds (-30 V)
 AO3401A_VGS_MAX_ABS = 12.0  # AOS AO3401A absolute max Vgs (+/-12 V)
 AO3401A_RDS_ON = 0.045      # AOS AO3401A datasheet Rds(on) @ Vgs=-10V (Ω)
+AO3401A_VF_BODY = 0.9       # AO3401A body-diode forward drop (V, typ @ ~0.5 A)
 F1_COLD_R = 0.1             # Littelfuse 2920L075 cold trace resistance (Ω)
+
+# LM2596 Vin absolute-minimum (SNVS124N §6.1: -0.3 V). A reverse-polarity
+# event that drags the protected rail below this destroys the buck + the
+# input electrolytics. The whole point of Q1 is to keep the rail AT OR
+# ABOVE this line under a backwards supply.
+LM2596_VIN_ABS_MIN = -0.3
 
 # OAS rail expected windows (datasheet-driven specs).
 RAIL_5V_WINDOW = (4.85, 5.15)     # LM2596 +/-3% line+load
@@ -217,9 +225,108 @@ def read_design_values() -> dict[str, float]:
 
 
 # ---------------------------------------------------------------------------
+# Q1 orientation (read from the board, NOT assumed)
+# ---------------------------------------------------------------------------
+def _pad_net(fp_block: str, pad_number: str) -> str | None:
+    """Return the net name assigned to pad `pad_number` in a footprint block."""
+    for pm in re.finditer(r'\(pad "([^"]+)"', fp_block):
+        if pm.group(1) != pad_number:
+            continue
+        # Walk balanced parens for this pad's sub-block.
+        i = pm.start()
+        depth = 0
+        j = i
+        while j < len(fp_block):
+            c = fp_block[j]
+            if c == "(":
+                depth += 1
+            elif c == ")":
+                depth -= 1
+                if depth == 0:
+                    j += 1
+                    break
+            j += 1
+        m = re.search(r'\(net \d+ "([^"]*)"\)', fp_block[i:j])
+        return m.group(1) if m else None
+    return None
+
+
+def _footprint_block(pcb_text: str, reference: str) -> str | None:
+    """Return the full (footprint ...) s-expr whose Reference == `reference`."""
+    i = 0
+    while True:
+        idx = pcb_text.find("(footprint ", i)
+        if idx == -1:
+            return None
+        depth = 0
+        j = idx
+        while j < len(pcb_text):
+            c = pcb_text[j]
+            if c == "(":
+                depth += 1
+            elif c == ")":
+                depth -= 1
+                if depth == 0:
+                    j += 1
+                    break
+            j += 1
+        block = pcb_text[idx:j]
+        m = re.search(r'\(property "Reference" "([^"]+)"', block)
+        if m and m.group(1) == reference:
+            return block
+        i = j
+
+
+def read_q1_orientation() -> dict[str, str | bool]:
+    """Read Q1's SOURCE-net and DRAIN-net from the emitted board and decide
+    whether the P-FET is wired for reverse-polarity protection.
+
+    OAS:Q_PMOS_GDS pad map (numeric pads bind stock SOT-23 verbatim, see
+    CLAUDE.md Lesson 8): pad "1" = Gate, pad "2" = Source, pad "3" = Drain.
+
+    A P-MOSFET reverse-polarity switch protects ONLY when its SOURCE sits
+    on the protected/load side (+24V rail, the net that feeds U1.Vin) and
+    its DRAIN on the input (D1) side. The body diode conducts DRAIN→SOURCE;
+    with the source on +24V it is reverse-biased under a backwards supply,
+    so the open channel blocks the fault. Source-on-input (the issue-#10
+    defect) points the body diode ALONG the fault path — protection lost.
+
+    This is the anchor that makes the reverse-polarity scenario a real test
+    rather than an assumption: it reads the ACTUAL wiring, so re-swapping
+    Q1's S/D in boardgen would flip `source_on_rail` to False and fail the
+    stage. Aborts if Q1 or the +24V rail is missing from the board.
+    """
+    pcb_text = PCB_PATH.read_text(encoding="utf-8")
+    q1 = _footprint_block(pcb_text, "Q1")
+    if q1 is None:
+        sys.exit("ERROR: Q1 missing from oas.kicad_pcb - cannot verify orientation.")
+    u1 = _footprint_block(pcb_text, "U1")
+    if u1 is None:
+        sys.exit("ERROR: U1 missing from oas.kicad_pcb - cannot locate the +24V rail.")
+
+    source_net = _pad_net(q1, "2")   # pad 2 = Source
+    drain_net = _pad_net(q1, "3")    # pad 3 = Drain
+    rail_net = _pad_net(u1, "1")     # U1 pin 1 = Vin = the protected +24V rail
+    if not (source_net and drain_net and rail_net):
+        sys.exit(
+            "ERROR: could not read Q1 pad-2/pad-3 or U1 pad-1 nets from the "
+            f"board (source={source_net!r} drain={drain_net!r} rail={rail_net!r})."
+        )
+    return {
+        "source_net": source_net,
+        "drain_net": drain_net,
+        "rail_net": rail_net,
+        # Correct iff SOURCE is on the +24V rail that feeds the buck.
+        "source_on_rail": source_net == rail_net,
+    }
+
+
+# ---------------------------------------------------------------------------
 # DC operating-point computation
 # ---------------------------------------------------------------------------
-def simulate_dc(vin: float, design: dict[str, float]) -> dict[str, float]:
+def simulate_dc(vin: float, design: dict[str, float],
+                source_on_rail: bool = True,
+                d1_failed_open: bool = False) -> dict[str, float]:
     """Compute steady-state voltages at every named net of the OAS power chain
     for the given input voltage. Returns a dict of net -> volts. Negative
     voltages (e.g. for reverse-polarity input) propagate through the model
@@ -228,46 +335,59 @@ def simulate_dc(vin: float, design: dict[str, float]) -> dict[str, float]:
     v = {}
     v["V_24V_RAW"] = vin
 
-    # D1 SMBJ24A clamp: if Vin exceeds Vcl (38.9 V), clamp at Vcl.
+    # Input-side node = Q1's DRAIN pad when correctly wired (after F1, which
+    # now sits FIRST — issue #10). D1 (SMBJ24A) taps this node.
+    #   * Positive surge above Vcl (38.9 V): D1 clamps to Vcl.
+    #   * Reverse polarity with D1 healthy: D1 forward-conducts to GND
+    #     (Vf ~ 0.7 V) and pins the node at ~-0.7 V regardless of how
+    #     negative the supply is.
+    #   * Reverse polarity with D1 FAILED OPEN: nothing clamps it — the
+    #     node follows the raw (negative) supply. This is the worst case
+    #     that EXPOSES Q1's orientation (a backwards FET drags the rail to
+    #     the full negative supply; a correct FET still blocks it).
     if vin > SMBJ24A_VCL:
         v["V_24V_RAW"] = SMBJ24A_VCL
-    elif vin < -1.0:
-        # SMBJ24A is unidirectional. With anode->GND and cathode->V_24V,
-        # reverse polarity (Vin < 0) forward-biases the diode through
-        # its anode-to-cathode path (Vf ~ 0.7 V) - D1 clamps the raw
-        # rail at roughly -0.7 V regardless of how negative Vin is.
+    elif vin < -1.0 and not d1_failed_open:
         v["V_24V_RAW"] = -0.7
+    v_in_node = v["V_24V_RAW"]
 
-    # Q1 AO3401A P-FET behavior. Source connects to V_24V_RAW, Gate
-    # pulled toward GND via R1 (100 k ohm) and clamped via D3 Zener
-    # through R4 (1 k ohm).
-    v_source = v["V_24V_RAW"]
-    # Compute the un-clamped Vgs the gate would settle at without D3.
-    # With Q1 OFF, no gate current -> R1 pulls gate fully to 0 V ->
-    # Vgs = V_gate - V_source = 0 - V_source = -V_source.
-    vgs_open = 0.0 - v_source
-    # D3 (Zener Vz=10) limits Vgs to no more negative than -Vz when forward
-    # current flows (S -> D3 -> R4/R1 junction -> GND).
-    if vgs_open < -design["D3_Vz"]:
-        vgs = -design["D3_Vz"]
+    # Q1 AO3401A gate drive. The gate is pulled toward GND via R1 and
+    # clamped by D3. Under FORWARD polarity the source sits high and the
+    # gate settles ~Vz below it, so Vgs = -Vz (channel ON). Under REVERSE
+    # polarity the D3 clamp forward-conducts and holds Vgs near +Vf, so the
+    # channel is OFF and the BODY DIODE decides the rail.
+    forward = v_in_node > 1.0
+    if forward:
+        # Clamp |Vgs| to the smaller of Vz and the available supply.
+        vgs = -min(design["D3_Vz"], v_in_node)
     else:
-        vgs = vgs_open
+        vgs = +AO3401A_VF_BODY   # reverse: gate clamp forward-biased
+    channel_on = forward and vgs <= -1.0
 
-    # Threshold check: AO3401A turns ON only when Vgs is more negative
-    # than about -1 V (datasheet Vth_max). When Vsource < 0 (reverse
-    # polarity), Vgs is POSITIVE so Q1 stays OFF and isolates downstream.
-    q1_on = vgs <= -1.0 and v_source > 0.0
-
-    if q1_on:
-        # Q1 conducts with Rds_on series resistance. Drop across Q1 at
-        # typical current is negligible (~22 mV at 0.5 A) for DC sanity.
-        v_drop_q1 = TOTAL_INPUT_TYPICAL_A * AO3401A_RDS_ON
-        v_after_q1 = v_source - v_drop_q1
-        # F1 polyfuse adds another ~50 mV at typical current.
-        v_drop_f1 = TOTAL_INPUT_TYPICAL_A * F1_COLD_R
-        v["V_24V_PROT"] = v_after_q1 - v_drop_f1
+    if channel_on:
+        # Channel conducts with Rds_on + F1 cold resistance in series.
+        v_drop = TOTAL_INPUT_TYPICAL_A * (AO3401A_RDS_ON + F1_COLD_R)
+        v["V_24V_PROT"] = v_in_node - v_drop
     else:
-        v["V_24V_PROT"] = 0.0
+        # Channel OFF: the protected rail is set by Q1's BODY DIODE, whose
+        # direction depends on orientation (anode = DRAIN, cathode =
+        # SOURCE; it conducts drain -> source). THIS is the term that was
+        # missing before issue #10 — the model just assigned 0.0 and could
+        # never tell a correctly-wired FET from a backwards one.
+        if source_on_rail:
+            # CORRECT: drain on the input side, source on the +24V rail.
+            # Under a backwards supply the input (anode) is the LOW node,
+            # so the body diode is reverse-biased and the rail is isolated
+            # — it sits at its discharged 0 V. (max() guards the numeric
+            # floor; a backwards supply can only push it toward 0.)
+            v["V_24V_PROT"] = max(0.0, v_in_node - AO3401A_VF_BODY)
+        else:
+            # BACKWARDS (the issue-#10 defect): drain on the +24V rail,
+            # source on the input side. The body diode conducts rail ->
+            # input, dragging the protected rail down to one diode drop
+            # above the (negative) input node. With D1 failed open this is
+            # ~-23 V straight onto U1.Vin and the input electrolytics.
+            v["V_24V_PROT"] = v_in_node + AO3401A_VF_BODY
 
     # LM2596-5.0 buck (24 V -> 5 V). Ideal regulator within the
     # specified Vin window; otherwise output collapses.
@@ -286,7 +406,7 @@ def simulate_dc(vin: float, design: dict[str, float]) -> dict[str, float]:
 
     # Computed stress quantities (for safety-margin checks).
     v["Q1_Vgs"] = vgs
-    v["Q1_Vds"] = v_source - v["V_24V_PROT"] if q1_on else v_source - 0.0
+    v["Q1_Vds"] = v_in_node - v["V_24V_PROT"]
     # v0.40 post-order MATH FIX: D3 Zener dissipation. With Q1's gate at
     # DC high-impedance (Igss <= 100 nA), the gate-bias loop is
     # V_source -> D3 -> R1 (100 kohm gate pulldown) -> GND. R4 (1 kohm
@@ -298,7 +418,7 @@ def simulate_dc(vin: float, design: dict[str, float]) -> dict[str, float]:
     # steady state. (R4 is documented in lcsc-mapping.csv row 11 + power
     # schematic; verified against power.kicad_sch R1 placement.)
     v["D3_P_diss"] = (
-        ((v_source - design["D3_Vz"]) / design["R1"]) * design["D3_Vz"]
+        ((v_in_node - design["D3_Vz"]) / design["R1"]) * design["D3_Vz"]
         if vgs <= -design["D3_Vz"] else 0.0
     )
 
@@ -340,11 +460,24 @@ def main() -> None:
     print(f"  D3 = {design['D3_Vz']:.1f} V Zener (Q1 Vgs clamp)")
     print()
 
+    # Read Q1's ACTUAL orientation from the board (issue #10). Every
+    # scenario below is simulated against the real wiring, so a re-swapped
+    # Q1 fails the reverse-polarity scenarios instead of silently passing.
+    orient = read_q1_orientation()
+    print("Reading Q1 orientation from oas.kicad_pcb...")
+    print(f"  Q1.SOURCE (pad 2) net = {orient['source_net']}")
+    print(f"  Q1.DRAIN  (pad 3) net = {orient['drain_net']}")
+    print(f"  +24V rail (U1.Vin)    = {orient['rail_net']}")
+    print(f"  source_on_rail        = {orient['source_on_rail']} "
+          f"({'reverse-polarity protection ACTIVE' if orient['source_on_rail'] else 'BACKWARDS — protection DEFEATED'})")
+    print()
+    src_on_rail = bool(orient["source_on_rail"])
+
     all_results: list[CheckResult] = []
 
     # ---------- Scenario 1: Nominal +24 V ----------
     print("Scenario 1: Nominal Vin = +24.0 V")
-    v = simulate_dc(+24.0, design)
+    v = simulate_dc(+24.0, design, source_on_rail=src_on_rail)
     for name, val in v.items():
         if not name.startswith(("Q1_", "D3_")):
             print(f"  V({name}) = {val:.3f} V")
@@ -368,7 +501,7 @@ def main() -> None:
 
     # ---------- Scenario 2: Reverse polarity -24 V ----------
     print("Scenario 2: Reverse polarity Vin = -24.0 V (D1 forward bias clamps to -0.7V)")
-    v = simulate_dc(-24.0, design)
+    v = simulate_dc(-24.0, design, source_on_rail=src_on_rail)
     for name, val in v.items():
         if not name.startswith(("Q1_", "D3_")):
             print(f"  V({name}) = {val:.3f} V")
@@ -384,9 +517,49 @@ def main() -> None:
         print(r)
     print()
 
+    # ---------- Scenario 2b: Reverse polarity with D1 FAILED OPEN ----------
+    # This is the check that BITES on Q1's orientation (issue #10). D1 masks
+    # the defect in the normal reverse case (it forward-clamps the input to
+    # ~-0.7 V), but an unfused TVS carrying the fault current can fail open —
+    # and then the protected rail's fate is decided entirely by Q1's body
+    # diode. A correctly-wired Q1 (source on the +24V rail) still BLOCKS the
+    # reversed supply, holding the rail at ~0 V. A backwards Q1 conducts the
+    # full -24 V onto U1.Vin through its body diode. The assertion:
+    # V_24V_PROT must stay at or above the LM2596 Vin abs-min (-0.3 V).
+    print("Scenario 2b: Reverse polarity Vin = -24.0 V with D1 FAILED OPEN")
+    print("  (worst case — exposes Q1 source/drain orientation)")
+    v = simulate_dc(-24.0, design, source_on_rail=src_on_rail,
+                    d1_failed_open=True)
+    for name, val in v.items():
+        if not name.startswith(("Q1_", "D3_")):
+            print(f"  V({name}) = {val:.3f} V")
+    print()
+    s2b = [
+        CheckResult(
+            name="V(V_24V_PROT) >= LM2596 Vin abs-min (Q1 blocks reverse)",
+            value=f"{v['V_24V_PROT']:.3f} V",
+            spec=f">= {LM2596_VIN_ABS_MIN:.2f} V",
+            passed=v["V_24V_PROT"] >= LM2596_VIN_ABS_MIN - 1e-9,
+        ),
+        check_in_window("V(+5V) - should be 0 V (rail blocked)",
+                        v["+5V"], -0.01, 0.01),
+    ]
+    all_results.extend(s2b)
+    for r in s2b:
+        print(r)
+    if not s2b[0].passed:
+        print()
+        print("  *** Q1 REVERSE-POLARITY ORIENTATION DEFECT (issue #10) ***")
+        print("  The protected rail goes NEGATIVE under a reversed supply —")
+        print("  Q1's body diode is in-line with the fault path. Q1's SOURCE")
+        print("  must sit on the +24V rail (U1.Vin) and its DRAIN on the D1")
+        print("  input side. Fix the wiring in boardgen/_sch_power.py; do NOT")
+        print("  relax this check.")
+    print()
+
     # ---------- Scenario 3: TVS clamp event +50 V transient ----------
     print("Scenario 3: TVS clamp event Vin = +50.0 V transient")
-    v = simulate_dc(+50.0, design)
+    v = simulate_dc(+50.0, design, source_on_rail=src_on_rail)
     for name, val in v.items():
         if not name.startswith(("Q1_", "D3_")):
             print(f"  V({name}) = {val:.3f} V")
@@ -407,7 +580,7 @@ def main() -> None:
 
     # ---------- Scenario 4: Brown-out Vin = +6 V ----------
     print("Scenario 4: Brown-out Vin = +6.0 V (below LM2596 Vin_min = 7 V)")
-    v = simulate_dc(+6.0, design)
+    v = simulate_dc(+6.0, design, source_on_rail=src_on_rail)
     for name, val in v.items():
         if not name.startswith(("Q1_", "D3_")):
             print(f"  V({name}) = {val:.3f} V")
