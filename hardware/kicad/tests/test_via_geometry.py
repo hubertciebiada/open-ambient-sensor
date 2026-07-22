@@ -91,11 +91,22 @@ class Pad(NamedTuple):
         board has a closed form; see the module docstring for why an
         approximation is not acceptable here.
         """
-        # into the pad's own frame
-        t = math.radians(-self.rot)
+        # Into the pad's own frame. _parse_board() maps a local offset to
+        # the board with KiCad's Y-down clockwise convention,
+        #     M = [[ cos a, sin a], [-sin a, cos a]],
+        # so coming back the other way needs M^-1 = M^T, i.e. the SAME sign
+        # on `a` in the standard form below. Negating `a` here instead
+        # applies M a second time, which is a rotation by 2a: harmless at
+        # 0/90/180/270 (every pad shape is symmetric under 180 deg) but at
+        # 45/135/225/315 it SWAPS w and h. That silently understated the
+        # distance to the 45-degree-family pads — the LED ring, which is
+        # exactly where the stitcher drops GND vias — and it understated it
+        # in the OPTIMISTIC direction, hiding hazards rather than inventing
+        # them. Caught in review; see test_distance_to_honours_pad_rotation.
+        a = math.radians(self.rot)
         dx, dy = px - self.x, py - self.y
-        lx = dx * math.cos(t) - dy * math.sin(t)
-        ly = dx * math.sin(t) + dy * math.cos(t)
+        lx = dx * math.cos(a) - dy * math.sin(a)
+        ly = dx * math.sin(a) + dy * math.cos(a)
 
         if self.shape == "circle":
             return max(0.0, math.hypot(lx, ly) - self.w / 2.0)
@@ -189,6 +200,33 @@ def _parse_board() -> tuple[list[Pad], list[Via]]:
 
 
 BOARD_PADS, BOARD_VIAS = _parse_board()
+
+
+def test_distance_to_honours_pad_rotation() -> None:
+    """A rotated non-square pad must not silently swap its w and h.
+
+    The first version of distance_to() applied the forward rotation where
+    the inverse was needed. At 0/90/180/270 that is invisible (the error is
+    a 180 deg rotation and every pad shape is symmetric under it), so a
+    board-wide run still reported zero findings — the bug only shows on the
+    45-degree family, and only as an OPTIMISTIC distance. Probing a point
+    that sits exactly on a rotated pad's long edge pins it down: the right
+    answer is 0.0, the buggy one was 0.4.
+    """
+    for angle in (0.0, 45.0, 90.0, 135.0, 180.0, 225.0, 270.0, 315.0):
+        pad = Pad("TEST", "1", 0.0, 0.0, 1.0, 0.2, angle, "rect", 0.0)
+        rad = math.radians(angle)
+        # local (+w/2, 0) mapped to the board through KiCad's Y-down rotation
+        edge_x = (pad.w / 2.0) * math.cos(rad)
+        edge_y = -(pad.w / 2.0) * math.sin(rad)
+        assert pad.distance_to(edge_x, edge_y) == pytest.approx(0.0, abs=1e-9), (
+            f"pad rotated {angle} deg: a point on its long-axis edge should "
+            "be at distance 0; w and h are being swapped"
+        )
+        # and a point one pad-half beyond that edge is exactly w/2 away
+        far_x = 2 * edge_x
+        far_y = 2 * edge_y
+        assert pad.distance_to(far_x, far_y) == pytest.approx(pad.w / 2.0, abs=1e-9)
 
 
 def test_parse_found_a_real_board() -> None:
