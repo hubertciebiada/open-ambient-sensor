@@ -51,9 +51,17 @@ PAGE_CENTRE_X, PAGE_CENTRE_Y = 148.5, 105.0
 # is 0.35 mm; requiring 0.05 mm of clear space between that ring and any
 # pad's copper edge is what keeps the drill out of a solder land and the
 # annular ring intact. Lesson 25's 0.60 mm is where a via gets PLACED —
-# asserting it here would fail two vias that are physically fine (a +3V3
-# via at 0.563 mm from C17.1, the C20.2 rescue at exactly 0.600 mm), and
-# churning good geometry to satisfy a round number is not an improvement.
+# asserting it here would fail four vias that are physically fine, all of
+# them measured centre-to-copper-edge: D12.4 and D14.4 at 0.5514 mm,
+# D18.4 at 0.5804 mm (the three LED-ring stitches, all on 45-degree pads)
+# and the C20.2 rescue at exactly 0.6000 mm. Each still leaves 0.20 mm or
+# more of clear ring, and churning good geometry to satisfy a round number
+# is not an improvement.
+#   (The earlier version of this comment named two vias, one of them a
+#   "+3V3 via at 0.563 mm from C17.1" that does not exist at that distance.
+#   Both figures came from tooling carrying the bounding-box and inverted-
+#   rotation errors described in Lesson 26 — a reminder that the numbers
+#   you quote to justify a threshold need the same scrutiny as the check.)
 VIA_RING_CLEARANCE = 0.05
 # Two 0.30 mm drills need a real FR4 web between them; below this they
 # risk breaking into one slot. Same-net stitches are the usual offenders
