@@ -89,12 +89,18 @@ from boardgen._project import (
 # Route-dependent checks (stage 26 I2C rise-time; the extract_routes /
 # snapshot test suites) skip themselves when "autoroute" not in
 # ROUTING_CHUNKS.
+#
+# GitHub issue #10 (Q1 reverse-polarity rework): "autoroute" is DISABLED
+# AGAIN, for the third time and for the same reason as during issues #2
+# and #9. Q1's source and drain swap ends and F1 moves ahead of D1, so the
+# whole input-protection topology changes: every track on Net-(D1-K),
+# Net-(Q1-D), +24V and the D3 clamp tap is stale, and the three parts move
+# on the PCB as well. Replaying the snapshot onto the reworked netlist
+# would short rewired pads — the exact Lesson 11 failure. The board runs
+# unrouted through the schematic + placement work and gets ONE clean full
+# re-route afterwards.
 ROUTING_CHUNKS: tuple[str, ...] = (
     "gnd",         # Chunk 1 — F.Cu + B.Cu GND copper pour. ALWAYS on.
-    "autoroute",   # Chunk 2 — Freerouting snapshot replay from oas_routes.py.
-                   #           Re-armed after the issue-#9 J4 rework + the
-                   #           GPIO16/17 UART re-pin, against a FRESH snapshot
-                   #           routed on the current placement (Lesson 11).
 )
 
 
