@@ -86,6 +86,17 @@ def gen_mcu_sch() -> str:
       pin order in screen Y is REVERSED vs angle=0: pin 1 (+3V3) at
       the BOTTOM, pin 6 (BOOT) at the TOP.
 
+      UART_TX / UART_RX are the ESP32-C6 ROM CONSOLE (U0TXD/U0RXD on
+      GPIO 16/17) and they now stay INSIDE this sheet: J6.2/J6.3 to
+      J2.3/J2.4 and nowhere else, so the two nets are named by LOCAL
+      labels rather than hierarchical ones. The LD2410's UART left
+      those pins because the DevKitM-1 wires them to its onboard
+      CP2102N through populated 0 R links and powers that bridge from
+      the board 3V3 rail — the bridge drives GPIO 17 continuously
+      (CLAUDE.md Lesson 23). It lands instead on J5.7 / J5.8 (GPIO 0 /
+      GPIO 1), leaving on the LEFT-edge hierarchical-label column with
+      the other sensor-bound nets.
+
     DevKitM-1 pinout (CLAUDE.md v0.4 + v0.15.8 fixes). Pin numbers
     below are the J5 / J6 socket-side pin numbers 1..15, equal to
     the DevKitM-1's J1 / J3 header pin positions per the Espressif
@@ -98,8 +109,8 @@ def gen_mcu_sch() -> str:
         J5.4   GPIO3                            → no_connect (spare)
         J5.5   GPIO4   (strap MTMS)             → no_connect
         J5.6   GPIO5   (strap MTDI)             → no_connect
-        J5.7   GPIO0                            → no_connect (spare)
-        J5.8   GPIO1                            → no_connect (spare)
+        J5.7   GPIO0                            → hier label "LD2410_UART_RX"
+        J5.8   GPIO1                            → hier label "LD2410_UART_TX"
         J5.9   GPIO8   (strap boot, onboard LED)→ hier label "WS2812_DIN"
         J5.10  GPIO6                            → hier label "I2C_SDA"
         J5.11  GPIO7                            → hier label "I2C_SCL"
@@ -110,8 +121,8 @@ def gen_mcu_sch() -> str:
 
       J6 (DevKitM-1 J3, USB-side header)
         J6.1   GND                              → GND
-        J6.2   GPIO16  (UART1 TX)               → hier label "UART_TX"
-        J6.3   GPIO17  (UART1 RX)               → hier label "UART_RX"
+        J6.2   GPIO16  (U0TXD console)          → local label "UART_TX"
+        J6.3   GPIO17  (U0RXD console)          → local label "UART_RX"
         J6.4   GPIO23                           → no_connect (spare)
         J6.5   GPIO22                           → no_connect (spare)
         J6.6   GPIO21                           → no_connect (spare)
@@ -128,7 +139,7 @@ def gen_mcu_sch() -> str:
     Inter-sheet nets exported via hierarchical_label (matching sheet
     ports are declared on the root sheet's MCU sheet block):
       I2C_SDA, I2C_SCL    → sensors sub-sheet + io sub-sheet (Qwiic)
-      UART_TX, UART_RX    → sensors sub-sheet (LD2410)
+      LD2410_UART_TX/_RX  → sensors sub-sheet (LD2410C, J4 pins 2 / 1)
       LD2410_OUT          → sensors sub-sheet
       USB_DM, USB_DP      → io sub-sheet (J10 native-USB recovery header)
       EN                  → io sub-sheet (J10 chip-enable / reset pin)
@@ -149,6 +160,15 @@ def gen_mcu_sch() -> str:
       J2.4  UART_RX        — taps J6 pin 3 UART_RX
       J2.5  EN             — hier label, joins J5 pin 2 RST
       J2.6  BOOT           — hier label, joins J6 pin 11 BOOT
+
+    J2 exists to serial-flash / console a module whose own USB-C ports
+    are unusable, so it belongs on the ROM bootloader's own console
+    pins (U0TXD/U0RXD = GPIO 16/17) and it deliberately did NOT follow
+    the LD2410 onto GPIO 0/1. Caveat inherited from the devkit: an
+    external USB-UART plugged into J2 while the DevKitM-1 is seated
+    contends with the module's onboard CP2102N on the same two nets —
+    unavoidable on this module, and harmless for a DNP header that is
+    only populated when the onboard bridge is out of the picture.
     """
     file_uuid = SHEET_FILE_UUIDS["mcu"]
 
@@ -189,20 +209,25 @@ def gen_mcu_sch() -> str:
     # match the DevKitM-1's J1 / J3 header pin positions 1..15 per the
     # Espressif user guide.
     J5_SIGNAL_PIN: dict[str, int] = {
-        "3V3"        : 1,
-        "RST"        : 2,
-        "LD2410_OUT" : 3,
-        "WS2812_DIN" : 9,
-        "I2C_SDA"    : 10,
-        "I2C_SCL"    : 11,
+        "3V3"            : 1,
+        "RST"            : 2,
+        "LD2410_OUT"     : 3,
+        # GPIO 0 / GPIO 1 — the LD2410C UART pair. Adjacent pads on the
+        # socket row nearest J4, and pin 7 (west) carries the RX so the
+        # two tracks run parallel to J4 pins 1/2 without crossing.
+        "LD2410_UART_RX" : 7,
+        "LD2410_UART_TX" : 8,
+        "WS2812_DIN"     : 9,
+        "I2C_SDA"        : 10,
+        "I2C_SCL"        : 11,
     }
     J5_GND_PINS: list[int] = [13, 15]                     # J1.13, J1.15
-    # v0.53: pin 8 (GPIO1) joined the NC list when SW1 was removed
-    # (GitHub issue #5) — GPIO1 is now an unused spare, no_connect.
-    # Pin 4 (GPIO3) joined when the NFC tag was removed (GitHub
-    # issue #7) — GPIO3 is now an unused spare, no_connect.
-    J5_NC_PINS:  list[int] = [4, 5, 6, 7, 8, 12, 14]
-    #                          GPIO3/4/5/0/1/14   5V (J1.14)
+    # Pin 4 (GPIO3) joined the NC list when the NFC tag was removed
+    # (GitHub issue #7) — GPIO3 is now an unused spare, no_connect.
+    # Pins 7/8 (GPIO0/GPIO1) LEFT it again when the LD2410C UART moved
+    # off the console pins GPIO 16/17 (CLAUDE.md Lesson 23).
+    J5_NC_PINS:  list[int] = [4, 5, 6, 12, 14]
+    #                          GPIO3/4/5/14      5V (J1.14)
     J6_SIGNAL_PIN: dict[str, int] = {
         "UART_TX"    : 2,
         "UART_RX"    : 3,
@@ -227,6 +252,8 @@ def gen_mcu_sch() -> str:
     J5_3V3_Y    = j5_pin_y(J5_SIGNAL_PIN["3V3"])         # 92.71
     J5_RST_Y    = j5_pin_y(J5_SIGNAL_PIN["RST"])         # 95.25
     J5_LDR_Y    = j5_pin_y(J5_SIGNAL_PIN["LD2410_OUT"])  # 97.79
+    J5_LD_RX_Y  = j5_pin_y(J5_SIGNAL_PIN["LD2410_UART_RX"])  # 107.95
+    J5_LD_TX_Y  = j5_pin_y(J5_SIGNAL_PIN["LD2410_UART_TX"])  # 110.49
     J5_WS_Y     = j5_pin_y(J5_SIGNAL_PIN["WS2812_DIN"])  # 113.03
     J5_SDA_Y    = j5_pin_y(J5_SIGNAL_PIN["I2C_SDA"])     # 115.57
     J5_SCL_Y    = j5_pin_y(J5_SIGNAL_PIN["I2C_SCL"])     # 118.11
@@ -321,15 +348,18 @@ def gen_mcu_sch() -> str:
     # J2_PIN_MAP — recovery header pinout signal assignment, imported from
     # _project.py so the schematic netlist and the PCB silkscreen labels
     # share one source of truth. EN (= RST, chip reset) and BOOT come in via
-    # hierarchical labels: J6.2 GPIO16 → TX, J6.3 GPIO17 → RX, J5.2 RST → EN,
-    # J6.11 GPIO9 → BOOT.
+    # hierarchical labels; TX/RX are wired directly to the console pins on
+    # this sheet: J6.2 GPIO16 (U0TXD) → TX, J6.3 GPIO17 (U0RXD) → RX,
+    # J5.2 RST → EN, J6.11 GPIO9 → BOOT.
     assert set(J2_PIN_MAP.values()) == {"+3V3", "GND", "EN", "BOOT", "TX", "RX"}
     J2_PIN_OF: dict[str, int] = {sig: pin for pin, sig in J2_PIN_MAP.items()}
 
     # ===== Hierarchical-label columns =====
     # LEFT-edge labels (sensor-bound nets): X=119.38.
     HLABEL_LEFT_X = 119.38
-    # RIGHT-edge labels: X=222.25 (UART_TX, UART_RX, BOOT, USB_DP, USB_DM).
+    # RIGHT-edge labels: X=222.25 (USB_DP, USB_DM — the console UART_TX /
+    # UART_RX labels used to sit here too, until they stopped leaving this
+    # sheet and became local labels at the J2 stub column).
     HLABEL_RIGHT_X = 222.25
 
     # ===== Wires =====
@@ -378,6 +408,15 @@ def gen_mcu_sch() -> str:
     parts.append(_sch_wire(J5_PIN_X, J5_SCL_Y, HLABEL_LEFT_X, J5_SCL_Y, "scl-wire"))
     parts.append(_sch_wire(J5_PIN_X, J5_LDR_Y, HLABEL_LEFT_X, J5_LDR_Y, "ldr-wire"))
     parts.append(_sch_wire(J5_PIN_X, J5_WS_Y,  HLABEL_LEFT_X, J5_WS_Y,  "ws2812-wire"))
+    # ---- LD2410C UART pair (J5.7 = GPIO0 RX, J5.8 = GPIO1 TX) ----
+    # Same LEFT-edge treatment as the other sensor-bound nets. These two
+    # rows (107.95 / 110.49) sit between the LD2410_OUT row (97.79) and
+    # the WS2812 row (113.03), so each wire CROSSES the R5 (X=121.92) and
+    # R6 (X=124.46) pull-up drops on its way to the label column. The
+    # crossings carry NO junction and are NOT connections — R5/R6 tap the
+    # SDA/SCL rows further south (junctions at Y=115.57 / 118.11).
+    parts.append(_sch_wire(J5_PIN_X, J5_LD_RX_Y, HLABEL_LEFT_X, J5_LD_RX_Y, "ld2410-uart-rx-wire"))
+    parts.append(_sch_wire(J5_PIN_X, J5_LD_TX_Y, HLABEL_LEFT_X, J5_LD_TX_Y, "ld2410-uart-tx-wire"))
 
     # ---- EN: J5.2 (RST) → hier label "EN" (LEFT side) ----
     RST_LABEL_X = J5_PIN_X - 2.54   # 137.16
@@ -397,18 +436,33 @@ def gen_mcu_sch() -> str:
         uuid_tag="boot-j6",
     ))
 
-    # ---- UART: J6.2 (UART_TX) / J6.3 (UART_RX) → J2 → right hier labels ----
+    # ---- Console UART: J6.2 (UART_TX) / J6.3 (UART_RX) → J2 ----
+    # The net ends at J2; nothing else on the board touches GPIO 16/17,
+    # so each wire stops one grid step east of the J2 pin-tip column
+    # (same column as the J2 EN / BOOT stubs) and is named there by a
+    # LOCAL label. It used to run on east to HLABEL_RIGHT_X and export a
+    # hierarchical label to the sensors sheet, back when the LD2410 hung
+    # off these pins.
     j2_tx_y   = J2_PIN_Y[J2_PIN_OF["TX"]]    # 125.73 = J6_TX_Y
     j2_rx_y   = J2_PIN_Y[J2_PIN_OF["RX"]]    # 123.19 = J6_RX_Y
     j2_en_y   = J2_PIN_Y[J2_PIN_OF["EN"]]    # 120.65
     j2_boot_y = J2_PIN_Y[J2_PIN_OF["BOOT"]]  # 118.11
+    CONSOLE_LABEL_X = J2_PIN_X + 2.54        # 196.85
 
-    # TX: straight east from J6.2 pin tip through J2.3 pin tip to UART_TX hier label.
-    parts.append(_sch_wire(J6_PIN_X, J6_TX_Y, HLABEL_RIGHT_X, J6_TX_Y, "tx-bus"))
+    # TX: straight east from J6.2 pin tip through J2.3 pin tip to the label.
+    parts.append(_sch_wire(J6_PIN_X, J6_TX_Y, CONSOLE_LABEL_X, J6_TX_Y, "tx-bus"))
     parts.append(_sch_junction(J2_PIN_X, j2_tx_y, "tx-j2-tap"))
-    # RX: straight east from J6.3 pin tip through J2.4 pin tip to UART_RX hier label.
-    parts.append(_sch_wire(J6_PIN_X, J6_RX_Y, HLABEL_RIGHT_X, J6_RX_Y, "rx-bus"))
+    parts.append(_sch_local_label(
+        name="UART_TX", x=CONSOLE_LABEL_X, y=J6_TX_Y,
+        angle=0, justify="left", uuid_tag="uart-tx-console",
+    ))
+    # RX: straight east from J6.3 pin tip through J2.4 pin tip to the label.
+    parts.append(_sch_wire(J6_PIN_X, J6_RX_Y, CONSOLE_LABEL_X, J6_RX_Y, "rx-bus"))
     parts.append(_sch_junction(J2_PIN_X, j2_rx_y, "rx-j2-tap"))
+    parts.append(_sch_local_label(
+        name="UART_RX", x=CONSOLE_LABEL_X, y=J6_RX_Y,
+        angle=0, justify="left", uuid_tag="uart-rx-console",
+    ))
 
     # ---- USB_DP / USB_DM: J6.13 / J6.14 → right hier labels ----
     # J6.13 USB_DP at Y=97.79, J6.14 USB_DM at Y=95.25 — both well NORTH
@@ -506,16 +560,20 @@ def gen_mcu_sch() -> str:
         x=HLABEL_LEFT_X, y=J5_WS_Y, angle=180, justify="right",
         uuid_tag="ws2812-din",
     ))
-    # ===== Hierarchical labels (RIGHT side) =====
+    # LD2410C UART pair — MCU-centric names, as everywhere else in this
+    # project: _TX is DRIVEN by the ESP32 (lands on the module's Rx pin,
+    # J4 pin 2) and _RX is LISTENED to by the ESP32 (fed by the module's
+    # Tx pin, J4 pin 1). See CLAUDE.md Lesson 20 for why the crossover is
+    # spelled out at every mention.
     parts.append(_sch_hierarchical_label(
-        name="UART_TX", shape="output",
-        x=HLABEL_RIGHT_X, y=J6_TX_Y, angle=0, justify="left",
-        uuid_tag="uart-tx",
+        name="LD2410_UART_RX", shape="input",
+        x=HLABEL_LEFT_X, y=J5_LD_RX_Y, angle=180, justify="right",
+        uuid_tag="ld2410-uart-rx",
     ))
     parts.append(_sch_hierarchical_label(
-        name="UART_RX", shape="input",
-        x=HLABEL_RIGHT_X, y=J6_RX_Y, angle=0, justify="left",
-        uuid_tag="uart-rx",
+        name="LD2410_UART_TX", shape="output",
+        x=HLABEL_LEFT_X, y=J5_LD_TX_Y, angle=180, justify="right",
+        uuid_tag="ld2410-uart-tx",
     ))
 
     # ===== No-connect markers on J5 / J6 unused pins =====

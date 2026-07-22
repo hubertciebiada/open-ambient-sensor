@@ -38,10 +38,10 @@ D. J4 (HLK-LD2410C) pin order vs Lesson 20 canonical mapping. Authority:
      - `boardgen/_sch_sensors.py` J4 wiring block: each J4 pin's wire
        (uuid tags "j4-p1-tx" … "j4-p5-vcc-down") must terminate at the
        canonical net. Net-name nuance: the OAS net names are MCU-centric,
-       so J4 pin 1 (the module's UART_Tx OUTPUT) lands on net UART_RX
-       (it arrives at the ESP32's RX, GPIO 17) and J4 pin 2 (the
-       module's UART_Rx INPUT) lands on net UART_TX (driven by GPIO 16)
-       — the standard TX/RX crossover.
+       so J4 pin 1 (the module's UART_Tx OUTPUT) lands on net
+       LD2410_UART_RX (it arrives at the ESP32's RX, GPIO 0) and J4 pin 2
+       (the module's UART_Rx INPUT) lands on net LD2410_UART_TX (driven
+       by GPIO 1) — the standard TX/RX crossover.
      - `boardgen/_project.py::J4_PCB_ROTATION` must stay 90 — the
        rotation that puts pad 1 at the WEST end of the row, where the
        module's Tx pin physically lands under the orientation above.
@@ -119,14 +119,16 @@ IDENTITY_KEY_PREFIXES = ("supplier",)
 #   pin -> (wire uuid tag, anchor kind, expected net/lib_id).
 #
 # TX/RX crossover: net names are MCU-centric. J4 pin 1 is the module's
-# UART_Tx OUTPUT — it drives the ESP32's RX (GPIO 17), hence net UART_RX.
-# J4 pin 2 is the module's UART_Rx INPUT — driven by the ESP32's TX
-# (GPIO 16), hence net UART_TX. Pin 5 (VCC) is fed from the +5V rail
-# (LM2596S), so its anchor is the power:+5V flag.
+# UART_Tx OUTPUT — it drives the ESP32's RX (GPIO 0), hence net
+# LD2410_UART_RX. J4 pin 2 is the module's UART_Rx INPUT — driven by the
+# ESP32's TX (GPIO 1), hence net LD2410_UART_TX. (The pair carried the
+# bare names UART_TX / UART_RX while it sat on GPIO 16/17; those names now
+# belong to the console at J2 — CLAUDE.md Lesson 23.) Pin 5 (VCC) is fed
+# from the +5V rail (LM2596S), so its anchor is the power:+5V flag.
 SCH_SENSORS_SOURCE_REL = Path("boardgen") / "_sch_sensors.py"
 J4_EXPECTED: dict[int, tuple[str, str, str]] = {
-    1: ("j4-p1-tx", "label", "UART_RX"),    # module TX -> MCU RX (crossover)
-    2: ("j4-p2-rx", "label", "UART_TX"),    # module RX <- MCU TX (crossover)
+    1: ("j4-p1-tx", "label", "LD2410_UART_RX"),  # module TX -> MCU RX (crossover)
+    2: ("j4-p2-rx", "label", "LD2410_UART_TX"),  # module RX <- MCU TX (crossover)
     3: ("j4-p3-out", "label", "LD2410_OUT"),
     4: ("j4-p4-gnd-hop", "power", "power:GND"),
     5: ("j4-p5-vcc-down", "power", "power:+5V"),

@@ -32,8 +32,15 @@ SUBSHEET_PINS: dict[str, list[tuple[str, str, float, float, int]]] = {
         # sensors sub-sheet's WS2812_DIN pin on the same edge for a
         # symmetric inter-sheet wire route.
         ("WS2812_DIN",  "output",        0.0, 11.43, 180),
-        ("UART_TX",     "output",        38.1, 1.27, 0),
-        ("UART_RX",     "input",         38.1, 3.81, 0),
+        # LD2410C UART pair (MCU-centric names: _TX is driven by the MCU).
+        # These sit on the block's RIGHT edge purely because the proven
+        # inter-sheet routing below arrives from the east — hierarchical
+        # matching is by NAME, so the edge says nothing about which side of
+        # the MCU sheet the labels live on (they are on its LEFT column,
+        # with J5.7 / J5.8). Renamed from UART_TX / UART_RX when the pair
+        # moved off the console pins GPIO 16/17 (CLAUDE.md Lesson 23).
+        ("LD2410_UART_TX", "output",     38.1, 1.27, 0),
+        ("LD2410_UART_RX", "input",      38.1, 3.81, 0),
         # v0.19: IO-bound nets — exposed on J10 recovery header in the
         # IO sub-sheet so a field debugger can re-flash the ESP32-C6 via
         # native USB-Serial-JTAG (GPIO 12 = USB D-, GPIO 13 = USB D+) +
@@ -58,8 +65,8 @@ SUBSHEET_PINS: dict[str, list[tuple[str, str, float, float, int]]] = {
         # Directions are from the sensors-sub-sheet perspective and are
         # opposite-polarity to the matching mcu sub-sheet pins (see above).
         ("LD2410_OUT",  "output",        38.1,  6.35, 0),
-        ("UART_TX",     "input",         38.1,  8.89, 0),
-        ("UART_RX",     "output",        38.1, 11.43, 0),
+        ("LD2410_UART_TX", "input",      38.1,  8.89, 0),
+        ("LD2410_UART_RX", "output",     38.1, 11.43, 0),
         # v0.16: AQI status-LED ring input.
         ("WS2812_DIN",  "input",          0.0,  8.89, 180),
     ],
@@ -222,8 +229,8 @@ def gen_root_sch() -> str:
                    Sensors block right-edge pin (88.9, 92.71)
 
     Later chunks will add LD2410_OUT (sensors→MCU) and
-    UART_TX/UART_RX (MCU→sensors via LD2410 connector) as their sub-
-    sheet content lands.
+    LD2410_UART_TX/_RX (MCU↔sensors via the J4 radar header) as their
+    sub-sheet content lands.
     """
     sheet_blocks = "\n".join(
         _gen_sheet_block(name, page)
@@ -255,11 +262,14 @@ def gen_root_sch() -> str:
     inter_wires.append(_root_wire(88.9, 95.25, 100.33, 95.25, "ldr-east-from-sensors"))
     inter_wires.append(_root_wire(100.33, 95.25, 100.33, 57.15, "ldr-vertical"))
     inter_wires.append(_root_wire(100.33, 57.15, 101.60, 57.15, "ldr-east-into-mcu"))
-    # UART_TX / UART_RX — sensors right-edge ↔ MCU right-edge (139.7).
-    # The MCU's UART pins sit on the right edge of its block because the
-    # internal U3 symbol exposes GPIO16/17 on its right side. To reach
-    # them, the wire goes east past the io block's right edge (139.7),
-    # vertical up the east side of the page, then west into the MCU pin.
+    # LD2410_UART_TX / LD2410_UART_RX — sensors right-edge ↔ MCU
+    # right-edge (139.7). The MCU's UART pins sat on the right edge of its
+    # block originally because the pre-v0.21 U3 symbol exposed GPIO16/17 on
+    # its right side; the route is KEPT verbatim now that the pair lives on
+    # GPIO 0/1 (left side of the MCU sheet) because it is the one topology
+    # proven clear of the IO block — see the v0.21 crossover fix below.
+    # The wire goes east past the io block's right edge (139.7), vertical up
+    # the east side of the page, then west into the MCU pin.
     #
     # v0.21 CROSSOVER FIX — the previous routing ran the east-going
     # horizontal segments at Y=97.79 (UART_TX) and Y=100.33 (UART_RX),
@@ -279,18 +289,18 @@ def gen_root_sch() -> str:
     # (UART_TX) / X=97.79 (UART_RX) sits between the sensors block right
     # edge (X=88.9) and the IO block left edge (X=101.6), avoiding any
     # overlap with the IO USB_DP / EN routes.
-    # UART_TX route:
-    inter_wires.append(_root_wire(88.9, 97.79, 95.25, 97.79, "uart-tx-east-stub"))
-    inter_wires.append(_root_wire(95.25, 97.79, 95.25, 110.49, "uart-tx-south"))
-    inter_wires.append(_root_wire(95.25, 110.49, 143.51, 110.49, "uart-tx-east-under-io"))
-    inter_wires.append(_root_wire(143.51, 110.49, 143.51, 52.07, "uart-tx-vertical"))
-    inter_wires.append(_root_wire(143.51, 52.07, 139.7, 52.07, "uart-tx-west-into-mcu"))
-    # UART_RX route (parallel, one grid step south of UART_TX):
-    inter_wires.append(_root_wire(88.9, 100.33, 97.79, 100.33, "uart-rx-east-stub"))
-    inter_wires.append(_root_wire(97.79, 100.33, 97.79, 113.03, "uart-rx-south"))
-    inter_wires.append(_root_wire(97.79, 113.03, 146.05, 113.03, "uart-rx-east-under-io"))
-    inter_wires.append(_root_wire(146.05, 113.03, 146.05, 54.61, "uart-rx-vertical"))
-    inter_wires.append(_root_wire(146.05, 54.61, 139.7, 54.61, "uart-rx-west-into-mcu"))
+    # LD2410_UART_TX route:
+    inter_wires.append(_root_wire(88.9, 97.79, 95.25, 97.79, "ld2410-uart-tx-east-stub"))
+    inter_wires.append(_root_wire(95.25, 97.79, 95.25, 110.49, "ld2410-uart-tx-south"))
+    inter_wires.append(_root_wire(95.25, 110.49, 143.51, 110.49, "ld2410-uart-tx-east-under-io"))
+    inter_wires.append(_root_wire(143.51, 110.49, 143.51, 52.07, "ld2410-uart-tx-vertical"))
+    inter_wires.append(_root_wire(143.51, 52.07, 139.7, 52.07, "ld2410-uart-tx-west-into-mcu"))
+    # LD2410_UART_RX route (parallel, one grid step south of the TX route):
+    inter_wires.append(_root_wire(88.9, 100.33, 97.79, 100.33, "ld2410-uart-rx-east-stub"))
+    inter_wires.append(_root_wire(97.79, 100.33, 97.79, 113.03, "ld2410-uart-rx-south"))
+    inter_wires.append(_root_wire(97.79, 113.03, 146.05, 113.03, "ld2410-uart-rx-east-under-io"))
+    inter_wires.append(_root_wire(146.05, 113.03, 146.05, 54.61, "ld2410-uart-rx-vertical"))
+    inter_wires.append(_root_wire(146.05, 54.61, 139.7, 54.61, "ld2410-uart-rx-west-into-mcu"))
     # v0.16 inter-sheet wire for WS2812_DIN.
     # WS2812_DIN — sensors left-edge (50.8, 97.79) ↔ MCU left-edge
     # (101.60, 62.23). Routed on a vertical leg at X=41.91 with

@@ -122,9 +122,9 @@
 				(justify right)
 			)
 		)
-		(pin "UART_TX" output
+		(pin "LD2410_UART_TX" output
 			(at 139.7 52.07 0)
-			(uuid "63ba750e-98d7-59ed-864e-b3833bbd19c8")
+			(uuid "2eaeb78a-75a7-5657-bd4a-757dc0d7ec5f")
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -132,9 +132,9 @@
 				(justify left)
 			)
 		)
-		(pin "UART_RX" input
+		(pin "LD2410_UART_RX" input
 			(at 139.7 54.61 0)
-			(uuid "ef8511d8-e641-56cc-a831-7c6959bc3089")
+			(uuid "7dcb7230-c4e6-51c7-b3f0-1a30d016cebe")
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -254,9 +254,9 @@
 				(justify left)
 			)
 		)
-		(pin "UART_TX" input
+		(pin "LD2410_UART_TX" input
 			(at 88.9 97.79 0)
-			(uuid "17f47397-d072-545b-ba93-3a3c9ae32345")
+			(uuid "0c5e8d5c-ca39-57be-804c-0438da14a084")
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -264,9 +264,9 @@
 				(justify left)
 			)
 		)
-		(pin "UART_RX" output
+		(pin "LD2410_UART_RX" output
 			(at 88.9 100.33 0)
-			(uuid "a24cb635-33c6-5c13-a11f-1ea18f128721")
+			(uuid "eeee5050-f1da-56f1-92a2-67c544a18fec")
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -492,7 +492,7 @@
 		(width 0)
 		(type default)
 	)
-	(uuid "6ed91bc8-a768-5156-9eff-90626a9d5631")
+	(uuid "41baf858-873d-57c5-8d14-be2e7efea2f6")
 )
 (wire
 	(pts
@@ -502,7 +502,7 @@
 		(width 0)
 		(type default)
 	)
-	(uuid "cbacd9a1-899f-5b6e-b38d-8f66d4dbb0b8")
+	(uuid "e590102d-d027-5789-ac21-9425acee2ac4")
 )
 (wire
 	(pts
@@ -512,7 +512,7 @@
 		(width 0)
 		(type default)
 	)
-	(uuid "d9b8094a-d0ee-55c8-80cf-1d5826f92c15")
+	(uuid "bcb8578e-98df-5fdd-9ea2-37fc39412cf4")
 )
 (wire
 	(pts
@@ -522,7 +522,7 @@
 		(width 0)
 		(type default)
 	)
-	(uuid "b6f6d5c1-8d62-5ede-bd6a-8c57a31df7e4")
+	(uuid "77e36b0c-dfb4-5406-ba28-dbcdc52f1bfb")
 )
 (wire
 	(pts
@@ -532,7 +532,7 @@
 		(width 0)
 		(type default)
 	)
-	(uuid "da0165b8-667c-5916-b4b0-472f11208a75")
+	(uuid "6c95edb3-5a9f-5309-8cdb-7c74f6c32173")
 )
 (wire
 	(pts
@@ -542,7 +542,7 @@
 		(width 0)
 		(type default)
 	)
-	(uuid "c189a03d-6ee3-5941-9331-d5201d19f9fc")
+	(uuid "dc3a592a-ca1d-54dd-b7f2-47e00b2d2f61")
 )
 (wire
 	(pts
@@ -552,7 +552,7 @@
 		(width 0)
 		(type default)
 	)
-	(uuid "6f63e7dd-5be8-5e51-a116-f4cb181f18a5")
+	(uuid "07256d4f-df72-5609-9033-ae9529f6514f")
 )
 (wire
 	(pts
@@ -562,7 +562,7 @@
 		(width 0)
 		(type default)
 	)
-	(uuid "3e22c9a7-99bf-5fbb-8cab-7da7904d14c4")
+	(uuid "d829dee7-7662-560e-8ae8-fd260b11cb1d")
 )
 (wire
 	(pts
@@ -572,7 +572,7 @@
 		(width 0)
 		(type default)
 	)
-	(uuid "724d2721-b653-519d-aaad-864f6b26f11f")
+	(uuid "82a7ca61-ffbb-535c-9fdb-ce30966490fe")
 )
 (wire
 	(pts
@@ -582,7 +582,7 @@
 		(width 0)
 		(type default)
 	)
-	(uuid "42b2e881-01f7-5188-994d-e487e14a93f2")
+	(uuid "a0838f9c-10ef-517e-ab44-7d2c77eb3ff7")
 )
 (wire
 	(pts

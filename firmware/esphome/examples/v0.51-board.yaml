@@ -31,6 +31,10 @@
 #     leaves the SEN66 dead the same way.
 #   Match firmware to the board revision before flashing.
 #
+# The same file also pins the LD2410 UART back to the v0.51 board's GPIO
+# 16/17 (see the substitutions below) — the defaults target the board
+# revision that moved that pair onto GPIO 1/0.
+#
 # NOTE: the swap is bus-wide, so it also affects the J9 Qwiic port — a
 # standard Qwiic device attached to a v0.51 board needs a crossed Qwiic
 # cable.
@@ -43,6 +47,16 @@ substitutions:
   # v0.51 board: J3 SDA/SCL crossed -> swap the I2C pins (issue #6).
   i2c_sda_pin: GPIO7
   i2c_scl_pin: GPIO6
+
+  # v0.51 board: the LD2410 UART lands on the ESP32-C6 console pins.
+  # Later boards moved it to GPIO1 / GPIO0 (CLAUDE.md Lesson 23) because
+  # the DevKitM-1's onboard CP2102N bridge shares GPIO 16/17 through
+  # populated 0 R links and is powered from the board 3.3 V rail — on a
+  # v0.51 board the bridge therefore drives the radar's Tx net whenever
+  # the unit is on, so radar UART reception here is contended by design.
+  # The OUT pin (GPIO2) binary_sensor is unaffected.
+  ld2410_tx_pin: GPIO16
+  ld2410_rx_pin: GPIO17
 
   # Version string shown in the boot log / Home Assistant — keep it at the
   # hardware revision this override targets.

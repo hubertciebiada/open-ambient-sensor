@@ -22,9 +22,15 @@ Specifically blocks the following classes of regression:
   3. **JTAG mode strap conflict**: GPIO 15 (JTAG signal source select)
      bridged to anything other than the module's internal state.
   4. **Pinout swap**: a future schematic edit accidentally swaps two
-     signal pins (e.g. moves UART_TX onto GPIO 17 instead of 16, or
-     wires LD2410_OUT to GPIO 3 instead of 2 - which would make the
+     signal pins (e.g. moves LD2410_UART_TX onto GPIO 0 instead of 1,
+     or wires LD2410_OUT to GPIO 3 instead of 2 - which would make the
      LD2410 presence interrupt land on an unconnected spare pin).
+  5. **Console-pin contention**: a peripheral put back on GPIO 16/17.
+     Those are U0TXD/U0RXD, and on the DevKitM-1 they are hard-wired
+     through populated 0 R links to the onboard CP2102N bridge, whose
+     VDD/REGIN sit on the board 3.3 V rail - so the bridge drives the
+     GPIO 17 net continuously, USB cable or not. Only the J2 recovery
+     header (DNP) may share these two nets. See CLAUDE.md Lesson 23.
 
 Approach
 --------
@@ -106,6 +112,23 @@ STRAP_PINS = [
 SIGNAL_PINS = [
     (f"GPIO{gpio}", f"{entry['sheet']}{entry['net']}", entry["desc"])
     for gpio, entry in sorted(GPIO_ASSIGNMENTS.items())
+]
+
+# Console pins (GPIO 16 = U0TXD, GPIO 17 = U0RXD). The DevKitM-1 keeps its
+# own CP2102N USB-UART bridge on these two pads through populated 0 R links
+# (R9 -> bridge RXD pin 25, R7 -> bridge TXD pin 26) and powers the bridge
+# from VCC_3V3, i.e. from the board rail OAS feeds at J5.1. The bridge's TXD
+# is therefore an always-live push-pull driver on the GPIO 17 net. Any OAS
+# part that also drives one of these nets fights it - which is exactly what
+# the LD2410 did until its UART moved to GPIO 0/1.
+#
+# Rule: each console net may contain ONLY the socket row itself (J6) and the
+# DNP recovery header J2. Nothing else, ever. Keeping GPIO_RESERVED[16]/[17]
+# honest is what this check is for; the reserved dict alone is only a comment.
+# Each entry: (gpio_name, allowed_net_name, allowed_refdes_set).
+CONSOLE_PINS = [
+    ("GPIO16", "/MCU/UART_TX", frozenset({"J6", "J2"})),
+    ("GPIO17", "/MCU/UART_RX", frozenset({"J6", "J2"})),
 ]
 
 # Net name pattern for unconnected pins as emitted by KiCad's netlist exporter.
@@ -302,6 +325,35 @@ def check_signal_pin(
     )
 
 
+def check_console_pin(
+    pin_map: dict[tuple[str, int], str],
+    gpio_name: str,
+    allowed_net: str,
+    allowed_refdes: frozenset[str],
+) -> CheckResult:
+    """A console pin may be NC, or on `allowed_net` shared with nothing
+    but `allowed_refdes`. Any other refdes on that net is a second driver
+    (or load) sitting on top of the DevKitM-1's own CP2102N bridge."""
+    refdes, pin_no, net = find_gpio(pin_map, gpio_name)
+    socket_pin = f"{refdes}.{pin_no:2d}"
+    if is_nc(net):
+        return CheckResult(
+            name=f"{gpio_name} (console, CP2102N-shared)",
+            value=f"{socket_pin} -> NC",
+            spec=f"NC or {allowed_net} with only {sorted(allowed_refdes)}",
+            passed=True,
+        )
+    on_net = sorted({ref for (ref, _pin), n in pin_map.items() if n == net})
+    intruders = [r for r in on_net if r not in allowed_refdes]
+    passed = net == allowed_net and not intruders
+    return CheckResult(
+        name=f"{gpio_name} (console, CP2102N-shared)",
+        value=f"{socket_pin} -> {net}; refdes on net: {on_net}",
+        spec=f"NC or {allowed_net} with only {sorted(allowed_refdes)}",
+        passed=passed,
+    )
+
+
 def main() -> None:
     print("OAS ESP32-C6 boot-strap and signal-pin audit")
     print("=" * 60)
@@ -326,6 +378,14 @@ def main() -> None:
     print("-" * 60)
     for gpio_name, expected_net, desc in SIGNAL_PINS:
         r = check_signal_pin(pin_map, gpio_name, expected_net, desc)
+        all_results.append(r)
+        print(r)
+    print()
+
+    print("Console pin checks (no peripheral may share the CP2102N nets)")
+    print("-" * 60)
+    for gpio_name, allowed_net, allowed_refdes in CONSOLE_PINS:
+        r = check_console_pin(pin_map, gpio_name, allowed_net, allowed_refdes)
         all_results.append(r)
         print(r)
     print()

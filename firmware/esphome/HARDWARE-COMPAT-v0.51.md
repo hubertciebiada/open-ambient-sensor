@@ -1,10 +1,14 @@
-# ⚠ Hardware ↔ firmware compatibility — v0.51 boards need an I²C pin override
+# ⚠ Hardware ↔ firmware compatibility — v0.51 boards need pin overrides
 
 The firmware DEFAULTS in `oas.yaml` target boards with the **corrected J3
 pinout** (GitHub issue #6 fixed): `i2c_sda_pin: GPIO6` / `i2c_scl_pin: GPIO7`
 — the schematic mapping. The five **v0.51** prototype boards (2026-05 run)
 have **SDA/SCL crossed at J3** (the SEN66 socket) and MUST be flashed with a
 substitution override that swaps the two pins.
+
+They need a **second** override as well: v0.51 routes the LD2410 UART to
+GPIO 16/17, which later boards vacated (`ld2410_tx_pin: GPIO1` /
+`ld2410_rx_pin: GPIO0` are now the defaults). See "LD2410 UART pins" below.
 
 ➡ **Flashing the wrong mapping bricks the SEN66 either way** — the sensor is
 powered but never ACKs at 0x6B (`[E][sen6x] Communication failed`, all
@@ -13,10 +17,10 @@ version marking) before flashing.
 
 ## Which firmware goes on which board
 
-| Board | J3 pinout | SEN66 cable | I²C substitutions |
-|---|---|---|---|
-| **v0.51** (five 2026-05 protos) | SDA/SCL crossed (error) | straight 1:1 | `i2c_sda_pin: GPIO7` / `i2c_scl_pin: GPIO6` — override, see below |
-| Fixed rev (issue #6 landed) | mirror of SEN6x Table 16 (correct) | straight 1:1 | defaults (`GPIO6` / `GPIO7`) — no override |
+| Board | J3 pinout | SEN66 cable | I²C substitutions | LD2410 UART substitutions |
+|---|---|---|---|---|
+| **v0.51** (five 2026-05 protos) | SDA/SCL crossed (error) | straight 1:1 | `i2c_sda_pin: GPIO7` / `i2c_scl_pin: GPIO6` — override, see below | `ld2410_tx_pin: GPIO16` / `ld2410_rx_pin: GPIO17` — override |
+| Fixed rev (issue #6 landed) | mirror of SEN6x Table 16 (correct) | straight 1:1 | defaults (`GPIO6` / `GPIO7`) — no override | defaults (`GPIO1` / `GPIO0`) — no override |
 
 ## v0.51 override (exact snippet)
 
@@ -29,6 +33,8 @@ substitutions:
   friendly_name: "Room A"
   i2c_sda_pin: GPIO7      # v0.51 board: J3 SDA/SCL crossed (issue #6)
   i2c_scl_pin: GPIO6
+  ld2410_tx_pin: GPIO16   # v0.51 board: radar UART still on the console pins
+  ld2410_rx_pin: GPIO17
   project_version: "v0.51"
 
 packages:
@@ -71,6 +77,27 @@ opposite-crimp lead (housings on opposite faces of the wire row,
 electrically position-1:1 — the Qwiic-cable style) would re-cross SDA/SCL.
 Do NOT reuse a hand-crossed cable from the early v0.51 workaround era on a
 corrected board (double-cross).
+
+## LD2410 UART pins (v0.51 = GPIO 16/17, later boards = GPIO 1/0)
+
+v0.51 wires J4's UART pair to the ESP32-C6's **U0TXD/U0RXD** (GPIO 16/17).
+On the ESP32-C6-DevKitM-1 those two pads are also hard-wired, through
+**populated 0 Ω links** (R9 → bridge RXD, R7 → bridge TXD), to the onboard
+**CP2102N** USB-UART bridge — and that bridge's VDD/REGIN sit on `VCC_3V3`,
+the board 3.3 V rail OAS feeds at J5.1, **not** on USB VBUS. The bridge is
+therefore powered and driving whenever the unit is on, cable or no cable:
+bench-probed on a v0.51 board (2026-07-22, radar unpowered, bridge USB port
+empty) GPIO 17 read **DRIVEN HIGH** while GPIO 2 and GPIO 16 read floating.
+The radar's Tx output and the bridge's TXD output share that node.
+
+Later boards move the pair to **GPIO 1 (TX) / GPIO 0 (RX)** — free, adjacent
+pads on the socket row nearest J4. See CLAUDE.md **Lesson 23**; enforced in
+CI by the console-pin checks in pipeline stage 06.
+
+On a v0.51 board the override restores communication with the module, but
+the contention is physical and cannot be fixed in firmware — the presence
+`binary_sensor` fed by the radar's **OUT** pin (GPIO 2) is unaffected and
+stays the reliable signal there.
 
 ## Bus-wide side effect: J9 Qwiic port
 

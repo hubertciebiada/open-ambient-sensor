@@ -554,8 +554,14 @@ ESP32C6_DEVKITM1_SIGNAL_PIN: dict[str, int] = {
     "LD2410_OUT" : 3,   # J1.3 = GPIO2 — safe non-strap input
     # J1.4 = GPIO3 was the NFC_FD net; NFC tag removed (GitHub issue #7),
     # so pin 4 is now an unused spare -> ESP32C6_DEVKITM1_NC_PINS.
-    # J1.8 = GPIO1 was SW1's BTN net; SW1 removed in v0.53 (GitHub issue
-    # #5), so pin 8 is now an unused spare -> ESP32C6_DEVKITM1_NC_PINS.
+    # J1.7 = GPIO0 ← LD2410C Tx (J4 pin 1) and J1.8 = GPIO1 → LD2410C Rx
+    # (J4 pin 2), 256000 baud. J1.8 was SW1's BTN net until v0.53 (issue
+    # #5) and a spare after it; both pins took the LD2410 UART when it
+    # moved off GPIO 16/17 — see the GPIO_RESERVED entries in _project.py
+    # and CLAUDE.md Lesson 23. (Longer names than the column alignment
+    # below allows, hence the comment block.)
+    "LD2410_UART_RX": 7,
+    "LD2410_UART_TX": 8,
     "WS2812_DIN" : 9,   # J1.9 = GPIO8 — drives SK6812-SIDE AQI ring DIN
                         # (v0.16). Same GPIO as the DevKitM-1's onboard
                         # NeoPixel; the onboard NeoPixel is unreachable in
@@ -565,8 +571,13 @@ ESP32C6_DEVKITM1_SIGNAL_PIN: dict[str, int] = {
                         # resolution in the v0.16 changelog.
     "I2C_SDA"    : 10,  # J1.10 = GPIO6
     "I2C_SCL"    : 11,  # J1.11 = GPIO7
-    "UART_TX"    : 17,  # J3.2  = GPIO16 → LD2410 RX, 256000 baud
-    "UART_RX"    : 18,  # J3.3  = GPIO17 ← LD2410 TX, 256000 baud
+    # The serial CONSOLE pair, exposed on the J2 recovery header (DNP) and
+    # nowhere else: these two pads are shared with the DevKitM-1's own
+    # CP2102N bridge through populated 0 R links, and the bridge runs off
+    # the board 3V3 rail — so they carry NO peripheral. See GPIO_RESERVED
+    # in _project.py and CLAUDE.md Lesson 23.
+    "UART_TX"    : 17,  # J3.2  = GPIO16 = U0TXD
+    "UART_RX"    : 18,  # J3.3  = GPIO17 = U0RXD
     "BOOT"       : 26,  # J3.11 = GPIO9 (boot-mode strap)
     # v0.19: GPIO 12 / 13 routed to IO sub-sheet's J10 recovery header
     # (native USB-Serial-JTAG D-/D+). On a populated DevKitM-1 these
@@ -598,8 +609,6 @@ ESP32C6_DEVKITM1_NC_PINS: list[int] = [
     4,    # J1.4  = GPIO3    (was NFC_FD; NFC removed issue #7, now spare)
     5,    # J1.5  = GPIO4    (MTMS, unused)
     6,    # J1.6  = GPIO5    (MTDI, unused)
-    7,    # J1.7  = GPIO0    (unused)
-    8,    # J1.8  = GPIO1    (was SW1/BTN; SW1 removed v0.53, now spare)
     12,   # J1.12 = GPIO14   (unused)
     19,   # J3.4  = GPIO23   (unused)
     20,   # J3.5  = GPIO22   (unused)

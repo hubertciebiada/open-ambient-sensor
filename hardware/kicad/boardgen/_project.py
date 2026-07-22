@@ -170,15 +170,25 @@ EXTERNAL_MODULES = {
 # re-pinning, then the schematic generators below pick up via the table.
 # Cross-checked by pipeline/oas/06_check_boot.py.
 GPIO_ASSIGNMENTS = {
+    0:  {"net": "LD2410_UART_RX", "sheet": "/MCU/", "desc": "UART1 RX <- LD2410C Tx (J4 pin 1) at 256000 baud. J5 pin 7"},
+    1:  {"net": "LD2410_UART_TX", "sheet": "/MCU/", "desc": "UART1 TX -> LD2410C Rx (J4 pin 2) at 256000 baud. J5 pin 8"},
     2:  {"net": "LD2410_OUT", "sheet": "/MCU/", "desc": "LD2410 presence interrupt (safe non-strap input)"},
     6:  {"net": "I2C_SDA",    "sheet": "/IO/",  "desc": "Shared I2C bus: SEN66 0x6B, J9 Qwiic"},
     7:  {"net": "I2C_SCL",    "sheet": "/IO/",  "desc": "Shared I2C bus, 4.7 kOhm pull-ups on MCU side (220 mm bus)"},
     8:  {"net": "WS2812_DIN", "sheet": "/MCU/", "desc": "SK6812-SIDE AQI ring data line. STRAP PIN - R7 10 kOhm pull-up to +3V3 required (DevKitM-1 onboard pull-up runs off VCC_5V which is unpowered in OAS)"},
     12: {"net": "USB_DM",     "sheet": "/IO/",  "desc": "Native USB-Serial-JTAG D-"},
     13: {"net": "USB_DP",     "sheet": "/IO/",  "desc": "Native USB-Serial-JTAG D+"},
-    16: {"net": "UART_TX",    "sheet": "/MCU/", "desc": "UART1 TX -> LD2410 RX at 256000 baud"},
-    17: {"net": "UART_RX",    "sheet": "/MCU/", "desc": "UART1 RX <- LD2410 TX at 256000 baud"},
 }
+# GPIO 0 / GPIO 1 footnote (why they are safe despite their alternate
+# function names): on the ESP32-C6 they double as XTAL_32K_P / XTAL_32K_N,
+# and the DevKitM-1 carries the whole 32.768 kHz oscillator network — but
+# every part of it is DNP on the Espressif schematic (Y1 "32.768KHz(NC)",
+# load caps C4/C5 "12pF/50V(5%)(NC)", feedback R1 "10M/0402(NC)"). What IS
+# populated is R3 / R2, 0 R 1% links tying module IO0 / IO1 straight to
+# header J1 pins 7 / 8. So the pads are electrically bare: no driver, no
+# load beyond a few pF of unpopulated footprint. Neither pin is a strap
+# pin on the C6 (straps are 4, 5, 8, 9, 15). Read off
+# esp32-c6-devkitm-1-schematics.pdf page 2, 2026-07-22.
 
 GPIO_RESERVED = {
     4:  "MTMS (JTAG mode) - strap pin, avoid for general I/O",
@@ -187,14 +197,38 @@ GPIO_RESERVED = {
     10: "NOT BONDED on ESP32-C6FH4 (internal SiP flash uses this pad)",
     11: "NOT BONDED on ESP32-C6FH4 (internal SiP flash uses this pad)",
     15: "Boot-mode select / JTAG signal source select - strap pin",
+    # 16/17 are NOT merely 'the default UART0 pins' — on the DevKitM-1 they
+    # are physically shared with a SECOND, ALWAYS-POWERED transceiver, so no
+    # peripheral may ever be assigned here again (CLAUDE.md Lesson 23).
+    16: (
+        "U0TXD console. On the DevKitM-1 it runs through populated 0 R link "
+        "R9 to the CP2102N RXD pin 25 (U3 on Espressif's schematic - not to "
+        "be confused with the OAS symbol of that name, retired in v0.21). "
+        "The bridge's VDD (6) + REGIN (7) "
+        "are tied to VCC_3V3 - the BOARD 3.3 V rail OAS drives at J5.1 - so "
+        "the bridge is alive with no USB cable attached. Board-side use is "
+        "limited to the J2 recovery header (DNP)"
+    ),
+    17: (
+        "U0RXD console. Same 0 R link path (R7) to the CP2102N TXD pin 26, "
+        "which is a push-pull OUTPUT and was observed driving HIGH whenever "
+        "the BRIDGE is powered (i.e. whenever the unit is) - bench-probed on "
+        "a v0.51 board 2026-07-22 with the LD2410 "
+        "unpowered and the bridge's own USB port EMPTY: GPIO17 read DRIVEN "
+        "(held HIGH against its internal pull-down) while GPIO2/GPIO16 read "
+        "FLOATING. Any peripheral output here fights the bridge; this is the "
+        "defect that moved the LD2410 UART to GPIO 0/1"
+    ),
 }
 
 # Safe-non-strap spare GPIOs for future expansion.
-# GPIO 1 (J5 pin 8) joined this list in v0.53 when SW1 was removed
-# (GitHub issue #5) — it is now an unused, no-connect safe non-strap pin.
-# GPIO 3 (J5 pin 4) joined when the NFC tag was removed (GitHub issue #7)
-# — the former NT3H1101 FD interrupt line is now an unused no-connect.
-GPIO_SPARE = [0, 1, 3, 14, 18, 19, 20, 21, 22, 23]
+# GPIO 3 (J5 pin 4) joined this list when the NFC tag was removed (GitHub
+# issue #7) — the former NT3H1101 FD interrupt line is now an unused
+# no-connect. GPIO 1 (J5 pin 8) joined it in v0.53 when SW1 was removed
+# (GitHub issue #5) and LEFT it again together with GPIO 0 (J5 pin 7) when
+# the LD2410C UART moved off GPIO 16/17 onto that adjacent pin pair.
+# NOTE: 16 / 17 are NOT spares — see GPIO_RESERVED above.
+GPIO_SPARE = [3, 14, 18, 19, 20, 21, 22, 23]
 
 # =============================================================================
 # (geometry / footprints / schematic generators follow)
@@ -1156,8 +1190,8 @@ J2_PIN_MAP: dict[int, str] = {1: "+3V3", 2: "GND", 3: "TX", 4: "RX",
 # VCC, printed left-to-right on its antenna face), so the board silk lines
 # up 1:1 with what is printed on the part being fitted. NOTE the deliberate
 # mismatch with the NET names: J4 pin 1 "TX" is the module's transmitter
-# and therefore lands on the MCU-centric net UART_RX, and pin 2 "RX" on
-# UART_TX (see _sch_sensors.py and CLAUDE.md Lesson 20).
+# and therefore lands on the MCU-centric net LD2410_UART_RX, and pin 2 "RX"
+# on LD2410_UART_TX (see _sch_sensors.py and CLAUDE.md Lesson 20).
 J4_PIN_MAP: dict[int, str] = {1: "TX", 2: "RX", 3: "OUT", 4: "GND",
                               5: "VCC"}
 J10_PIN_MAP: dict[int, str] = {1: "GND", 2: "+3V3", 3: "USB-", 4: "USB+",

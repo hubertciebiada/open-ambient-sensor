@@ -1741,6 +1741,26 @@
 )
 (wire
 	(pts
+		(xy 139.7 107.95) (xy 119.38 107.95)
+	)
+	(stroke
+		(width 0)
+		(type default)
+	)
+	(uuid "241cc760-f2e9-532e-b84d-1a36d0d61f29")
+)
+(wire
+	(pts
+		(xy 139.7 110.49) (xy 119.38 110.49)
+	)
+	(stroke
+		(width 0)
+		(type default)
+	)
+	(uuid "e1909162-8eb2-5559-ad31-25a58b97d5cf")
+)
+(wire
+	(pts
 		(xy 139.7 95.25) (xy 137.16 95.25)
 	)
 	(stroke
@@ -1783,7 +1803,7 @@
 )
 (wire
 	(pts
-		(xy 165.1 125.73) (xy 222.25 125.73)
+		(xy 165.1 125.73) (xy 196.85 125.73)
 	)
 	(stroke
 		(width 0)
@@ -1797,9 +1817,19 @@
 	(color 0 0 0 0)
 	(uuid "6724f068-fd56-5a7c-a10f-58bfe0a2505c")
 )
+(label "UART_TX"
+	(at 196.85 125.73 0)
+	(effects
+		(font
+			(size 1.27 1.27)
+		)
+		(justify left)
+	)
+	(uuid "0f14d44a-9bcd-5dd9-aa37-22520680150d")
+)
 (wire
 	(pts
-		(xy 165.1 123.19) (xy 222.25 123.19)
+		(xy 165.1 123.19) (xy 196.85 123.19)
 	)
 	(stroke
 		(width 0)
@@ -1812,6 +1842,16 @@
 	(diameter 0)
 	(color 0 0 0 0)
 	(uuid "567164e9-0e25-5dde-8777-6e0795fb4587")
+)
+(label "UART_RX"
+	(at 196.85 123.19 0)
+	(effects
+		(font
+			(size 1.27 1.27)
+		)
+		(justify left)
+	)
+	(uuid "c12ea4ed-68aa-5ecc-bcaf-ca27fea6d05f")
 )
 (wire
 	(pts
@@ -2341,27 +2381,27 @@
 	)
 	(uuid "b2830fda-078f-5ce0-8bb2-b5188029cbe8")
 )
-(hierarchical_label "UART_TX"
-	(shape output)
-	(at 222.25 125.73 0)
-	(effects
-		(font
-			(size 1.27 1.27)
-		)
-		(justify left)
-	)
-	(uuid "12416e1a-6d9d-5572-afca-6c8411ba6c39")
-)
-(hierarchical_label "UART_RX"
+(hierarchical_label "LD2410_UART_RX"
 	(shape input)
-	(at 222.25 123.19 0)
+	(at 119.38 107.95 180)
 	(effects
 		(font
 			(size 1.27 1.27)
 		)
-		(justify left)
+		(justify right)
 	)
-	(uuid "ec84377b-f3d0-5ba7-8900-704659ee2f90")
+	(uuid "3b6d3b52-b9ea-503b-9d09-f02874216625")
+)
+(hierarchical_label "LD2410_UART_TX"
+	(shape output)
+	(at 119.38 110.49 180)
+	(effects
+		(font
+			(size 1.27 1.27)
+		)
+		(justify right)
+	)
+	(uuid "eb1a2562-622f-5fcc-a50c-65bf83c0707c")
 )
 (no_connect
 	(at 139.7 100.33)
@@ -2374,14 +2414,6 @@
 (no_connect
 	(at 139.7 105.41)
 	(uuid "3cb3dfd6-f3e2-50ff-8634-0ccb0808262c")
-)
-(no_connect
-	(at 139.7 107.95)
-	(uuid "da94d6ba-6ab1-570a-8b00-c78014d809e1")
-)
-(no_connect
-	(at 139.7 110.49)
-	(uuid "bb7fc7e4-857e-5a72-a4b7-c6b484816cb8")
 )
 (no_connect
 	(at 139.7 120.65)

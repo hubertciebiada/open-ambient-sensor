@@ -64,32 +64,32 @@
 	(net 8 "/IO/USB_DM")
 	(net 9 "/IO/USB_DP")
 	(net 10 "/MCU/LD2410_OUT")
-	(net 11 "/MCU/UART_RX")
-	(net 12 "/MCU/UART_TX")
-	(net 13 "/MCU/WS2812_DIN")
-	(net 14 "Earth_Protective")
-	(net 15 "GND")
-	(net 16 "Net-(D1-K)")
-	(net 17 "Net-(D2-K)")
-	(net 18 "Net-(D3-A)")
-	(net 19 "Net-(D11-DOUT)")
-	(net 20 "Net-(D12-DOUT)")
-	(net 21 "Net-(D14-DOUT)")
-	(net 22 "Net-(D15-DOUT)")
-	(net 23 "Net-(D16-DOUT)")
-	(net 24 "Net-(D17-DOUT)")
-	(net 25 "Net-(Q1-D)")
-	(net 26 "Net-(Q1-G)")
-	(net 27 "Net-(U2-BST)")
-	(net 28 "Net-(U2-FB)")
-	(net 29 "Net-(U2-SS)")
-	(net 30 "Net-(U2-SW)")
-	(net 31 "unconnected-(D18-DOUT-Pad3)")
-	(net 32 "unconnected-(J5-Pin_4-Pad4)")
-	(net 33 "unconnected-(J5-Pin_5-Pad5)")
-	(net 34 "unconnected-(J5-Pin_6-Pad6)")
-	(net 35 "unconnected-(J5-Pin_7-Pad7)")
-	(net 36 "unconnected-(J5-Pin_8-Pad8)")
+	(net 11 "/MCU/LD2410_UART_RX")
+	(net 12 "/MCU/LD2410_UART_TX")
+	(net 13 "/MCU/UART_RX")
+	(net 14 "/MCU/UART_TX")
+	(net 15 "/MCU/WS2812_DIN")
+	(net 16 "Earth_Protective")
+	(net 17 "GND")
+	(net 18 "Net-(D1-K)")
+	(net 19 "Net-(D2-K)")
+	(net 20 "Net-(D3-A)")
+	(net 21 "Net-(D11-DOUT)")
+	(net 22 "Net-(D12-DOUT)")
+	(net 23 "Net-(D14-DOUT)")
+	(net 24 "Net-(D15-DOUT)")
+	(net 25 "Net-(D16-DOUT)")
+	(net 26 "Net-(D17-DOUT)")
+	(net 27 "Net-(Q1-D)")
+	(net 28 "Net-(Q1-G)")
+	(net 29 "Net-(U2-BST)")
+	(net 30 "Net-(U2-FB)")
+	(net 31 "Net-(U2-SS)")
+	(net 32 "Net-(U2-SW)")
+	(net 33 "unconnected-(D18-DOUT-Pad3)")
+	(net 34 "unconnected-(J5-Pin_4-Pad4)")
+	(net 35 "unconnected-(J5-Pin_5-Pad5)")
+	(net 36 "unconnected-(J5-Pin_6-Pad6)")
 	(net 37 "unconnected-(J5-Pin_12-Pad12)")
 	(net 38 "unconnected-(J5-Pin_14-Pad14)")
 	(net 39 "unconnected-(J6-Pin_4-Pad4)")
@@ -1331,7 +1331,7 @@
 			(size 0.6 1.7)
 			(layers "F.Cu" "F.Mask" "F.Paste")
 			(roundrect_rratio 0.25)
-			(net 15 "GND")
+			(net 17 "GND")
 		)
 	(pad "3" smd roundrect
 			(at -0.625 -1.85 90)
@@ -1352,7 +1352,7 @@
 			(size 0.6 1.7)
 			(layers "F.Cu" "F.Mask" "F.Paste")
 			(roundrect_rratio 0.25)
-			(net 15 "GND")
+			(net 17 "GND")
 		)
 	(pad "6" smd roundrect
 			(at 3.125 -1.85 90)
@@ -1546,7 +1546,7 @@
 			(drill 1)
 			(layers "*.Cu" "*.Mask")
 			(remove_unused_layers no)
-			(net 11 "/MCU/UART_RX")
+			(net 11 "/MCU/LD2410_UART_RX")
 		)
 	(pad "2" thru_hole circle
 			(at 0 2.54 90)
@@ -1554,7 +1554,7 @@
 			(drill 1)
 			(layers "*.Cu" "*.Mask")
 			(remove_unused_layers no)
-			(net 12 "/MCU/UART_TX")
+			(net 12 "/MCU/LD2410_UART_TX")
 		)
 	(pad "3" thru_hole circle
 			(at 0 5.08 90)
@@ -1570,7 +1570,7 @@
 			(drill 1)
 			(layers "*.Cu" "*.Mask")
 			(remove_unused_layers no)
-			(net 15 "GND")
+			(net 17 "GND")
 		)
 	(pad "5" thru_hole circle
 			(at 0 10.16 90)
@@ -1829,7 +1829,7 @@
 			(layers "*.Cu" "*.Mask")
 			(remove_unused_layers no)
 			(roundrect_rratio 0.120192)
-			(net 16 "Net-(D1-K)")
+			(net 18 "Net-(D1-K)")
 		)
 	(pad "2" thru_hole oval
 			(at 5.08 0 180)
@@ -1837,7 +1837,7 @@
 			(drill 1.4)
 			(layers "*.Cu" "*.Mask")
 			(remove_unused_layers no)
-			(net 15 "GND")
+			(net 17 "GND")
 		)
 	(pad "3" thru_hole oval
 			(at 10.16 0 180)
@@ -1845,7 +1845,7 @@
 			(drill 1.4)
 			(layers "*.Cu" "*.Mask")
 			(remove_unused_layers no)
-			(net 14 "Earth_Protective")
+			(net 16 "Earth_Protective")
 		)
 	(model "${KICAD10_3DMODEL_DIR}/Connector_Phoenix_MSTB.3dshapes/PhoenixContact_MSTBA_2,5_3-G-5,08_1x03_P5.08mm_Horizontal.step"
 			(offset
@@ -2164,7 +2164,7 @@
 			(size 0.6 1.55)
 			(layers "F.Cu" "F.Mask" "F.Paste")
 			(roundrect_rratio 0.25)
-			(net 15 "GND")
+			(net 17 "GND")
 		)
 	(pad "2" smd roundrect
 			(at -0.5 -2)
@@ -2374,7 +2374,7 @@
 			(drill 1)
 			(layers "*.Cu" "*.Mask")
 			(remove_unused_layers no)
-			(net 15 "GND")
+			(net 17 "GND")
 		)
 	(pad "2" thru_hole circle
 			(at 0 2.54 90)
@@ -2988,7 +2988,7 @@
 			(drill 1)
 			(layers "*.Cu" "*.Mask")
 			(remove_unused_layers no)
-			(net 32 "unconnected-(J5-Pin_4-Pad4)")
+			(net 34 "unconnected-(J5-Pin_4-Pad4)")
 		)
 	(pad "5" thru_hole circle
 			(at 0 10.16 90)
@@ -2996,7 +2996,7 @@
 			(drill 1)
 			(layers "*.Cu" "*.Mask")
 			(remove_unused_layers no)
-			(net 33 "unconnected-(J5-Pin_5-Pad5)")
+			(net 35 "unconnected-(J5-Pin_5-Pad5)")
 		)
 	(pad "6" thru_hole circle
 			(at 0 12.7 90)
@@ -3004,7 +3004,7 @@
 			(drill 1)
 			(layers "*.Cu" "*.Mask")
 			(remove_unused_layers no)
-			(net 34 "unconnected-(J5-Pin_6-Pad6)")
+			(net 36 "unconnected-(J5-Pin_6-Pad6)")
 		)
 	(pad "7" thru_hole circle
 			(at 0 15.24 90)
@@ -3012,7 +3012,7 @@
 			(drill 1)
 			(layers "*.Cu" "*.Mask")
 			(remove_unused_layers no)
-			(net 35 "unconnected-(J5-Pin_7-Pad7)")
+			(net 11 "/MCU/LD2410_UART_RX")
 		)
 	(pad "8" thru_hole circle
 			(at 0 17.78 90)
@@ -3020,7 +3020,7 @@
 			(drill 1)
 			(layers "*.Cu" "*.Mask")
 			(remove_unused_layers no)
-			(net 36 "unconnected-(J5-Pin_8-Pad8)")
+			(net 12 "/MCU/LD2410_UART_TX")
 		)
 	(pad "9" thru_hole circle
 			(at 0 20.32 90)
@@ -3028,7 +3028,7 @@
 			(drill 1)
 			(layers "*.Cu" "*.Mask")
 			(remove_unused_layers no)
-			(net 13 "/MCU/WS2812_DIN")
+			(net 15 "/MCU/WS2812_DIN")
 		)
 	(pad "10" thru_hole circle
 			(at 0 22.86 90)
@@ -3060,7 +3060,7 @@
 			(drill 1)
 			(layers "*.Cu" "*.Mask")
 			(remove_unused_layers no)
-			(net 15 "GND")
+			(net 17 "GND")
 		)
 	(pad "14" thru_hole circle
 			(at 0 33.02 90)
@@ -3076,7 +3076,7 @@
 			(drill 1)
 			(layers "*.Cu" "*.Mask")
 			(remove_unused_layers no)
-			(net 15 "GND")
+			(net 17 "GND")
 		)
 	(model "${KICAD10_3DMODEL_DIR}/Connector_PinSocket_2.54mm.3dshapes/PinSocket_1x15_P2.54mm_Vertical.step"
 			(offset
@@ -3279,7 +3279,7 @@
 			(drill 1)
 			(layers "*.Cu" "*.Mask")
 			(remove_unused_layers no)
-			(net 15 "GND")
+			(net 17 "GND")
 		)
 	(pad "2" thru_hole circle
 			(at 0 2.54 90)
@@ -3287,7 +3287,7 @@
 			(drill 1)
 			(layers "*.Cu" "*.Mask")
 			(remove_unused_layers no)
-			(net 12 "/MCU/UART_TX")
+			(net 14 "/MCU/UART_TX")
 		)
 	(pad "3" thru_hole circle
 			(at 0 5.08 90)
@@ -3295,7 +3295,7 @@
 			(drill 1)
 			(layers "*.Cu" "*.Mask")
 			(remove_unused_layers no)
-			(net 11 "/MCU/UART_RX")
+			(net 13 "/MCU/UART_RX")
 		)
 	(pad "4" thru_hole circle
 			(at 0 7.62 90)
@@ -3367,7 +3367,7 @@
 			(drill 1)
 			(layers "*.Cu" "*.Mask")
 			(remove_unused_layers no)
-			(net 15 "GND")
+			(net 17 "GND")
 		)
 	(pad "13" thru_hole circle
 			(at 0 30.48 90)
@@ -3391,7 +3391,7 @@
 			(drill 1)
 			(layers "*.Cu" "*.Mask")
 			(remove_unused_layers no)
-			(net 15 "GND")
+			(net 17 "GND")
 		)
 	(model "${KICAD10_3DMODEL_DIR}/Connector_PinSocket_2.54mm.3dshapes/PinSocket_1x15_P2.54mm_Vertical.step"
 			(offset
@@ -3496,7 +3496,7 @@
 	(size 1.1 1.2)
 	(layers "F.Cu" "F.Paste" "F.Mask")
 	(uuid "9520d1b6-9955-5700-84bc-d7b2a0be2d68")
-	(net 13 "/MCU/WS2812_DIN")
+	(net 15 "/MCU/WS2812_DIN")
 )
 (pad "2" smd rect
 	(at -0.45 0.15 90)
@@ -3510,14 +3510,14 @@
 	(size 0.45 1.2)
 	(layers "F.Cu" "F.Paste" "F.Mask")
 	(uuid "1855b926-eb2e-51ae-93ee-de638d8b7833")
-	(net 19 "Net-(D11-DOUT)")
+	(net 21 "Net-(D11-DOUT)")
 )
 (pad "4" smd rect
 	(at 1.75 0.15 90)
 	(size 1.1 1.2)
 	(layers "F.Cu" "F.Paste" "F.Mask")
 	(uuid "af296daf-7749-5e54-ac24-3e542c95f42d")
-	(net 15 "GND")
+	(net 17 "GND")
 )
 (fp_text user "Di"
 	(at -1.75 2.2 180)
@@ -3639,7 +3639,7 @@
 			(size 0.56 0.62)
 			(layers "F.Cu" "F.Mask" "F.Paste")
 			(roundrect_rratio 0.25)
-			(net 15 "GND")
+			(net 17 "GND")
 		)
 	(model "${KICAD10_3DMODEL_DIR}/Capacitor_SMD.3dshapes/C_0402_1005Metric.step"
 			(offset
@@ -3744,7 +3744,7 @@
 	(size 1.1 1.2)
 	(layers "F.Cu" "F.Paste" "F.Mask")
 	(uuid "2da29f51-9d3f-575c-af4f-c70a5343ebe5")
-	(net 19 "Net-(D11-DOUT)")
+	(net 21 "Net-(D11-DOUT)")
 )
 (pad "2" smd rect
 	(at -0.45 0.15 45)
@@ -3758,14 +3758,14 @@
 	(size 0.45 1.2)
 	(layers "F.Cu" "F.Paste" "F.Mask")
 	(uuid "450758af-90e3-53af-bff2-831063d47168")
-	(net 20 "Net-(D12-DOUT)")
+	(net 22 "Net-(D12-DOUT)")
 )
 (pad "4" smd rect
 	(at 1.75 0.15 45)
 	(size 1.1 1.2)
 	(layers "F.Cu" "F.Paste" "F.Mask")
 	(uuid "310903d8-3b03-533f-9ac7-c4736245e140")
-	(net 15 "GND")
+	(net 17 "GND")
 )
 (model "${KIPRJMOD}/libraries/oas.3dshapes/SK6812-SIDE-A.step"
 	(offset (xyz 0 0 0))
@@ -3875,7 +3875,7 @@
 			(size 0.56 0.62)
 			(layers "F.Cu" "F.Mask" "F.Paste")
 			(roundrect_rratio 0.25)
-			(net 15 "GND")
+			(net 17 "GND")
 		)
 	(model "${KICAD10_3DMODEL_DIR}/Capacitor_SMD.3dshapes/C_0402_1005Metric.step"
 			(offset
@@ -3980,7 +3980,7 @@
 	(size 1.1 1.2)
 	(layers "F.Cu" "F.Paste" "F.Mask")
 	(uuid "44025cd6-1c6a-55df-b97a-9148b41bb97b")
-	(net 20 "Net-(D12-DOUT)")
+	(net 22 "Net-(D12-DOUT)")
 )
 (pad "2" smd rect
 	(at -0.45 0.15 315)
@@ -3994,14 +3994,14 @@
 	(size 0.45 1.2)
 	(layers "F.Cu" "F.Paste" "F.Mask")
 	(uuid "1d383d05-34da-56e4-8cd5-9d1c268950f4")
-	(net 21 "Net-(D14-DOUT)")
+	(net 23 "Net-(D14-DOUT)")
 )
 (pad "4" smd rect
 	(at 1.75 0.15 315)
 	(size 1.1 1.2)
 	(layers "F.Cu" "F.Paste" "F.Mask")
 	(uuid "a988f41a-c9a0-548f-a4ea-834a2ad8910b")
-	(net 15 "GND")
+	(net 17 "GND")
 )
 (model "${KIPRJMOD}/libraries/oas.3dshapes/SK6812-SIDE-A.step"
 	(offset (xyz 0 0 0))
@@ -4111,7 +4111,7 @@
 			(size 0.56 0.62)
 			(layers "F.Cu" "F.Mask" "F.Paste")
 			(roundrect_rratio 0.25)
-			(net 15 "GND")
+			(net 17 "GND")
 		)
 	(model "${KICAD10_3DMODEL_DIR}/Capacitor_SMD.3dshapes/C_0402_1005Metric.step"
 			(offset
@@ -4216,7 +4216,7 @@
 	(size 1.1 1.2)
 	(layers "F.Cu" "F.Paste" "F.Mask")
 	(uuid "ce6c3892-b14b-58bb-aa9c-c36a41f0b20c")
-	(net 21 "Net-(D14-DOUT)")
+	(net 23 "Net-(D14-DOUT)")
 )
 (pad "2" smd rect
 	(at -0.45 0.15 270)
@@ -4230,14 +4230,14 @@
 	(size 0.45 1.2)
 	(layers "F.Cu" "F.Paste" "F.Mask")
 	(uuid "92125514-dc68-56f3-92d6-f24ec3cef858")
-	(net 22 "Net-(D15-DOUT)")
+	(net 24 "Net-(D15-DOUT)")
 )
 (pad "4" smd rect
 	(at 1.75 0.15 270)
 	(size 1.1 1.2)
 	(layers "F.Cu" "F.Paste" "F.Mask")
 	(uuid "2b6dcb5f-f4db-58fe-91bf-af1774dacb2d")
-	(net 15 "GND")
+	(net 17 "GND")
 )
 (model "${KIPRJMOD}/libraries/oas.3dshapes/SK6812-SIDE-A.step"
 	(offset (xyz 0 0 0))
@@ -4347,7 +4347,7 @@
 			(size 0.56 0.62)
 			(layers "F.Cu" "F.Mask" "F.Paste")
 			(roundrect_rratio 0.25)
-			(net 15 "GND")
+			(net 17 "GND")
 		)
 	(model "${KICAD10_3DMODEL_DIR}/Capacitor_SMD.3dshapes/C_0402_1005Metric.step"
 			(offset
@@ -4452,7 +4452,7 @@
 	(size 1.1 1.2)
 	(layers "F.Cu" "F.Paste" "F.Mask")
 	(uuid "bddfb94b-8477-5f68-8f23-a138d153b151")
-	(net 22 "Net-(D15-DOUT)")
+	(net 24 "Net-(D15-DOUT)")
 )
 (pad "2" smd rect
 	(at -0.45 0.15 225)
@@ -4466,14 +4466,14 @@
 	(size 0.45 1.2)
 	(layers "F.Cu" "F.Paste" "F.Mask")
 	(uuid "7366eef7-1417-581f-b611-d105c3d441aa")
-	(net 23 "Net-(D16-DOUT)")
+	(net 25 "Net-(D16-DOUT)")
 )
 (pad "4" smd rect
 	(at 1.75 0.15 225)
 	(size 1.1 1.2)
 	(layers "F.Cu" "F.Paste" "F.Mask")
 	(uuid "3068eb1a-aab3-5a06-9345-5c927f6fd663")
-	(net 15 "GND")
+	(net 17 "GND")
 )
 (model "${KIPRJMOD}/libraries/oas.3dshapes/SK6812-SIDE-A.step"
 	(offset (xyz 0 0 0))
@@ -4583,7 +4583,7 @@
 			(size 0.56 0.62)
 			(layers "F.Cu" "F.Mask" "F.Paste")
 			(roundrect_rratio 0.25)
-			(net 15 "GND")
+			(net 17 "GND")
 		)
 	(model "${KICAD10_3DMODEL_DIR}/Capacitor_SMD.3dshapes/C_0402_1005Metric.step"
 			(offset
@@ -4688,7 +4688,7 @@
 	(size 1.1 1.2)
 	(layers "F.Cu" "F.Paste" "F.Mask")
 	(uuid "5cc83183-9109-578b-89af-a1d5779314ae")
-	(net 23 "Net-(D16-DOUT)")
+	(net 25 "Net-(D16-DOUT)")
 )
 (pad "2" smd rect
 	(at -0.45 0.15 180)
@@ -4702,14 +4702,14 @@
 	(size 0.45 1.2)
 	(layers "F.Cu" "F.Paste" "F.Mask")
 	(uuid "813917f6-d106-53c6-a4d2-4ed315f21307")
-	(net 24 "Net-(D17-DOUT)")
+	(net 26 "Net-(D17-DOUT)")
 )
 (pad "4" smd rect
 	(at 1.75 0.15 180)
 	(size 1.1 1.2)
 	(layers "F.Cu" "F.Paste" "F.Mask")
 	(uuid "348a60ef-1caf-5254-affa-8ba36bf55e64")
-	(net 15 "GND")
+	(net 17 "GND")
 )
 (model "${KIPRJMOD}/libraries/oas.3dshapes/SK6812-SIDE-A.step"
 	(offset (xyz 0 0 0))
@@ -4819,7 +4819,7 @@
 			(size 0.56 0.62)
 			(layers "F.Cu" "F.Mask" "F.Paste")
 			(roundrect_rratio 0.25)
-			(net 15 "GND")
+			(net 17 "GND")
 		)
 	(model "${KICAD10_3DMODEL_DIR}/Capacitor_SMD.3dshapes/C_0402_1005Metric.step"
 			(offset
@@ -4924,7 +4924,7 @@
 	(size 1.1 1.2)
 	(layers "F.Cu" "F.Paste" "F.Mask")
 	(uuid "6e29fa09-0080-5ff4-a156-7db6dbeb9f68")
-	(net 24 "Net-(D17-DOUT)")
+	(net 26 "Net-(D17-DOUT)")
 )
 (pad "2" smd rect
 	(at -0.45 0.15 135)
@@ -4938,14 +4938,14 @@
 	(size 0.45 1.2)
 	(layers "F.Cu" "F.Paste" "F.Mask")
 	(uuid "3bcfc5c8-b642-5a68-b125-3d1500bfc655")
-	(net 31 "unconnected-(D18-DOUT-Pad3)")
+	(net 33 "unconnected-(D18-DOUT-Pad3)")
 )
 (pad "4" smd rect
 	(at 1.75 0.15 135)
 	(size 1.1 1.2)
 	(layers "F.Cu" "F.Paste" "F.Mask")
 	(uuid "dd57e537-7474-5120-b224-a29cf06e9f21")
-	(net 15 "GND")
+	(net 17 "GND")
 )
 (model "${KIPRJMOD}/libraries/oas.3dshapes/SK6812-SIDE-A.step"
 	(offset (xyz 0 0 0))
@@ -5055,7 +5055,7 @@
 			(size 0.56 0.62)
 			(layers "F.Cu" "F.Mask" "F.Paste")
 			(roundrect_rratio 0.25)
-			(net 15 "GND")
+			(net 17 "GND")
 		)
 	(model "${KICAD10_3DMODEL_DIR}/Capacitor_SMD.3dshapes/C_0402_1005Metric.step"
 			(offset
@@ -5323,7 +5323,7 @@
 			(layers "F.Cu" "F.Mask" "F.Paste")
 			(roundrect_rratio 0.1086956522)
 			(uuid "4c545c05-8272-419a-979f-2ddaea156b0f")
-			(net 16 "Net-(D1-K)")
+			(net 18 "Net-(D1-K)")
 		)
 	(pad "2" smd roundrect
 			(at 2.15 0 90)
@@ -5331,7 +5331,7 @@
 			(layers "F.Cu" "F.Mask" "F.Paste")
 			(roundrect_rratio 0.1086956522)
 			(uuid "5eaf5a49-7165-4f57-975c-242c3a4d2fd0")
-			(net 15 "GND")
+			(net 17 "GND")
 		)
 	(model "${KICAD10_3DMODEL_DIR}/Diode_SMD.3dshapes/D_SMB.step"
 			(offset
@@ -5631,21 +5631,21 @@
 			(size 1.475 0.6)
 			(layers "F.Cu" "F.Mask" "F.Paste")
 			(roundrect_rratio 0.25)
-			(net 26 "Net-(Q1-G)")
+			(net 28 "Net-(Q1-G)")
 		)
 	(pad "2" smd roundrect
 			(at -0.9375 0.95 90)
 			(size 1.475 0.6)
 			(layers "F.Cu" "F.Mask" "F.Paste")
 			(roundrect_rratio 0.25)
-			(net 16 "Net-(D1-K)")
+			(net 18 "Net-(D1-K)")
 		)
 	(pad "3" smd roundrect
 			(at 0.9375 0 90)
 			(size 1.475 0.6)
 			(layers "F.Cu" "F.Mask" "F.Paste")
 			(roundrect_rratio 0.25)
-			(net 25 "Net-(Q1-D)")
+			(net 27 "Net-(Q1-D)")
 		)
 	(model "${KICAD10_3DMODEL_DIR}/Package_TO_SOT_SMD.3dshapes/SOT-23.step"
 			(offset
@@ -5913,7 +5913,7 @@
 			(layers "F.Cu" "F.Mask" "F.Paste")
 			(roundrect_rratio 0.25)
 			(uuid "8ca31b66-f8b6-45f9-8378-2150b0b7a501")
-			(net 16 "Net-(D1-K)")
+			(net 18 "Net-(D1-K)")
 		)
 	(pad "2" smd roundrect
 			(at 1.05 0 90)
@@ -5921,7 +5921,7 @@
 			(layers "F.Cu" "F.Mask" "F.Paste")
 			(roundrect_rratio 0.25)
 			(uuid "c9761b48-9e0e-49d7-8a73-4e53ce23d384")
-			(net 18 "Net-(D3-A)")
+			(net 20 "Net-(D3-A)")
 		)
 	(model "${KICAD10_3DMODEL_DIR}/Diode_SMD.3dshapes/D_SOD-323.step"
 			(offset
@@ -6024,7 +6024,7 @@
 	(size 1.4067 3.4992)
 	(layers "F.Cu" "F.Mask" "F.Paste")
 	(uuid "264332e5-3b98-58ed-b8b1-98c59a6ccdb7")
-	(net 25 "Net-(Q1-D)")
+	(net 27 "Net-(Q1-D)")
 )
 (model "${KICAD10_3DMODEL_DIR}/Resistor_SMD.3dshapes/R_1812_4532Metric.step"
 	(offset (xyz 0 0 0))
@@ -6127,14 +6127,14 @@
 			(size 0.8 0.95)
 			(layers "F.Cu" "F.Mask" "F.Paste")
 			(roundrect_rratio 0.25)
-			(net 26 "Net-(Q1-G)")
+			(net 28 "Net-(Q1-G)")
 		)
 	(pad "2" smd roundrect
 			(at 0.825 0 90)
 			(size 0.8 0.95)
 			(layers "F.Cu" "F.Mask" "F.Paste")
 			(roundrect_rratio 0.25)
-			(net 18 "Net-(D3-A)")
+			(net 20 "Net-(D3-A)")
 		)
 	(model "${KICAD10_3DMODEL_DIR}/Resistor_SMD.3dshapes/R_0603_1608Metric.step"
 			(offset
@@ -6243,14 +6243,14 @@
 			(size 0.8 0.95)
 			(layers "F.Cu" "F.Mask" "F.Paste")
 			(roundrect_rratio 0.25)
-			(net 18 "Net-(D3-A)")
+			(net 20 "Net-(D3-A)")
 		)
 	(pad "2" smd roundrect
 			(at 0.825 0 90)
 			(size 0.8 0.95)
 			(layers "F.Cu" "F.Mask" "F.Paste")
 			(roundrect_rratio 0.25)
-			(net 15 "GND")
+			(net 17 "GND")
 		)
 	(model "${KICAD10_3DMODEL_DIR}/Resistor_SMD.3dshapes/R_0603_1608Metric.step"
 			(offset
@@ -7636,7 +7636,7 @@
 			(drill 0.8)
 			(layers "*.Cu" "*.Mask")
 			(remove_unused_layers no)
-			(net 15 "GND")
+			(net 17 "GND")
 		)
 	(model "${KICAD10_3DMODEL_DIR}/Capacitor_THT.3dshapes/CP_Radial_D8.0mm_P3.50mm.step"
 			(offset
@@ -9022,7 +9022,7 @@
 			(drill 0.8)
 			(layers "*.Cu" "*.Mask")
 			(remove_unused_layers no)
-			(net 15 "GND")
+			(net 17 "GND")
 		)
 	(model "${KICAD10_3DMODEL_DIR}/Capacitor_THT.3dshapes/CP_Radial_D8.0mm_P3.50mm.step"
 			(offset
@@ -9331,19 +9331,19 @@
 			(at -8.23 -1.7 180)
 			(size 3.5 1.02)
 			(layers "F.Cu" "F.Mask" "F.Paste")
-			(net 17 "Net-(D2-K)")
+			(net 19 "Net-(D2-K)")
 		)
 	(pad "3" smd rect
 			(at -8.23 0 180)
 			(size 3.5 1.02)
 			(layers "F.Cu" "F.Mask" "F.Paste")
-			(net 15 "GND")
+			(net 17 "GND")
 		)
 	(pad "3" smd rect
 			(at 2.022 0 180)
 			(size 8.705 10.587)
 			(layers "F.Cu" "F.Mask" "F.Paste")
-			(net 15 "GND")
+			(net 17 "GND")
 		)
 	(pad "4" smd rect
 			(at -8.23 1.7 180)
@@ -9355,7 +9355,7 @@
 			(at -8.23 3.4 180)
 			(size 3.5 1.02)
 			(layers "F.Cu" "F.Mask" "F.Paste")
-			(net 15 "GND")
+			(net 17 "GND")
 		)
 	(model "${KICAD10_3DMODEL_DIR}/Package_TO_SOT_SMD.3dshapes/TO-263-5_TabPin3.step"
 			(offset
@@ -9623,7 +9623,7 @@
 			(layers "F.Cu" "F.Mask" "F.Paste")
 			(roundrect_rratio 0.1388888889)
 			(uuid "e092a9e8-b915-4f8c-82db-96bdde4366ac")
-			(net 17 "Net-(D2-K)")
+			(net 19 "Net-(D2-K)")
 		)
 	(pad "2" smd roundrect
 			(at 2 0)
@@ -9631,7 +9631,7 @@
 			(layers "F.Cu" "F.Mask" "F.Paste")
 			(roundrect_rratio 0.1388888889)
 			(uuid "7c00314a-7875-4f2e-ac99-32554d25fcd6")
-			(net 15 "GND")
+			(net 17 "GND")
 		)
 	(model "${KICAD10_3DMODEL_DIR}/Diode_SMD.3dshapes/D_SMA.step"
 			(offset
@@ -9877,7 +9877,7 @@
 			(size 2.2 4.2)
 			(layers "F.Cu" "F.Mask" "F.Paste")
 			(roundrect_rratio 0.113636)
-			(net 17 "Net-(D2-K)")
+			(net 19 "Net-(D2-K)")
 		)
 	(model "${KICAD10_3DMODEL_DIR}/Inductor_SMD.3dshapes/L_Cenker_CKCS5040.step"
 			(offset
@@ -11095,7 +11095,7 @@
 			(drill 0.8)
 			(layers "*.Cu" "*.Mask")
 			(remove_unused_layers no)
-			(net 15 "GND")
+			(net 17 "GND")
 		)
 	(model "${KICAD10_3DMODEL_DIR}/Capacitor_THT.3dshapes/CP_Radial_D6.3mm_P2.50mm.step"
 			(offset
@@ -11317,7 +11317,7 @@
 			(roundrect_rratio 0.1666666667)
 			(thermal_bridge_angle 45)
 			(uuid "95a914b1-aec2-459c-800f-527932fedd92")
-			(net 15 "GND")
+			(net 17 "GND")
 		)
 	(pad "2" smd roundrect
 			(at -0.74 -0.25)
@@ -11344,7 +11344,7 @@
 			(roundrect_rratio 0.1666666667)
 			(thermal_bridge_angle 45)
 			(uuid "32de9d04-c646-4004-ad6f-5e9c48bf5b78")
-			(net 15 "GND")
+			(net 17 "GND")
 		)
 	(pad "5" smd roundrect
 			(at 0.74 0.75)
@@ -11353,7 +11353,7 @@
 			(roundrect_rratio 0.1666666667)
 			(thermal_bridge_angle 45)
 			(uuid "799b8374-eccb-4cb4-ab0d-3eb9624f4353")
-			(net 30 "Net-(U2-SW)")
+			(net 32 "Net-(U2-SW)")
 		)
 	(pad "6" smd roundrect
 			(at 0.74 0.25)
@@ -11362,7 +11362,7 @@
 			(roundrect_rratio 0.1666666667)
 			(thermal_bridge_angle 45)
 			(uuid "45369f82-2854-4cab-875a-dfaa3dfabcac")
-			(net 27 "Net-(U2-BST)")
+			(net 29 "Net-(U2-BST)")
 		)
 	(pad "7" smd roundrect
 			(at 0.74 -0.25)
@@ -11371,7 +11371,7 @@
 			(roundrect_rratio 0.1666666667)
 			(thermal_bridge_angle 45)
 			(uuid "e6ea1b52-1b23-422b-8067-e20bb830ab5e")
-			(net 29 "Net-(U2-SS)")
+			(net 31 "Net-(U2-SS)")
 		)
 	(pad "8" smd roundrect
 			(at 0.74 -0.75)
@@ -11380,7 +11380,7 @@
 			(roundrect_rratio 0.1666666667)
 			(thermal_bridge_angle 45)
 			(uuid "c44da805-c063-4a08-bb9b-74907d6e2e33")
-			(net 28 "Net-(U2-FB)")
+			(net 30 "Net-(U2-FB)")
 		)
 	(model "${KICAD10_3DMODEL_DIR}/Package_TO_SOT_SMD.3dshapes/SOT-583-8.step"
 			(offset
@@ -11626,7 +11626,7 @@
 			(size 2.2 4.2)
 			(layers "F.Cu" "F.Mask" "F.Paste")
 			(roundrect_rratio 0.113636)
-			(net 30 "Net-(U2-SW)")
+			(net 32 "Net-(U2-SW)")
 		)
 	(model "${KICAD10_3DMODEL_DIR}/Inductor_SMD.3dshapes/L_Cenker_CKCS5040.step"
 			(offset
@@ -11742,7 +11742,7 @@
 			(size 0.8 0.95)
 			(layers "F.Cu" "F.Mask" "F.Paste")
 			(roundrect_rratio 0.25)
-			(net 28 "Net-(U2-FB)")
+			(net 30 "Net-(U2-FB)")
 		)
 	(model "${KICAD10_3DMODEL_DIR}/Resistor_SMD.3dshapes/R_0603_1608Metric.step"
 			(offset
@@ -11851,14 +11851,14 @@
 			(size 0.8 0.95)
 			(layers "F.Cu" "F.Mask" "F.Paste")
 			(roundrect_rratio 0.25)
-			(net 28 "Net-(U2-FB)")
+			(net 30 "Net-(U2-FB)")
 		)
 	(pad "2" smd roundrect
 			(at 0.825 0)
 			(size 0.8 0.95)
 			(layers "F.Cu" "F.Mask" "F.Paste")
 			(roundrect_rratio 0.25)
-			(net 15 "GND")
+			(net 17 "GND")
 		)
 	(model "${KICAD10_3DMODEL_DIR}/Resistor_SMD.3dshapes/R_0603_1608Metric.step"
 			(offset
@@ -11974,7 +11974,7 @@
 			(size 0.9 0.95)
 			(layers "F.Cu" "F.Mask" "F.Paste")
 			(roundrect_rratio 0.25)
-			(net 15 "GND")
+			(net 17 "GND")
 		)
 	(model "${KICAD10_3DMODEL_DIR}/Capacitor_SMD.3dshapes/C_0603_1608Metric.step"
 			(offset
@@ -12090,7 +12090,7 @@
 			(size 0.9 0.95)
 			(layers "F.Cu" "F.Mask" "F.Paste")
 			(roundrect_rratio 0.25)
-			(net 15 "GND")
+			(net 17 "GND")
 		)
 	(model "${KICAD10_3DMODEL_DIR}/Capacitor_SMD.3dshapes/C_0603_1608Metric.step"
 			(offset
@@ -12206,7 +12206,7 @@
 			(size 1 1.45)
 			(layers "F.Cu" "F.Mask" "F.Paste")
 			(roundrect_rratio 0.25)
-			(net 15 "GND")
+			(net 17 "GND")
 		)
 	(model "${KICAD10_3DMODEL_DIR}/Capacitor_SMD.3dshapes/C_0805_2012Metric.step"
 			(offset
@@ -12322,7 +12322,7 @@
 			(size 0.9 0.95)
 			(layers "F.Cu" "F.Mask" "F.Paste")
 			(roundrect_rratio 0.25)
-			(net 15 "GND")
+			(net 17 "GND")
 		)
 	(model "${KICAD10_3DMODEL_DIR}/Capacitor_SMD.3dshapes/C_0603_1608Metric.step"
 			(offset
@@ -12670,7 +12670,7 @@
 			(size 0.8 0.95)
 			(layers "F.Cu" "F.Mask" "F.Paste")
 			(roundrect_rratio 0.25)
-			(net 13 "/MCU/WS2812_DIN")
+			(net 15 "/MCU/WS2812_DIN")
 		)
 	(model "${KICAD10_3DMODEL_DIR}/Resistor_SMD.3dshapes/R_0603_1608Metric.step"
 			(offset
@@ -12786,7 +12786,7 @@
 			(size 1 1.45)
 			(layers "F.Cu" "F.Mask" "F.Paste")
 			(roundrect_rratio 0.25)
-			(net 15 "GND")
+			(net 17 "GND")
 		)
 	(model "${KICAD10_3DMODEL_DIR}/Capacitor_SMD.3dshapes/C_0805_2012Metric.step"
 			(offset
@@ -12902,7 +12902,7 @@
 			(size 0.9 0.95)
 			(layers "F.Cu" "F.Mask" "F.Paste")
 			(roundrect_rratio 0.25)
-			(net 15 "GND")
+			(net 17 "GND")
 		)
 	(model "${KICAD10_3DMODEL_DIR}/Capacitor_SMD.3dshapes/C_0603_1608Metric.step"
 			(offset
@@ -13018,7 +13018,7 @@
 			(size 1 1.45)
 			(layers "F.Cu" "F.Mask" "F.Paste")
 			(roundrect_rratio 0.25)
-			(net 15 "GND")
+			(net 17 "GND")
 		)
 	(model "${KICAD10_3DMODEL_DIR}/Capacitor_SMD.3dshapes/C_0805_2012Metric.step"
 			(offset
@@ -13134,7 +13134,7 @@
 			(size 0.9 0.95)
 			(layers "F.Cu" "F.Mask" "F.Paste")
 			(roundrect_rratio 0.25)
-			(net 15 "GND")
+			(net 17 "GND")
 		)
 	(model "${KICAD10_3DMODEL_DIR}/Capacitor_SMD.3dshapes/C_0603_1608Metric.step"
 			(offset
@@ -13243,14 +13243,14 @@
 			(size 0.9 0.95)
 			(layers "F.Cu" "F.Mask" "F.Paste")
 			(roundrect_rratio 0.25)
-			(net 27 "Net-(U2-BST)")
+			(net 29 "Net-(U2-BST)")
 		)
 	(pad "2" smd roundrect
 			(at 0.775 0)
 			(size 0.9 0.95)
 			(layers "F.Cu" "F.Mask" "F.Paste")
 			(roundrect_rratio 0.25)
-			(net 30 "Net-(U2-SW)")
+			(net 32 "Net-(U2-SW)")
 		)
 	(model "${KICAD10_3DMODEL_DIR}/Capacitor_SMD.3dshapes/C_0603_1608Metric.step"
 			(offset
@@ -13359,14 +13359,14 @@
 			(size 0.9 0.95)
 			(layers "F.Cu" "F.Mask" "F.Paste")
 			(roundrect_rratio 0.25)
-			(net 29 "Net-(U2-SS)")
+			(net 31 "Net-(U2-SS)")
 		)
 	(pad "2" smd roundrect
 			(at 0.775 0)
 			(size 0.9 0.95)
 			(layers "F.Cu" "F.Mask" "F.Paste")
 			(roundrect_rratio 0.25)
-			(net 15 "GND")
+			(net 17 "GND")
 		)
 	(model "${KICAD10_3DMODEL_DIR}/Capacitor_SMD.3dshapes/C_0603_1608Metric.step"
 			(offset
@@ -13475,14 +13475,14 @@
 			(size 1 1.45)
 			(layers "F.Cu" "F.Mask" "F.Paste")
 			(roundrect_rratio 0.25)
-			(net 14 "Earth_Protective")
+			(net 16 "Earth_Protective")
 		)
 	(pad "2" smd roundrect
 			(at 0.95 0)
 			(size 1 1.45)
 			(layers "F.Cu" "F.Mask" "F.Paste")
 			(roundrect_rratio 0.25)
-			(net 15 "GND")
+			(net 17 "GND")
 		)
 	(model "${KICAD10_3DMODEL_DIR}/Capacitor_SMD.3dshapes/C_0805_2012Metric.step"
 			(offset
@@ -13598,7 +13598,7 @@
 			(size 0.9 0.95)
 			(layers "F.Cu" "F.Mask" "F.Paste")
 			(roundrect_rratio 0.25)
-			(net 15 "GND")
+			(net 17 "GND")
 		)
 	(model "${KICAD10_3DMODEL_DIR}/Capacitor_SMD.3dshapes/C_0603_1608Metric.step"
 			(offset
@@ -13714,7 +13714,7 @@
 			(size 0.9 0.95)
 			(layers "F.Cu" "F.Mask" "F.Paste")
 			(roundrect_rratio 0.25)
-			(net 15 "GND")
+			(net 17 "GND")
 		)
 	(model "${KICAD10_3DMODEL_DIR}/Capacitor_SMD.3dshapes/C_0603_1608Metric.step"
 			(offset
@@ -13899,7 +13899,7 @@
 			(drill 1)
 			(layers "*.Cu" "*.Mask")
 			(remove_unused_layers no)
-			(net 15 "GND")
+			(net 17 "GND")
 		)
 	(pad "3" thru_hole circle
 			(at 0 5.08 90)
@@ -13907,7 +13907,7 @@
 			(drill 1)
 			(layers "*.Cu" "*.Mask")
 			(remove_unused_layers no)
-			(net 12 "/MCU/UART_TX")
+			(net 14 "/MCU/UART_TX")
 		)
 	(pad "4" thru_hole circle
 			(at 0 7.62 90)
@@ -13915,7 +13915,7 @@
 			(drill 1)
 			(layers "*.Cu" "*.Mask")
 			(remove_unused_layers no)
-			(net 11 "/MCU/UART_RX")
+			(net 13 "/MCU/UART_RX")
 		)
 	(pad "5" thru_hole circle
 			(at 0 10.16 90)
@@ -14703,7 +14703,7 @@
 )
 
 	(zone
-		(net 15)
+		(net 17)
 		(net_name "GND")
 		(layer "F.Cu")
 		(uuid "9ca5b500-120b-5064-9912-1375d46b88ec")
@@ -14821,7 +14821,7 @@
 		)
 	)
 	(zone
-		(net 15)
+		(net 17)
 		(net_name "GND")
 		(layer "B.Cu")
 		(uuid "9bc0deab-10bd-5cb3-a9e0-64dd2f22bbe3")

@@ -150,7 +150,7 @@ Alternatively, the **AP fallback** (`OAS-<device_id>-Setup` SSID, gated by `ap_p
 | OTA fails with "wrong password" | Re-flash via USB-C with the new password baked in. Lost OTA passwords cannot be recovered. |
 | LED ring doesn't light | Check that `+5V` is reaching the LM2596S output — `core.yaml` itself never touches the LED ring; that's `leds.yaml`'s job. |
 | SEN66 measurements stuck on "unavailable" | Likely I²C bus issue; scan with `i2c.scan: true` (already enabled). SEN66 lives at 0x6B. |
-| LD2410 presence never triggers | Verify UART pins (TX=GPIO16, RX=GPIO17) and 256000 baud rate. Use `logger: VERBOSE` to see the raw protocol. |
+| LD2410 presence never triggers | Verify UART pins (TX=GPIO1, RX=GPIO0 — they moved off GPIO16/17, see CLAUDE.md Lesson 23) and 256000 baud rate. Use `logger: VERBOSE` to see the raw protocol. |
 
 ## Status
 

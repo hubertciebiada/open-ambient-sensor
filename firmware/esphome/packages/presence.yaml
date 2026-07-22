@@ -21,9 +21,18 @@
 #   Pin 5 = VCC       (+5 V from LM2596S buck, ~79 mA typical, >200 mA capable)
 #
 # ESP32-C6 wiring (CLAUDE.md pinout table):
-#   GPIO 16 (UART1 TX, ESP32 -> LD2410 pin 2)
-#   GPIO 17 (UART1 RX, ESP32 <- LD2410 pin 1)
+#   GPIO 1  (UART1 TX, ESP32 -> LD2410 pin 2)
+#   GPIO 0  (UART1 RX, ESP32 <- LD2410 pin 1)
 #   GPIO 2  (binary input, ESP32 <- LD2410 pin 3, OUT)
+#
+# The UART pair used to sit on GPIO 16/17. It moved because those are
+# U0TXD/U0RXD and the ESP32-C6-DevKitM-1 hard-wires them, through populated
+# 0 R links, to its onboard CP2102N USB-UART bridge — a bridge powered from
+# the board's 3.3 V rail, not from USB VBUS, so it drives the GPIO 17 net
+# whenever the unit is on, with no cable attached. Two push-pull outputs on
+# the radar's Tx net. See CLAUDE.md Lesson 23. GPIO 0/1 are free, adjacent
+# pads on the socket row nearest J4; their XTAL_32K alternate function is
+# irrelevant here (the DevKitM-1's 32.768 kHz crystal parts are all DNP).
 #
 # ---------------------------------------------------------------------------
 # LD2410 gate concept
@@ -59,8 +68,11 @@
 # ---------------------------------------------------------------------------
 uart:
   - id: ld2410_uart
-    tx_pin: GPIO16
-    rx_pin: GPIO17
+    # Pin mapping comes from the ${ld2410_tx_pin} / ${ld2410_rx_pin}
+    # substitutions declared in oas.yaml (defaults GPIO1 / GPIO0 — the
+    # current schematic). v0.51 boards must override to GPIO16 / GPIO17.
+    tx_pin: ${ld2410_tx_pin}
+    rx_pin: ${ld2410_rx_pin}
     baud_rate: 256000
     # parity NONE, data_bits 8, stop_bits 1 are the defaults — match the
     # LD2410 8N1 protocol spec.

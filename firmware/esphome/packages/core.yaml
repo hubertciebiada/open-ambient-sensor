@@ -88,11 +88,15 @@ web_server:
 # Logger
 # ---------------------------------------------------------------------------
 # hardware_uart: USB_SERIAL_JTAG routes the logger over the ESP32-C6's native
-# USB-Serial-JTAG controller instead of a hardware UART. This is required
-# because GPIO 16/17 (the default UART0 pins) are owned by the LD2410 presence
-# radar at 256000 baud (see CLAUDE.md pinout) — a UART logger would collide
-# with the radar bus. Routing the logger to USB also keeps improv_serial
-# working (it needs a non-disabled serial logger; baud_rate: 0 would break it).
+# USB-Serial-JTAG controller instead of a hardware UART. Both ports work as a
+# console — the DevKitM-1 has one USB-C on the native USB-Serial-JTAG (GPIO
+# 12/13) and one on the CP2102N bridge (UART0, GPIO 16/17) — and since the
+# LD2410 moved off GPIO 16/17 the CP2102N port is a usable console again
+# (CLAUDE.md Lesson 23). Native USB stays the default anyway: it needs no
+# board pins at all, it survives a re-pinning of UART0, and its port is the
+# one that also carries USB-Serial-JTAG flashing. Routing the logger to USB
+# also keeps improv_serial working (it needs a non-disabled serial logger;
+# baud_rate: 0 would break it).
 # Logs are available via:
 #   - USB-Serial-JTAG (native USB) when plugged into the USB-C port
 #   - The web_server's live log viewer

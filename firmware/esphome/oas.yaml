@@ -76,6 +76,18 @@ substitutions:
   i2c_sda_pin: GPIO6
   i2c_scl_pin: GPIO7
 
+  # LD2410C UART pin mapping (consumed by packages/presence.yaml). The
+  # DEFAULTS below are the current schematic mapping — GPIO1 = ESP TX to the
+  # radar's Rx pin, GPIO0 = ESP RX from the radar's Tx pin.
+  #
+  # WARNING — v0.51 boards route the radar UART to GPIO 16/17 and MUST
+  # override these (ld2410_tx_pin: GPIO16 / ld2410_rx_pin: GPIO17) — see
+  # examples/v0.51-board.yaml and HARDWARE-COMPAT-v0.51.md. The pair moved
+  # off 16/17 because the DevKitM-1 keeps its onboard CP2102N bridge on those
+  # two pads and powers it from the board 3.3 V rail (CLAUDE.md Lesson 23).
+  ld2410_tx_pin: GPIO1
+  ld2410_rx_pin: GPIO0
+
 esphome:
   name: oas-${device_id}
   friendly_name: ${friendly_name}

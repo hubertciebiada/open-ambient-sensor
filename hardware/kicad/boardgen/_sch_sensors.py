@@ -303,12 +303,16 @@ def gen_sensors_sch() -> str:
     # on the module; pins 2..5 are round. There is no printed "1".
     #
     #   Pin 1: UART_Tx — UART output FROM the radar (data flowing → MCU
-    #                  GPIO 17). Net name UART_RX in this sheet: the
+    #                  GPIO 0). Net name LD2410_UART_RX in this sheet: the
     #                  signal ARRIVES at the MCU's RX pin, so we keep the
     #                  MCU-centric net name (matches the hier label
     #                  declared by the mcu sub-sheet).
-    #   Pin 2: UART_Rx — UART input TO the radar (MCU GPIO 16 drives it).
-    #                  Net name UART_TX (MCU-centric, see above).
+    #   Pin 2: UART_Rx — UART input TO the radar (MCU GPIO 1 drives it).
+    #                  Net name LD2410_UART_TX (MCU-centric, see above).
+    #                  The pair moved off GPIO 16/17 because the DevKitM-1
+    #                  keeps its own CP2102N bridge on those two pads and
+    #                  powers it from the board 3V3 rail, so the bridge
+    #                  drove this radar's Tx net (CLAUDE.md Lesson 23).
     #   Pin 3: OUT   — digital presence output (HIGH = target detected,
     #                  3.3 V CMOS). Wires to MCU GPIO 2 via the LD2410_OUT
     #                  net so ESPHome can attach a binary_sensor without
@@ -345,8 +349,8 @@ def gen_sensors_sch() -> str:
     # Pin order per the Hi-Link HLK-LD2410C manual V1.00 (2022-11-07),
     # Table 1 / section 4.2. The PCB pad numbering of J4 (1..5) corresponds
     # 1:1 with the module's hole row, pad 1 at the row's WEST end:
-    #   Pin 1 = UART_Tx (output from the module → MCU input, net UART_RX)
-    #   Pin 2 = UART_Rx (input  to  the module ← MCU output, net UART_TX)
+    #   Pin 1 = UART_Tx (module output → MCU input, net LD2410_UART_RX)
+    #   Pin 2 = UART_Rx (module input  ← MCU output, net LD2410_UART_TX)
     #   Pin 3 = OUT (target-status digital output, 3.3 V level)
     #   Pin 4 = GND
     #   Pin 5 = VCC (5 V supply, range 5-12 V)
@@ -382,18 +386,18 @@ def gen_sensors_sch() -> str:
     C11_TOP_Y = C11_Y - 3.81   # 151.13 — pin 1 (top) → +5V (= J4 pin 5)
     C11_BOT_Y = C11_Y + 3.81   # 158.75 — pin 2 (bottom) → GND
 
-    # ----- Pin 1 (module Tx → MCU RX, top): wire LEFT to UART_RX hier label ---
+    # -- Pin 1 (module Tx → MCU RX, top): wire LEFT to LD2410_UART_RX label --
     parts.append(_sch_wire(J4_PIN_X, J4_PIN_Y[1], HLABEL_LEFT_X, J4_PIN_Y[1], "j4-p1-tx"))
     parts.append(_sch_hierarchical_label(
-        name="UART_RX", shape="output",
+        name="LD2410_UART_RX", shape="output",
         x=HLABEL_LEFT_X, y=J4_PIN_Y[1], angle=180, justify="right",
         uuid_tag="uart-rx-j4",
     ))
 
-    # ----- Pin 2 (module Rx ← MCU TX): wire LEFT to UART_TX hier label -----
+    # -- Pin 2 (module Rx ← MCU TX): wire LEFT to LD2410_UART_TX label -----
     parts.append(_sch_wire(J4_PIN_X, J4_PIN_Y[2], HLABEL_LEFT_X, J4_PIN_Y[2], "j4-p2-rx"))
     parts.append(_sch_hierarchical_label(
-        name="UART_TX", shape="input",
+        name="LD2410_UART_TX", shape="input",
         x=HLABEL_LEFT_X, y=J4_PIN_Y[2], angle=180, justify="right",
         uuid_tag="uart-tx-j4",
     ))

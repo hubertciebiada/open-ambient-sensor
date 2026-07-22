@@ -2150,7 +2150,7 @@
 	)
 	(uuid "47be8fa6-16eb-5751-925e-4eff46ef5031")
 )
-(hierarchical_label "UART_RX"
+(hierarchical_label "LD2410_UART_RX"
 	(shape output)
 	(at 160.02 140.97 180)
 	(effects
@@ -2171,7 +2171,7 @@
 	)
 	(uuid "df0f2f64-73e0-5d03-b64c-d7e0b717dc22")
 )
-(hierarchical_label "UART_TX"
+(hierarchical_label "LD2410_UART_TX"
 	(shape input)
 	(at 160.02 143.51 180)
 	(effects
