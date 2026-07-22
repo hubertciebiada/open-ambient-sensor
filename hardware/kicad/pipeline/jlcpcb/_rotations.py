@@ -152,16 +152,33 @@ JLCPCB_ROTATIONS_OAS: list[tuple[re.Pattern, float, float, float, str]] = [
     #
     # Trigger: JLCPCB Confirm-Parts-Placement review of the v0.51 order
     # (2026-05-25) flagged U2 with a render rotated 180 deg from our
-    # natural KiCad view and asked the customer to confirm. The render
-    # we sent back (KiCad-natural pin-1 upper-left) was accepted, but
-    # the round-trip indicates JLCPCB's tape feeder for this LCSC# is
-    # 180 deg off the KiCad footprint orientation — exactly what this
-    # table is for. Baking +180 in here so the next CPL upload matches
-    # JLCPCB's expected tape orientation without a manual question.
+    # natural KiCad view and asked the customer to confirm.
+    #
+    # ✅ CONFIRMED CORRECT — board owner, 2026-07-22. JLCPCB raised the
+    # query during that order, the owner checked the part against the
+    # feeder orientation first-hand, and the answer was that U2 DID have
+    # to be rotated. So +180 is a permanent correction for this LCSC#,
+    # not an inference. This paragraph is the verification record: the
+    # exchange happened outside the repo, so it is written down here.
+    #
+    # Why the record matters, and do NOT re-open it from the code alone:
+    # the SOT-583-8 land is EXACTLY invariant under 180 deg (pads map
+    # 1->5, 2->6, 3->7, 4->8 onto identical geometry), so NO check in
+    # this project — DRC, JLCDFM, or any test — can detect a wrong value
+    # here. A 2026-07-22 review panel independently re-derived that and
+    # flagged the entry as unverifiable, correctly, because at the time
+    # the repo held only inference. It also noted that the v0.51 order
+    # shipped a CPL with rotation 0 (commit 22d0135) and produced working
+    # boards — which is consistent with this confirmation: JLCPCB's human
+    # placement review is precisely what corrected the 0 on that run.
+    # Getting it wrong maps VIN onto SS and GND onto FB (TI SLUSEA4D
+    # 1=RT 2=EN 3=VIN 4=GND 5=SW 6=BST 7=SS 8=FB): the 3V3 rail sits dead
+    # at 0 V. It cannot over-volt, so nothing downstream is damaged —
+    # the bring-up symptom is 5 V present, 3.3 V absent, ESP32 no boot.
     (
         re.compile(r"^SOT-583-8$"),
         180, 0.0, 0.0,
-        "U2 SOT-583-8 (TPS62933 / C3200405): +180 — JLCPCB Confirm-Parts-Placement review of v0.51 order (2026-05-25) showed U2 rotated 180 deg from KiCad natural; tape-feeder orientation for this LCSC# is 180 off the footprint. Local renders stay at 0 deg (KiCad ground truth, pin 1 RT upper-left per TI SLUSEA4D Fig 7-1); CPL applies +180.",
+        "U2 SOT-583-8 (TPS62933 / C3200405): +180 — CONFIRMED CORRECT by the board owner 2026-07-22 after JLCPCB queried U2's orientation during the v0.51 Confirm-Parts-Placement review; the part did have to be rotated, so the tape-feeder orientation for this LCSC# is 180 deg off the footprint. Undetectable by any check (the SOT-583-8 land is 180-deg symmetric) — see the comment above before changing it. Local renders stay at 0 deg (KiCad ground truth, pin 1 RT upper-left per TI SLUSEA4D Fig 7-1); CPL applies +180.",
     ),
     # Q1 — AO3401A P-MOSFET, SOT-23 (KiCad stock Package_TO_SOT_SMD:SOT-23).
     # The upstream `^SOT-23,-90` row is dropped via JLCPCB_UPSTREAM_SKIP
