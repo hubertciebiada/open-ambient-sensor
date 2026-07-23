@@ -57,19 +57,13 @@ def main() -> int:
             st.fail(f"{n_viol} DRC violation(s) — see {drc_report}")
         st.ok(f"{n_viol} violations")
 
-        # Unconnected-pad baseline. TEMPORARY, pinned while signal routing is
-        # switched off for the GitHub issue #10 rework (Q1 source/drain swap +
-        # F1 moved ahead of D1 — see ROUTING_CHUNKS in boardgen/_routing.py).
-        # With only the GND pours emitted, every non-GND pad legitimately reads
-        # as unconnected; 83 is the count on the pre-rework netlist.
-        #
-        # The rework rewires pads between nets but neither adds nor removes
-        # any, so this figure is expected to hold. If it moves, that is a real
-        # signal — reconcile it before continuing, do not just re-pin it.
-        #
-        # MUST GO BACK TO 0 when the re-route lands. A fully routed board has
-        # no unconnected pads, and any non-zero count is a regression then.
-        EXPECTED_UNCONNECTED = 83
+        # Unconnected-pad baseline. The board is FULLY ROUTED
+        # (ROUTING_CHUNKS = ("gnd", "autoroute") in boardgen/_routing.py; the
+        # post-issue-#10 re-route landed a 373-segment / 37-via snapshot in
+        # oas_routes.py). A fully routed board has no unconnected pads, so any
+        # non-zero count here is a routing regression — do not re-pin it,
+        # reconcile the snapshot.
+        EXPECTED_UNCONNECTED = 0
         if n_unc != EXPECTED_UNCONNECTED:
             st.fail(
                 f"{n_unc} unconnected pads — expected exactly "

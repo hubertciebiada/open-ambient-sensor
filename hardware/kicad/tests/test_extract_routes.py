@@ -37,16 +37,17 @@ _routing_deferred = pytest.mark.skipif(
 def test_round_trip_boardgen_format_byte_identical() -> None:
     """Committed oas.kicad_pcb (boardgen `(net N)` format) round-trips.
 
-    Counts match the committed snapshot header ("Source snapshot: 375
-    segments, 38 vias.") — the v0.53 post-issue-#9 re-route: Freerouting
-    2.2.4 on the reworked J4 placement with the LD2410 UART moved to
-    GPIO 0/1, plus the pre-placed GND pad rescues, the GND island-to-plane
-    stitch vias and three hand-closed links (see test_project_constants).
+    Counts match the committed snapshot header ("Source snapshot: 373
+    segments, 37 vias.") — the post-issue-#10 re-route (Q1 reverse-polarity
+    rework: source/drain swapped, F1 moved ahead of D1). Freerouting 2.2.4
+    on the reworked input-protection placement, plus the pre-placed GND pad
+    rescues, the GND island-to-plane stitch vias and the hand-closed +5V
+    link into U2 (see test_project_constants).
     """
     text = extract_routes.PCB.read_text(encoding="utf-8")
     segments, vias = extract_routes.extract(text)
-    assert len(segments) == 375
-    assert len(vias) == 38
+    assert len(segments) == 373
+    assert len(vias) == 37
 
     rendered = extract_routes.render(segments, vias)
     committed = extract_routes.OUT.read_text(encoding="utf-8")

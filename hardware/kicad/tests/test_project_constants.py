@@ -229,17 +229,19 @@ def test_projected_24v_input_within_derated_f1_hold() -> None:
 
 @_routing_deferred
 def test_routes_snapshot_counts() -> None:
-    # v0.53 post-issue-#9 full re-route (J4 reworked for the LD2410C, LD2410
-    # UART moved off GPIO16/17). Freerouting 2.2.4 against a DSN whose
-    # Edge.Cuts keepouts were grown 0.12 mm — the DSN only carries the 0.20 mm
-    # copper clearance, so without that the router parks tracks ~0.21 mm off
-    # the cable-hole rim and trips 'Trace to Outline' (0.30 mm). On top of the
-    # autorouted signals: 10 GND pad rescues pre-placed BEFORE routing (a pad
-    # boxed in by its neighbours' escape tracks has no via spot afterwards),
-    # the GND island-to-plane stitch vias, and three hand-closed links the
-    # router left short (+5V into U2). Snapshot: 375 segments, 38 vias.
-    assert len(oas_routes.ROUTES_SEGMENTS) == 375
-    assert len(oas_routes.ROUTES_VIAS) == 38
+    # Post-issue-#10 full re-route (Q1 reverse-polarity rework: source/drain
+    # swapped, F1 moved ahead of D1 — the input-protection nets changed
+    # membership). Freerouting 2.2.4 against a DSN whose Edge.Cuts keepouts
+    # were grown 0.12 mm — the DSN only carries the 0.20 mm copper clearance,
+    # so without that the router parks tracks ~0.21 mm off the cable-hole rim
+    # and trips 'Trace to Outline' (0.30 mm). On top of the autorouted
+    # signals: 9 GND pad rescues pre-placed BEFORE routing (a pad boxed in by
+    # its neighbours' escape tracks has no via spot afterwards), a D11.4 GND
+    # pad rescue (its F.Cu island was too small to seat a stitch via), the GND
+    # island-to-plane stitch vias, and the hand-closed +5V link into U2 the
+    # router left short. Snapshot: 373 segments, 37 vias.
+    assert len(oas_routes.ROUTES_SEGMENTS) == 373
+    assert len(oas_routes.ROUTES_VIAS) == 37
 
 
 @_routing_deferred

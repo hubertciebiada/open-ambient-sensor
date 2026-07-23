@@ -101,6 +101,7 @@ from boardgen._project import (
 # re-route afterwards.
 ROUTING_CHUNKS: tuple[str, ...] = (
     "gnd",         # Chunk 1 — F.Cu + B.Cu GND copper pour. ALWAYS on.
+    "autoroute",   # Chunk 2 — Freerouting 2.2.4 snapshot replay from oas_routes.py.
 )
 
 
