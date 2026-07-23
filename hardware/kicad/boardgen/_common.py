@@ -39,7 +39,7 @@ GEN_VERSION = "10.0"
 # without booting the device. The silkscreen generator reads OAS_VERSION_LINE
 # directly (single source of truth) — bump it on each release tag.
 OAS_NAME_SHORT = "Open Ambient Sensor"
-OAS_VERSION_LINE = "v0.53"
+OAS_VERSION_LINE = "v0.54"
 # Public repo URL printed on F.SilkS under the board-id block (scheme
 # dropped, split at the slashes: a 53-char single line at the 1.0 mm
 # min_text_height would be ~72 mm wide — far beyond the west pocket).
