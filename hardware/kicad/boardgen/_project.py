@@ -462,8 +462,8 @@ SEN66_CUTOUT_X_MAX = max(c[0] for c in _sen66_body_corners_pcb) + SEN66_CUTOUT_M
 SEN66_CUTOUT_Y_MIN = min(c[1] for c in _sen66_body_corners_pcb) - SEN66_CUTOUT_MARGIN_N
 SEN66_CUTOUT_Y_MAX = max(c[1] for c in _sen66_body_corners_pcb) + SEN66_CUTOUT_MARGIN_S
 # With the v0.53 anchor (21.5, 22.0) + rotation 90 this evaluates to
-# X 20.70..47.85, Y -33.95..23.0 (a 27.15 x 56.95 mm opening; short-axis
-# slack 1.55 mm, long-axis slack 1.75 mm over the 25.6 x 55.2 mm body).
+# X 20.50..47.85, Y -33.95..23.0 (a 27.35 x 56.95 mm opening; slack
+# 1.75 mm on both axes over the 25.6 x 55.2 mm body).
 
 
 # Zip-tie hole positions in SEN66-local mm (relative to the body corner
