@@ -258,6 +258,34 @@ def in_window(x: float | None, lo: float, hi: float) -> bool:
     return x is not None and lo <= x <= hi
 
 
+def friendly_name_from_yaml(path: Path) -> str | None:
+    m = re.search(r'^\s*friendly_name:\s*"?([^"\n]+?)"?\s*$', path.read_text(encoding="utf-8"), re.M)
+    return m.group(1) if m else None
+
+
+def update_registry(yaml_path: Path, device_id: str, fields: dict[str, object]) -> Path:
+    """Keep a per-fleet `units.json` next to the device configs — one entry per
+    unit with what the check learned (MAC, IP, SEN66 serial, last result) plus
+    hand-maintained deployment flags. The file carries room names and
+    addresses, so it belongs in the gitignored devices/ directory."""
+    reg = yaml_path.parent / "units.json"
+    try:
+        data = json.loads(reg.read_text(encoding="utf-8")) if reg.exists() else {}
+    except (OSError, ValueError):
+        data = {}
+    entry = data.setdefault(device_id, {})
+    for k, v in fields.items():
+        if v is not None:
+            entry[k] = v
+    if entry.get("last_result") == "PASS":
+        entry.setdefault("first_pass", entry["last_check"])
+    for flag in ("dhcp_reserved", "ha_added", "installed"):
+        entry.setdefault(flag, False)
+    entry.setdefault("notes", "")
+    reg.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    return reg
+
+
 # --------------------------------------------------------------------------- main
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -284,11 +312,15 @@ def main() -> int:
     rep.note(f"OAS bring-up check — {host} — {started:%Y-%m-%d %H:%M:%S}")
     rep.note(f"config: {yaml_path}")
 
-    # 1. port
+    # 1. port — only needed to flash or to pulse the reset; a pure network
+    #    re-check (--no-flash --no-reset) runs without a cable
     port = find_port(args.port)
-    rep.check("USB-Serial-JTAG port found", port is not None, port or "none / ambiguous — pass --port")
-    if port is None:
-        return 1
+    if args.no_flash and args.no_reset:
+        rep.check("USB-Serial-JTAG port", None, port or "not needed (--no-flash --no-reset)")
+    else:
+        rep.check("USB-Serial-JTAG port found", port is not None, port or "none / ambiguous — pass --port")
+        if port is None:
+            return 1
 
     # 2. flash
     if args.no_flash:
@@ -338,7 +370,12 @@ def main() -> int:
     # 4. network
     ip, src, txt = resolve_unit(host, args.ip)
     rep.check("mDNS / IP resolves", ip is not None, f"{ip} via {src}" if ip else "not resolved — pass --ip")
-    mac = port_mac(port)
+    mac = port_mac(port) if port else None
+    if mac is None:  # no cable: reuse what an earlier run recorded
+        try:
+            mac = json.loads((yaml_path.parent / "units.json").read_text(encoding="utf-8")).get(device_id, {}).get("mac")
+        except (OSError, ValueError):
+            mac = None
     mdns_mac = txt.get("mac")
     if mdns_mac and len(mdns_mac) == 12:
         mdns_mac = ":".join(mdns_mac[i:i + 2] for i in range(0, 12, 2)).upper()
@@ -393,6 +430,25 @@ def main() -> int:
     out.write_text("\n".join(rep.lines) + "\n\n--- boot log ---\n" + "\n".join(boot) + "\n\n--- entities ---\n"
                    + "\n".join(f"{k}: {v[0]}" for k, v in sorted(seen.items())) + "\n", encoding="utf-8")
     rep.note(f"report: {out}")
+
+    boot_text = "\n".join(boot)
+    m_serial = re.search(r"sen6x[^\]]*\]: Serial number: (\S+)", boot_text)
+    m_fw = re.search(r"sen6x[^\]]*\]: Firmware: (\S+)", boot_text)
+    m_proj = re.search(r"Project \S+ version (\S+)", boot_text)
+    reg = update_registry(yaml_path, device_id, {
+        "friendly_name": friendly_name_from_yaml(yaml_path),
+        "host": host,
+        "mac": mac,
+        "ip": ip,
+        "sen66_serial": m_serial.group(1) if m_serial else None,
+        "sen66_fw": m_fw.group(1) if m_fw else None,
+        "firmware": m_proj.group(1) if m_proj else None,
+        "rssi_dbm": rssi,
+        "last_check": f"{started:%Y-%m-%d %H:%M}",
+        "last_result": "FAIL" if rep.failed else "PASS",
+        "last_report": out.name,
+    })
+    rep.note(f"registry: {reg}")
     return 1 if rep.failed else 0
 
 
