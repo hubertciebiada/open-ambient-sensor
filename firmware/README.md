@@ -78,12 +78,12 @@ This catches typos and missing secrets without touching the device.
 
 ### 5. First flash (over USB-C)
 
-The ESP32-C6-DevKitM-1-N4 has **two USB-C ports**:
+The ESP32-C6-DevKitM-1-N4 has **two USB-C ports** (labels as printed on the DevKit silkscreen; bench-confirmed on the v0.54 bring-up):
 
-- The port labelled **USB** goes through an onboard USB-UART bridge IC — works with classic `esphome run` flashing on every host OS.
-- The port labelled **UART** is wired directly to the ESP32-C6's native USB-Serial-JTAG (GPIO 12/13) — also works for flashing, slightly faster, no driver install needed on modern Linux/macOS/Windows 11.
+- The port labelled **USB** is the ESP32-C6's native USB-Serial-JTAG (GPIO 12/13). It enumerates as `USB VID:PID=303A:1001`, needs no driver on modern Linux/macOS/Windows, and is where the firmware logger writes (`logger: hardware_uart: USB_SERIAL_JTAG`) — **use this port for logs and for the bring-up check below**.
+- The port labelled **UART** goes through the onboard CP2102N USB-UART bridge (Silicon Labs CP210x driver). It flashes fine too, but carries no firmware log.
 
-Either port works. Plug in and run:
+Either port flashes. Plug in and run:
 
 ```bash
 esphome run firmware/esphome/oas.yaml
@@ -129,6 +129,20 @@ esphome run firmware/esphome/oas.yaml --device oas-<device_id>.local
 ```
 
 Or just press "Update" in the Home Assistant ESPHome dashboard.
+
+**Leave the unit powered for at least a minute after an OTA update.** The firmware runs from two OTA slots with ESP-IDF app rollback enabled: the freshly written app only becomes the permanent choice once it has booted cleanly, and a reset or power cut before that hands the next boot back to the previous firmware — "OTA successful" in the upload log notwithstanding. Bench-confirmed on the v0.54 bring-up (a reset ~30 s after OTA rolled back; the same image left alone for 95 s then booted from the new slot and survived a reset).
+
+## Bench bring-up check (repeatable per unit)
+
+`firmware/tools/bringup_check.py` turns "flash it and look at the log" into one command with a PASS/FAIL table, so every assembled board gets the same inspection:
+
+```bash
+python firmware/tools/bringup_check.py firmware/esphome/devices/<unit>.yaml
+```
+
+Connect the unit to 24 V and the DevKit's **USB** port, then run it. The script finds the port, runs `esphome run` (compiles if needed, flashes), pulses a reset and reads the boot log (ESPHome / project version, SEN66 serial + firmware, STAR preset upload, WiFi, no errors or reboot loop), resolves the unit over mDNS, and reads the web dashboard's event stream to check the live entities: SEN66 readings in sane windows, LD2410 UART alive (distance sensors + baud), the OUT-pin entity, ring, BLE proxy, RSSI. It prints the WiFi MAC + IP (reserve them in DHCP before the unit moves to its room) and writes the full report under `devices/reports/` (gitignored). `--no-flash` re-checks a running unit; `--ip` is the fallback when mDNS does not cross your VLANs.
+
+Note for the bench: until a unit is paired with Home Assistant, `api.reboot_timeout` (15 min) restarts it every 15 minutes with `[E][api]: No clients; rebooting` — expected, and the check ignores that line.
 
 ## First-time WiFi provisioning without secrets.yaml
 

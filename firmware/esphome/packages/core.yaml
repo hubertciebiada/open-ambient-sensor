@@ -23,6 +23,14 @@
 # ---------------------------------------------------------------------------
 # fast_connect: true skips the full scan and reconnects to the last known BSSID
 # straight after boot — keeps SEN66 first-measurement latency down.
+# Observed on the v0.54 bring-up (2026-09, controller-managed multi-AP
+# network): the first association attempt after boot fails whatever this
+# option says — with `true` the saved-BSSID attempt gets "Authentication
+# Failed", with `false` the first scan does not even list the SSID and the
+# first auth after the second scan fails too ("Probe Request Unsuccessful" /
+# "Authentication Failed"). Either way ESPHome's retry phases connect 10–15 s
+# after boot. The failures are on the AP side, so the option is left at the
+# value that at least saves the scan on a single-AP network.
 # power_save_mode: light lets the C6 use WiFi 6 TWT (Target Wake Time) for
 # longer DTIM intervals; reduces avg current ~30% vs power_save_mode: none.
 wifi:
@@ -122,6 +130,25 @@ time:
     id: sntp_time
   - platform: homeassistant
     id: ha_time
+
+# ---------------------------------------------------------------------------
+# Link and uptime diagnostics
+# ---------------------------------------------------------------------------
+# WiFi RSSI is the number the enclosure question turns on: the DevKitM-1's
+# PCB antenna hangs over U1 / L1 (the buck section) and the unit lives behind
+# a perforated ABS cover, so every deployment should log the RSSI on the
+# bench and again in its final position. Uptime makes reboot loops visible
+# from Home Assistant without a serial cable (api.reboot_timeout, safe_mode).
+sensor:
+  - platform: wifi_signal
+    name: "WiFi RSSI"
+    id: oas_wifi_rssi
+    update_interval: 60s
+    entity_category: diagnostic
+  - platform: uptime
+    name: "Uptime"
+    id: oas_uptime
+    entity_category: diagnostic
 
 # ---------------------------------------------------------------------------
 # Prometheus metrics endpoint
