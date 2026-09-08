@@ -455,6 +455,11 @@ def main() -> int:
         g0_after = num(read_sse(ip, 8), "number-g0_move_threshold")
         rep.check("LD2410C: gate 0 disabled (move threshold 100)", ok_set and ok_read and g0_after == 100,
                   f"was {g0:.0f}, set -> {g0_after} (set {'ok' if ok_set else 'FAILED'}, read-params {'ok' if ok_read else 'FAILED'})")
+    # The radar's own Bluetooth radio is never used by OAS; the firmware boot
+    # hook turns it off, and the switch state is the module's own read-back
+    # (MAC query), so OFF here means the module really has it off.
+    bt = str(seen.get("switch-ld2410_bluetooth", (None,))[0])
+    rep.check("LD2410C: Bluetooth OFF", bt == "OFF", bt if bt != "None" else "entity missing")
     rep.check("LED ring ON", str(seen.get("light-ring", (None,))[0]) == "ON", str(seen.get("light-ring", ("missing",))[0]))
     rep.check("BLE proxy ON", str(seen.get("switch-ble_proxy", (None,))[0]) == "ON", str(seen.get("switch-ble_proxy", ("missing",))[0]))
     rssi = num(seen, "sensor-wifi_rssi")

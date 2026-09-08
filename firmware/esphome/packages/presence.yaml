@@ -48,9 +48,9 @@
 #
 # After first deployment in a room, tune per-gate thresholds via the
 # "G<n> Move/Still Threshold" number entities below (sliders in the ESPHome
-# web_server and in Home Assistant) or via the HLKRadarTools Android/iOS app
-# over BLE (the LD2410C's own Bluetooth stack is independent of the UART;
-# press "LD2410 Read Params" afterwards so the entities re-sync).
+# web_server and in Home Assistant). The radar's own Bluetooth is kept OFF
+# (see the switch below); the HLKRadarTools phone app is not part of the
+# workflow.
 #
 # ---------------------------------------------------------------------------
 # Baud rate note
@@ -63,6 +63,27 @@
 # ESPHome ld2410 component docs and by community ESP32-C6 + LD2410 builds
 # in 2025-2026.
 # =============================================================================
+
+# ---------------------------------------------------------------------------
+# Boot hook — keep the radar's Bluetooth radio off.
+# ---------------------------------------------------------------------------
+# The LD2410C stores the Bluetooth setting in its own flash and ships with it
+# ON. At boot the ld2410 component queries the module MAC; a real MAC means
+# the radio is on (the switch state is that read-back, not an assumption).
+# Priority -100 runs after every component's setup; the delay leaves room for
+# the boot query sequence. Turning the switch off sends the command and
+# restarts the radar once, so it only fires when the module actually reports
+# Bluetooth on — every later boot finds it off and does nothing.
+esphome:
+  on_boot:
+    - priority: -100
+      then:
+        - delay: 10s
+        - lambda: |-
+            if (id(oas_ld2410_bluetooth).has_state() && id(oas_ld2410_bluetooth).state) {
+              ESP_LOGI("oas", "LD2410 reports Bluetooth on -> turning it off (never used by OAS)");
+              id(oas_ld2410_bluetooth).turn_off();
+            }
 
 # ---------------------------------------------------------------------------
 # UART bus dedicated to the LD2410. Cannot share with anything else.
@@ -303,11 +324,15 @@ select:
 switch:
   - platform: ld2410
     # The LD2410C's onboard BLE stack — independent from the OAS ESP32-C6's
-    # BLE. Used by the HLKRadarTools phone app for sensitivity tuning.
-    # Disable in production to avoid stray BLE advertisements once tuning
-    # is complete (and to reduce 2.4 GHz noise for the OAS's own BLE proxy).
+    # BLE. OAS never talks to the radar over BLE (every parameter is an
+    # entity over the UART), so the radio is ALWAYS OFF: the on_boot hook
+    # below turns it off whenever the module reports it on. One 2.4 GHz
+    # transmitter less next to the ESP32-C6 antenna and a few mA less on
+    # +5 V. Flip the switch on only for a one-off session with the
+    # HLKRadarTools phone app; the next boot turns it off again.
     bluetooth:
       name: "LD2410 Bluetooth"
+      id: oas_ld2410_bluetooth
       entity_category: config
     # Engineering mode reports per-gate energy readings on every UART
     # frame. Useful during sensitivity tuning; adds ~9x UART traffic and

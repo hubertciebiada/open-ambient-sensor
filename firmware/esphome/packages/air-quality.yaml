@@ -388,56 +388,59 @@ text_sensor:
 # like sen5x does. When that block lands upstream, this on_boot lambda can
 # be deleted and replaced with `temperature_compensation:` keys on the
 # sen6x platform above.
+# NOTE: on_boot is written as a LIST on purpose — packages/presence.yaml adds its
+# own boot hook, and ESPHome's package merge only concatenates lists (a dict
+# here would be silently replaced by the later package's list).
 esphome:
   on_boot:
-    # Priority 600: AFTER sensor init (700) so the SEN66 is reachable, but
-    # BEFORE network setup so first published readings already use the new
-    # compensation.
-    priority: 600
-    then:
-      - delay: 2s   # let SEN66 finish its 1 s startup blackout window
-      - lambda: |-
-          // CRC-8 / polynomial 0x31, init 0xFF — Sensirion convention.
-          auto crc8 = [](uint8_t a, uint8_t b) -> uint8_t {
-            uint8_t buf[2] = {a, b};
-            uint8_t c = 0xFF;
-            for (uint8_t i = 0; i < 2; i++) {
-              c ^= buf[i];
-              for (uint8_t j = 0; j < 8; j++) {
-                c = (c & 0x80) ? (uint8_t)((c << 1) ^ 0x31) : (uint8_t)(c << 1);
+      # Priority 600: AFTER sensor init (700) so the SEN66 is reachable, but
+      # BEFORE network setup so first published readings already use the new
+      # compensation.
+    - priority: 600
+      then:
+        - delay: 2s   # let SEN66 finish its 1 s startup blackout window
+        - lambda: |-
+            // CRC-8 / polynomial 0x31, init 0xFF — Sensirion convention.
+            auto crc8 = [](uint8_t a, uint8_t b) -> uint8_t {
+              uint8_t buf[2] = {a, b};
+              uint8_t c = 0xFF;
+              for (uint8_t i = 0; i < 2; i++) {
+                c ^= buf[i];
+                for (uint8_t j = 0; j < 8; j++) {
+                  c = (c & 0x80) ? (uint8_t)((c << 1) ^ 0x31) : (uint8_t)(c << 1);
+                }
               }
-            }
-            return c;
-          };
+              return c;
+            };
 
-          // ---- 0x6100  Set Temperature Acceleration Parameters --------
-          //   Per Sensirion driver `sen66_i2c.c` (Model-Version 1.6.0,
-          //   sen66_set_temperature_acceleration_parameters): one write
-          //   carries FOUR 16-bit words {K, P, T1, T2}, each followed by
-          //   its CRC-8.  Display values × 10 → raw on-wire values:
-          //     word0 = K  = 200   (display K  = 20)
-          //     word1 = P  = 200   (display P  = 20)
-          //     word2 = T1 = 1000  (display T1 = 100 s)
-          //     word3 = T2 = 3000  (display T2 = 300 s)
-          //   Total payload after opcode: 4 words × (2 data + 1 crc) = 12 B.
-          bool ok = true;
-          {
-            uint8_t buf[2 + 4*3];   // 2 cmd + 4 words × (2 data + 1 crc) = 14 B
-            buf[0] = 0x61; buf[1] = 0x00;
-            uint16_t w[4] = {200, 200, 1000, 3000};  // K, P, T1, T2
-            for (uint8_t i = 0; i < 4; i++) {
-              uint8_t hi = (uint8_t)(w[i] >> 8);
-              uint8_t lo = (uint8_t)(w[i] & 0xFF);
-              buf[2 + i*3 + 0] = hi;
-              buf[2 + i*3 + 1] = lo;
-              buf[2 + i*3 + 2] = crc8(hi, lo);
+            // ---- 0x6100  Set Temperature Acceleration Parameters --------
+            //   Per Sensirion driver `sen66_i2c.c` (Model-Version 1.6.0,
+            //   sen66_set_temperature_acceleration_parameters): one write
+            //   carries FOUR 16-bit words {K, P, T1, T2}, each followed by
+            //   its CRC-8.  Display values × 10 → raw on-wire values:
+            //     word0 = K  = 200   (display K  = 20)
+            //     word1 = P  = 200   (display P  = 20)
+            //     word2 = T1 = 1000  (display T1 = 100 s)
+            //     word3 = T2 = 3000  (display T2 = 300 s)
+            //   Total payload after opcode: 4 words × (2 data + 1 crc) = 12 B.
+            bool ok = true;
+            {
+              uint8_t buf[2 + 4*3];   // 2 cmd + 4 words × (2 data + 1 crc) = 14 B
+              buf[0] = 0x61; buf[1] = 0x00;
+              uint16_t w[4] = {200, 200, 1000, 3000};  // K, P, T1, T2
+              for (uint8_t i = 0; i < 4; i++) {
+                uint8_t hi = (uint8_t)(w[i] >> 8);
+                uint8_t lo = (uint8_t)(w[i] & 0xFF);
+                buf[2 + i*3 + 0] = hi;
+                buf[2 + i*3 + 1] = lo;
+                buf[2 + i*3 + 2] = crc8(hi, lo);
+              }
+              auto err = id(sen66_raw).write(buf, sizeof(buf));
+              ESP_LOGI("sen66",
+                       "STAR accel (K=200, P=200, T1=1000, T2=3000): err=%d",
+                       (int)err);
+              if (err != esphome::i2c::ErrorCode::ERROR_OK) ok = false;
             }
-            auto err = id(sen66_raw).write(buf, sizeof(buf));
-            ESP_LOGI("sen66",
-                     "STAR accel (K=200, P=200, T1=1000, T2=3000): err=%d",
-                     (int)err);
-            if (err != esphome::i2c::ErrorCode::ERROR_OK) ok = false;
-          }
 
-          id(oas_star_engine_state).publish_state(
-              ok ? "uploaded (Light/IAQM preset)" : "FAILED — check I2C bus");
+            id(oas_star_engine_state).publish_state(
+                ok ? "uploaded (Light/IAQM preset)" : "FAILED — check I2C bus");
