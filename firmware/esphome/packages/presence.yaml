@@ -46,10 +46,11 @@
 # targets; "timeout" is how long a target keeps registering after it
 # stops moving.
 #
-# After first deployment in a room, tune per-gate sensitivities via the
-# ESPHome web_server (the number entities below appear as sliders) or via
-# the HLKRadarTools Android/iOS app over BLE (the LD2410C's own Bluetooth
-# stack is independent of the UART).
+# After first deployment in a room, tune per-gate thresholds via the
+# "G<n> Move/Still Threshold" number entities below (sliders in the ESPHome
+# web_server and in Home Assistant) or via the HLKRadarTools Android/iOS app
+# over BLE (the LD2410C's own Bluetooth stack is independent of the UART;
+# press "LD2410 Read Params" afterwards so the entities re-sync).
 #
 # ---------------------------------------------------------------------------
 # Baud rate note
@@ -188,6 +189,69 @@ number:
     # than off). 0..255, 0 = always trigger regardless of light level.
     light_threshold:
       name: "Light Threshold"
+
+    # Per-gate detection thresholds, 0..100. A gate registers a target when
+    # its energy EXCEEDS the threshold, so 100 disables the gate. The radar
+    # keeps these in its own flash: a value set once survives OAS reboots and
+    # reflashes, and the entities below are read back from the module at boot
+    # and after "LD2410 Read Params". Module factory defaults (gates 0..8):
+    # move 50/50/40/30/20/15/15/15/15, still 0/0/40/40/30/30/20/20/20.
+    #
+    # Deployment finding (v0.54, first wall-mounted unit, 2026-09): on factory
+    # defaults the unit reports a phantom moving target every few seconds,
+    # always in gate 0 (reported distance ~30 cm) with moving energy 51-55
+    # against the gate-0 default of 50. Nothing in the room moves; the return
+    # comes from inside the enclosure (the SEN66 fan spins ~4 cm from the
+    # antenna, the perforated cover sits ~10 mm in front of it). Gate 0 is the
+    # first 0.75 m from the wall, so disabling it costs nothing: set "G0 Move
+    # Threshold" to 100 on every unit after the first flash (the bring-up
+    # script in firmware/tools does this). If gate 1 flaps as well, raise it
+    # to ~70 before touching anything further out.
+    g0:
+      move_threshold:
+        name: "G0 Move Threshold"
+      still_threshold:
+        name: "G0 Still Threshold"
+    g1:
+      move_threshold:
+        name: "G1 Move Threshold"
+      still_threshold:
+        name: "G1 Still Threshold"
+    g2:
+      move_threshold:
+        name: "G2 Move Threshold"
+      still_threshold:
+        name: "G2 Still Threshold"
+    g3:
+      move_threshold:
+        name: "G3 Move Threshold"
+      still_threshold:
+        name: "G3 Still Threshold"
+    g4:
+      move_threshold:
+        name: "G4 Move Threshold"
+      still_threshold:
+        name: "G4 Still Threshold"
+    g5:
+      move_threshold:
+        name: "G5 Move Threshold"
+      still_threshold:
+        name: "G5 Still Threshold"
+    g6:
+      move_threshold:
+        name: "G6 Move Threshold"
+      still_threshold:
+        name: "G6 Still Threshold"
+    g7:
+      move_threshold:
+        name: "G7 Move Threshold"
+      still_threshold:
+        name: "G7 Still Threshold"
+    g8:
+      move_threshold:
+        name: "G8 Move Threshold"
+      still_threshold:
+        name: "G8 Still Threshold"
 
 # ---------------------------------------------------------------------------
 # Buttons — service / maintenance actions.

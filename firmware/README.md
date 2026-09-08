@@ -164,6 +164,7 @@ Alternatively, the **AP fallback** (`OAS-<device_id>-Setup` SSID, gated by `ap_p
 | OTA fails with "wrong password" | Re-flash via USB-C with the new password baked in. Lost OTA passwords cannot be recovered. |
 | LED ring doesn't light | Check that `+5V` is reaching the LM2596S output — `core.yaml` itself never touches the LED ring; that's `leds.yaml`'s job. |
 | SEN66 measurements stuck on "unavailable" | Likely I²C bus issue; scan with `i2c.scan: true` (already enabled). SEN66 lives at 0x6B. |
+| Presence flips on/off every few seconds in an empty room | Gate 0 (0-0.75 m) picking up the SEN66 fan / cover from inside the enclosure on the factory threshold (moving energy 51-55 vs 50, reported distance ~30 cm). Set `G0 Move Threshold` to 100 (`bringup_check.py` does it on every unit), then press `LD2410 Read Params` to confirm the radar stored it. |
 | LD2410 presence never triggers | Verify UART pins (TX=GPIO1, RX=GPIO0 — they moved off GPIO16/17, see CLAUDE.md Lesson 23) and 256000 baud rate. Use `logger: VERBOSE` to see the raw protocol. |
 
 ## Status
@@ -203,7 +204,7 @@ Alternatively, the **AP fallback** (`OAS-<device_id>-Setup` SSID, gated by `ap_p
 
 - `light.led_ring` — RGB addressable (7 LEDs); brightness / colour / effect controllable from HA
 - `number.temperature_offset` (-10..+10 °C), `number.humidity_offset` (-20..+20 %RH), `number.co2_offset` (-500..+500 ppm) — persistent calibration trims
-- `number.ld2410_max_distance` (1-8 gates × 0.75 m), `number.ld2410_presence_timeout` (0-65535 s), `number.ld2410_gate_*_sensitivity` (0-100 per gate)
+- `number.max_move_gate` / `number.max_still_gate` (2-8 gates × 0.75 m), `number.presence_timeout` (0-65535 s), `number.g<0-8>_move_threshold` / `number.g<0-8>_still_threshold` (0-100 per gate, 100 disables the gate; stored in the radar's own flash). Gate 0 (0-0.75 m) sees the SEN66 fan and the cover from inside the enclosure and flaps on the factory threshold, so the bring-up script disables it — see the note in `packages/presence.yaml`
 - `number.led_brightness_day` (0-255), `number.led_brightness_night` (0-15)
 - `select.led_mode` — Auto-AQI / Manual / Off / Test-Rainbow
 - `select.led_effect` — 8+ effects (active when `led_mode = Manual`)

@@ -222,6 +222,29 @@ def http_status(url: str, timeout: float = 5.0) -> int | None:
         return None
 
 
+def http_post(url: str, timeout: float = 5.0) -> bool:
+    """web_server v3 actions are POSTs with an empty body; entity NAMES in
+    the path (object-id paths were dropped in ESPHome 2026.7)."""
+    req = urllib.request.Request(url, data=b"", method="POST")
+    try:
+        with urllib.request.urlopen(req, timeout=timeout) as r:
+            return 200 <= r.status < 300
+    except Exception:
+        return False
+
+
+def sse_key(entity_id: str) -> str:
+    """Normalise the web_server event id to `<domain>-<object_id>`. Firmware
+    built with ESPHome <= 2026.6 emits that form directly ("sensor-co2");
+    2026.7+ emits "<domain>/<Entity Name>" ("sensor/CO2"), so derive the
+    object id the way ESPHome does (lower-case, anything outside
+    [a-z0-9-_] becomes an underscore)."""
+    if "/" not in entity_id:
+        return entity_id
+    domain, name = entity_id.split("/", 1)
+    return f"{domain}-{re.sub(r'[^a-z0-9_-]', '_', name.lower())}"
+
+
 def read_sse(ip: str, seconds: float) -> dict[str, tuple[str | None, object]]:
     seen: dict[str, tuple[str | None, object]] = {}
     req = urllib.request.Request(f"http://{ip}/events", headers={"Accept": "text/event-stream"})
@@ -240,7 +263,7 @@ def read_sse(ip: str, seconds: float) -> dict[str, tuple[str | None, object]]:
                 except Exception:
                     continue
                 if isinstance(d, dict) and "id" in d:
-                    seen[d["id"]] = (d.get("state"), d.get("value"))
+                    seen[sse_key(d["id"])] = (d.get("state"), d.get("value"))
     except Exception as e:
         seen["_error"] = (str(e), None)
     return seen
@@ -414,6 +437,24 @@ def main() -> int:
               f"distances {dists} baud {baud or '?'}")
     rep.check("LD2410C: OUT pin entity", "binary_sensor-presence_pin" in seen,
               f"presence_pin={seen.get('binary_sensor-presence_pin', ('missing',))[0]} presence={seen.get('binary_sensor-presence', ('?',))[0]}")
+    # Gate 0 (0..0.75 m) sees the SEN66 fan / the cover from inside the
+    # enclosure and flaps on the factory threshold of 50 (moving energy 51-55
+    # at ~30 cm with an empty room). Disable it on every unit, then re-read
+    # the parameters so the value shown is what the radar stored in its flash.
+    g0 = num(seen, "number-g0_move_threshold")
+    if g0 is None:
+        rep.check("LD2410C: gate 0 disabled (move threshold 100)", False,
+                  "entity number-g0_move_threshold missing (firmware without per-gate thresholds?)")
+    elif g0 >= 100:
+        rep.check("LD2410C: gate 0 disabled (move threshold 100)", True, f"already {g0:.0f}")
+    else:
+        ok_set = http_post(f"http://{ip}/number/G0%20Move%20Threshold/set?value=100")
+        time.sleep(2)
+        ok_read = http_post(f"http://{ip}/button/LD2410%20Read%20Params/press")
+        time.sleep(3)
+        g0_after = num(read_sse(ip, 8), "number-g0_move_threshold")
+        rep.check("LD2410C: gate 0 disabled (move threshold 100)", ok_set and ok_read and g0_after == 100,
+                  f"was {g0:.0f}, set -> {g0_after} (set {'ok' if ok_set else 'FAILED'}, read-params {'ok' if ok_read else 'FAILED'})")
     rep.check("LED ring ON", str(seen.get("light-ring", (None,))[0]) == "ON", str(seen.get("light-ring", ("missing",))[0]))
     rep.check("BLE proxy ON", str(seen.get("switch-ble_proxy", (None,))[0]) == "ON", str(seen.get("switch-ble_proxy", ("missing",))[0]))
     rssi = num(seen, "sensor-wifi_rssi")
