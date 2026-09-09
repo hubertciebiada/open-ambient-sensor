@@ -71,16 +71,24 @@
 # ON. At boot the ld2410 component queries the module MAC; a real MAC means
 # the radio is on (the switch state is that read-back, not an assumption).
 # Priority -100 runs after every component's setup; the delay leaves room for
-# the boot query sequence. Turning the switch off sends the command and
-# restarts the radar once, so it only fires when the module actually reports
-# Bluetooth on — every later boot finds it off and does nothing.
+# the boot query sequence (the MAC read-back lands ~1.5 s after boot on the
+# bench). Turning the switch off sends the command and restarts the radar
+# once, so it only fires when the module actually reports Bluetooth on —
+# every later boot finds it off and does nothing.
+#
+# The guard is the switch state ALONE: `has_state()` is never set for switch
+# entities (ESPHome 2026.8 `Switch::publish_state` does not touch the flag),
+# so a `has_state() && state` condition can never be true — that exact guard
+# left the radio on through every boot until 2026-09-09. Before the MAC
+# read-back the state is the default `false`, so a silent or unpowered
+# radar leaves the switch untouched.
 esphome:
   on_boot:
     - priority: -100
       then:
         - delay: 10s
         - lambda: |-
-            if (id(oas_ld2410_bluetooth).has_state() && id(oas_ld2410_bluetooth).state) {
+            if (id(oas_ld2410_bluetooth).state) {
               ESP_LOGI("oas", "LD2410 reports Bluetooth on -> turning it off (never used by OAS)");
               id(oas_ld2410_bluetooth).turn_off();
             }
