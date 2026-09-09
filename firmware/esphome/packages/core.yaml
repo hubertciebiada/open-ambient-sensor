@@ -151,6 +151,31 @@ sensor:
     entity_category: diagnostic
 
 # ---------------------------------------------------------------------------
+# Service buttons
+# ---------------------------------------------------------------------------
+# Restart re-runs every component's setup() without cutting the 24 V feed.
+# The reason it exists: a component that fails at boot is marked FAILED and
+# never retries (sen6x on a loose JST GH lead is the case that motivated
+# this), so after reseating a cable the unit needs a reboot — and a
+# wall-mounted unit has no reachable power switch.
+#
+# Safe mode reboots into an OTA-only state with every component disabled.
+# It is the rescue path for a unit wedged by its own config (the v0.51
+# bluetooth_proxy crash-loop, GitHub issue #4, was exactly that) — recovers
+# it over the network instead of by demounting the enclosure.
+#
+# There is deliberately NO factory_reset button: it also wipes the WiFi
+# credentials, dropping the unit to the AP fallback where it needs physical
+# access. That is the opposite of what a wall-mounted fleet wants.
+button:
+  - platform: restart
+    name: "Restart"
+    entity_category: config
+  - platform: safe_mode
+    name: "Restart (Safe Mode)"
+    entity_category: config
+
+# ---------------------------------------------------------------------------
 # Prometheus metrics endpoint
 # ---------------------------------------------------------------------------
 # Available at http://<device>/metrics. Useful if you scrape with
