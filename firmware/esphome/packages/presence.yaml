@@ -134,14 +134,23 @@ binary_sensor:
   - platform: ld2410
     has_target:
       name: "Presence"
+      web_server:
+        sorting_group_id: grp_presence
+        sorting_weight: 10
       id: oas_presence
       device_class: occupancy
     has_moving_target:
       name: "Moving Target"
+      web_server:
+        sorting_group_id: grp_presence
+        sorting_weight: 30
       id: oas_moving_target
       device_class: motion
     has_still_target:
       name: "Still Target"
+      web_server:
+        sorting_group_id: grp_presence
+        sorting_weight: 40
       id: oas_still_target
       device_class: occupancy
 
@@ -156,6 +165,9 @@ binary_sensor:
   # since the LD2410 actively drives both states.
   - platform: gpio
     name: "Presence Pin"
+    web_server:
+      sorting_group_id: grp_presence
+      sorting_weight: 20
     id: oas_presence_pin
     pin:
       number: GPIO2
@@ -170,26 +182,41 @@ sensor:
   - platform: ld2410
     moving_distance:
       name: "Moving Distance"
+      web_server:
+        sorting_group_id: grp_presence
+        sorting_weight: 60
       id: oas_moving_distance
       filters:
         - throttle: 500ms
     still_distance:
       name: "Still Distance"
+      web_server:
+        sorting_group_id: grp_presence
+        sorting_weight: 70
       id: oas_still_distance
       filters:
         - throttle: 500ms
     moving_energy:
       name: "Moving Energy"
+      web_server:
+        sorting_group_id: grp_presence
+        sorting_weight: 80
       id: oas_moving_energy
       filters:
         - throttle: 500ms
     still_energy:
       name: "Still Energy"
+      web_server:
+        sorting_group_id: grp_presence
+        sorting_weight: 90
       id: oas_still_energy
       filters:
         - throttle: 500ms
     detection_distance:
       name: "Detection Distance"
+      web_server:
+        sorting_group_id: grp_presence
+        sorting_weight: 50
       id: oas_detection_distance
       filters:
         - throttle: 500ms
@@ -205,19 +232,31 @@ number:
     # Reduce in small rooms to filter out detections beyond the wall.
     max_move_distance_gate:
       name: "Max Move Gate"
+      web_server:
+        sorting_group_id: grp_presence_cfg
+        sorting_weight: 10
     # Same as above but for STILL targets (breathing-only humans).
     max_still_distance_gate:
       name: "Max Still Gate"
+      web_server:
+        sorting_group_id: grp_presence_cfg
+        sorting_weight: 20
     # Seconds the target stays "present" after detection drops. Default 5 s.
     # Increase in offices where people sit still for long periods to avoid
     # the lights cutting out during deep concentration.
     timeout:
       name: "Presence Timeout"
+      web_server:
+        sorting_group_id: grp_presence_cfg
+        sorting_weight: 30
     # Ambient-light threshold for the optional dependent-output gating
     # (only relevant if light_function below is set to anything other
     # than off). 0..255, 0 = always trigger regardless of light level.
     light_threshold:
       name: "Light Threshold"
+      web_server:
+        sorting_group_id: grp_presence_cfg
+        sorting_weight: 40
 
     # Per-gate detection thresholds, 0..100. A gate registers a target when
     # its energy EXCEEDS the threshold, so 100 disables the gate. The radar
@@ -239,48 +278,102 @@ number:
     g0:
       move_threshold:
         name: "G0 Move Threshold"
+        web_server:
+          sorting_group_id: grp_presence_cfg
+          sorting_weight: 100
       still_threshold:
         name: "G0 Still Threshold"
+        web_server:
+          sorting_group_id: grp_presence_cfg
+          sorting_weight: 105
     g1:
       move_threshold:
         name: "G1 Move Threshold"
+        web_server:
+          sorting_group_id: grp_presence_cfg
+          sorting_weight: 110
       still_threshold:
         name: "G1 Still Threshold"
+        web_server:
+          sorting_group_id: grp_presence_cfg
+          sorting_weight: 115
     g2:
       move_threshold:
         name: "G2 Move Threshold"
+        web_server:
+          sorting_group_id: grp_presence_cfg
+          sorting_weight: 120
       still_threshold:
         name: "G2 Still Threshold"
+        web_server:
+          sorting_group_id: grp_presence_cfg
+          sorting_weight: 125
     g3:
       move_threshold:
         name: "G3 Move Threshold"
+        web_server:
+          sorting_group_id: grp_presence_cfg
+          sorting_weight: 130
       still_threshold:
         name: "G3 Still Threshold"
+        web_server:
+          sorting_group_id: grp_presence_cfg
+          sorting_weight: 135
     g4:
       move_threshold:
         name: "G4 Move Threshold"
+        web_server:
+          sorting_group_id: grp_presence_cfg
+          sorting_weight: 140
       still_threshold:
         name: "G4 Still Threshold"
+        web_server:
+          sorting_group_id: grp_presence_cfg
+          sorting_weight: 145
     g5:
       move_threshold:
         name: "G5 Move Threshold"
+        web_server:
+          sorting_group_id: grp_presence_cfg
+          sorting_weight: 150
       still_threshold:
         name: "G5 Still Threshold"
+        web_server:
+          sorting_group_id: grp_presence_cfg
+          sorting_weight: 155
     g6:
       move_threshold:
         name: "G6 Move Threshold"
+        web_server:
+          sorting_group_id: grp_presence_cfg
+          sorting_weight: 160
       still_threshold:
         name: "G6 Still Threshold"
+        web_server:
+          sorting_group_id: grp_presence_cfg
+          sorting_weight: 165
     g7:
       move_threshold:
         name: "G7 Move Threshold"
+        web_server:
+          sorting_group_id: grp_presence_cfg
+          sorting_weight: 170
       still_threshold:
         name: "G7 Still Threshold"
+        web_server:
+          sorting_group_id: grp_presence_cfg
+          sorting_weight: 175
     g8:
       move_threshold:
         name: "G8 Move Threshold"
+        web_server:
+          sorting_group_id: grp_presence_cfg
+          sorting_weight: 180
       still_threshold:
         name: "G8 Still Threshold"
+        web_server:
+          sorting_group_id: grp_presence_cfg
+          sorting_weight: 185
 
 # ---------------------------------------------------------------------------
 # Buttons — service / maintenance actions.
@@ -291,17 +384,26 @@ button:
     # tuning. Use only when starting over from scratch.
     factory_reset:
       name: "LD2410 Factory Reset"
+      web_server:
+        sorting_group_id: grp_presence_cfg
+        sorting_weight: 320
       entity_category: config
     # Soft-reboots the LD2410. Useful if it gets into a wedged state
     # (very rare; usually solved by power-cycle of the whole OAS unit).
     restart:
       name: "LD2410 Restart"
+      web_server:
+        sorting_group_id: grp_presence_cfg
+        sorting_weight: 310
       entity_category: config
     # Re-reads the gate parameters from the LD2410 and republishes the
     # number entities above. Useful after changing sensitivity via the
     # HLKRadarTools Bluetooth app instead of via ESPHome.
     query_params:
       name: "LD2410 Read Params"
+      web_server:
+        sorting_group_id: grp_presence_cfg
+        sorting_weight: 300
       entity_category: diagnostic
 
 # ---------------------------------------------------------------------------
@@ -318,12 +420,18 @@ select:
     # 0.2 m for small rooms where 0.75 m gates over-quantize the space.
     distance_resolution:
       name: "Distance Resolution"
+      web_server:
+        sorting_group_id: grp_presence_cfg
+        sorting_weight: 50
       entity_category: config
     # UART baud rate negotiation. Default 256000 matches the uart: block
     # above. Changing this on the fly will desync the ESP32 <-> LD2410
     # link; only useful if a future hardware revision changes baud.
     baud_rate:
       name: "LD2410 Baud Rate"
+      web_server:
+        sorting_group_id: grp_presence_cfg
+        sorting_weight: 60
       entity_category: config
 
 # ---------------------------------------------------------------------------
@@ -340,6 +448,9 @@ switch:
     # HLKRadarTools phone app; the next boot turns it off again.
     bluetooth:
       name: "LD2410 Bluetooth"
+      web_server:
+        sorting_group_id: grp_presence_cfg
+        sorting_weight: 70
       id: oas_ld2410_bluetooth
       entity_category: config
     # Engineering mode reports per-gate energy readings on every UART
@@ -347,4 +458,7 @@ switch:
     # is overkill for production. Keep OFF after calibration.
     engineering_mode:
       name: "LD2410 Engineering Mode"
+      web_server:
+        sorting_group_id: grp_presence_cfg
+        sorting_weight: 80
       entity_category: diagnostic

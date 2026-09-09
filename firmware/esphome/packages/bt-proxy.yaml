@@ -128,6 +128,9 @@ bluetooth_proxy:
 switch:
   - platform: template
     name: "BLE Proxy"
+    web_server:
+      sorting_group_id: grp_system
+      sorting_weight: 40
     id: oas_ble_proxy_enabled
     icon: "mdi:bluetooth"
     entity_category: config

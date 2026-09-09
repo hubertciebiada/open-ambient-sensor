@@ -91,6 +91,34 @@ web_server:
   version: 3
   ota: false
   log: true
+  # Dashboard layout: one card per sub-device, measurements split from the
+  # settings that shape them, and everything that belongs to the ESP32 itself
+  # (radio, uptime, service buttons) in its own card at the bottom. The
+  # per-entity `web_server: {sorting_group_id, sorting_weight}` keys live next
+  # to each entity in the package that owns it. Home Assistant ignores all of
+  # this - it groups by `entity_category` instead.
+  sorting_groups:
+    - id: grp_air
+      name: "Air quality"
+      sorting_weight: 10
+    - id: grp_air_cfg
+      name: "Air quality - settings"
+      sorting_weight: 20
+    - id: grp_presence
+      name: "Presence"
+      sorting_weight: 30
+    - id: grp_presence_cfg
+      name: "Presence - settings"
+      sorting_weight: 40
+    - id: grp_ring
+      name: "LED ring"
+      sorting_weight: 50
+    - id: grp_ring_cfg
+      name: "LED ring - settings"
+      sorting_weight: 60
+    - id: grp_system
+      name: "System"
+      sorting_weight: 70
 
 # ---------------------------------------------------------------------------
 # Logger
@@ -142,11 +170,17 @@ time:
 sensor:
   - platform: wifi_signal
     name: "WiFi RSSI"
+    web_server:
+      sorting_group_id: grp_system
+      sorting_weight: 10
     id: oas_wifi_rssi
     update_interval: 60s
     entity_category: diagnostic
   - platform: uptime
     name: "Uptime"
+    web_server:
+      sorting_group_id: grp_system
+      sorting_weight: 20
     id: oas_uptime
     entity_category: diagnostic
 
@@ -170,9 +204,15 @@ sensor:
 button:
   - platform: restart
     name: "Restart"
+    web_server:
+      sorting_group_id: grp_system
+      sorting_weight: 50
     entity_category: config
   - platform: safe_mode
     name: "Restart (Safe Mode)"
+    web_server:
+      sorting_group_id: grp_system
+      sorting_weight: 60
     entity_category: config
 
 # ---------------------------------------------------------------------------

@@ -68,6 +68,9 @@ light:
     rmt_symbols: 64
     id: oas_ring
     name: "Ring"
+    web_server:
+      sorting_group_id: grp_ring
+      sorting_weight: 10
     restore_mode: ALWAYS_OFF
     default_transition_length: 500ms
     effects:
@@ -233,6 +236,9 @@ number:
   - platform: template
     id: oas_ring_brightness_max
     name: "Ring Max Brightness"
+    web_server:
+      sorting_group_id: grp_ring_cfg
+      sorting_weight: 10
     optimistic: true
     initial_value: 30
     min_value: 0
@@ -255,6 +261,9 @@ number:
   - platform: template
     id: oas_night_start
     name: "Night Mode Start Hour"
+    web_server:
+      sorting_group_id: grp_ring_cfg
+      sorting_weight: 30
     optimistic: true
     initial_value: 22
     min_value: 0
@@ -266,6 +275,9 @@ number:
   - platform: template
     id: oas_night_end
     name: "Night Mode End Hour"
+    web_server:
+      sorting_group_id: grp_ring_cfg
+      sorting_weight: 40
     optimistic: true
     initial_value: 7
     min_value: 0
@@ -284,6 +296,9 @@ number:
 switch:
   - platform: template
     name: "Night Mode"
+    web_server:
+      sorting_group_id: grp_ring_cfg
+      sorting_weight: 20
     id: oas_night_mode_enabled
     icon: "mdi:weather-night"
     optimistic: true
@@ -302,6 +317,9 @@ binary_sensor:
   - platform: template
     id: oas_critical_alert
     name: "Critical Alert"
+    web_server:
+      sorting_group_id: grp_air
+      sorting_weight: 120
     device_class: safety
     lambda: |-
       // Mirror air-quality.yaml's critical sensor. NaN-safe because the
