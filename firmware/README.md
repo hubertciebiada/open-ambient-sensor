@@ -203,13 +203,24 @@ Alternatively, the **AP fallback** (`OAS-<device_id>-Setup` SSID, gated by `ap_p
 #### Light, numbers, selects, text, buttons, switches
 
 - `light.led_ring` — RGB addressable (7 LEDs); brightness / colour / effect controllable from HA
-- `number.temperature_offset` (-10..+10 °C), `number.humidity_offset` (-20..+20 %RH), `number.co2_offset` (-500..+500 ppm) — persistent calibration trims
+- `number.temperature_offset` / `number.temperature_offset_tau` and `number.temperature_offset_slow` / `number.temperature_offset_slow_tau` — SEN66 STAR-Engine offset slots 0 and 1 (°C, s), written into the module at boot and on every change; RH follows automatically (see "SEN66 temperature compensation" below). `number.humidity_offset` (-20..+20 %RH), `number.co2_offset` (-100..+100 ppm) — ESPHome-side trims on the published value
 - `number.max_move_gate` / `number.max_still_gate` (2-8 gates × 0.75 m), `number.presence_timeout` (0-65535 s), `number.g<0-8>_move_threshold` / `number.g<0-8>_still_threshold` (0-100 per gate, 100 disables the gate; stored in the radar's own flash). Gate 0 (0-0.75 m) sees the SEN66 fan and the cover from inside the enclosure and flaps on the factory threshold, so the bring-up script disables it — see the note in `packages/presence.yaml`
 - `number.led_brightness_day` (0-255), `number.led_brightness_night` (0-15)
 - `select.led_mode` — Auto-AQI / Manual / Off / Test-Rainbow
 - `select.led_effect` — 8+ effects (active when `led_mode = Manual`)
 - `button.restart` / `button.sen66_force_clean` / `button.ld2410_factory_reset`
 - `switch.bluetooth_proxy` (default on) / `switch.prevent_sleep`
+- `text_sensor.star_engine_state` — what the boot sequence sent to the SEN66 STAR-Engine and the I2C result; `text_sensor.reset_reason` — ESP32 reset reason (input for the cold/warm-start decision)
+
+### SEN66 temperature compensation (STAR-Engine)
+
+Inside the enclosure the SEN66 sits behind the regulators, the ESP32-C6 and the radar and reads a few kelvin above the room. The firmware compensates this the way Sensirion prescribes in the *SEN6x Temperature Acceleration and Compensation Instructions* (app note v1.1, 01/2026, Downloads on the SEN66 product page): inside the module, not with an ESPHome filter.
+
+- **Acceleration** (I2C 0x6100): the "Light / IAQM" preset from the app note (T1 100 s, T2 300 s, K 20, P 20). The command is idle-only and volatile, so the boot sequence stops the measurement, writes it and restarts; the component ignores the first 60 s of readings anyway.
+- **Offset slots** (I2C 0x60B2, volatile, additive to the factory self-heating compensation): slot 0 = the enclosure over-temperature with its warm-up time constant, slot 1 = an optional slower second exponential (foam gasket, enclosure). The values live in the `number.temperature_offset*` entities (NVS-persisted, defaults in `packages/air-quality.yaml`) and are re-sent at every boot: after a power-on reset they ramp in with their time constants, after any other reset (OTA, watchdog, brownout) the enclosure is still warm and they apply at once. The module recomputes RH from the corrected temperature, so RH needs no separate offset.
+- **Deriving the values** (app note §2.2, the "basic" recipe): two reference thermometers next to the unit, room steady, no air conditioning. Offset = T_reference − T_module averaged over the last hour of a steady state (negative when the unit reads warm). Tau = time from a cold power-on (unit off for at least 3–4 h) until the module temperature crosses 63 % of its final over-temperature. Set both offsets to 0 before the cold start so the recording is the bare module output, then enter the results in Home Assistant. The reference unit (AK-N-94, foam gasket on the SEN66, ring 25 %, BLE proxy on) came out at −3.4 K; any change to the heat budget shifts it, so re-check after hardware or power-state changes.
+- **Slope** (offset vs room temperature) stays 0 until a second temperature level is measured — see the `TODO (winter)` note at the top of `packages/air-quality.yaml`.
+- There is no read-back command for either register, so verify against a reference thermometer, not the text sensor.
 
 ### Dashboard idea (starter Lovelace card)
 

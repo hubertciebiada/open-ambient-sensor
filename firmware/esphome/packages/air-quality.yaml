@@ -27,6 +27,40 @@
 # =============================================================================
 
 # ---------------------------------------------------------------------------
+# STAR-Engine design-in constants (Sensirion SEN6x tcomp app note v1.1, 01/2026)
+# ---------------------------------------------------------------------------
+# What the SEN66 needs in order to report ROOM temperature from inside the OAS
+# enclosure. Values that differ per unit (offsets, time constants) are `number:`
+# entities further down (NVS-persisted, defaults = the reference unit). Values
+# that are a property of the DESIGN live here as substitutions, so a device
+# file can still override them without touching the package.
+substitutions:
+  # Normalised offset slope, dimensionless: how much the self-heating
+  # over-temperature changes per kelvin of module temperature (AN §1.4).
+  # 0 = the "basic" recipe (AN §2.2): one temperature level, constant offset.
+  #
+  # TODO (winter, AN §2.3.2): the slope needs the steady-state offset at a
+  # SECOND room temperature, ideally ~10 K away from the level the offset was
+  # derived at (summer, room ~23 °C). No experiment needed: with the room
+  # steady near 19 °C (no AC, no sun on the enclosure, ≥ 6 h, references next
+  # to the unit) read the offset the same way as in summer (T_ref - T_module
+  # averaged over the last hour). If it differs from the summer value by more
+  # than the reference uncertainty (~0.2 K):
+  #   slope = (offset_high - offset_low) / (T_module_high - T_module_low)
+  # and set it here. The engine then applies offset(T) = C_0C + slope * T_module;
+  # the send script converts the room-level "Temperature Offset" number into
+  # C_0C with `sen66_star_slope_ref_c`, so the number keeps its room meaning.
+  # Worked example: summer -3.4 at T_module 26.3, winter -3.6 at T_module 22.6
+  #   -> slope = 0.2 / 3.7 = 0.054, C_0C = -3.6 - 22.6 * 0.054 = -4.82
+  #   -> wire values slope 540 (×10000), offset -964 (×200).
+  # The slope is applied to slot 0 only (the base self-heating); slot 1 keeps 0.
+  sen66_star_slope: "0"
+  # Module temperature (°C, as reported by the SEN66) at which the slot-0
+  # "Temperature Offset" number was determined. Only used when the slope is
+  # non-zero. Reference unit, summer: room 22.9 °C + 3.4 K over-temperature.
+  sen66_star_slope_ref_c: "26.3"
+
+# ---------------------------------------------------------------------------
 # I2C bus (primary, shared with Qwiic)
 # ---------------------------------------------------------------------------
 i2c:
@@ -81,30 +115,116 @@ i2c_device:
     address: 0x6B
 
 # ---------------------------------------------------------------------------
-# User-adjustable calibration offsets (persisted via NVS / flash)
+# User-adjustable calibration values (persisted via NVS / flash)
 # ---------------------------------------------------------------------------
-# These let the user trim the SEN66 readings without re-flashing — useful for
-# self-heating correction (e.g. unit mounted near a heat source reads ~1.5 K
-# high → set oas_temperature_offset to -1.5) or for site-specific CO2 baseline
-# drift between annual factory recalibration cycles.
+# TEMPERATURE: the two "Temperature Offset" pairs below are NOT ESPHome-side
+# filters. They are the SEN66 STAR-Engine offset slots (I2C 0x60B2, Sensirion
+# SEN6x tcomp app note v1.1 §3.2), written into the module at every boot and
+# whenever a value changes. The module subtracts them from its temperature AND
+# recomputes relative humidity from the corrected temperature (AN §1.5: "the
+# relative humidity output ... must not be compensated separately"). Values
+# follow the Sensirion definition C_offset = T_reference - T_module in steady
+# state, so a unit that reads warm gets a NEGATIVE offset.
 #
-# All three offsets are applied as `filter: - offset: ...` on the sen6x sensor
-# output, so they affect the published value but NOT the raw SEN66 reading.
-# Set in the web_server UI (http://oas-<id>.local/) or the Home Assistant UI.
+#   slot 0 "Temperature Offset" / "Temperature Offset Tau": the enclosure
+#     self-heating (regulators + ESP32-C6 + LD2410C behind the SEN66).
+#     Offset = steady-state over-temperature vs two references next to the
+#     unit; tau = warm-up time constant (AN §2.2.2: time from a COLD power-on
+#     until the module temperature crosses 63 % of the final over-temperature).
+#   slot 1 "Temperature Offset Slow" / "Temperature Offset Slow Tau": a second,
+#     slower exponential seen on the reference unit (foam gasket + ABS
+#     enclosure saturating over ~2 h). 0 K = slot disabled; filled in once the
+#     cold-start experiment splits the warm-up into the two components.
+#
+# Defaults = the reference unit: AK-N-94, two-tunnel foam gasket on the SEN66,
+# LED ring 25 %, BLE proxy on, radar Bluetooth off, two references 40 cm away
+# (offset -3.4 K = mean of -3.2 vs an SCD41 monitor and -3.55 vs an SHT31
+# logger, night steady state). Any change to the heat budget (ring brightness,
+# BLE proxy, gasket, enclosure) shifts the offset; re-derive per AN §2.2.
+# PROVISIONAL until the cold-start experiment: tau 600 s (slot 0), slot 1 off.
+# Runtime changes from the UI are applied at once (tau = 0); the configured
+# tau only matters after a cold power-on.
+#
+# HUMIDITY / CO2 offsets stay ESPHome-side `filter: - offset:` on the
+# published value: Sensirion provides no RH offset command (RH is corrected
+# through the temperature slots) and CO2 has its own FRC mechanism. Both
+# default to 0 and are meant for residual site trims only.
 number:
   - platform: template
     name: "Temperature Offset"
     id: oas_temperature_offset
-    icon: "mdi:thermometer-plus"
+    icon: "mdi:thermometer-minus"
     unit_of_measurement: "°C"
     min_value: -10.0
     max_value: 10.0
-    step: 0.1
+    step: 0.05
+    initial_value: -3.4
+    restore_value: true
+    optimistic: true
+    mode: box
+    entity_category: config
+    on_value:
+      - script.execute:
+          id: sen66_star_send_offsets
+          immediate: true
+          reason: "runtime change, tau=0"
+
+  - platform: template
+    name: "Temperature Offset Tau"
+    id: oas_temperature_offset_tau
+    icon: "mdi:timer-sand"
+    unit_of_measurement: "s"
+    min_value: 0
+    max_value: 36000
+    step: 10
+    initial_value: 600
+    restore_value: true
+    optimistic: true
+    mode: box
+    entity_category: config
+    on_value:
+      - script.execute:
+          id: sen66_star_send_offsets
+          immediate: true
+          reason: "runtime change, tau=0"
+
+  - platform: template
+    name: "Temperature Offset Slow"
+    id: oas_temperature_offset_slow
+    icon: "mdi:thermometer-minus"
+    unit_of_measurement: "°C"
+    min_value: -5.0
+    max_value: 5.0
+    step: 0.05
     initial_value: 0.0
     restore_value: true
     optimistic: true
     mode: box
     entity_category: config
+    on_value:
+      - script.execute:
+          id: sen66_star_send_offsets
+          immediate: true
+          reason: "runtime change, tau=0"
+
+  - platform: template
+    name: "Temperature Offset Slow Tau"
+    id: oas_temperature_offset_slow_tau
+    icon: "mdi:timer-sand"
+    unit_of_measurement: "s"
+    min_value: 0
+    max_value: 36000
+    step: 60
+    initial_value: 7200
+    restore_value: true
+    optimistic: true
+    mode: box
+    entity_category: config
+    on_value:
+      - script.execute:
+          id: sen66_star_send_offsets
+          immediate: true
+          reason: "runtime change, tau=0"
 
   - platform: template
     name: "Humidity Offset"
@@ -226,8 +346,10 @@ sensor:
       unit_of_measurement: "°C"
       accuracy_decimals: 1
       force_update: true
-      filters:
-        - offset: !lambda 'return id(oas_temperature_offset).state;'
+      # No ESPHome-side offset here: the design-in compensation runs INSIDE
+      # the SEN66 (STAR-Engine offset slots, see the number entities and the
+      # boot sequence at the end of this file), so this is the module's
+      # compensated output exactly as Sensirion intends, and RH follows it.
 
     humidity:
       name: "Humidity"
@@ -338,11 +460,43 @@ binary_sensor:
       return (aqi > 200.0f) || (co2 > 1500.0f);
 
 # ---------------------------------------------------------------------------
-# STAR-Engine state text-sensor (diagnostic)
+# STAR-Engine plumbing: state, reset-reason source, offset-slot writer
 # ---------------------------------------------------------------------------
-# Updated by the on_boot lambda below — shows whether the volatile
-# STAR-Engine parameters were successfully re-uploaded after the last reset.
+# Sensirion I2C wire format: [cmd_hi][cmd_lo] then per 16-bit word
+# [data_hi][data_lo][crc8(data_hi, data_lo)]; CRC-8 poly 0x31, init 0xFF
+# (datasheet §4.7). Why raw I2C: ESPHome's sen6x component (through 2026.8,
+# dev branch checked 2026-09-09) has no `temperature_compensation:` block like
+# sen5x has. When it lands upstream, the script and the boot sequence below
+# can be replaced by it.
+globals:
+  - id: oas_star_boot_done      # set by the boot sequence; gates runtime re-sends
+    type: bool
+    initial_value: "false"
+  - id: oas_star_warm           # reset reason says the enclosure is still warm
+    type: bool
+    initial_value: "false"
+  - id: oas_star_err            # bit0 stop, bit1 accel, bit2 start, bit3 slot0, bit4 slot1
+    type: int
+    initial_value: "0"
+
+# Reset reason (ESP32 ROM / IDF) as a text sensor: "power-on event" = cold
+# enclosure, anything else (software / OTA restart, watchdogs, panic, brownout)
+# = still warm. Useful on its own in Home Assistant diagnostics.
+debug:
+  update_interval: 5min   # its heap / loop logs are DEBUG level; logger runs at INFO
+
 text_sensor:
+  - platform: debug
+    reset_reason:
+      name: "Reset Reason"
+      id: oas_reset_reason
+      icon: "mdi:restart-alert"
+      entity_category: diagnostic
+
+  # Updated by the boot sequence and by every offset-slot write. There is NO
+  # read-back command for 0x6100 / 0x60B2 (datasheet §4.8 command table), so
+  # this reports what was SENT and the I2C result. Verify behaviour against a
+  # reference thermometer, not this text.
   - platform: template
     name: "STAR-Engine State"
     id: oas_star_engine_state
@@ -350,97 +504,156 @@ text_sensor:
     entity_category: diagnostic
     update_interval: never   # only updated explicitly from lambdas
 
+# Writes STAR-Engine offset slots 0 and 1 (I2C 0x60B2, AN §3.2 Table 3) from
+# the number entities. `immediate: true` applies the values with time constant
+# 0 (warm start, runtime change from the UI); `false` ramps them in with the
+# configured tau (cold power-on, mimicking the enclosure warming up). The
+# command is accepted in idle and measurement mode and ADDS to the module's
+# own factory self-heating compensation.
+script:
+  - id: sen66_star_send_offsets
+    mode: queued
+    parameters:
+      immediate: bool
+      reason: string
+    then:
+      - lambda: |-
+          if (!id(oas_star_boot_done)) {
+            return;   // on_value fired by the NVS restore before the module was ready
+          }
+          auto crc8 = [](uint8_t a, uint8_t b) -> uint8_t {
+            uint8_t c = 0xFF;
+            for (uint8_t x : {a, b}) {
+              c ^= x;
+              for (int i = 0; i < 8; i++) c = (c & 0x80) ? (uint8_t)((c << 1) ^ 0x31) : (uint8_t)(c << 1);
+            }
+            return c;
+          };
+          auto put = [&](uint8_t *p, uint16_t v) {
+            p[0] = (uint8_t)(v >> 8); p[1] = (uint8_t)(v & 0xFF); p[2] = crc8(p[0], p[1]);
+          };
+          const float slope = ${sen66_star_slope};         // design constant, see substitutions
+          const float t_ref = ${sen66_star_slope_ref_c};
+          struct Slot { uint16_t slot; float offset_c; float tau_s; };
+          const Slot slots[2] = {
+            {0, id(oas_temperature_offset).state,      id(oas_temperature_offset_tau).state},
+            {1, id(oas_temperature_offset_slow).state, id(oas_temperature_offset_slow_tau).state},
+          };
+          int errs = 0;
+          for (const auto &sl : slots) {
+            const float sl_slope = (sl.slot == 0) ? slope : 0.0f;
+            // AN §2.3.2: with a non-zero slope the engine expects the offset at 0 °C
+            const float c0 = sl.offset_c - (sl_slope != 0.0f ? t_ref * sl_slope : 0.0f);
+            const int16_t  w_off   = (int16_t) roundf(c0 * 200.0f);         // ×200
+            const int16_t  w_slope = (int16_t) roundf(sl_slope * 10000.0f); // ×10000
+            const uint16_t w_tau   = immediate ? 0 : (uint16_t) roundf(sl.tau_s);
+            uint8_t buf[2 + 4 * 3] = {0x60, 0xB2};
+            put(buf + 2,  (uint16_t) w_off);
+            put(buf + 5,  (uint16_t) w_slope);
+            put(buf + 8,  w_tau);
+            put(buf + 11, sl.slot);
+            auto err = id(sen66_raw).write(buf, sizeof(buf));
+            ESP_LOGI("sen66", "STAR offset slot %u: %.2f C (wire %d), slope %.4f, tau %u s: err=%d",
+                     sl.slot, sl.offset_c, (int) w_off, sl_slope, (unsigned) w_tau, (int) err);
+            if (err != esphome::i2c::ErrorCode::ERROR_OK) errs |= (8 << sl.slot);
+          }
+          id(oas_star_err) = (id(oas_star_err) & 0x07) | errs;
+          const int e = id(oas_star_err);
+          char txt[200];
+          if (e == 0) {
+            snprintf(txt, sizeof(txt),
+                     "uploaded: accel Light in idle; slot0 %.2f C / %.0f s; slot1 %.2f C / %.0f s; %s",
+                     slots[0].offset_c, slots[0].tau_s, slots[1].offset_c, slots[1].tau_s, reason.c_str());
+          } else {
+            snprintf(txt, sizeof(txt), "FAILED (stop=%d accel=%d start=%d slot0=%d slot1=%d) - check I2C bus",
+                     e & 1, (e >> 1) & 1, (e >> 2) & 1, (e >> 3) & 1, (e >> 4) & 1);
+          }
+          id(oas_star_engine_state).publish_state(txt);
+
 # ---------------------------------------------------------------------------
-# Boot-time STAR-Engine re-upload
+# Boot-time STAR-Engine upload (acceleration, then offset slots)
 # ---------------------------------------------------------------------------
-# The SEN6x STAR-Engine temperature-compensation parameters live in
-# VOLATILE registers — every power cycle resets them to factory defaults.
-# This block re-pushes the Sensirion-recommended "Light / IAQM" preset
-# (tcomp app note v1.1, Table 1) on every boot.
+# Everything the STAR-Engine is told is VOLATILE (datasheet §4.8.14 / §4.8.15)
+# and the sen6x component resets the module on every ESP boot, so both
+# commands are re-sent here. Order per AN §2: "always determine and fix the
+# acceleration parameters first" - 0x6100 acceleration, then 0x60B2 offsets.
 #
-# Display values   → I2C raw (×10) values   → command
-#   K  = 20         →  K  =  200             ┐
-#   P  = 20         →  P  =  200             │  0x6100  (single 4-word
-#   T1 = 100 s      →  T1 = 1000             │           write: K, P, T1, T2)
-#   T2 = 300 s      →  T2 = 3000             ┘
+# 0x6100 (acceleration, "Light / IAQM" preset from AN Table 1) is accepted in
+# IDLE mode only. The sen6x component has already started the measurement by
+# the time on_boot automations run, so the sequence is: Stop Measurement
+# (0x0104, then ≥ 1400 ms) → 0x6100 → Start Continuous Measurement (0x0021).
+# Safe on SEN66: the datasheet's "do not stop the sensor" caveat concerns the
+# CO2-1 error of SEN63C / SEN69C, and the component ignores readings for the
+# first 60 s anyway, so the 1.5 s gap is never published. An earlier revision
+# sent 0x6100 in measurement mode; the module ACKed and silently ignored it.
 #
-# The ×10 scale factor is the Sensirion encoding for these 16-bit unsigned
-# registers — value_on_wire = value_displayed_to_user × 10. Re-tune all four
-# in the chamber procedure described in tcomp §3.2 once first prototype is
-# built, then update the constants below.
+#   Display values   → I2C raw (×10)   → 0x6100 payload (single 4-word write)
+#     K  = 20        →  K  =  200        word 0
+#     P  = 20        →  P  =  200        word 1
+#     T1 = 100 s     →  T1 = 1000        word 2
+#     T2 = 300 s     →  T2 = 3000        word 3
+#   (Sensirion driver `sen66_i2c.c::sen66_set_temperature_acceleration_parameters`.)
 #
-# Protocol reference: Sensirion's official driver `raspberry-pi-i2c-sen66`
-# (Model-Version 1.6.0), `sen66_i2c.c::sen66_set_temperature_acceleration_parameters`.
-# The 0x6100 opcode takes FOUR 16-bit words {K, P, T1, T2} — NOT two as a
-# previous OAS revision implemented. The four parameters belong to a SINGLE
-# command; there is no separate "T-constants per slot" register on SEN66.
-# (Note: 0x60B2 = SET_TEMPERATURE_OFFSET_PARAMETERS is a different command
-# entirely, for additive T-offset trimming with a 4-word payload
-# {offset, slope, time_constant, slot} — NOT used here since OAS has no
-# self-heating offset to trim at boot.)
+# Cold vs warm start (AN §2.4.2): after a power-on reset the enclosure is
+# cold, so the offset slots ramp in with their time constants; after any other
+# reset (OTA, software restart, watchdog, brownout, panic) the enclosure is
+# still warm, so they are applied at once (tau = 0). Known gap: a short mains
+# outage is a power-on reset on a warm enclosure → the reading is too high by
+# up to the offset for about one tau, then correct.
 #
-# Sensirion I2C wire format:
-#   [cmd_hi] [cmd_lo] [data_hi] [data_lo] [crc8(data_hi, data_lo)]  (×N words)
-# CRC-8 with polynomial 0x31, init 0xFF (datasheet §3.4).
-#
-# Why raw I2C and not the sen6x platform: ESPHome's sen6x component (as of
-# 2026.3.x) does NOT yet expose a `temperature_compensation:` config block
-# like sen5x does. When that block lands upstream, this on_boot lambda can
-# be deleted and replaced with `temperature_compensation:` keys on the
-# sen6x platform above.
 # NOTE: on_boot is written as a LIST on purpose — packages/presence.yaml adds its
 # own boot hook, and ESPHome's package merge only concatenates lists (a dict
 # here would be silently replaced by the later package's list).
 esphome:
   on_boot:
-      # Priority 600: AFTER sensor init (700) so the SEN66 is reachable, but
-      # BEFORE network setup so first published readings already use the new
-      # compensation.
+      # Priority 600 = the sen6x setup level. The component's reset → start
+      # chain runs from the scheduler within ~300 ms of the main loop starting;
+      # the 5 s delay puts this sequence well after it (the old 2 s worked too).
     - priority: 600
       then:
-        - delay: 2s   # let SEN66 finish its 1 s startup blackout window
+        - delay: 5s
         - lambda: |-
-            // CRC-8 / polynomial 0x31, init 0xFF — Sensirion convention.
+            // 0x0104 Stop Measurement → idle (0x6100 is idle-only)
+            const uint8_t cmd[2] = {0x01, 0x04};
+            auto err = id(sen66_raw).write(cmd, 2);
+            ESP_LOGI("sen66", "STAR: stop measurement for the idle-only 0x6100: err=%d", (int) err);
+            id(oas_star_err) = (err == esphome::i2c::ErrorCode::ERROR_OK) ? 0 : 1;
+        - delay: 1500ms   # datasheet §4.8.2: wait ≥ 1400 ms after Stop
+        - lambda: |-
+            // 0x6100 Set Temperature Acceleration Parameters (idle mode only)
             auto crc8 = [](uint8_t a, uint8_t b) -> uint8_t {
-              uint8_t buf[2] = {a, b};
               uint8_t c = 0xFF;
-              for (uint8_t i = 0; i < 2; i++) {
-                c ^= buf[i];
-                for (uint8_t j = 0; j < 8; j++) {
-                  c = (c & 0x80) ? (uint8_t)((c << 1) ^ 0x31) : (uint8_t)(c << 1);
-                }
+              for (uint8_t x : {a, b}) {
+                c ^= x;
+                for (int i = 0; i < 8; i++) c = (c & 0x80) ? (uint8_t)((c << 1) ^ 0x31) : (uint8_t)(c << 1);
               }
               return c;
             };
-
-            // ---- 0x6100  Set Temperature Acceleration Parameters --------
-            //   Per Sensirion driver `sen66_i2c.c` (Model-Version 1.6.0,
-            //   sen66_set_temperature_acceleration_parameters): one write
-            //   carries FOUR 16-bit words {K, P, T1, T2}, each followed by
-            //   its CRC-8.  Display values × 10 → raw on-wire values:
-            //     word0 = K  = 200   (display K  = 20)
-            //     word1 = P  = 200   (display P  = 20)
-            //     word2 = T1 = 1000  (display T1 = 100 s)
-            //     word3 = T2 = 3000  (display T2 = 300 s)
-            //   Total payload after opcode: 4 words × (2 data + 1 crc) = 12 B.
-            bool ok = true;
-            {
-              uint8_t buf[2 + 4*3];   // 2 cmd + 4 words × (2 data + 1 crc) = 14 B
-              buf[0] = 0x61; buf[1] = 0x00;
-              uint16_t w[4] = {200, 200, 1000, 3000};  // K, P, T1, T2
-              for (uint8_t i = 0; i < 4; i++) {
-                uint8_t hi = (uint8_t)(w[i] >> 8);
-                uint8_t lo = (uint8_t)(w[i] & 0xFF);
-                buf[2 + i*3 + 0] = hi;
-                buf[2 + i*3 + 1] = lo;
-                buf[2 + i*3 + 2] = crc8(hi, lo);
-              }
-              auto err = id(sen66_raw).write(buf, sizeof(buf));
-              ESP_LOGI("sen66",
-                       "STAR accel (K=200, P=200, T1=1000, T2=3000): err=%d",
-                       (int)err);
-              if (err != esphome::i2c::ErrorCode::ERROR_OK) ok = false;
+            uint8_t buf[2 + 4 * 3] = {0x61, 0x00};
+            const uint16_t w[4] = {200, 200, 1000, 3000};   // K, P, T1, T2 (×10)
+            for (int i = 0; i < 4; i++) {
+              buf[2 + i * 3] = (uint8_t)(w[i] >> 8);
+              buf[3 + i * 3] = (uint8_t)(w[i] & 0xFF);
+              buf[4 + i * 3] = crc8(buf[2 + i * 3], buf[3 + i * 3]);
             }
-
-            id(oas_star_engine_state).publish_state(
-                ok ? "uploaded (Light/IAQM preset)" : "FAILED — check I2C bus");
+            auto err = id(sen66_raw).write(buf, sizeof(buf));
+            ESP_LOGI("sen66", "STAR accel (K=200, P=200, T1=1000, T2=3000) in idle: err=%d", (int) err);
+            if (err != esphome::i2c::ErrorCode::ERROR_OK) id(oas_star_err) |= 2;
+        - delay: 50ms     # 0x6100 execution time 20 ms
+        - lambda: |-
+            // 0x0021 Start Continuous Measurement
+            const uint8_t cmd[2] = {0x00, 0x21};
+            auto err = id(sen66_raw).write(cmd, 2);
+            ESP_LOGI("sen66", "STAR: measurement restarted: err=%d", (int) err);
+            if (err != esphome::i2c::ErrorCode::ERROR_OK) id(oas_star_err) |= 4;
+        - delay: 100ms    # start execution time 50 ms
+        - lambda: |-
+            const std::string &r = id(oas_reset_reason).state;
+            // empty = text sensor not published yet: assume cold (Sensirion's default)
+            id(oas_star_warm) = !(r.empty() || r == "power-on event" || r == "unknown source");
+            ESP_LOGI("sen66", "STAR: reset reason '%s' -> %s start", r.c_str(), id(oas_star_warm) ? "warm" : "cold");
+            id(oas_star_boot_done) = true;
+        - script.execute:
+            id: sen66_star_send_offsets
+            immediate: !lambda 'return id(oas_star_warm);'
+            reason: !lambda 'return id(oas_star_warm) ? std::string("warm start, tau=0") : std::string("cold start, ramping with tau");'

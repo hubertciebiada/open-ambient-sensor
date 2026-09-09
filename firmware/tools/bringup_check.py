@@ -381,6 +381,9 @@ def main() -> int:
         m_star = re.search(r"STAR accel .*err=(\d+)", text)
         rep.check("boot: STAR preset uploaded", bool(m_star and m_star.group(1) == "0"),
                   m_star.group(0) if m_star else "no STAR line")
+        m_off = re.search(r"STAR offset slot 0: .*err=(\d+)", text)
+        rep.check("boot: STAR offset slot 0 sent", bool(m_off and m_off.group(1) == "0"),
+                  m_off.group(0) if m_off else "no STAR offset line")
         rep.check("boot: WiFi connected", bool(re.search(r"\[wifi[^\]]*\]: Connected", text)),
                   "first attempt failed, connected after scan" if "Connecting to network failed" in text else "")
         # "[E][api]: No clients; rebooting" is api.reboot_timeout firing on a
