@@ -113,9 +113,6 @@ web_server:
     - id: grp_ring
       name: "LED ring"
       sorting_weight: 50
-    - id: grp_ring_cfg
-      name: "LED ring - settings"
-      sorting_weight: 60
     - id: grp_system
       name: "System"
       sorting_weight: 70

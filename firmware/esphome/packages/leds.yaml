@@ -237,8 +237,8 @@ number:
     id: oas_ring_brightness_max
     name: "Ring Max Brightness"
     web_server:
-      sorting_group_id: grp_ring_cfg
-      sorting_weight: 10
+      sorting_group_id: grp_ring
+      sorting_weight: 20
     optimistic: true
     initial_value: 30
     min_value: 0
@@ -262,8 +262,8 @@ number:
     id: oas_night_start
     name: "Night Mode Start Hour"
     web_server:
-      sorting_group_id: grp_ring_cfg
-      sorting_weight: 30
+      sorting_group_id: grp_ring
+      sorting_weight: 40
     optimistic: true
     initial_value: 22
     min_value: 0
@@ -276,8 +276,8 @@ number:
     id: oas_night_end
     name: "Night Mode End Hour"
     web_server:
-      sorting_group_id: grp_ring_cfg
-      sorting_weight: 40
+      sorting_group_id: grp_ring
+      sorting_weight: 50
     optimistic: true
     initial_value: 7
     min_value: 0
@@ -297,8 +297,8 @@ switch:
   - platform: template
     name: "Night Mode"
     web_server:
-      sorting_group_id: grp_ring_cfg
-      sorting_weight: 20
+      sorting_group_id: grp_ring
+      sorting_weight: 30
     id: oas_night_mode_enabled
     icon: "mdi:weather-night"
     optimistic: true

@@ -224,7 +224,7 @@ Inside the enclosure the SEN66 sits behind the regulators, the ESP32-C6 and the 
 
 ### On-device dashboard layout
 
-The web dashboard at `http://<device-ip>/` groups its entities into seven cards (web_server v3 sorting groups, declared in `packages/core.yaml`, one `web_server:` key per entity in the package that owns it): **Air quality** and **Air quality - settings**, **Presence** and **Presence - settings**, **LED ring** and **LED ring - settings**, and **System** for what belongs to the ESP32 itself (radio, uptime, reset reason, BLE proxy, service buttons). Measurements are separated from the settings that shape them, so a card answers either "what does it read" or "how is it tuned". Home Assistant ignores the grouping and sorts by `entity_category` instead.
+The web dashboard at `http://<device-ip>/` groups its entities into six cards (web_server v3 sorting groups, declared in `packages/core.yaml`, one `web_server:` key per entity in the package that owns it): **Air quality** and **Air quality - settings**, **Presence** and **Presence - settings**, **LED ring**, and **System** for what belongs to the ESP32 itself (radio, uptime, reset reason, BLE proxy, service buttons). Measurements are separated from the settings that shape them, so a card answers either "what does it read" or "how is it tuned". Home Assistant ignores the grouping and sorts by `entity_category` instead.
 
 ### Dashboard idea (starter Lovelace card)
 

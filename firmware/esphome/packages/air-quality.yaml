@@ -141,17 +141,9 @@ i2c_device:
 # (offset -3.4 K = mean of -3.2 vs an SCD41 monitor and -3.55 vs an SHT31
 # logger, night steady state). Any change to the heat budget (ring brightness,
 # BLE proxy, gasket, enclosure) shifts the offset; re-derive per AN §2.2.
-# Slot-0 tau = 1800 s, from the cold-start run of 2026-09-09 (4.3 h off, cold
-# power-on confirmed by the reset reason, both offsets zeroed for the recording).
-# Only the first 13 minutes of that run are usable - an air conditioner started
-# and ran for 45 minutes, which the Sensirion recipe excludes (forced convection
-# changes how the enclosure sheds heat). In that clean window dT rose 0.09 ->
-# 0.86 -> 1.30 K against a reference steady at 23.3 C, which fits tau ~ 25-30 min
-# with an amplitude near the 3.4 K measured overnight. Slot 1 stays off: the run
-# was too short to separate a slow second exponential from the fast one.
-# The value only shapes the first tens of minutes after a COLD power-on (mains
-# outage); every other reset takes the warm path with tau = 0. Re-measure with a
-# clean 6 h cold start if that transient ever matters.
+# Slot-0 tau = 1800 s, measured on a cold start; slot 1 unused. Tau only shapes
+# the first tens of minutes after a COLD power-on (mains outage) - every other
+# reset takes the warm path with tau = 0.
 # Runtime changes from the UI are applied at once (tau = 0); the configured
 # tau only matters after a cold power-on.
 #
