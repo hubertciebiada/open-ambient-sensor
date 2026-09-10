@@ -275,6 +275,44 @@ number:
     # Threshold" to 100 on every unit after the first flash (the bring-up
     # script in firmware/tools does this). If gate 1 flaps as well, raise it
     # to ~70 before touching anything further out.
+    #
+    # Sleep-detection tuning (v0.54, two wall-mounted units, 2026-09). Detecting a
+    # person who is ASLEEP is a different problem from detecting one who moves, and
+    # the gate thresholds are only half of it.
+    #
+    # The module will NOT assert a still target until a MOVING target has been
+    # acquired first; once still clears, only motion re-arms it. ESPHome does no
+    # threshold arithmetic at all -- it republishes the module's own decision byte --
+    # so nothing on the ESP side works around this. Measured against a bed at 3.0 m
+    # with a sleeping child: still thresholds of 40, 10, 1 and 0 on the bed gates all
+    # behaved identically (no presence, hardware OUT pin low) for as long as the
+    # sleeper stayed motionless. The instant somebody walked in, the track armed --
+    # and then held the sleeper after the visitor had left.
+    #
+    # "Presence Timeout" (0..65535 s, retriggered by every detection, and holding the
+    # OUT pin as well) is therefore the load-bearing mechanism here, not a fallback.
+    # Over a first full night at 1800 s the unit facing an adult sleeper held presence
+    # continuously, while the one facing a small child dropped it once for 25 min
+    # after a full 60 minutes of stillness; raised to 3600 s. The cost is symmetric and unavoidable: a room
+    # reports occupied for the whole timeout after everyone leaves -- fine for
+    # ventilation control, unusable for lighting.
+    #
+    # Do NOT tune any of this against the aggregated "Still Energy" sensor. An empty
+    # room reads 6-11 %, a sleeping child 5-7 % and an awake adult 95 %, so a small
+    # sleeper sits BELOW the empty-room noise floor and no threshold on that quantity
+    # can separate them. Throughout the 25-minute dropout the radar still reported a
+    # target at 291 cm -- the bed -- so the target was seen and rejected by the
+    # threshold. Measuring it properly needs the per-gate energies
+    # (gN: {move_energy, still_energy} under `sensor: platform: ld2410`, engineering
+    # mode on), which this package does not declare yet.
+    #
+    # Gates 0 and 1 have NO settable still sensitivity: HLK's protocol Table 7 marks
+    # both "(not settable)" and their still energies always read 0. A still target has
+    # to sit beyond 1.5 m to be tunable at all.
+    #
+    # Firmware >= 2.44 carries a background-noise auto-calibration (command 0x000B)
+    # that derives every gate threshold from measured noise. ESPHome does not wrap it;
+    # esphome/esphome#17006 is open and usable as an external component.
     g0:
       move_threshold:
         name: "G0 Move Threshold"
