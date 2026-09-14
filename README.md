@@ -8,6 +8,12 @@
 [![MCU: ESP32-C6](https://img.shields.io/badge/MCU-ESP32--C6-green?style=flat-square)](#hardware-overview)
 [![Framework: ESPHome](https://img.shields.io/badge/Framework-ESPHome-orange?style=flat-square)](https://esphome.io)
 
+<p align="center">
+  <img src="./hardware/photos/v0.54-mounted-led-ring.jpg" width="36%" alt="OAS mounted on a wall in the dark: the AQI ring glows green through the perforated AK-N-94 cover">
+  &nbsp;
+  <img src="./hardware/photos/v0.54-pcb-top.jpg" width="60%" alt="OAS v0.54 PCB after SMT assembly, THT parts hand-soldered, daughterboards not yet fitted">
+</p>
+
 ---
 
 ## Status
@@ -101,6 +107,7 @@ open-ambient-sensor/
     │   ├── lcsc_mapping.py         # SMD BOM — LCSC SKU source of truth
     │   └── oas.kicad_*             # generated KiCad project files (derived artefacts — never hand-edit)
     ├── renders/                    # generated previews (PNG + SVG, visual changelog)
+    ├── photos/                     # photos of built units (EXIF stripped)
     └── output/                     # production deliverables (ibom + jlcpcb/ ZIP + BOM + 2× CPL)
 ```
 

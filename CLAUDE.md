@@ -527,6 +527,7 @@ open-ambient-sensor/
     ├── build/                      # INTERMEDIATE artifacts (gitignored)
     │   └── gerbers/                # raw Protel gerbers + Excellon drill + drill_map PDF
     ├── renders/                    # generated previews (PNG + SVG, sibling of kicad/)
+    ├── photos/                     # photos of built units — EXIF stripped before commit (Rule 2)
     │   ├── pcb/                    # 2D / 3D / pygerber preflight
     │   └── sch/                    # schematic root + 4 sub-sheets
     └── output/                     # production deliverables (vendor-neutral + per-vendor)
