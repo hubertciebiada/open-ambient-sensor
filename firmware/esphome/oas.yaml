@@ -60,7 +60,7 @@ substitutions:
 
   # Project metadata — keep these in sync with CLAUDE.md / boardgen/_project.py.
   project_name: "HubertCiebiada.open-ambient-sensor"
-  project_version: "v0.53-dev"
+  project_version: "v0.54"
 
   # I2C pin mapping (consumed by packages/air-quality.yaml). The DEFAULTS
   # below are the schematic mapping (GPIO6 = SDA, GPIO7 = SCL) — correct for

@@ -2,7 +2,7 @@
 
 OAS runs on **ESPHome** (YAML configuration) and integrates with Home Assistant via the native ESPHome API.
 
-Hardware target: **ESP32-C6-DevKitM-1-N4** (ESP32-C6-MINI-1 SoM, 4 MB flash) on the OAS v0.40 PCB. Framework: **esp-idf** (required for BLE proxy memory headroom — `arduino` runs out of IRAM with the C6 + BLE + WiFi + sensors all enabled).
+Hardware target: **ESP32-C6-DevKitM-1-N4** (ESP32-C6-MINI-1 SoM, 4 MB flash) on the OAS v0.54 PCB (v0.51 prototype boards need the pin overrides in [`esphome/HARDWARE-COMPAT-v0.51.md`](./esphome/HARDWARE-COMPAT-v0.51.md)). Framework: **esp-idf** (required for BLE proxy memory headroom — `arduino` runs out of IRAM with the C6 + BLE + WiFi + sensors all enabled).
 
 ## Layout
 
@@ -169,7 +169,7 @@ Alternatively, the **AP fallback** (`OAS-<device_id>-Setup` SSID, gated by `ap_p
 
 ## Status
 
-**Firmware skeleton complete (5 packages):** `core.yaml`, `leds.yaml`, `air-quality.yaml`, `presence.yaml`, `bt-proxy.yaml`. Validates clean against `esphome config`. Awaiting hardware delivery for first-flash and bench bring-up — see CLAUDE.md for the firmware TODO list (LD2410 UART shakedown, OTA setup, HA discovery validation). The dynamic NFC tag package was removed together with the NFC hardware (GitHub issue #7).
+**Firmware v0.54 — running on the v0.54 boards (5 packages):** `core.yaml`, `leds.yaml`, `air-quality.yaml`, `presence.yaml`, `bt-proxy.yaml`. Bench-validated on delivered hardware: SEN66 readings with Sensirion's STAR temperature compensation inside the module, LD2410C presence over UART (per-gate thresholds, gate 0 disabled, the radar's Bluetooth kept off), LED ring, OTA through the Home Assistant ESPHome add-on, native API discovery, Bluetooth proxy. `project_version` follows the board silkscreen (`v0.54`). `tools/bringup_check.py` is the repeatable per-unit bench check. The dynamic NFC tag package was removed together with the NFC hardware (GitHub issue #7).
 
 ---
 

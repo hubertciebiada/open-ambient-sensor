@@ -3,7 +3,8 @@
 **DIY multi-sensor environmental monitor for indoor spaces.** Measures air quality and presence; mounts on a standard wall-recessed electrical box; runs ESPHome and integrates natively with Home Assistant.
 
 [![License: GPLv3](https://img.shields.io/badge/License-GPLv3-blue.svg?style=flat-square)](./GPLv3-LICENSE.md)
-[![Status: v0.51 prototypes ordered](https://img.shields.io/badge/Status-v0.51%20prototypes%20ordered-orange?style=flat-square)](#status)
+[![Status: v0.54 built and validated](https://img.shields.io/badge/Status-v0.54%20built%20%26%20validated-green?style=flat-square)](#status)
+[![Release](https://img.shields.io/github/v/release/hubertciebiada/open-ambient-sensor?style=flat-square)](https://github.com/hubertciebiada/open-ambient-sensor/releases/latest)
 [![MCU: ESP32-C6](https://img.shields.io/badge/MCU-ESP32--C6-green?style=flat-square)](#hardware-overview)
 [![Framework: ESPHome](https://img.shields.io/badge/Framework-ESPHome-orange?style=flat-square)](https://esphome.io)
 
@@ -11,19 +12,25 @@
 
 ## Status
 
-**v0.53 design complete and fully routed; first prototypes bench-tested.** The v0.51 prototype batch (5 units, JLCPCB SMT) was delivered and brought up on the bench: the firmware (5-package ESPHome config + web_server dashboard) runs on real hardware, the SEN66 delivers live CO₂/PM/VOC/NOx/T/RH readings (after an SDA/SCL cable-mirror fix now baked into the v0.53 board — see CLAUDE.md Lesson 21), the LED ring and Wi-Fi/OTA/Home Assistant integration work. The v0.53 revision folds in the bring-up findings: the SEN66 now recesses through a PCB cutout so the enclosure lid closes, a cable pass-through slot feeds its lead, the DevKit moved clear of the bulk capacitors, and the board was fully re-routed from scratch (DRC 0 violations / 0 unconnected; JLCPCB DFM 0 Danger). The board has since been re-routed again, after the presence connector was reworked for the HLK-LD2410C and the radar's UART was moved off the ESP32's console pins (which the DevKit shares with its USB-UART bridge): DRC 0 violations / 0 unconnected. Verification pipeline: 35 stages, `build.py` 35/35 PASS. The JLCPCB DFM pass has been re-run on these gerbers and is clean: 0 Danger on both the bare-board and assembly checks. See [`CLAUDE.md`](./CLAUDE.md) for the design rationale, hard constraints, and lessons learned.
+**v0.54 — manufactured, bench-validated and in use.** Boards of this revision were fabricated and SMT-assembled at JLCPCB, brought up on the bench with a repeatable per-unit check, and run in a multi-unit deployment as the sensor input for Home Assistant HVAC automations. Working on the delivered hardware: the 24 V power chain, the Sensirion SEN66 (CO₂ / PM / VOC / NOx / T / RH, with Sensirion's STAR temperature compensation running inside the module), the HLK-LD2410C presence radar including stillness detection, the LED ring, Wi-Fi / OTA / native Home Assistant API, the Bluetooth proxy and the on-device web dashboard. The firmware reports `project_version: v0.54`, matching the version printed on the silkscreen. The design is fully script-generated and verified: `build.py` 35/35 stages PASS, DRC 0 violations / 0 unconnected, JLCPCB DFM 0 Danger on both the bare-board and assembly checks. The production files for this revision are attached to the [GitHub release](https://github.com/hubertciebiada/open-ambient-sensor/releases). See [`CLAUDE.md`](./CLAUDE.md) for the design rationale, hard constraints and the lessons learned along the way.
 
 ---
 
 ## Can I build one today?
 
-**Short answer: you *can*, but you probably want to wait for the v1 validation milestone.**
+**Yes — this revision has been built and works.** What to know before ordering:
 
-- **The design is complete, routed and DFM-checked at this revision.** The committed production files under [`hardware/output/jlcpcb/`](./hardware/output/jlcpcb/) describe the fully-routed board, are regenerated and verified by the 35-stage pipeline on every build, and pass the manufacturer's DFM check with 0 Danger on both the bare-board and assembly halves. What remains unproven is not the fabrication data but the physical result: no board has been made from this revision yet.
-- **It is a partially validated prototype.** The v0.51 batch was powered, flashed, and bench-tested: power chain, SEN66 air-quality readings, LED ring, Wi-Fi/OTA and Home Assistant integration all work. Still open: the presence radar (two HLK-LD2410B samples from different sellers both had a mute UART with a working presence pin, which is why the design moved to the LD2410C) and the v0.53 mechanical changes (SEN66 recess depth, cable-slot ergonomics) which exist only in CAD until the next batch is manufactured. The Bluetooth proxy, disabled during bring-up after a boot crash-loop, is enabled again (the bug was in the config's own BLE kill-switch, GitHub issue #4). Early adopters should wait for the v1 validation milestone before ordering.
+- **The production files are in the repo.** [`hardware/output/jlcpcb/`](./hardware/output/jlcpcb/) holds the gerber + drill bundle, the BOM and the CPL files for JLCPCB SMT assembly (also attached to the GitHub release); they are regenerated and verified by the 35-stage pipeline on every build. Follow the ordering workflow in [`CLAUDE.md`](./CLAUDE.md#jlcpcb-ordering-workflow-distilled-from-v040-saga) — in particular the pre-payment Assembly Order cross-check, which has caught wrong-part substitutions more than once.
+- **Seven components are hand-soldered after assembly** — the 24 V terminal block, the two ESP32-C6-DevKitM-1 socket headers, the LD2410C header and the three THT capacitors — and the SEN66 is attached with its JST GH lead and zip ties. Flashing and Home Assistant onboarding are documented in [`firmware/README.md`](./firmware/README.md).
 - **Cost positioning.** OAS deliberately sits above bargain-DIY BOM cost: a calibrated Sensirion SEN66 combo sensor, an mmWave radar with stillness detection, and a commercial-grade injection-moulded enclosure are all premium choices made on purpose — see [Design philosophy](#design-philosophy). If lowest possible cost is your priority, other open-source projects optimise for that instead.
 
-When hardware validation lands, this section will be replaced by a build guide (ordering, enclosure sourcing, flashing, Home Assistant onboarding). Flashing and Home Assistant integration are already documented in [`firmware/README.md`](./firmware/README.md); open work is tracked in the [TODO list](./CLAUDE.md#open-work--todo) in `CLAUDE.md`.
+**Known limitations** (findings on the built units):
+
+- **The LED ring effect is weaker than designed.** For the SEN66 to read correctly inside the enclosure, an air duct has to guide room air from the perforated cover to the sensor inlet, and that duct sits in front of part of the ring. The duct is not part of this repository yet.
+- **Detecting a sleeping person relies on the presence timeout**, not on the radar's still-target thresholds — see the notes in [`firmware/esphome/packages/presence.yaml`](./firmware/esphome/packages/presence.yaml).
+- **v0.51 prototype boards** need the pin overrides in [`firmware/esphome/HARDWARE-COMPAT-v0.51.md`](./firmware/esphome/HARDWARE-COMPAT-v0.51.md); v0.54 boards run the firmware defaults.
+
+A consolidated step-by-step build guide is not written yet; open work is tracked in the [TODO list](./CLAUDE.md#open-work--todo) in `CLAUDE.md`.
 
 ---
 
@@ -81,6 +88,7 @@ open-ambient-sensor/
 │   │   ├── oas.yaml                # top-level ESPHome config
 │   │   ├── packages/               # core / leds / air-quality / presence / bt-proxy
 │   │   └── examples/               # anonymized per-device override examples
+│   ├── tools/                      # bringup_check.py — repeatable per-unit bench check
 │   └── secrets.yaml.example
 └── hardware/
     ├── kicad/
