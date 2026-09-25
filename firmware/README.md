@@ -282,6 +282,8 @@ The ring shows the air quality on its own, without any Home Assistant wiring: gr
 
 The brightness steps are LED output 1, 2, 3, 5, 10, 19, 36, 69, 133 and 255 (of 255): each about 1.9× the one below, from the dimmest glow the LEDs can make (1) to full power (10). That replaces the light's own 0-255 slider, whose bottom ~16 % is one and the same dimmest glow on these 8-bit, gamma-corrected LEDs. The light entity itself is internal, so the dashboard and Home Assistant show only the settings above. Brightness 4, the default, is exactly the old 25 % setting the reference unit ran at when the temperature offset was calibrated. At brightness 10 the ring dissipates ~0.2-0.35 W (AQI colours) to ~0.5 W (white) next to the SEN66, which warms its temperature reading — the temperature offset was calibrated with the ring at 4.
 
+At brightness 1-6 the breathing effect uses only colours that keep their hue all the way down the breath: green (AQI up to 89), yellow (90-121) and red (122-200). A breath there bottoms out at 1-3 LED steps, where an LED has no in-between shades, so a mixed colour such as yellow-green or orange cannot dim without changing hue — it would flicker towards red on the exhale. *AQI Solid*, and the breath from brightness 7 up, show the full gradient.
+
 When the air turns critical (AQI > 200 or CO₂ > 1500 ppm), a ring that is on turns solid red — at least brightness 7 by day, the night brightness at night (so it never lights up a sleeping room) — and goes back to its mode when the air clears.
 
 Settings survive reboots and OTA updates; after a restart at night the ring comes up at the night brightness even before the clock syncs.

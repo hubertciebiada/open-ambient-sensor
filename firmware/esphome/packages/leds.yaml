@@ -135,27 +135,49 @@ light:
       # comes out as a handful of visible jumps and then sits on the
       # dimmest step for most of its lower half — the start of each swell
       # looks late. This effect computes the final LED values itself:
-      #   1. peak = the AQI colour through the light's own pipeline (gamma,
-      #      current brightness) — exactly what AQI Solid shows;
+      #   1. peak = the colour's strongest channel through the light's own
+      #      pipeline (gamma, current brightness) — as bright as AQI Solid;
       #   2. envelope = a raised cosine in PERCEIVED brightness (even-looking
       #      swell), mapped to LED output with the same 2.8 gamma, bottoming
       #      out at 20 % of the peak output and never below one LED step. At
       #      level 1 (the usual night level) the peak is that one step, so
       #      the ring holds steady instead of blinking;
-      #   3. spatial dithering: one diffuser over 7 LEDs, so the ring can
-      #      show 1/7 of an LED step by giving some LEDs one step more —
-      #      7x finer steps. Extras go to every 3rd LED (0, 3, 6, 2, 5, 1, 4),
-      #      spreading them around the ring. The values are written through
-      #      an identity correction, i.e. as final LED outputs.
+      #   3. spatial dithering of that channel: one diffuser over 7 LEDs, so
+      #      the ring can show 1/7 of an LED step by giving some LEDs one
+      #      step more — 7x finer steps. Extras go to every 3rd LED
+      #      (0, 3, 6, 2, 5, 1, 4), spreading them around the ring;
+      #   4. the other channels follow it on each LED as a fixed fraction of
+      #      it — the colour's own mix after the 2.8 gamma — so only the
+      #      brightness moves, never the hue. Scaled and rounded on their own,
+      #      a weak channel (one step of red in a yellow-green) stays lit on
+      #      some LEDs while the strong one dims, and the exhale blinks red.
+      #      Rounding the fraction per LED still moves the hue by up to half
+      #      a step at the trough: ~7 % of the mix at a 7-step trough, but
+      #      17-50 % at 1-3 steps, where an LED has next to no in-between
+      #      shades. So a breath whose trough is under 7 steps (levels 1-6)
+      #      takes the nearest colour that keeps its hue at every step: a
+      #      channel at least half the strongest one's output counts as full,
+      #      a weaker one as off. On the SK6812SIDE-A (datasheet mid-bin
+      #      R 345 / G 930 mcd) that is also about where the hue is halfway
+      #      (CIE u'v'), so AQI up to 89 breathes green, 90-121 yellow,
+      #      122-200 red (above 200 the critical-air alert takes over). The
+      #      shades in between show in AQI Solid, or in the breath from
+      #      level 7 up.
+      # The values are written through an identity correction, i.e. as final
+      # LED outputs.
       - addressable_lambda:
           name: "AQI Breathing"
           update_interval: 30ms
           lambda: |-
             const int N = it.size();
-            it[0] = id(oas_aqi_rgb);
-            const float pk[3] = {(float) it[0].get_red_raw(), (float) it[0].get_green_raw(),
-                                 (float) it[0].get_blue_raw()};
-            const float peak = std::max(pk[0], std::max(pk[1], pk[2]));
+            const Color col = id(oas_aqi_rgb);
+            const uint8_t cv[3] = {col.r, col.g, col.b};
+            int dom = 0;                           // the colour's strongest channel
+            for (int ch = 1; ch < 3; ch++)
+              if (cv[ch] > cv[dom]) dom = ch;
+            it[0] = col;
+            const uint8_t pk[3] = {it[0].get_red_raw(), it[0].get_green_raw(), it[0].get_blue_raw()};
+            const float peak = (float) pk[dom];
 
             float k = 1.0f;                        // LED output relative to the peak
             const float lo = std::max(1.0f, 0.20f * peak);
@@ -172,18 +194,20 @@ light:
               c.set_local_brightness(255);
               return c;
             }();
-            int base[3], extra[3];
-            for (int c = 0; c < 3; c++) {
-              const float v = pk[c] * k;
-              base[c] = (int) floorf(v);
-              extra[c] = (int) lroundf((v - (float) base[c]) * N);
+            float share[3];                        // each channel's output as a share of the strongest
+            for (int ch = 0; ch < 3; ch++) {
+              share[ch] = cv[dom] ? powf((float) cv[ch] / (float) cv[dom], 2.8f) : 0.0f;
+              if (lo < 7.0f) share[ch] = share[ch] >= 0.5f ? 1.0f : 0.0f;
             }
+            const float v = peak * k;
+            const int base = (int) floorf(v);
+            const int extra = (int) lroundf((v - (float) base) * N);
             for (int r = 0; r < N; r++) {          // N = 7: gcd(3, 7) = 1, every LED once
+              const int d = std::min(255, base + (r < extra ? 1 : 0));
               auto px = it[(r * 3) % N];
               px.raw_set_color_correction(&raw);
-              px.set_rgb((uint8_t) std::min(255, base[0] + (r < extra[0] ? 1 : 0)),
-                         (uint8_t) std::min(255, base[1] + (r < extra[1] ? 1 : 0)),
-                         (uint8_t) std::min(255, base[2] + (r < extra[2] ? 1 : 0)));
+              px.set_rgb((uint8_t) lroundf(d * share[0]), (uint8_t) lroundf(d * share[1]),
+                         (uint8_t) lroundf(d * share[2]));
             }
 
       # ---------------------------------------------------------------
