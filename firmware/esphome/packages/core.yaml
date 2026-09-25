@@ -91,6 +91,12 @@ web_server:
   version: 3
   ota: false
   log: true
+  # Internal entities are not sent to Home Assistant; this shows them here
+  # anyway. That is how a dashboard-only entity is made (Ring Status in
+  # leds.yaml). An internal entity that should not clutter this page either
+  # gets `disabled_by_default: true` - it then sits behind "Show All" (the
+  # ring's own light entity does).
+  include_internal: true
   # Dashboard layout: one card per sub-device, measurements split from the
   # settings that shape them, and everything that belongs to the ESP32 itself
   # (radio, uptime, service buttons) in its own card at the bottom. The

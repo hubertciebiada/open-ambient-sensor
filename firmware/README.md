@@ -202,7 +202,7 @@ Alternatively, the **AP fallback** (`OAS-<device_id>-Setup` SSID, gated by `ap_p
 
 #### Light, numbers, selects, text, buttons, switches
 
-- `switch.ring`, `select.ring_mode` (`AQI Breathing` / `AQI Solid` / `Dot Chase`), `number.ring_brightness` (1-10), `switch.ring_night_mode`, `number.ring_night_brightness` (0 up to the ring brightness), `time.ring_night_start` / `time.ring_night_end`, `text_sensor.ring_status` — the AQI ring (7 × SK6812-SIDE), see [LED ring](#led-ring) below. There is no `light` entity: the light is internal to the firmware
+- `switch.ring`, `select.ring_mode` (`AQI Breathing` / `AQI Solid` / `Dot Chase`), `number.ring_brightness` (1-10), `switch.ring_night_mode`, `number.ring_night_brightness` (0 up to the ring brightness), `time.ring_night_start` / `time.ring_night_end` — the AQI ring (7 × SK6812-SIDE), the same seven controls as the dashboard's LED ring card, all under the device's *Configuration*; see [LED ring](#led-ring) below. There is no `light` entity (the light is internal to the firmware), and the Ring Status line is dashboard-only
 - `number.temperature_offset` / `number.temperature_offset_tau` and `number.temperature_offset_slow` / `number.temperature_offset_slow_tau` — SEN66 STAR-Engine offset slots 0 and 1 (°C, s), written into the module at boot and on every change; RH follows automatically (see "SEN66 temperature compensation" below). `number.humidity_offset` (-20..+20 %RH), `number.co2_offset` (-100..+100 ppm) — ESPHome-side trims on the published value
 - `number.max_move_gate` / `number.max_still_gate` (2-8 gates × 0.75 m), `number.presence_timeout` (0-65535 s), `number.g<0-8>_move_threshold` / `number.g<0-8>_still_threshold` (0-100 per gate, 100 disables the gate; stored in the radar's own flash). Gate 0 (0-0.75 m) sees the SEN66 fan and the cover from inside the enclosure and flaps on the factory threshold, so the bring-up script disables it — see the note in `packages/presence.yaml`
 - `button.restart` / `button.sen66_force_clean` / `button.ld2410_factory_reset`
@@ -278,13 +278,30 @@ The ring shows the air quality on its own, without any Home Assistant wiring: gr
 | 4 | **Ring Night Mode** | on / off | Use the night brightness inside the night window (default on) |
 | 5 | **Ring Night Brightness** | 0 up to Ring Brightness | Brightness at night (default 1). **0 = dark for the night**, back on at night end. A value above Ring Brightness snaps back to it, and lowering Ring Brightness pulls it down too |
 | 6 | **Ring Night Start / End** | time | The night window (default 22:00 → 07:00, may wrap midnight). The same time twice = no night |
-| | **Ring Status** | — | What the ring is doing and until when, e.g. `Day, brightness 4 until 22:00, then 1` |
+| | **Ring Status** | — | What the ring is doing and until when, e.g. `Day, brightness 4 until 22:00, then 1`. Dashboard only — not a control, so not in Home Assistant |
 
 The brightness steps are LED output 1, 2, 3, 6, 12, 22, 40, 74, 138 and 255 (of 255): each about 1.85× the one below, from the dimmest glow the LEDs can make (1) to full power (10). That replaces the light's own 0-255 slider, whose bottom ~16 % is one and the same dimmest glow on these 8-bit, gamma-corrected LEDs. The light entity itself is internal, so the dashboard and Home Assistant show only the settings above. Brightness 4 matches the 25-30 % the units ran at before. At brightness 10 the ring dissipates ~0.2-0.35 W (AQI colours) to ~0.5 W (white) next to the SEN66, which warms its temperature reading — the temperature offset is calibrated with the ring around 4.
 
 When the air turns critical (AQI > 200 or CO₂ > 1500 ppm), a ring that is on turns solid red — at least brightness 7 by day, the night brightness at night (so it never lights up a sleeping room) — and goes back to its mode when the air clears.
 
-Settings survive reboots and OTA updates; after a restart at night the ring comes up at the night brightness even before the clock syncs. Automations switch the ring with `switch.oas_<device>_ring`. Example — ring off while the room is empty (at night it still follows the night brightness when switched on):
+Settings survive reboots and OTA updates; after a restart at night the ring comes up at the night brightness even before the clock syncs.
+
+Home Assistant gets the same seven controls, all in the device page's *Configuration* card (HA sorts them alphabetically there). A card with them in the dashboard's order:
+
+```yaml
+type: entities
+title: LED ring
+entities:
+  - switch.oas_livingroom_ring
+  - select.oas_livingroom_ring_mode
+  - number.oas_livingroom_ring_brightness
+  - switch.oas_livingroom_ring_night_mode
+  - number.oas_livingroom_ring_night_brightness
+  - time.oas_livingroom_ring_night_start
+  - time.oas_livingroom_ring_night_end
+```
+
+Automations switch the ring with `switch.oas_<device>_ring`. Example — ring off while the room is empty (at night it still follows the night brightness when switched on):
 
 ```yaml
 trigger:
@@ -310,6 +327,8 @@ action:
 ```
 
 Upgrading from firmware that had *Ring Max Brightness*, *Night Mode* and *Night Mode Start/End Hour*: those entities — and the old `light.oas_<device>_ring` — are gone; remove them from Home Assistant once they show as unavailable. The new settings start at their defaults.
+
+The dashboard shows `internal` entities too (`web_server: include_internal: true` in `core.yaml`) — that is how Ring Status stays out of Home Assistant. The ring's own light entity is internal as well but disabled by default, so it only appears behind the dashboard's *Show All* button; anything changed there is undone by the firmware within a second.
 
 ### Bluetooth proxy
 

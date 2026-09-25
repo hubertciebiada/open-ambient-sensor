@@ -26,10 +26,15 @@
 #                             (may wrap midnight; start = end = no night)
 #      Ring Status            what the ring is doing now, and until when
 #
-# The light entity itself is INTERNAL: its own 0-255 brightness slider and
-# colour picker are not on the dashboard or in Home Assistant, and the
-# schedule tick at the bottom of this file is the only thing that drives it.
-# Automations switch the ring with `switch.<device>_ring`.
+# Home Assistant gets the same seven controls (1-6), all under the device's
+# Configuration card; Ring Status stays on the dashboard only (it is
+# `internal`, shown there through `include_internal` in core.yaml's
+# web_server). The light entity itself is internal and disabled-by-default:
+# its own 0-255 slider and colour picker never reach Home Assistant and sit
+# behind the dashboard's "Show All" button, and the schedule tick at the
+# bottom of this file is the only thing that drives it (it undoes any change
+# made there within a second). Automations switch the ring with
+# `switch.<device>_ring`.
 #
 # Brightness steps: the LEDs are 8-bit behind ESPHome's gamma-2.8 table, so
 # the raw 0-255 scale is mostly unusable — its bottom ~16 % is one and the
@@ -113,6 +118,9 @@ light:
     id: oas_ring
     name: "Ring Light"
     internal: true
+    # Internal entities show on the dashboard (core.yaml include_internal);
+    # this keeps the light's raw controls behind "Show All" there.
+    disabled_by_default: true
     # Nothing to restore: the settings below are what persist, and the first
     # schedule tick (~1 s after boot) switches the ring on from them.
     restore_mode: ALWAYS_OFF
@@ -235,6 +243,7 @@ switch:
     web_server:
       sorting_group_id: grp_ring
       sorting_weight: 10
+    entity_category: config
     optimistic: true
     restore_mode: RESTORE_DEFAULT_ON
     on_state:
@@ -265,6 +274,7 @@ select:
     web_server:
       sorting_group_id: grp_ring
       sorting_weight: 20
+    entity_category: config
     optimistic: true
     restore_value: true
     options:
@@ -289,6 +299,7 @@ number:
     web_server:
       sorting_group_id: grp_ring
       sorting_weight: 30
+    entity_category: config
     optimistic: true
     restore_value: yes
     initial_value: 4
@@ -354,15 +365,18 @@ datetime:
 # ---------------------------------------------------------------------------
 # Status line — what the ring is doing now, and until when
 # ---------------------------------------------------------------------------
+# Dashboard only: `internal` keeps it out of Home Assistant (it is not a
+# control), and core.yaml's `web_server: include_internal: true` still shows
+# it in the LED ring card.
 text_sensor:
   - platform: template
     id: oas_ring_status
     name: "Ring Status"
     icon: "mdi:information-outline"
+    internal: true
     web_server:
       sorting_group_id: grp_ring
       sorting_weight: 80
-    entity_category: diagnostic
     update_interval: never    # published by the schedule tick below
 
 # ---------------------------------------------------------------------------
