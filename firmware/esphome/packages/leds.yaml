@@ -9,53 +9,44 @@
 # Bus     : 1-wire WS281x family, GPIO 8 (ESP32-C6 RMT peripheral)
 # Variant : SK6812 (NOT WS2812 — different bit-timing; rgb_order GRB)
 # Rail    : +5 V from LM2596S-5.0 buck
-# Power   : 7 x 50 mA = 350 mA at full white uncapped; the power cap below
-#           holds the ring to ~25 % of that (~90 mA white, ~30 mA AQI green).
+# Power   : SK6812 SIDE-A = 5 mA per channel, so 7 x 15 mA = 105 mA at full
+#           white (brightness 10, Dot Chase) and 35-70 mA for the AQI colours
+#           at brightness 10 (POWER_BUDGET in hardware/kicad/boardgen/_project.py).
 #
 # ---------------------------------------------------------------------------
-# Settings (web dashboard "LED ring" card; Home Assistant device page)
+# Settings — the "LED ring" card of the web dashboard, in this order
 # ---------------------------------------------------------------------------
-#   Ring                   the light: on/off, effect, colour (for "Solid")
-#   Ring Status            what the ring is doing now, and until when
-#   Ring Day Brightness    level 1..10
-#   Ring Night Brightness  level 0..10 — 0 switches the ring off for the night
-#                          (switched on by hand that night, it starts at level 1)
-#   Ring Night Start       22:00 \  night = start..end, may wrap midnight;
-#   Ring Night End         07:00 /  start = end means no night at all
+#   1. Ring                   on / off
+#   2. Ring Mode              AQI Breathing / AQI Solid / Dot Chase
+#   3. Ring Brightness        1..10 — the LEDs' full range in ten even steps
+#   4. Ring Night Mode        on / off — dim the ring inside the night window
+#   5. Ring Night Brightness  0..Ring Brightness (0 = off for the night; a
+#                             value above Ring Brightness snaps back to it)
+#   6. Ring Night Start / End the night window, 22:00 -> 07:00 by default
+#                             (may wrap midnight; start = end = no night)
+#      Ring Status            what the ring is doing now, and until when
 #
-# Brightness is set in LEVELS, not on the light's own 0-255 scale, because
-# most of that scale is unusable on this ring. The LEDs are 8-bit, ESPHome
-# gamma-corrects (2.8) and its gamma table never returns 0 for a non-zero
-# input, so the bottom ~16 % of the raw slider all lands on the same dimmest
-# LED step; the units run at 25-30 % (LED output 5-9 of 255), and everything
-# above ~60 % is 7-50x brighter than that — glare through the cover and
-# extra heat in the enclosure the SEN66 measures. Each level is one visible
-# step, about 1.6x the one below: LED output 1, 2, 3, 4, 6, 10, 16, 25, 40,
-# 64 (of 255) on the brightest channel. Level 10 is also a hard ceiling:
-# `color_correct` caps the LEDs so that the light's OWN 100 % is level 10,
-# and neither the dashboard slider nor a Home Assistant automation can push
-# the ring past it.
+# The light entity itself is INTERNAL: its own 0-255 brightness slider and
+# colour picker are not on the dashboard or in Home Assistant, and the
+# schedule tick at the bottom of this file is the only thing that drives it.
+# Automations switch the ring with `switch.<device>_ring`.
 #
-# The light's own brightness slider still works, as a temporary setting: the
-# schedule only writes the brightness when day and night swap, when the level
-# of the current half of the day is changed, and once after boot. On the
-# light's scale the levels sit at: 1 = 0-26 %, 2 = 31 %, 3 = 35 %, 4 = 38 %,
-# 5 = 44 %, 6 = 52 %, 7 = 61 %, 8 = 72 %, 9 = 85 %, 10 = 100 %.
+# Brightness steps: the LEDs are 8-bit behind ESPHome's gamma-2.8 table, so
+# the raw 0-255 scale is mostly unusable — its bottom ~16 % is one and the
+# same dimmest LED step, and each further slider step is a different size.
+# The ten levels are LED output 1, 2, 3, 6, 12, 22, 40, 74, 138, 255 (of 255)
+# on the brightest channel: each about 1.85x the one below, from the dimmest
+# glow the LEDs can make to full power. The units ran at 25-30 % of the old
+# slider (LED output 5-9), i.e. around level 4, the default. Heat: at level
+# 10 the ring dissipates ~0.2-0.35 W (AQI colours) / ~0.5 W (white) next to
+# the SEN66, which warms its temperature reading — the temperature offset in
+# air-quality.yaml is calibrated with the ring around level 4.
 #
 # Critical air quality (`oas_air_quality_critical` in air-quality.yaml: AQI >
-# 200 or CO2 > 1500 ppm): while the ring is ON it turns solid red — level 10
-# by day, the night level at night, so it never lights up a sleeping room
-# (night level 0: the ring stays off). The effect and colour come back when
-# the alert clears.
-#
-# Effects (APPEND new ones at the end: the light restores its effect by its
-# position in this list after a reboot):
-#   AQI Breathing  AQI colour with a slow swell — the default
-#   AQI Solid      AQI colour, steady
-#   Solid          the colour picked on the dashboard / in Home Assistant
-#   Dot Chase      rotating white dot
-# The ring comes back from a reboot, OTA or power cut exactly as it was left
-# (on/off, effect, colour), and keeps its effect across off -> on.
+# 200 or CO2 > 1500 ppm): a ring that is on turns solid red — at least level
+# 7 by day, the night brightness at night (so it never lights up a sleeping
+# room; night brightness 0 keeps it off). Ring Mode comes back when the alert
+# clears.
 #
 # Cross-package contract:
 #   - packages/air-quality.yaml owns `oas_aqi_value` (template sensor, float)
@@ -76,67 +67,27 @@ globals:
     initial_value: 'Color(0, 255, 0)'
 
   # Set by on_boot once every entity is restored; before that the settings'
-  # on_value (fired by their own NVS restore) must not count as a change.
+  # on_value / on_state (fired by their own restore) must not count as a
+  # change.
   - id: oas_ring_ready
     type: bool
     restore_value: no
     initial_value: 'false'
 
-  # Settings changed since the last tick: 1 = day level, 2 = night level,
-  # 4 = night start / end.
+  # A setting changed since the last tick -> apply it with a short fade.
   - id: oas_ring_changed
-    type: int
+    type: bool
     restore_value: no
-    initial_value: '0'
+    initial_value: 'false'
 
-  # Half of the day the schedule last applied: -1 = clock not set yet,
-  # 0 = day, 1 = night.
+  # Inside the night window at the last clock reading: -1 unknown, 0 no,
+  # 1 yes. Kept across reboots so that until the clock syncs (~10-20 s after
+  # boot) the ring uses the last known answer — a unit restarted at 03:00
+  # comes up at the night brightness, not the day one.
   - id: oas_ring_period
     type: int
-    restore_value: no
-    initial_value: '-1'
-
-  # Brightness (0..255) the schedule last wrote, so the status can tell a
-  # hand-set brightness from the scheduled level.
-  - id: oas_ring_applied_lb
-    type: int
-    restore_value: no
-    initial_value: '-1'
-
-  # The schedule switched the ring off for the night (night level 0) and owes
-  # the switch-on at night end. Kept across a reboot, so a unit restarted at
-  # 03:00 still comes back on in the morning — and a ring the user switched
-  # off (flag false) stays off.
-  - id: oas_ring_night_off
-    type: bool
     restore_value: yes
-    initial_value: 'false'
-
-  # The effect the user chose (1-based index into the effect list, 0 = none),
-  # kept across off -> on: ESPHome drops the effect whenever a light turns
-  # off, so a plain turn-on would bring the ring back as a steady colour.
-  # UINT32_MAX = never chosen -> AQI Breathing.
-  - id: oas_ring_effect
-    type: uint32_t
-    restore_value: yes
-    initial_value: 'UINT32_MAX'
-
-  - id: oas_ring_was_on
-    type: bool
-    restore_value: no
-    initial_value: 'false'
-
-  # Critical-alert override: whether the ring shows it right now, and the
-  # colour to put back when it clears.
-  - id: oas_alert_shown
-    type: bool
-    restore_value: no
-    initial_value: 'false'
-
-  - id: oas_pre_alert_rgb
-    type: std::array<float, 3>
-    restore_value: no
-    initial_value: '{1.0f, 1.0f, 1.0f}'
+    initial_value: '-1'
 
 # ---------------------------------------------------------------------------
 # Boot: the schedule starts once every entity has been restored
@@ -150,7 +101,7 @@ esphome:
         - lambda: 'id(oas_ring_ready) = true;'
 
 # ---------------------------------------------------------------------------
-# Light platform — the ring itself
+# Light platform — the ring itself (internal, driven by the schedule tick)
 # ---------------------------------------------------------------------------
 light:
   - platform: esp32_rmt_led_strip
@@ -160,54 +111,23 @@ light:
     pin: GPIO8
     rmt_symbols: 64
     id: oas_ring
-    name: "Ring"
-    web_server:
-      sorting_group_id: grp_ring
-      sorting_weight: 10
-    # Power cap = level 10: 61.2 % of full scale before gamma = LED output
-    # 64/255 at the light's 100 %. Keeps the halo from glaring through the
-    # cover and bounds the ring's heat next to the SEN66 (the temperature
-    # offset is calibrated with the ring at a low level). The level table in
-    # the schedule tick is computed against this cap — change one, redo both.
-    color_correct: [61.2%, 61.2%, 61.2%]
-    restore_mode: RESTORE_DEFAULT_ON
-    initial_state:
-      brightness: 43.5%       # level 5 (111/255), the default day level
+    name: "Ring Light"
+    internal: true
+    # Nothing to restore: the settings below are what persist, and the first
+    # schedule tick (~1 s after boot) switches the ring on from them.
+    restore_mode: ALWAYS_OFF
     default_transition_length: 500ms
-    on_state:
-      - lambda: |-
-          // Remember the effect the user picks, and put it back after
-          // off -> on (HA toggle, dashboard switch, the schedule's morning
-          // switch-on, and the very first boot).
-          auto *ring = id(oas_ring);
-          const bool on = ring->remote_values.is_on();
-          const bool was_on = id(oas_ring_was_on);
-          id(oas_ring_was_on) = on;
-          if (!on || id(oas_alert_shown)) return;   // the alert's red is not a user choice
-          const uint32_t fx = ring->get_current_effect_index();
-          if (!was_on && fx == 0) {
-            uint32_t want = id(oas_ring_effect);
-            if (want == UINT32_MAX || want > ring->get_effect_count())
-              want = ring->get_effect_index("AQI Breathing");
-            if (want != 0) {
-              auto call = ring->make_call();
-              call.set_effect(want);
-              call.perform();                      // re-enters on_state, which records it
-            }
-            return;
-          }
-          id(oas_ring_effect) = fx;
     effects:
       # ---------------------------------------------------------------
       # AQI Breathing — the AQI colour swelling over ~4 s.
       # ---------------------------------------------------------------
-      # The ring runs at a few LED steps (level 5 peaks at 6 of 255), so a
+      # The ring runs at a few LED steps (level 4 peaks at 6 of 255), so a
       # breath computed as colour x envelope and left to the gamma table
       # comes out as a handful of visible jumps and then sits on the
       # dimmest step for most of its lower half — the start of each swell
       # looks late. This effect computes the final LED values itself:
       #   1. peak = the AQI colour through the light's own pipeline (gamma,
-      #      power cap, current brightness) — exactly what AQI Solid shows;
+      #      current brightness) — exactly what AQI Solid shows;
       #   2. envelope = a raised cosine in PERCEIVED brightness (even-looking
       #      swell), mapped to LED output with the same 2.8 gamma, bottoming
       #      out at 20 % of the peak output and never below one LED step. At
@@ -268,17 +188,6 @@ light:
             for (int i = 0; i < it.size(); i++) it[i] = c;
 
       # ---------------------------------------------------------------
-      # Solid — no animation: the light's own colour (colour picker) at
-      # the current brightness. Also what the critical alert uses.
-      # ---------------------------------------------------------------
-      - lambda:
-          name: "Solid"
-          update_interval: 1s
-          lambda: |-
-            // Intentionally empty — leave the current state untouched so
-            // the user's (or the alert's) chosen colour stays as set.
-
-      # ---------------------------------------------------------------
       # Dot Chase — single bright white head rotating around the ring
       # with a 3-LED linearly-fading tail. ~3 s per rotation.
       # ---------------------------------------------------------------
@@ -301,35 +210,102 @@ light:
               else                it[i] = Color(  0,   0,   0);
             }
 
+      # ---------------------------------------------------------------
+      # Solid — the light's own colour, no animation. Not a Ring Mode:
+      # only the critical-air alert uses it (solid red).
+      # ---------------------------------------------------------------
+      - lambda:
+          name: "Solid"
+          update_interval: 1s
+          lambda: |-
+            // Intentionally empty — the alert sets the colour on the light.
+
 # ---------------------------------------------------------------------------
-# Brightness levels (see the header for the scale)
+# 1. Ring on/off  +  4. Night mode on/off
 # ---------------------------------------------------------------------------
+# Plain state holders (no turn_on/turn_off actions, so the boot-time state
+# restore cannot call into anything — see the issue-#4 note in bt-proxy.yaml);
+# the schedule tick reads them. "Ring" is the user's switch: at night
+# brightness 0 the ring goes dark while the switch stays on.
+switch:
+  - platform: template
+    id: oas_ring_on
+    name: "Ring"
+    icon: "mdi:led-strip-variant"
+    web_server:
+      sorting_group_id: grp_ring
+      sorting_weight: 10
+    optimistic: true
+    restore_mode: RESTORE_DEFAULT_ON
+    on_state:
+      - lambda: 'if (id(oas_ring_ready)) id(oas_ring_changed) = true;'
+
+  - platform: template
+    id: oas_ring_night_mode
+    name: "Ring Night Mode"
+    icon: "mdi:weather-night"
+    web_server:
+      sorting_group_id: grp_ring
+      sorting_weight: 40
+    entity_category: config
+    optimistic: true
+    restore_mode: RESTORE_DEFAULT_ON
+    on_state:
+      - lambda: 'if (id(oas_ring_ready)) id(oas_ring_changed) = true;'
+
+# ---------------------------------------------------------------------------
+# 2. Ring Mode
+# ---------------------------------------------------------------------------
+# Options are the light's effect names, applied by name.
+select:
+  - platform: template
+    id: oas_ring_mode
+    name: "Ring Mode"
+    icon: "mdi:palette"
+    web_server:
+      sorting_group_id: grp_ring
+      sorting_weight: 20
+    optimistic: true
+    restore_value: true
+    options:
+      - "AQI Breathing"
+      - "AQI Solid"
+      - "Dot Chase"
+    initial_option: "AQI Breathing"
+    on_value:
+      - lambda: 'if (id(oas_ring_ready)) id(oas_ring_changed) = true;'
+
+# ---------------------------------------------------------------------------
+# 3. Ring Brightness  +  5. Ring Night Brightness
+# ---------------------------------------------------------------------------
+# The night brightness can't exceed the day one; the tick snaps it back (it
+# is not done here: a set_value from inside the number's own on_value would
+# be overwritten in flash by the value the user sent).
 number:
   - platform: template
-    id: oas_ring_day_level
-    name: "Ring Day Brightness"
-    icon: "mdi:brightness-5"
+    id: oas_ring_brightness
+    name: "Ring Brightness"
+    icon: "mdi:brightness-6"
     web_server:
       sorting_group_id: grp_ring
       sorting_weight: 30
-    entity_category: config
     optimistic: true
     restore_value: yes
-    initial_value: 5
+    initial_value: 4
     min_value: 1
     max_value: 10
     step: 1
     mode: SLIDER
     on_value:
-      - lambda: 'if (id(oas_ring_ready)) id(oas_ring_changed) |= 1;'
+      - lambda: 'if (id(oas_ring_ready)) id(oas_ring_changed) = true;'
 
   - platform: template
-    id: oas_ring_night_level
+    id: oas_ring_night_brightness
     name: "Ring Night Brightness"
-    icon: "mdi:weather-night"
+    icon: "mdi:brightness-4"
     web_server:
       sorting_group_id: grp_ring
-      sorting_weight: 40
+      sorting_weight: 50
     entity_category: config
     optimistic: true
     restore_value: yes
@@ -339,10 +315,10 @@ number:
     step: 1
     mode: SLIDER
     on_value:
-      - lambda: 'if (id(oas_ring_ready)) id(oas_ring_changed) |= 2;'
+      - lambda: 'if (id(oas_ring_ready)) id(oas_ring_changed) = true;'
 
 # ---------------------------------------------------------------------------
-# Night window
+# 6. Night window
 # ---------------------------------------------------------------------------
 datetime:
   - platform: template
@@ -352,13 +328,13 @@ datetime:
     icon: "mdi:weather-sunset-down"
     web_server:
       sorting_group_id: grp_ring
-      sorting_weight: 50
+      sorting_weight: 60
     entity_category: config
     optimistic: true
     restore_value: true
     initial_value: "22:00:00"
     on_value:
-      - lambda: 'if (id(oas_ring_ready)) id(oas_ring_changed) |= 4;'
+      - lambda: 'if (id(oas_ring_ready)) id(oas_ring_changed) = true;'
 
   - platform: template
     type: time
@@ -367,13 +343,13 @@ datetime:
     icon: "mdi:weather-sunset-up"
     web_server:
       sorting_group_id: grp_ring
-      sorting_weight: 60
+      sorting_weight: 70
     entity_category: config
     optimistic: true
     restore_value: true
     initial_value: "07:00:00"
     on_value:
-      - lambda: 'if (id(oas_ring_ready)) id(oas_ring_changed) |= 4;'
+      - lambda: 'if (id(oas_ring_ready)) id(oas_ring_changed) = true;'
 
 # ---------------------------------------------------------------------------
 # Status line — what the ring is doing now, and until when
@@ -385,7 +361,7 @@ text_sensor:
     icon: "mdi:information-outline"
     web_server:
       sorting_group_id: grp_ring
-      sorting_weight: 20
+      sorting_weight: 80
     entity_category: diagnostic
     update_interval: never    # published by the schedule tick below
 
@@ -445,151 +421,115 @@ interval:
           }
           id(oas_aqi_rgb) = c;
 
-  # The schedule. Writes the brightness only when day and night swap (and
-  # at the first clock sync after boot) or when the level of the current
-  # half of the day changes — anything set by hand holds until then. Also
-  # runs the critical-alert override and publishes Ring Status.
+  # The schedule: the only writer of the (internal) light. Each tick works out
+  # what the ring should show from the settings, the clock and the critical-
+  # air flag, changes the light where it differs, and publishes Ring Status.
+  # Settings apply with a 0.5 s fade, the day/night switch with a 5 s one.
   - interval: 1s
     then:
       - lambda: |-
           if (!id(oas_ring_ready)) return;
-          // Light brightness (0..255) of level 1..10 ([0] unused): the top of
-          // the brightness band that gives the level's LED output (1, 2, 3, 4,
-          // 6, 10, 16, 25, 40, 64 / 255) through ESPHome's gamma-2.8 table
-          // and the 61.2 % power cap on the light.
-          static const uint8_t LB[11] = {0, 66, 79, 90, 98, 111, 133, 156, 183, 216, 255};
+          // Light brightness (0..255) of level 1..10 ([0] = off): the top of
+          // the brightness band that gives the level's LED output (1, 2, 3, 6,
+          // 12, 22, 40, 74, 138, 255 of 255) through ESPHome's gamma-2.8 table.
+          static const uint8_t LB[11] = {0, 40, 48, 55, 68, 86, 107, 132, 164, 205, 255};
           auto *ring = id(oas_ring);
           auto level_of = [](float v, int lo, int hi, int dflt) -> int {
             return std::isnan(v) ? dflt : std::max(lo, std::min(hi, (int) lroundf(v)));
           };
-          const int day = level_of(id(oas_ring_day_level).state, 1, 10, 5);
-          const int night = level_of(id(oas_ring_night_level).state, 0, 10, 1);
+          const int day = level_of(id(oas_ring_brightness).state, 1, 10, 4);
+          int night = level_of(id(oas_ring_night_brightness).state, 0, 10, 1);
+          if (night > day) {                    // 0..Ring Brightness: snap back
+            night = day;
+            auto call = id(oas_ring_night_brightness).make_call();
+            call.set_value(day);
+            call.perform();
+          }
+          const bool fast = id(oas_ring_changed);
+          id(oas_ring_changed) = false;
           const int ns = id(oas_ring_night_start).hour * 60 + id(oas_ring_night_start).minute;
           const int ne = id(oas_ring_night_end).hour * 60 + id(oas_ring_night_end).minute;
-          const int changed = id(oas_ring_changed);
-          id(oas_ring_changed) = 0;
 
-          // --- Day or night? -1 until the clock is set (~10-20 s after boot).
-          int period = -1;
+          // --- Inside the night window? (last known answer until the clock syncs)
           auto now = id(ha_time).now();
-          if (now.is_valid()) {
+          const bool clock_ok = now.is_valid();
+          if (clock_ok) {
             const int m = now.hour * 60 + now.minute;
-            bool is_night;
-            if (ns == ne)     is_night = false;                   // no night window
-            else if (ns < ne) is_night = (m >= ns && m < ne);     // e.g. 01:00-06:00
-            else              is_night = (m >= ns || m < ne);     // e.g. 22:00-07:00
-            period = is_night ? 1 : 0;
+            bool in_window;
+            if (ns == ne)     in_window = false;                   // no night window
+            else if (ns < ne) in_window = (m >= ns && m < ne);     // e.g. 01:00-06:00
+            else              in_window = (m >= ns || m < ne);     // e.g. 22:00-07:00
+            id(oas_ring_period) = in_window ? 1 : 0;
           }
-          const bool night_now = (period == 1);
+          const bool night_mode = id(oas_ring_night_mode).state && ns != ne;
+          const bool night_now = night_mode && id(oas_ring_period) == 1;
           const int level = night_now ? night : day;
-          const bool apply = (period >= 0 && period != id(oas_ring_period)) ||
-                             ((changed & 1) && !night_now) || ((changed & 2) && night_now);
-          if (period >= 0) id(oas_ring_period) = period;
-          const uint32_t fade = changed ? 500 : 5000;   // a setting: snappy; the schedule: slow
+          const bool alert = id(oas_critical_alert).state;
 
-          bool on = ring->remote_values.is_on();
-          uint32_t user_fx = id(oas_ring_effect);
-          if (user_fx == UINT32_MAX || user_fx > ring->get_effect_count())
-            user_fx = ring->get_effect_index("AQI Breathing");
-          const uint32_t solid_fx = ring->get_effect_index("Solid");
-          auto &saved_rgb = id(oas_pre_alert_rgb);
-          const auto &rv = ring->remote_values;
-          const bool alert_red = rv.get_red() > 0.99f && rv.get_green() < 0.01f && rv.get_blue() < 0.01f;
-
-          // --- 1. Night level 0: off for the night, back on at night end. A
-          //        ring switched on by hand during that night starts at level 1
-          //        (the brightness an off light remembers for its next turn-on).
-          bool turn_on = false;
-          if (apply) {
-            if (level == 0) {
-              auto call = on ? ring->turn_off() : ring->make_call();
-              call.set_brightness(LB[1] / 255.0f);
-              id(oas_ring_applied_lb) = LB[1];
-              if (on) {
-                call.set_transition_length(fade);
-                if (id(oas_alert_shown) && alert_red) call.set_rgb(saved_rgb[0], saved_rgb[1], saved_rgb[2]);
-                id(oas_alert_shown) = false;
-                id(oas_ring_night_off) = true;
-                on = false;
-              }
-              call.perform();
-            } else {
-              turn_on = !on && id(oas_ring_night_off);
-              id(oas_ring_night_off) = false;
-            }
-          }
-
-          // --- 2. Level, alert, switch-on: one light call.
-          const bool alert = id(oas_critical_alert).state && (on || turn_on);
-          auto call = ring->make_call();
-          bool dirty = false, fx_set = false;
-          int target = (apply && level > 0) ? LB[level] : -1;
-          if (turn_on) {
-            call.set_state(true);
-            dirty = true;
-          }
+          // --- What the ring should show.
+          const bool want_on = id(oas_ring_on).state && level > 0;
+          const int want_lb = LB[(alert && !night_now) ? std::max(level, 7) : level];
+          uint32_t want_fx;
           if (alert) {
-            // Day: level 10. Night: the night level (switched on by hand at
-            // night level 0: keep whatever brightness it has).
-            const int alert_lb = !night_now ? LB[10] : (night > 0 ? LB[night] : -1);
-            if (!id(oas_alert_shown)) {
-              saved_rgb = {rv.get_red(), rv.get_green(), rv.get_blue()};
-              id(oas_alert_shown) = true;
-              call.set_effect(solid_fx);
-              call.set_rgb(1.0f, 0.0f, 0.0f);
-              fx_set = dirty = true;
-              target = alert_lb;
-            } else if (target >= 0) {
-              target = alert_lb;
+            want_fx = ring->get_effect_index(std::string("Solid"));
+          } else {
+            auto idx = id(oas_ring_mode).active_index();
+            want_fx = ring->get_effect_index(std::string(id(oas_ring_mode).option_at(idx.has_value() ? *idx : 0)));
+          }
+
+          // --- Change the light where it differs.
+          const uint32_t fade = fast ? 500 : 5000;
+          const auto &rv = ring->remote_values;
+          if (!want_on) {
+            if (rv.is_on()) {
+              auto call = ring->turn_off();
+              call.set_transition_length(fade);
+              call.perform();
             }
-          } else if (id(oas_alert_shown)) {
-            id(oas_alert_shown) = false;
-            if (alert_red) {                       // untouched by the user during the alert
-              call.set_rgb(saved_rgb[0], saved_rgb[1], saved_rgb[2]);
+          } else {
+            auto call = ring->make_call();
+            bool dirty = false, fx_set = false;
+            const bool was_on = rv.is_on();
+            if (!was_on) {
+              call.set_state(true);
               dirty = true;
             }
-            if (on && ring->get_current_effect_index() == solid_fx) {
-              call.set_effect(user_fx);
+            if (ring->get_current_effect_index() != want_fx) {  // also after every off: off drops the effect
+              call.set_effect(want_fx);
               fx_set = dirty = true;
             }
-            // Also on an OFF ring (switched off during the alert): otherwise
-            // the next turn-on would come back at the alert's level 10.
-            if (level > 0) target = LB[level];
-          } else if (turn_on) {
-            call.set_effect(user_fx);
-            fx_set = true;
+            if (alert && !(rv.get_red() > 0.99f && rv.get_green() < 0.01f && rv.get_blue() < 0.01f)) {
+              call.set_rgb(1.0f, 0.0f, 0.0f);
+              dirty = true;
+            }
+            if (!was_on || (int) lroundf(rv.get_brightness() * 255.0f) != want_lb) {
+              call.set_brightness(want_lb / 255.0f);
+              if (was_on && !fx_set) call.set_transition_length(fade);  // an effect start can't fade
+              dirty = true;
+            }
+            if (dirty) call.perform();
           }
-          if (target >= 0) {
-            call.set_brightness(target / 255.0f);
-            if (on && !fx_set) call.set_transition_length(fade);  // effects can't transition
-            id(oas_ring_applied_lb) = target;
-            dirty = true;
-          }
-          if (dirty) call.perform();
 
-          // --- 3. Ring Status.
+          // --- Ring Status.
           char t_start[8], t_end[8], buf[80];
           snprintf(t_start, sizeof(t_start), "%02d:%02d", ns / 60, ns % 60);
           snprintf(t_end, sizeof(t_end), "%02d:%02d", ne / 60, ne % 60);
-          const bool by_hand = level == 0 ||
-              (int) lroundf(rv.get_brightness() * 255.0f) != id(oas_ring_applied_lb);
-          if (!rv.is_on()) {
-            if (id(oas_ring_night_off)) snprintf(buf, sizeof(buf), "Off for the night, back on at %s", t_end);
-            else snprintf(buf, sizeof(buf), "Off");
-          } else if (id(oas_alert_shown)) {
+          if (!id(oas_ring_on).state) {
+            snprintf(buf, sizeof(buf), "Off");
+          } else if (level == 0) {
+            snprintf(buf, sizeof(buf), "Off for the night, back on at %s", t_end);
+          } else if (alert) {
             snprintf(buf, sizeof(buf), "Critical air quality alert: solid red");
-          } else if (period < 0) {
-            snprintf(buf, sizeof(buf), "Waiting for the clock to sync");
-          } else if (ns == ne) {
-            if (by_hand) snprintf(buf, sizeof(buf), "Brightness set by hand (no night window)");
-            else snprintf(buf, sizeof(buf), "Level %d all day (no night window)", day);
-          } else if (by_hand) {
-            snprintf(buf, sizeof(buf), "%s, set by hand until %s", night_now ? "Night" : "Day",
-                     night_now ? t_end : t_start);
-          } else if (!night_now) {
-            if (night == 0) snprintf(buf, sizeof(buf), "Day (level %d) until %s, then off for the night", day, t_start);
-            else snprintf(buf, sizeof(buf), "Day (level %d) until %s, then night (level %d)", day, t_start, night);
+          } else if (!night_mode) {
+            snprintf(buf, sizeof(buf), "Brightness %d all day (%s)", day,
+                     id(oas_ring_night_mode).state ? "night start = night end" : "night mode off");
+          } else if (!clock_ok) {
+            snprintf(buf, sizeof(buf), "Brightness %d, waiting for the clock to sync", level);
+          } else if (night_now) {
+            snprintf(buf, sizeof(buf), "Night, brightness %d until %s, then %d", night, t_end, day);
+          } else if (night == 0) {
+            snprintf(buf, sizeof(buf), "Day, brightness %d until %s, then off for the night", day, t_start);
           } else {
-            snprintf(buf, sizeof(buf), "Night (level %d) until %s, then day (level %d)", night, t_end, day);
+            snprintf(buf, sizeof(buf), "Day, brightness %d until %s, then %d", day, t_start, night);
           }
           if (id(oas_ring_status).state != buf) id(oas_ring_status).publish_state(buf);

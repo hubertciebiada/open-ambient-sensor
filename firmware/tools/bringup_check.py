@@ -463,7 +463,10 @@ def main() -> int:
     # (MAC query), so OFF here means the module really has it off.
     bt = str(seen.get("switch-ld2410_bluetooth", (None,))[0])
     rep.check("LD2410C: Bluetooth OFF", bt == "OFF", bt if bt != "None" else "entity missing")
-    rep.check("LED ring ON", str(seen.get("light-ring", (None,))[0]) == "ON", str(seen.get("light-ring", ("missing",))[0]))
+    # The light itself is internal (leds.yaml); the dashboard shows the "Ring"
+    # switch and the Ring Status line instead.
+    rep.check("LED ring ON", str(seen.get("switch-ring", (None,))[0]) == "ON",
+              f"{seen.get('switch-ring', ('missing',))[0]} — {seen.get('text_sensor-ring_status', ('no status',))[0]}")
     rep.check("BLE proxy ON", str(seen.get("switch-ble_proxy", (None,))[0]) == "ON", str(seen.get("switch-ble_proxy", ("missing",))[0]))
     rssi = num(seen, "sensor-wifi_rssi")
     rep.check("WiFi RSSI better than -80 dBm", in_window(rssi, -80, 0), f"{rssi} dBm" if rssi is not None else "entity missing")
