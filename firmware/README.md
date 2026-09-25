@@ -12,6 +12,7 @@ firmware/
 │   ├── oas.yaml             # top-level config, per-device substitutions
 │   ├── packages/
 │   │   ├── core.yaml        # WiFi, AP fallback, API, OTA, web_server, time, logger
+│   │   ├── oas-dashboard.js # on-device dashboard: foldable cards, settings start folded
 │   │   ├── leds.yaml        # SK6812-SIDE AQI ring (7 LEDs on GPIO 8; 8-slot ring with D13 vacated for J1)
 │   │   ├── air-quality.yaml # Sensirion SEN66 (I²C 0x6B)
 │   │   ├── presence.yaml    # HiLink LD2410 (UART @ 256000 baud)
@@ -105,6 +106,7 @@ The dashboard is **web_server v3** (modern post-2024 ESPHome UI) and supports:
 - Live sensor readings (CO2, PM, VOC, NOx, temperature, humidity, presence)
 - LED ring controls (on/off, mode, brightness 1-10, night mode with its own brightness and hours, and a status line saying what the ring is doing)
 - Number entity sliders to adjust sensor calibration offsets in real time
+- Foldable cards: the ones holding settings start folded, so scrolling on a phone cannot drag a slider (see [On-device dashboard layout](#on-device-dashboard-layout))
 - Live log viewer
 - Read-only Prometheus metrics endpoint at `/metrics` for scraping
 
@@ -161,6 +163,7 @@ Alternatively, the **AP fallback** (`OAS-<device_id>-Setup` SSID, gated by `ap_p
 |---|---|
 | Device doesn't show up on mDNS | Most consumer routers block mDNS across VLANs. Find the IP via your router admin and use `http://<ip>/` directly. |
 | `secrets.yaml not found` | The file lives next to `oas.yaml`, i.e. `firmware/esphome/secrets.yaml`, not at the repo root. |
+| `Could not find file '…/firmware/packages/oas-dashboard.js'` | ESPHome older than 2026.9 compiling `oas.yaml` directly: before 2026.9 a package's file paths resolve only relative to the main config, and the path in `core.yaml` is written for a config one level down (`devices/`, `examples/`). Update ESPHome, or compile through a per-device file in `devices/`. |
 | OTA fails with "wrong password" | Re-flash via USB-C with the new password baked in. Lost OTA passwords cannot be recovered. |
 | LED ring doesn't light | Check that `+5V` is reaching the LM2596S output — `core.yaml` itself never touches the LED ring; that's `leds.yaml`'s job. |
 | SEN66 measurements stuck on "unavailable" | Likely I²C bus issue; scan with `i2c.scan: true` (already enabled). SEN66 lives at 0x6B. |
@@ -222,6 +225,8 @@ Inside the enclosure the SEN66 sits behind the regulators, the ESP32-C6 and the 
 ### On-device dashboard layout
 
 The web dashboard at `http://<device-ip>/` groups its entities into six cards (web_server v3 sorting groups, declared in `packages/core.yaml`, one `web_server:` key per entity in the package that owns it): **Air quality** and **Air quality - settings**, **Presence** and **Presence - settings**, **LED ring**, and **System** for what belongs to the ESP32 itself (radio, uptime, reset reason, BLE proxy, service buttons). Measurements are separated from the settings that shape them, so a card answers either "what does it read" or "how is it tuned". Home Assistant ignores the grouping and sorts by `entity_category` instead.
+
+Tap a card's title to fold or unfold it. Every time the page opens, **Air quality** and **Presence** — the cards that hold nothing but readings — are open, and every card with something you can change or with diagnostics (the two settings cards, LED ring, System) starts folded, showing only its title and how many entries it holds. So a thumb scrolling the page on a phone cannot drag a threshold slider or hit *Restart* by accident: open the card when you mean to change something. What you fold or unfold stays that way until the page is reloaded. The folding is `packages/oas-dashboard.js`, served with the page (`web_server: js_include` in `core.yaml`); it decides from the entities themselves, so a card added later follows the same rule.
 
 ### Dashboard idea (starter Lovelace card)
 

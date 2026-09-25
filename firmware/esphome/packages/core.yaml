@@ -97,6 +97,13 @@ web_server:
   # gets `disabled_by_default: true` - it then sits behind "Show All" (the
   # ring's own light entity does).
   include_internal: true
+  # Foldable cards: the ones holding settings start folded on every page load,
+  # so scrolling on a phone cannot drag a threshold slider (details at the top
+  # of oas-dashboard.js). The path is written for a config one level below
+  # firmware/esphome/ (devices/, examples/) — where ESPHome 2026.8 looks,
+  # relative to the main config — and 2026.9+ also resolves it beside this
+  # file, from any layout.
+  js_include: ../packages/oas-dashboard.js
   # Dashboard layout: one card per sub-device, measurements split from the
   # settings that shape them, and everything that belongs to the ESP32 itself
   # (radio, uptime, service buttons) in its own card at the bottom. The

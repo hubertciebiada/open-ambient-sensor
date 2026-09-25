@@ -381,6 +381,7 @@ No "hand-solder friendly" deviations remain anywhere in the design.
 Current firmware skeleton (added v0.40-post-order):
 - `firmware/esphome/oas.yaml` top-level + 5 packages in `packages/`: core, leds, air-quality, presence, bt-proxy.
 - LED ring (`packages/leds.yaml`): the light entity is **internal**; the dashboard card shows, in this order, Ring (switch), Ring Mode (select: AQI Breathing / AQI Solid / Dot Chase), Ring Brightness (1-10 = the LEDs' full range in ~1.9x steps; default 4 = the old 25 %, the setting the SEN66 temperature offset was calibrated with), Ring Night Mode (switch), Ring Night Brightness (0..Ring Brightness, snapped back if set higher), Ring Night Start / End (`datetime` time entities, 22:00 → 07:00), then a Ring Status line. A 1 s schedule tick is the light's only writer: it derives on/off, effect and brightness from those settings, the clock (last known day/night kept across reboots) and the critical-air flag (solid red, at least brightness 7 by day, the night brightness at night). Home Assistant gets exactly the seven controls (all `entity_category: config`); Ring Status is `internal` and reaches only the dashboard via `web_server: include_internal: true` (core.yaml) — so any future internal entity also shows on the dashboard unless it is `disabled_by_default` (behind "Show All", as the ring's light is). See Lesson 27.
+- On-device dashboard (web_server v3, `core.yaml`): six cards by sorting group (Air quality / Air quality - settings / Presence / Presence - settings / LED ring / System). `packages/oas-dashboard.js` (`js_include`, served as `/0.js`) makes the cards foldable: on every page load a card starts open only if it holds nothing but plain readings (sensor / binary_sensor / text_sensor without an entity category), everything else starts folded — owner request, the LD2410 threshold sliders kept getting dragged while scrolling on a phone. The rule reads the entities, not card names, and relies on the stock v3 markup (`esp-entity-table`, `.tab-header` + `.tab-container`); re-check it when ESPHome ships a new web frontend. The `js_include` path is written for a config one level below `firmware/esphome/` (the `devices/` layout); ESPHome 2026.9+ also resolves it beside `core.yaml`, 2026.8 compiling `oas.yaml` directly does not (README troubleshooting).
 - SEN66 sensor offsets (temperature, humidity, CO2) exposed as `number:` entities preserved across reboots.
 - STAR-Engine IAQM Light preset (T1=1000, T2=3000, K=200, P=200 raw I²C 16-bit, ×10 of post-scale display values) re-uploaded on every boot via `on_boot:` lambda (Sensirion params are volatile per datasheet).
 - LD2410 per-gate sensitivity, max-distance, and timeout exposed as `number:` / `select:` entities.
@@ -456,7 +457,7 @@ open-ambient-sensor/
 │   ├── README.md                   # flashing + Home Assistant integration
 │   ├── esphome/
 │   │   ├── oas.yaml                # top-level ESPHome config
-│   │   ├── packages/               # core / leds / air-quality / presence / bt-proxy
+│   │   ├── packages/               # core / leds / air-quality / presence / bt-proxy + oas-dashboard.js (web_server js_include)
 │   │   └── examples/               # anonymized per-device override examples
 │   └── secrets.yaml.example
 └── hardware/
