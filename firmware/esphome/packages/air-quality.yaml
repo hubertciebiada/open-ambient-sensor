@@ -142,11 +142,11 @@ i2c_device:
 # (offset -3.4 K = mean of -3.2 vs an SCD41 monitor and -3.55 vs an SHT31
 # logger, night steady state). Any change to the heat budget (ring brightness,
 # BLE proxy, gasket, enclosure) shifts the offset; re-derive per AN §2.2.
-# Slot-0 tau = 1800 s, measured on a cold start; slot 1 unused. Tau only shapes
-# the first tens of minutes after a COLD power-on (mains outage) - every other
-# reset takes the warm path with tau = 0.
-# Runtime changes from the UI are applied at once (tau = 0); the configured
-# tau only matters after a cold power-on.
+# Slot-0 tau = 1800 s, measured on a cold start; slot 1 unused. Tau shapes the
+# first tens of minutes after a power-on, scaled by how long the unit was off
+# (boot sequence at the end of this file): the part of the offset the
+# enclosure still holds applies at once, the rest ramps in with tau. Software
+# resets and runtime changes from the UI apply everything at once (tau = 0).
 #
 # HUMIDITY / CO2 offsets stay ESPHome-side `filter: - offset:` on the
 # published value: Sensirion provides no RH offset command (RH is corrected
@@ -172,7 +172,8 @@ number:
     on_value:
       - script.execute:
           id: sen66_star_send_offsets
-          immediate: true
+          f0: 1.0
+          f1: 1.0
           reason: "runtime change, tau=0"
 
   - platform: template
@@ -194,7 +195,8 @@ number:
     on_value:
       - script.execute:
           id: sen66_star_send_offsets
-          immediate: true
+          f0: 1.0
+          f1: 1.0
           reason: "runtime change, tau=0"
 
   - platform: template
@@ -216,7 +218,8 @@ number:
     on_value:
       - script.execute:
           id: sen66_star_send_offsets
-          immediate: true
+          f0: 1.0
+          f1: 1.0
           reason: "runtime change, tau=0"
 
   - platform: template
@@ -238,7 +241,8 @@ number:
     on_value:
       - script.execute:
           id: sen66_star_send_offsets
-          immediate: true
+          f0: 1.0
+          f1: 1.0
           reason: "runtime change, tau=0"
 
   - platform: template
@@ -523,19 +527,44 @@ binary_sensor:
 # sen5x has. When it lands upstream, the script and the boot sequence below
 # can be replaced by it.
 globals:
-  - id: oas_star_boot_done      # set by the boot sequence; gates runtime re-sends
+  - id: oas_star_boot_done      # set by the boot sequence; gates runtime re-sends + the alive stamp
     type: bool
     initial_value: "false"
-  - id: oas_star_warm           # reset reason says the enclosure is still warm
+  - id: oas_star_warm           # reset reason says the ESP never lost power
     type: bool
     initial_value: "false"
-  - id: oas_star_err            # bit0 stop, bit1 accel, bit2 start, bit3 slot0, bit4 slot1
+  - id: oas_star_err            # bit0 stop, bit1 accel, bit2 start, bit3..bit6 slot0..slot3
     type: int
     initial_value: "0"
+  # Epoch seconds of the last minute the unit ran with a valid clock (NVS).
+  # The ESP32 has no battery-backed RTC, so after a power-on this stamp is the
+  # only way to tell a few-second outage from a night off.
+  - id: oas_last_alive
+    type: uint32_t
+    restore_value: yes
+    initial_value: "0"
 
-# Reset reason (ESP32 ROM / IDF) as a text sensor: "power-on event" = cold
-# enclosure, anything else (software / OTA restart, watchdogs, panic, brownout)
-# = still warm. Useful on its own in Home Assistant diagnostics.
+# Last-alive stamp, once a minute while the clock is valid, flushed to flash
+# right away. Left to the default preferences sync (flash_write_interval,
+# 60 s) the stored stamp could lag by up to two minutes, and every minute of
+# lag reads as a minute of downtime (~3 % of the offset at tau 1800 s). That
+# is ~1440 NVS writes a day, spread over the NVS pages by wear levelling. No
+# stamp until the boot sequence has read the previous one.
+interval:
+  - interval: 60s
+    then:
+      - lambda: |-
+          if (!id(oas_star_boot_done)) return;
+          const auto now = id(sntp_time).now();
+          if (now.is_valid()) id(oas_last_alive) = (uint32_t) now.timestamp;
+      - delay: 1500ms   # the global's 1 s poll queues the NVS write
+      - lambda: 'global_preferences->sync();'
+
+# Reset reason (ESP32 ROM / IDF) as a text sensor: "power-on event" = the unit
+# was unpowered (for how long comes from the last-alive stamp, see the boot
+# sequence); anything else (software / OTA restart, watchdogs, panic,
+# brownout) = the ESP never lost power, the enclosure is still warm. Useful on
+# its own in Home Assistant diagnostics.
 debug:
   update_interval: 5min   # its heap / loop logs are DEBUG level; logger runs at INFO
 
@@ -564,71 +593,97 @@ text_sensor:
     entity_category: diagnostic
     update_interval: never   # only updated explicitly from lambdas
 
-# Writes STAR-Engine offset slots 0 and 1 (I2C 0x60B2, AN §3.2 Table 3) from
-# the number entities. `immediate: true` applies the values with time constant
-# 0 (warm start, runtime change from the UI); `false` ramps them in with the
-# configured tau (cold power-on, mimicking the enclosure warming up). The
-# command is accepted in idle and measurement mode and ADDS to the module's
-# own factory self-heating compensation.
+# Writes the STAR-Engine offset slots (I2C 0x60B2, AN §3.2 Table 3) from the
+# number entities. f0 / f1 = the part of slot 0 / slot 1 the enclosure still
+# holds, applied at once; the rest ramps in with the slot's tau:
+#   f = 1 (software reset, runtime change): slot 0 / 1 in full at once;
+#   f = 0 (power-on after a long outage): slot 0 / 1 ramp in from zero;
+#   0 < f < 1 (power-on after a short outage): f of the offset goes to slot
+#     2 / 3 at once, 1 - f to slot 0 / 1 with tau.
+# The slots add up (5 slots, 0-4; Sensirion driver sen66_i2c.h) and are zero
+# after the module reset at every boot, so the total follows
+#   O * (1 - (1 - f) * exp(-t / tau))
+# from nothing more than what the cold and warm paths already rely on: a tau-0
+# write applies at once, a tau write ramps from zero. Two writes to one slot
+# (O*f at tau 0, then O at tau) would need the ramp to start from the value
+# the slot holds - not verified on the module. Slots 2 / 3 are written (zero)
+# on every send, so a runtime change clears them. The slope goes with the
+# offset, split the same way, so f = 1 and f = 0 behave exactly as before.
+# Each write gets the command's 20 ms execution time (the Sensirion driver
+# sleeps 20 ms after 0x60B2). Accepted in idle and measurement mode; ADDS to
+# the module's own factory self-heating compensation.
 script:
   - id: sen66_star_send_offsets
     mode: queued
     parameters:
-      immediate: bool
+      f0: float
+      f1: float
       reason: string
     then:
-      - lambda: |-
-          if (!id(oas_star_boot_done)) {
-            return;   // on_value fired by the NVS restore before the module was ready
-          }
-          auto crc8 = [](uint8_t a, uint8_t b) -> uint8_t {
-            uint8_t c = 0xFF;
-            for (uint8_t x : {a, b}) {
-              c ^= x;
-              for (int i = 0; i < 8; i++) c = (c & 0x80) ? (uint8_t)((c << 1) ^ 0x31) : (uint8_t)(c << 1);
-            }
-            return c;
-          };
-          auto put = [&](uint8_t *p, uint16_t v) {
-            p[0] = (uint8_t)(v >> 8); p[1] = (uint8_t)(v & 0xFF); p[2] = crc8(p[0], p[1]);
-          };
-          const float slope = ${sen66_star_slope};         // design constant, see substitutions
-          const float t_ref = ${sen66_star_slope_ref_c};
-          struct Slot { uint16_t slot; float offset_c; float tau_s; };
-          const Slot slots[2] = {
-            {0, id(oas_temperature_offset).state,      id(oas_temperature_offset_tau).state},
-            {1, id(oas_temperature_offset_slow).state, id(oas_temperature_offset_slow_tau).state},
-          };
-          int errs = 0;
-          for (const auto &sl : slots) {
-            const float sl_slope = (sl.slot == 0) ? slope : 0.0f;
-            // AN §2.3.2: with a non-zero slope the engine expects the offset at 0 °C
-            const float c0 = sl.offset_c - (sl_slope != 0.0f ? t_ref * sl_slope : 0.0f);
-            const int16_t  w_off   = (int16_t) roundf(c0 * 200.0f);         // ×200
-            const int16_t  w_slope = (int16_t) roundf(sl_slope * 10000.0f); // ×10000
-            const uint16_t w_tau   = immediate ? 0 : (uint16_t) roundf(sl.tau_s);
-            uint8_t buf[2 + 4 * 3] = {0x60, 0xB2};
-            put(buf + 2,  (uint16_t) w_off);
-            put(buf + 5,  (uint16_t) w_slope);
-            put(buf + 8,  w_tau);
-            put(buf + 11, sl.slot);
-            auto err = id(sen66_raw).write(buf, sizeof(buf));
-            ESP_LOGI("sen66", "STAR offset slot %u: %.2f C (wire %d), slope %.4f, tau %u s: err=%d",
-                     sl.slot, sl.offset_c, (int) w_off, sl_slope, (unsigned) w_tau, (int) err);
-            if (err != esphome::i2c::ErrorCode::ERROR_OK) errs |= (8 << sl.slot);
-          }
-          id(oas_star_err) = (id(oas_star_err) & 0x07) | errs;
-          const int e = id(oas_star_err);
-          char txt[200];
-          if (e == 0) {
-            snprintf(txt, sizeof(txt),
-                     "uploaded: accel Light in idle; slot0 %.2f C / %.0f s; slot1 %.2f C / %.0f s; %s",
-                     slots[0].offset_c, slots[0].tau_s, slots[1].offset_c, slots[1].tau_s, reason.c_str());
-          } else {
-            snprintf(txt, sizeof(txt), "FAILED (stop=%d accel=%d start=%d slot0=%d slot1=%d) - check I2C bus",
-                     e & 1, (e >> 1) & 1, (e >> 2) & 1, (e >> 3) & 1, (e >> 4) & 1);
-          }
-          id(oas_star_engine_state).publish_state(txt);
+      - if:
+          # on_value fires from the NVS restore, before the module is ready
+          condition:
+            lambda: 'return id(oas_star_boot_done);'
+          then:
+            - lambda: 'id(oas_star_err) &= 0x07;'
+            - repeat:
+                count: 4
+                then:
+                  - lambda: |-
+                      // iteration = slot: 0 / 1 take the ramped part, 2 / 3 the part applied at once
+                      auto crc8 = [](uint8_t a, uint8_t b) -> uint8_t {
+                        uint8_t c = 0xFF;
+                        for (uint8_t x : {a, b}) {
+                          c ^= x;
+                          for (int i = 0; i < 8; i++) c = (c & 0x80) ? (uint8_t)((c << 1) ^ 0x31) : (uint8_t)(c << 1);
+                        }
+                        return c;
+                      };
+                      auto put = [&](uint8_t *p, uint16_t v) {
+                        p[0] = (uint8_t)(v >> 8); p[1] = (uint8_t)(v & 0xFF); p[2] = crc8(p[0], p[1]);
+                      };
+                      const int k = iteration % 2;                 // 0 = slot-0 offset, 1 = slow offset
+                      const bool now_slot = iteration >= 2;
+                      const float f = std::min(1.0f, std::max(0.0f, k == 0 ? f0 : f1));
+                      const bool all_at_once = f >= 1.0f;
+                      const float share = now_slot ? (all_at_once ? 0.0f : f) : (all_at_once ? 1.0f : 1.0f - f);
+                      const float offset_c = k == 0 ? id(oas_temperature_offset).state
+                                                    : id(oas_temperature_offset_slow).state;
+                      const float tau_s = k == 0 ? id(oas_temperature_offset_tau).state
+                                                 : id(oas_temperature_offset_slow_tau).state;
+                      const float slope = k == 0 ? ${sen66_star_slope} : 0.0f;   // design constant, see substitutions
+                      const float t_ref = ${sen66_star_slope_ref_c};
+                      // AN §2.3.2: with a non-zero slope the engine expects the offset at 0 °C
+                      const float c0 = offset_c - (slope != 0.0f ? t_ref * slope : 0.0f);
+                      const int16_t  w_off   = (int16_t) roundf(share * c0 * 200.0f);        // ×200
+                      const int16_t  w_slope = (int16_t) roundf(share * slope * 10000.0f);   // ×10000
+                      const uint16_t w_tau   = (now_slot || all_at_once) ? 0 : (uint16_t) roundf(tau_s);
+                      uint8_t buf[2 + 4 * 3] = {0x60, 0xB2};
+                      put(buf + 2,  (uint16_t) w_off);
+                      put(buf + 5,  (uint16_t) w_slope);
+                      put(buf + 8,  w_tau);
+                      put(buf + 11, (uint16_t) iteration);
+                      auto err = id(sen66_raw).write(buf, sizeof(buf));
+                      ESP_LOGI("sen66", "STAR offset slot %u: %.2f C (wire %d), slope %.4f, tau %u s: err=%d",
+                               (unsigned) iteration, share * offset_c, (int) w_off, share * slope,
+                               (unsigned) w_tau, (int) err);
+                      if (err != esphome::i2c::ErrorCode::ERROR_OK) id(oas_star_err) |= (8 << iteration);
+                  - delay: 25ms   # 0x60B2 execution time 20 ms
+            - lambda: |-
+                const int e = id(oas_star_err);
+                char txt[240];
+                if (e == 0) {
+                  snprintf(txt, sizeof(txt),
+                           "uploaded: accel Light in idle; slot0 %.2f C / %.0f s; slot1 %.2f C / %.0f s; %s",
+                           id(oas_temperature_offset).state, id(oas_temperature_offset_tau).state,
+                           id(oas_temperature_offset_slow).state, id(oas_temperature_offset_slow_tau).state,
+                           reason.c_str());
+                } else {
+                  snprintf(txt, sizeof(txt),
+                           "FAILED (stop=%d accel=%d start=%d slot0=%d slot1=%d slot2=%d slot3=%d) - check I2C bus",
+                           e & 1, (e >> 1) & 1, (e >> 2) & 1, (e >> 3) & 1, (e >> 4) & 1, (e >> 5) & 1, (e >> 6) & 1);
+                }
+                id(oas_star_engine_state).publish_state(txt);
 
 # ---------------------------------------------------------------------------
 # Boot-time STAR-Engine upload (acceleration, then offset slots)
@@ -654,12 +709,25 @@ script:
 #     T2 = 300 s     →  T2 = 3000        word 3
 #   (Sensirion driver `sen66_i2c.c::sen66_set_temperature_acceleration_parameters`.)
 #
-# Cold vs warm start (AN §2.4.2): after a power-on reset the enclosure is
-# cold, so the offset slots ramp in with their time constants; after any other
-# reset (OTA, software restart, watchdog, brownout, panic) the enclosure is
-# still warm, so they are applied at once (tau = 0). Known gap: a short mains
-# outage is a power-on reset on a warm enclosure → the reading is too high by
-# up to the offset for about one tau, then correct.
+# Cold vs warm start (AN §2.4.2), by how long the unit was off, not by the
+# reset reason alone. Any reset other than a power-on (OTA, software restart,
+# watchdog, brownout, panic) means the ESP never lost power: the enclosure is
+# warm, the offsets apply at once (tau = 0). After a power-on the downtime d
+# comes from the network clock: d = the moment this boot began - the last-alive
+# stamp (the ESP32 has no RTC battery). The enclosure cools with the same time
+# constant it warms with (first-order model), so it still holds
+# f = exp(-d / tau) of each offset: that part applies at once, the rest ramps
+# in with tau. A few-second outage gives f ~ 1, a night off f ~ 0 (exp(-8) at
+# 4 h, tau 1800 s): the old warm and cold paths are the two ends. Before this,
+# every power-on took the cold path, and a few-second 24 V interruption on a
+# warm unit read up to ~3 K too high for about one tau.
+#
+# The offsets wait for the clock (first SNTP / Home Assistant sync), at most
+# until 60 s of uptime: the component ignores the first 60 s of readings
+# anyway and 0x60B2 works in measurement mode, so waiting costs nothing. No
+# clock by then, no stamp stored yet (first boot of this firmware, or NVS
+# erased) or a clock more than 60 s behind the stamp → the old rule:
+# power-on = cold start. STAR-Engine State says which case ran, with d and f.
 #
 # NOTE: on_boot is written as a LIST on purpose — packages/presence.yaml adds its
 # own boot hook, and ESPHome's package merge only concatenates lists (a dict
@@ -709,11 +777,49 @@ esphome:
         - delay: 100ms    # start execution time 50 ms
         - lambda: |-
             const std::string &r = id(oas_reset_reason).state;
-            // empty = text sensor not published yet: assume cold (Sensirion's default)
+            // empty = text sensor not published yet: treat it like a power-on
             id(oas_star_warm) = !(r.empty() || r == "power-on event" || r == "unknown source");
-            ESP_LOGI("sen66", "STAR: reset reason '%s' -> %s start", r.c_str(), id(oas_star_warm) ? "warm" : "cold");
+            ESP_LOGI("sen66", "STAR: reset reason '%s' -> %s", r.c_str(),
+                     id(oas_star_warm) ? "warm start" : "power-on, downtime from the clock");
+        - wait_until:
+            condition:
+              lambda: 'return id(oas_star_warm) || id(sntp_time).now().is_valid() || millis() > 60000;'
+        - lambda: |-
+            float f0 = 0.0f, f1 = 0.0f;   // part of slot 0 / slot 1 applied at once
+            char why[120];
+            const auto now = id(sntp_time).now();
+            const uint32_t last = id(oas_last_alive);
+            if (id(oas_star_warm)) {
+              f0 = f1 = 1.0f;
+              snprintf(why, sizeof(why), "warm start, tau=0");
+            } else if (!now.is_valid()) {
+              snprintf(why, sizeof(why), "power-on, no clock within 60 s: cold start, ramping with tau");
+            } else if (last == 0) {
+              snprintf(why, sizeof(why), "power-on, no last-alive stamp yet: cold start, ramping with tau");
+            } else {
+              // From the last stamp to the moment this boot began: booting and
+              // waiting for the clock is not downtime.
+              int64_t d = (int64_t) now.timestamp - (int64_t) (millis() / 1000) - (int64_t) last;
+              if (d < -60) {
+                snprintf(why, sizeof(why), "power-on, clock %lld s behind the last-alive stamp: cold start, ramping with tau",
+                         (long long) -d);
+              } else {
+                if (d < 0) d = 0;   // a few seconds between clock sources, not downtime
+                const float tau0 = id(oas_temperature_offset_tau).state;
+                const float tau1 = id(oas_temperature_offset_slow_tau).state;
+                f0 = tau0 > 0.0f ? expf(-(float) d / tau0) : 1.0f;
+                f1 = tau1 > 0.0f ? expf(-(float) d / tau1) : 1.0f;
+                char dur[32];
+                if (d < 60) snprintf(dur, sizeof(dur), "%d s", (int) d);
+                else if (d < 3600) snprintf(dur, sizeof(dur), "%d min %d s", (int) (d / 60), (int) (d % 60));
+                else if (d < 86400) snprintf(dur, sizeof(dur), "%d h %d min", (int) (d / 3600), (int) (d % 3600 / 60));
+                else snprintf(dur, sizeof(dur), "%d d %d h", (int) (d / 86400), (int) (d % 86400 / 3600));
+                snprintf(why, sizeof(why), "downtime %s, f0 %.2f, f1 %.2f", dur, f0, f1);
+              }
+            }
+            ESP_LOGI("sen66", "STAR: %s", why);
+            if (now.is_valid()) id(oas_last_alive) = (uint32_t) now.timestamp;   // stamp this run at once
             id(oas_star_boot_done) = true;
-        - script.execute:
-            id: sen66_star_send_offsets
-            immediate: !lambda 'return id(oas_star_warm);'
-            reason: !lambda 'return id(oas_star_warm) ? std::string("warm start, tau=0") : std::string("cold start, ramping with tau");'
+            id(sen66_star_send_offsets).execute(f0, f1, std::string(why));
+        - delay: 1500ms   # the global's 1 s poll queues the NVS write
+        - lambda: 'global_preferences->sync();'
