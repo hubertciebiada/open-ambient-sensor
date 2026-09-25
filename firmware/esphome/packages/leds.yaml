@@ -9,52 +9,145 @@
 # Bus     : 1-wire WS281x family, GPIO 8 (ESP32-C6 RMT peripheral)
 # Variant : SK6812 (NOT WS2812 — different bit-timing; rgb_order GRB)
 # Rail    : +5 V from LM2596S-5.0 buck
-# Power   : 7 x 50 mA peak = 350 mA at full white; brightness cap below
-#           keeps the bus draw comfortable for the LM2596 and prevents the
-#           cover from blowing out perceptually at night.
+# Power   : 7 x 50 mA = 350 mA at full white uncapped; the power cap below
+#           holds the ring to ~25 % of that (~90 mA white, ~30 mA AQI green).
 #
-# Control surface: ONE dropdown — the light's native "Effect" picker. The
-# four effects are:
-#   1. Dot Chase     — rotating chase animation (selectable; NOT the default)
-#   2. AQI Solid     — AQI gradient colour, static
-#   3. AQI Breathing — AQI gradient colour with a ~4 s breathing envelope
-#                      (the DEFAULT — soft, easy on the eyes)
-#   4. Solid         — plain user-set colour (use the colour picker), no anim.
-# "Off" = the light's on/off toggle. (There is deliberately no separate
-# "ring mode" select — it duplicated the native effect dropdown.)
+# ---------------------------------------------------------------------------
+# Settings (web dashboard "LED ring" card; Home Assistant device page)
+# ---------------------------------------------------------------------------
+#   Ring                   the light: on/off, effect, colour (for "Solid")
+#   Ring Status            what the ring is doing now, and until when
+#   Ring Day Brightness    level 1..10
+#   Ring Night Brightness  level 0..10 — 0 switches the ring off for the night
+#                          (switched on by hand that night, it starts at level 1)
+#   Ring Night Start       22:00 \  night = start..end, may wrap midnight;
+#   Ring Night End         07:00 /  start = end means no night at all
+#
+# Brightness is set in LEVELS, not on the light's own 0-255 scale, because
+# most of that scale is unusable on this ring. The LEDs are 8-bit, ESPHome
+# gamma-corrects (2.8) and its gamma table never returns 0 for a non-zero
+# input, so the bottom ~16 % of the raw slider all lands on the same dimmest
+# LED step; the units run at 25-30 % (LED output 5-9 of 255), and everything
+# above ~60 % is 7-50x brighter than that — glare through the cover and
+# extra heat in the enclosure the SEN66 measures. Each level is one visible
+# step, about 1.6x the one below: LED output 1, 2, 3, 4, 6, 10, 16, 25, 40,
+# 64 (of 255) on the brightest channel. Level 10 is also a hard ceiling:
+# `color_correct` caps the LEDs so that the light's OWN 100 % is level 10,
+# and neither the dashboard slider nor a Home Assistant automation can push
+# the ring past it.
+#
+# The light's own brightness slider still works, as a temporary setting: the
+# schedule only writes the brightness when day and night swap, when the level
+# of the current half of the day is changed, and once after boot. On the
+# light's scale the levels sit at: 1 = 0-26 %, 2 = 31 %, 3 = 35 %, 4 = 38 %,
+# 5 = 44 %, 6 = 52 %, 7 = 61 %, 8 = 72 %, 9 = 85 %, 10 = 100 %.
+#
+# Critical air quality (`oas_air_quality_critical` in air-quality.yaml: AQI >
+# 200 or CO2 > 1500 ppm): while the ring is ON it turns solid red — level 10
+# by day, the night level at night, so it never lights up a sleeping room
+# (night level 0: the ring stays off). The effect and colour come back when
+# the alert clears.
+#
+# Effects (APPEND new ones at the end: the light restores its effect by its
+# position in this list after a reboot):
+#   AQI Breathing  AQI colour with a slow swell — the default
+#   AQI Solid      AQI colour, steady
+#   Solid          the colour picked on the dashboard / in Home Assistant
+#   Dot Chase      rotating white dot
+# The ring comes back from a reboot, OTA or power cut exactly as it was left
+# (on/off, effect, colour), and keeps its effect across off -> on.
 #
 # Cross-package contract:
-#   - packages/air-quality.yaml owns `oas_aqi_value` (template sensor, float),
-#     `oas_co2` (raw SEN66 sensor) and `oas_air_quality_critical`. DO NOT
-#     redeclare any of them here.
-#   - This package owns `oas_ring` (the light entity) plus brightness /
-#     night-mode / critical-override UI entities.
+#   - packages/air-quality.yaml owns `oas_aqi_value` (template sensor, float)
+#     and `oas_air_quality_critical`. DO NOT redeclare either here.
+#   - packages/core.yaml owns `ha_time` (the schedule's clock).
+#   - This package owns `oas_ring` (the light) and every ring setting above.
 # ---------------------------------------------------------------------------
 
 # ---------------------------------------------------------------------------
 # Globals
 # ---------------------------------------------------------------------------
-# `oas_critical_active` latches the critical-alert override so the auto-dim
-# interval and boot logic know "do not touch the ring while alerting".
-# `oas_pre_critical_effect` remembers the effect that was active before the
-# override flipped the ring to red, so it can be restored when the alert clears.
-# `oas_boot_phase` is a one-shot guard: 0 = not started, 2 = the ring has been
-# defaulted to AQI Breathing at boot.
 globals:
-  - id: oas_critical_active
+  # Colour of the current AQI, refreshed by the interval below and shared by
+  # both AQI effects (one band table instead of one per effect).
+  - id: oas_aqi_rgb
+    type: Color
+    restore_value: no
+    initial_value: 'Color(0, 255, 0)'
+
+  # Set by on_boot once every entity is restored; before that the settings'
+  # on_value (fired by their own NVS restore) must not count as a change.
+  - id: oas_ring_ready
     type: bool
     restore_value: no
     initial_value: 'false'
 
-  - id: oas_pre_critical_effect
-    type: std::string
-    restore_value: no
-    initial_value: '"AQI Breathing"'
-
-  - id: oas_boot_phase
+  # Settings changed since the last tick: 1 = day level, 2 = night level,
+  # 4 = night start / end.
+  - id: oas_ring_changed
     type: int
     restore_value: no
     initial_value: '0'
+
+  # Half of the day the schedule last applied: -1 = clock not set yet,
+  # 0 = day, 1 = night.
+  - id: oas_ring_period
+    type: int
+    restore_value: no
+    initial_value: '-1'
+
+  # Brightness (0..255) the schedule last wrote, so the status can tell a
+  # hand-set brightness from the scheduled level.
+  - id: oas_ring_applied_lb
+    type: int
+    restore_value: no
+    initial_value: '-1'
+
+  # The schedule switched the ring off for the night (night level 0) and owes
+  # the switch-on at night end. Kept across a reboot, so a unit restarted at
+  # 03:00 still comes back on in the morning — and a ring the user switched
+  # off (flag false) stays off.
+  - id: oas_ring_night_off
+    type: bool
+    restore_value: yes
+    initial_value: 'false'
+
+  # The effect the user chose (1-based index into the effect list, 0 = none),
+  # kept across off -> on: ESPHome drops the effect whenever a light turns
+  # off, so a plain turn-on would bring the ring back as a steady colour.
+  # UINT32_MAX = never chosen -> AQI Breathing.
+  - id: oas_ring_effect
+    type: uint32_t
+    restore_value: yes
+    initial_value: 'UINT32_MAX'
+
+  - id: oas_ring_was_on
+    type: bool
+    restore_value: no
+    initial_value: 'false'
+
+  # Critical-alert override: whether the ring shows it right now, and the
+  # colour to put back when it clears.
+  - id: oas_alert_shown
+    type: bool
+    restore_value: no
+    initial_value: 'false'
+
+  - id: oas_pre_alert_rgb
+    type: std::array<float, 3>
+    restore_value: no
+    initial_value: '{1.0f, 1.0f, 1.0f}'
+
+# ---------------------------------------------------------------------------
+# Boot: the schedule starts once every entity has been restored
+# ---------------------------------------------------------------------------
+# on_boot is a LIST on purpose — air-quality.yaml and presence.yaml add their
+# own hooks, and ESPHome's package merge only concatenates lists.
+esphome:
+  on_boot:
+    - priority: -100
+      then:
+        - lambda: 'id(oas_ring_ready) = true;'
 
 # ---------------------------------------------------------------------------
 # Light platform — the ring itself
@@ -71,13 +164,123 @@ light:
     web_server:
       sorting_group_id: grp_ring
       sorting_weight: 10
-    restore_mode: ALWAYS_OFF
+    # Power cap = level 10: 61.2 % of full scale before gamma = LED output
+    # 64/255 at the light's 100 %. Keeps the halo from glaring through the
+    # cover and bounds the ring's heat next to the SEN66 (the temperature
+    # offset is calibrated with the ring at a low level). The level table in
+    # the schedule tick is computed against this cap — change one, redo both.
+    color_correct: [61.2%, 61.2%, 61.2%]
+    restore_mode: RESTORE_DEFAULT_ON
+    initial_state:
+      brightness: 43.5%       # level 5 (111/255), the default day level
     default_transition_length: 500ms
+    on_state:
+      - lambda: |-
+          // Remember the effect the user picks, and put it back after
+          // off -> on (HA toggle, dashboard switch, the schedule's morning
+          // switch-on, and the very first boot).
+          auto *ring = id(oas_ring);
+          const bool on = ring->remote_values.is_on();
+          const bool was_on = id(oas_ring_was_on);
+          id(oas_ring_was_on) = on;
+          if (!on || id(oas_alert_shown)) return;   // the alert's red is not a user choice
+          const uint32_t fx = ring->get_current_effect_index();
+          if (!was_on && fx == 0) {
+            uint32_t want = id(oas_ring_effect);
+            if (want == UINT32_MAX || want > ring->get_effect_count())
+              want = ring->get_effect_index("AQI Breathing");
+            if (want != 0) {
+              auto call = ring->make_call();
+              call.set_effect(want);
+              call.perform();                      // re-enters on_state, which records it
+            }
+            return;
+          }
+          id(oas_ring_effect) = fx;
     effects:
       # ---------------------------------------------------------------
-      # 1. Dot Chase — single bright white head rotating around the ring
-      #    with a 3-LED linearly-fading tail. ~3 s per rotation. Selectable
-      #    effect only (no longer the boot default — that is AQI Breathing).
+      # AQI Breathing — the AQI colour swelling over ~4 s.
+      # ---------------------------------------------------------------
+      # The ring runs at a few LED steps (level 5 peaks at 6 of 255), so a
+      # breath computed as colour x envelope and left to the gamma table
+      # comes out as a handful of visible jumps and then sits on the
+      # dimmest step for most of its lower half — the start of each swell
+      # looks late. This effect computes the final LED values itself:
+      #   1. peak = the AQI colour through the light's own pipeline (gamma,
+      #      power cap, current brightness) — exactly what AQI Solid shows;
+      #   2. envelope = a raised cosine in PERCEIVED brightness (even-looking
+      #      swell), mapped to LED output with the same 2.8 gamma, bottoming
+      #      out at 20 % of the peak output and never below one LED step. At
+      #      level 1 (the usual night level) the peak is that one step, so
+      #      the ring holds steady instead of blinking;
+      #   3. spatial dithering: one diffuser over 7 LEDs, so the ring can
+      #      show 1/7 of an LED step by giving some LEDs one step more —
+      #      7x finer steps. Extras go to every 3rd LED (0, 3, 6, 2, 5, 1, 4),
+      #      spreading them around the ring. The values are written through
+      #      an identity correction, i.e. as final LED outputs.
+      - addressable_lambda:
+          name: "AQI Breathing"
+          update_interval: 30ms
+          lambda: |-
+            const int N = it.size();
+            it[0] = id(oas_aqi_rgb);
+            const float pk[3] = {(float) it[0].get_red_raw(), (float) it[0].get_green_raw(),
+                                 (float) it[0].get_blue_raw()};
+            const float peak = std::max(pk[0], std::max(pk[1], pk[2]));
+
+            float k = 1.0f;                        // LED output relative to the peak
+            const float lo = std::max(1.0f, 0.20f * peak);
+            if (peak > lo) {
+              const float s = 0.5f - 0.5f * cosf(6.2831853f * (float) (millis() % 4000) / 4000.0f);
+              const float p_lo = powf(lo / peak, 1.0f / 2.8f);
+              k = powf(p_lo + (1.0f - p_lo) * s, 2.8f);
+            }
+
+            static light::ESPColorCorrection raw = [] {
+              light::ESPColorCorrection c;         // identity: no gamma, cap or brightness
+              c.set_gamma_table(nullptr);
+              c.set_max_brightness(Color(255, 255, 255, 255));
+              c.set_local_brightness(255);
+              return c;
+            }();
+            int base[3], extra[3];
+            for (int c = 0; c < 3; c++) {
+              const float v = pk[c] * k;
+              base[c] = (int) floorf(v);
+              extra[c] = (int) lroundf((v - (float) base[c]) * N);
+            }
+            for (int r = 0; r < N; r++) {          // N = 7: gcd(3, 7) = 1, every LED once
+              auto px = it[(r * 3) % N];
+              px.raw_set_color_correction(&raw);
+              px.set_rgb((uint8_t) std::min(255, base[0] + (r < extra[0] ? 1 : 0)),
+                         (uint8_t) std::min(255, base[1] + (r < extra[1] ? 1 : 0)),
+                         (uint8_t) std::min(255, base[2] + (r < extra[2] ? 1 : 0)));
+            }
+
+      # ---------------------------------------------------------------
+      # AQI Solid — the AQI colour, steady (the whole ring one zone).
+      # ---------------------------------------------------------------
+      - addressable_lambda:
+          name: "AQI Solid"
+          update_interval: 200ms
+          lambda: |-
+            const Color c = id(oas_aqi_rgb);
+            for (int i = 0; i < it.size(); i++) it[i] = c;
+
+      # ---------------------------------------------------------------
+      # Solid — no animation: the light's own colour (colour picker) at
+      # the current brightness. Also what the critical alert uses.
+      # ---------------------------------------------------------------
+      - lambda:
+          name: "Solid"
+          update_interval: 1s
+          lambda: |-
+            // Intentionally empty — leave the current state untouched so
+            // the user's (or the alert's) chosen colour stays as set.
+
+      # ---------------------------------------------------------------
+      # Dot Chase — single bright white head rotating around the ring
+      # with a 3-LED linearly-fading tail. ~3 s per rotation.
       # ---------------------------------------------------------------
       - addressable_lambda:
           name: "Dot Chase"
@@ -98,221 +301,99 @@ light:
               else                it[i] = Color(  0,   0,   0);
             }
 
-      # ---------------------------------------------------------------
-      # 2. AQI Solid — addressable lambda. Maps oas_aqi_value (0..500)
-      #    to a colour using the US-EPA-aligned bands, with linear
-      #    interpolation between band edges for smooth transitions. All
-      #    pixels share the colour — the ring reads as a single zone.
-      # ---------------------------------------------------------------
-      - addressable_lambda:
-          name: "AQI Solid"
-          update_interval: 200ms
-          lambda: |-
-            // Pull current AQI; guard NaN before air-quality.yaml has data.
-            float aqi = id(oas_aqi_value).state;
-            if (isnan(aqi) || aqi < 0.0f) aqi = 0.0f;
-            if (aqi > 500.0f) aqi = 500.0f;
-
-            // Band table — (upper-edge AQI, R, G, B).
-            //   0.. 50 -> green  (  0, 255,   0)
-            //  51..100 -> yellow (255, 255,   0)
-            // 101..150 -> orange (255, 128,   0)
-            // 151..200 -> red    (255,   0,   0)
-            // 201..300 -> purple (160,   0, 200)
-            // 301..500 -> maroon (130,   0,  30)
-            struct Stop { float a; uint8_t r, g, b; };
-            static const Stop stops[] = {
-              {   0.0f,   0, 255,   0},
-              {  50.0f,   0, 255,   0},
-              { 100.0f, 255, 255,   0},
-              { 150.0f, 255, 128,   0},
-              { 200.0f, 255,   0,   0},
-              { 300.0f, 160,   0, 200},
-              { 500.0f, 130,   0,  30},
-            };
-            const int N = sizeof(stops) / sizeof(stops[0]);
-
-            // Find the bracketing pair and lerp.
-            uint8_t r = stops[N - 1].r;
-            uint8_t g = stops[N - 1].g;
-            uint8_t b = stops[N - 1].b;
-            for (int i = 1; i < N; i++) {
-              if (aqi <= stops[i].a) {
-                float t = (aqi - stops[i - 1].a) /
-                          (stops[i].a - stops[i - 1].a);
-                if (t < 0.0f) t = 0.0f;
-                if (t > 1.0f) t = 1.0f;
-                r = (uint8_t)(stops[i - 1].r + t * (stops[i].r - stops[i - 1].r));
-                g = (uint8_t)(stops[i - 1].g + t * (stops[i].g - stops[i - 1].g));
-                b = (uint8_t)(stops[i - 1].b + t * (stops[i].b - stops[i - 1].b));
-                break;
-              }
-            }
-
-            // Paint the whole ring uniformly.
-            for (int i = 0; i < it.size(); i++) {
-              it[i] = Color(r, g, b);
-            }
-
-      # ---------------------------------------------------------------
-      # 3. AQI Breathing — same AQI gradient colour as AQI Solid, but the
-      #    whole ring breathes with a ~4 s sinusoidal envelope between
-      #    15 % and 100 % of the mapped colour. The user's max-brightness
-      #    slider still caps absolute output (master brightness multiplies
-      #    this per-pixel result).
-      # ---------------------------------------------------------------
-      - addressable_lambda:
-          name: "AQI Breathing"
-          update_interval: 50ms
-          lambda: |-
-            // --- AQI -> colour (identical band table to AQI Solid) -------
-            float aqi = id(oas_aqi_value).state;
-            if (isnan(aqi) || aqi < 0.0f) aqi = 0.0f;
-            if (aqi > 500.0f) aqi = 500.0f;
-
-            struct Stop { float a; uint8_t r, g, b; };
-            static const Stop stops[] = {
-              {   0.0f,   0, 255,   0},
-              {  50.0f,   0, 255,   0},
-              { 100.0f, 255, 255,   0},
-              { 150.0f, 255, 128,   0},
-              { 200.0f, 255,   0,   0},
-              { 300.0f, 160,   0, 200},
-              { 500.0f, 130,   0,  30},
-            };
-            const int N = sizeof(stops) / sizeof(stops[0]);
-
-            float r = stops[N - 1].r;
-            float g = stops[N - 1].g;
-            float b = stops[N - 1].b;
-            for (int i = 1; i < N; i++) {
-              if (aqi <= stops[i].a) {
-                float t = (aqi - stops[i - 1].a) /
-                          (stops[i].a - stops[i - 1].a);
-                if (t < 0.0f) t = 0.0f;
-                if (t > 1.0f) t = 1.0f;
-                r = stops[i - 1].r + t * (stops[i].r - stops[i - 1].r);
-                g = stops[i - 1].g + t * (stops[i].g - stops[i - 1].g);
-                b = stops[i - 1].b + t * (stops[i].b - stops[i - 1].b);
-                break;
-              }
-            }
-
-            // --- Breathing envelope: 4 s period at 50 ms = 80 frames -----
-            static uint32_t frame = 0;
-            const float period = 80.0f;
-            float phase = (float)(frame % (uint32_t)period) / period;  // 0..1
-            frame++;
-            // 0.5*(1 - cos) is a smooth 0->1->0 swell; floor at 0.15.
-            float env = 0.15f + 0.85f *
-                        (0.5f - 0.5f * cosf(2.0f * 3.14159265f * phase));
-
-            uint8_t rr = (uint8_t)(r * env);
-            uint8_t gg = (uint8_t)(g * env);
-            uint8_t bb = (uint8_t)(b * env);
-            for (int i = 0; i < it.size(); i++) {
-              it[i] = Color(rr, gg, bb);
-            }
-
-      # ---------------------------------------------------------------
-      # 4. Solid — no animation. The HA-side colour control sets the hue;
-      #    this effect just turns animations OFF cleanly (used for a plain
-      #    user colour and by the critical-alert red override).
-      # ---------------------------------------------------------------
-      - lambda:
-          name: "Solid"
-          update_interval: 1s
-          lambda: |-
-            // Intentionally empty — leave the current state untouched so
-            // the user's (or the override's) chosen colour stays as set.
-
 # ---------------------------------------------------------------------------
-# Number entities — user-tunable brightness + night-mode schedule
+# Brightness levels (see the header for the scale)
 # ---------------------------------------------------------------------------
 number:
-  # Max-brightness slider. The auto-dim interval below applies this value
-  # scaled by the day/night factor; it is the ceiling the ring is driven to
-  # during the day (the night window scales it down to 5 %).
   - platform: template
-    id: oas_ring_brightness_max
-    name: "Ring Max Brightness"
-    web_server:
-      sorting_group_id: grp_ring
-      sorting_weight: 20
-    optimistic: true
-    initial_value: 30
-    min_value: 0
-    max_value: 100
-    step: 5
-    restore_value: yes
-    unit_of_measurement: "%"
-    mode: SLIDER
-    set_action:
-      - lambda: |-
-          auto call = id(oas_ring).turn_on();
-          call.set_brightness(x / 100.0f);
-          call.perform();
-
-  # Night-mode window — when the local hour is inside [start, end)
-  # (wrapping through midnight if end < start), the auto-dim interval
-  # scales the ring to 5 % of the user's max-brightness setting.
-  # The whole feature is gated by the "Night Mode" switch below — turning
-  # it off keeps full day brightness around the clock on that unit.
-  - platform: template
-    id: oas_night_start
-    name: "Night Mode Start Hour"
-    web_server:
-      sorting_group_id: grp_ring
-      sorting_weight: 40
-    optimistic: true
-    initial_value: 22
-    min_value: 0
-    max_value: 23
-    step: 1
-    restore_value: yes
-    mode: BOX
-
-  - platform: template
-    id: oas_night_end
-    name: "Night Mode End Hour"
-    web_server:
-      sorting_group_id: grp_ring
-      sorting_weight: 50
-    optimistic: true
-    initial_value: 7
-    min_value: 0
-    max_value: 23
-    step: 1
-    restore_value: yes
-    mode: BOX
-
-# ---------------------------------------------------------------------------
-# Night-mode master toggle
-# ---------------------------------------------------------------------------
-# Per-unit enable for the night-dim schedule above. Plain state holder with
-# no turn_on/turn_off actions, so the boot-time state restore cannot call
-# into anything (see the issue-#4 note in bt-proxy.yaml for why boot-fired
-# switch actions are dangerous); the auto-dim interval just reads the state.
-switch:
-  - platform: template
-    name: "Night Mode"
+    id: oas_ring_day_level
+    name: "Ring Day Brightness"
+    icon: "mdi:brightness-5"
     web_server:
       sorting_group_id: grp_ring
       sorting_weight: 30
-    id: oas_night_mode_enabled
-    icon: "mdi:weather-night"
-    optimistic: true
-    restore_mode: RESTORE_DEFAULT_ON
     entity_category: config
+    optimistic: true
+    restore_value: yes
+    initial_value: 5
+    min_value: 1
+    max_value: 10
+    step: 1
+    mode: SLIDER
+    on_value:
+      - lambda: 'if (id(oas_ring_ready)) id(oas_ring_changed) |= 1;'
+
+  - platform: template
+    id: oas_ring_night_level
+    name: "Ring Night Brightness"
+    icon: "mdi:weather-night"
+    web_server:
+      sorting_group_id: grp_ring
+      sorting_weight: 40
+    entity_category: config
+    optimistic: true
+    restore_value: yes
+    initial_value: 1
+    min_value: 0
+    max_value: 10
+    step: 1
+    mode: SLIDER
+    on_value:
+      - lambda: 'if (id(oas_ring_ready)) id(oas_ring_changed) |= 2;'
 
 # ---------------------------------------------------------------------------
-# Critical-alert override
+# Night window
 # ---------------------------------------------------------------------------
-# `oas_critical_alert` mirrors the air-quality-derived `oas_air_quality_critical`
-# (defined in packages/air-quality.yaml), re-exposed here under the name the LED
-# UX talks about. On assert it forces the ring to solid bright red (80 %,
-# overriding the max-brightness cap); on clear it restores the effect that was
-# active beforehand (falling back to AQI Solid).
+datetime:
+  - platform: template
+    type: time
+    id: oas_ring_night_start
+    name: "Ring Night Start"
+    icon: "mdi:weather-sunset-down"
+    web_server:
+      sorting_group_id: grp_ring
+      sorting_weight: 50
+    entity_category: config
+    optimistic: true
+    restore_value: true
+    initial_value: "22:00:00"
+    on_value:
+      - lambda: 'if (id(oas_ring_ready)) id(oas_ring_changed) |= 4;'
+
+  - platform: template
+    type: time
+    id: oas_ring_night_end
+    name: "Ring Night End"
+    icon: "mdi:weather-sunset-up"
+    web_server:
+      sorting_group_id: grp_ring
+      sorting_weight: 60
+    entity_category: config
+    optimistic: true
+    restore_value: true
+    initial_value: "07:00:00"
+    on_value:
+      - lambda: 'if (id(oas_ring_ready)) id(oas_ring_changed) |= 4;'
+
+# ---------------------------------------------------------------------------
+# Status line — what the ring is doing now, and until when
+# ---------------------------------------------------------------------------
+text_sensor:
+  - platform: template
+    id: oas_ring_status
+    name: "Ring Status"
+    icon: "mdi:information-outline"
+    web_server:
+      sorting_group_id: grp_ring
+      sorting_weight: 20
+    entity_category: diagnostic
+    update_interval: never    # published by the schedule tick below
+
+# ---------------------------------------------------------------------------
+# Critical-alert mirror
+# ---------------------------------------------------------------------------
+# Mirrors `oas_air_quality_critical` (packages/air-quality.yaml) under the
+# name the LED UX talks about; the schedule tick below reads it.
 binary_sensor:
   - platform: template
     id: oas_critical_alert
@@ -322,90 +403,193 @@ binary_sensor:
       sorting_weight: 120
     device_class: safety
     lambda: |-
-      // Mirror air-quality.yaml's critical sensor. NaN-safe because the
-      // upstream sensor's own lambda already guards NaN inputs.
+      // NaN-safe: the upstream sensor's own lambda already guards NaN inputs.
       return id(oas_air_quality_critical).state;
-    on_state:
-      - if:
-          condition:
-            lambda: 'return x;'
-          then:
-            # Latch override -> solid red, remembering the current effect.
-            - lambda: |-
-                id(oas_pre_critical_effect) = id(oas_ring).get_effect_name();
-                id(oas_critical_active) = true;
-                auto call = id(oas_ring).turn_on();
-                call.set_rgb(1.0f, 0.0f, 0.0f);
-                call.set_brightness(0.80f);     // 80 % — overrides max cap
-                call.set_effect("Solid");
-                call.perform();
-          else:
-            # Clear override -> restore the previous effect (sane fallback).
-            - lambda: |-
-                id(oas_critical_active) = false;
-                std::string eff = id(oas_pre_critical_effect);
-                if (eff.empty() || eff == "None" || eff == "Solid" ||
-                    eff == "Dot Chase") {
-                  eff = "AQI Breathing";
-                }
-                auto call = id(oas_ring).turn_on();
-                call.set_effect(eff);
-                call.set_brightness(id(oas_ring_brightness_max).state / 100.0f);
-                call.perform();
 
 # ---------------------------------------------------------------------------
-# Boot loading indicator + auto-dim
+# AQI colour + the schedule tick
 # ---------------------------------------------------------------------------
 interval:
-  # One-shot at boot: default the ring to AQI Breathing on the first tick.
-  # After that it is a cheap no-op (single int compare).
-  - interval: 250ms
+  # AQI (0..500) -> colour, US-EPA-aligned bands with linear interpolation
+  # between band edges. The AQI itself updates every 30 s.
+  - interval: 5s
     then:
       - lambda: |-
-          // Default the ring to AQI Breathing (soft swell; green at AQI 0,
-          // fills in the real AQI colour once the SEN66 reports). Stays until
-          // the user picks another effect. Easy on the eyes vs the old Dot
-          // Chase loading indicator.
-          if (id(oas_boot_phase) == 0) {
-            id(oas_boot_phase) = 2;
-            if (!id(oas_critical_active)) {
-              auto call = id(oas_ring).turn_on();
-              call.set_effect("AQI Breathing");
-              call.set_brightness(id(oas_ring_brightness_max).state / 100.0f);
+          float aqi = id(oas_aqi_value).state;
+          if (std::isnan(aqi) || aqi < 0.0f) aqi = 0.0f;   // no reading yet -> green
+          if (aqi > 500.0f) aqi = 500.0f;
+
+          // (upper-edge AQI, R, G, B)
+          //   0.. 50 green, 51..100 yellow, 101..150 orange,
+          // 151..200 red, 201..300 purple, 301..500 maroon
+          struct Stop { float a; uint8_t r, g, b; };
+          static const Stop stops[] = {
+            {   0.0f,   0, 255,   0},
+            {  50.0f,   0, 255,   0},
+            { 100.0f, 255, 255,   0},
+            { 150.0f, 255, 128,   0},
+            { 200.0f, 255,   0,   0},
+            { 300.0f, 160,   0, 200},
+            { 500.0f, 130,   0,  30},
+          };
+          const int n = sizeof(stops) / sizeof(stops[0]);
+          Color c(stops[n - 1].r, stops[n - 1].g, stops[n - 1].b);
+          for (int i = 1; i < n; i++) {
+            if (aqi <= stops[i].a) {
+              const float t = (aqi - stops[i - 1].a) / (stops[i].a - stops[i - 1].a);
+              c = Color((uint8_t) (stops[i - 1].r + t * (stops[i].r - stops[i - 1].r)),
+                        (uint8_t) (stops[i - 1].g + t * (stops[i].g - stops[i - 1].g)),
+                        (uint8_t) (stops[i - 1].b + t * (stops[i].b - stops[i - 1].b)));
+              break;
+            }
+          }
+          id(oas_aqi_rgb) = c;
+
+  # The schedule. Writes the brightness only when day and night swap (and
+  # at the first clock sync after boot) or when the level of the current
+  # half of the day changes — anything set by hand holds until then. Also
+  # runs the critical-alert override and publishes Ring Status.
+  - interval: 1s
+    then:
+      - lambda: |-
+          if (!id(oas_ring_ready)) return;
+          // Light brightness (0..255) of level 1..10 ([0] unused): the top of
+          // the brightness band that gives the level's LED output (1, 2, 3, 4,
+          // 6, 10, 16, 25, 40, 64 / 255) through ESPHome's gamma-2.8 table
+          // and the 61.2 % power cap on the light.
+          static const uint8_t LB[11] = {0, 66, 79, 90, 98, 111, 133, 156, 183, 216, 255};
+          auto *ring = id(oas_ring);
+          auto level_of = [](float v, int lo, int hi, int dflt) -> int {
+            return std::isnan(v) ? dflt : std::max(lo, std::min(hi, (int) lroundf(v)));
+          };
+          const int day = level_of(id(oas_ring_day_level).state, 1, 10, 5);
+          const int night = level_of(id(oas_ring_night_level).state, 0, 10, 1);
+          const int ns = id(oas_ring_night_start).hour * 60 + id(oas_ring_night_start).minute;
+          const int ne = id(oas_ring_night_end).hour * 60 + id(oas_ring_night_end).minute;
+          const int changed = id(oas_ring_changed);
+          id(oas_ring_changed) = 0;
+
+          // --- Day or night? -1 until the clock is set (~10-20 s after boot).
+          int period = -1;
+          auto now = id(ha_time).now();
+          if (now.is_valid()) {
+            const int m = now.hour * 60 + now.minute;
+            bool is_night;
+            if (ns == ne)     is_night = false;                   // no night window
+            else if (ns < ne) is_night = (m >= ns && m < ne);     // e.g. 01:00-06:00
+            else              is_night = (m >= ns || m < ne);     // e.g. 22:00-07:00
+            period = is_night ? 1 : 0;
+          }
+          const bool night_now = (period == 1);
+          const int level = night_now ? night : day;
+          const bool apply = (period >= 0 && period != id(oas_ring_period)) ||
+                             ((changed & 1) && !night_now) || ((changed & 2) && night_now);
+          if (period >= 0) id(oas_ring_period) = period;
+          const uint32_t fade = changed ? 500 : 5000;   // a setting: snappy; the schedule: slow
+
+          bool on = ring->remote_values.is_on();
+          uint32_t user_fx = id(oas_ring_effect);
+          if (user_fx == UINT32_MAX || user_fx > ring->get_effect_count())
+            user_fx = ring->get_effect_index("AQI Breathing");
+          const uint32_t solid_fx = ring->get_effect_index("Solid");
+          auto &saved_rgb = id(oas_pre_alert_rgb);
+          const auto &rv = ring->remote_values;
+          const bool alert_red = rv.get_red() > 0.99f && rv.get_green() < 0.01f && rv.get_blue() < 0.01f;
+
+          // --- 1. Night level 0: off for the night, back on at night end. A
+          //        ring switched on by hand during that night starts at level 1
+          //        (the brightness an off light remembers for its next turn-on).
+          bool turn_on = false;
+          if (apply) {
+            if (level == 0) {
+              auto call = on ? ring->turn_off() : ring->make_call();
+              call.set_brightness(LB[1] / 255.0f);
+              id(oas_ring_applied_lb) = LB[1];
+              if (on) {
+                call.set_transition_length(fade);
+                if (id(oas_alert_shown) && alert_red) call.set_rgb(saved_rgb[0], saved_rgb[1], saved_rgb[2]);
+                id(oas_alert_shown) = false;
+                id(oas_ring_night_off) = true;
+                on = false;
+              }
               call.perform();
+            } else {
+              turn_on = !on && id(oas_ring_night_off);
+              id(oas_ring_night_off) = false;
             }
           }
 
-  # Auto-dim — runs every minute; applies day/night brightness scaling.
-  # `ha_time` is declared in packages/core.yaml. Skipped while a critical alert
-  # is latched (the override owns brightness) and during the boot loading phase
-  # (so it doesn't fight the Dot Chase indicator).
-  - interval: 60s
-    then:
-      - lambda: |-
-          if (id(oas_critical_active)) return;     // override owns brightness
-          if (id(oas_boot_phase) < 2) return;      // still loading
-          if (!id(oas_ring).remote_values.is_on()) return;
-
-          auto now = id(ha_time).now();
-          if (!now.is_valid()) return;
-
-          int h = now.hour;
-          int s = (int) id(oas_night_start).state;
-          int e = (int) id(oas_night_end).state;
-          bool night;
-          if (!id(oas_night_mode_enabled).state || s == e) {
-            night = false;                          // feature off / window disabled
-          } else if (s < e) {
-            night = (h >= s) && (h < e);            // same-day window
-          } else {
-            night = (h >= s) || (h < e);            // wraps midnight
+          // --- 2. Level, alert, switch-on: one light call.
+          const bool alert = id(oas_critical_alert).state && (on || turn_on);
+          auto call = ring->make_call();
+          bool dirty = false, fx_set = false;
+          int target = (apply && level > 0) ? LB[level] : -1;
+          if (turn_on) {
+            call.set_state(true);
+            dirty = true;
           }
+          if (alert) {
+            // Day: level 10. Night: the night level (switched on by hand at
+            // night level 0: keep whatever brightness it has).
+            const int alert_lb = !night_now ? LB[10] : (night > 0 ? LB[night] : -1);
+            if (!id(oas_alert_shown)) {
+              saved_rgb = {rv.get_red(), rv.get_green(), rv.get_blue()};
+              id(oas_alert_shown) = true;
+              call.set_effect(solid_fx);
+              call.set_rgb(1.0f, 0.0f, 0.0f);
+              fx_set = dirty = true;
+              target = alert_lb;
+            } else if (target >= 0) {
+              target = alert_lb;
+            }
+          } else if (id(oas_alert_shown)) {
+            id(oas_alert_shown) = false;
+            if (alert_red) {                       // untouched by the user during the alert
+              call.set_rgb(saved_rgb[0], saved_rgb[1], saved_rgb[2]);
+              dirty = true;
+            }
+            if (on && ring->get_current_effect_index() == solid_fx) {
+              call.set_effect(user_fx);
+              fx_set = dirty = true;
+            }
+            // Also on an OFF ring (switched off during the alert): otherwise
+            // the next turn-on would come back at the alert's level 10.
+            if (level > 0) target = LB[level];
+          } else if (turn_on) {
+            call.set_effect(user_fx);
+            fx_set = true;
+          }
+          if (target >= 0) {
+            call.set_brightness(target / 255.0f);
+            if (on && !fx_set) call.set_transition_length(fade);  // effects can't transition
+            id(oas_ring_applied_lb) = target;
+            dirty = true;
+          }
+          if (dirty) call.perform();
 
-          float max_pct = id(oas_ring_brightness_max).state / 100.0f;
-          float br = night ? (max_pct * 0.05f) : max_pct;
-
-          auto call = id(oas_ring).turn_on();
-          call.set_brightness(br);
-          call.set_transition_length(2000);         // 2 s smooth fade
-          call.perform();
+          // --- 3. Ring Status.
+          char t_start[8], t_end[8], buf[80];
+          snprintf(t_start, sizeof(t_start), "%02d:%02d", ns / 60, ns % 60);
+          snprintf(t_end, sizeof(t_end), "%02d:%02d", ne / 60, ne % 60);
+          const bool by_hand = level == 0 ||
+              (int) lroundf(rv.get_brightness() * 255.0f) != id(oas_ring_applied_lb);
+          if (!rv.is_on()) {
+            if (id(oas_ring_night_off)) snprintf(buf, sizeof(buf), "Off for the night, back on at %s", t_end);
+            else snprintf(buf, sizeof(buf), "Off");
+          } else if (id(oas_alert_shown)) {
+            snprintf(buf, sizeof(buf), "Critical air quality alert: solid red");
+          } else if (period < 0) {
+            snprintf(buf, sizeof(buf), "Waiting for the clock to sync");
+          } else if (ns == ne) {
+            if (by_hand) snprintf(buf, sizeof(buf), "Brightness set by hand (no night window)");
+            else snprintf(buf, sizeof(buf), "Level %d all day (no night window)", day);
+          } else if (by_hand) {
+            snprintf(buf, sizeof(buf), "%s, set by hand until %s", night_now ? "Night" : "Day",
+                     night_now ? t_end : t_start);
+          } else if (!night_now) {
+            if (night == 0) snprintf(buf, sizeof(buf), "Day (level %d) until %s, then off for the night", day, t_start);
+            else snprintf(buf, sizeof(buf), "Day (level %d) until %s, then night (level %d)", day, t_start, night);
+          } else {
+            snprintf(buf, sizeof(buf), "Night (level %d) until %s, then day (level %d)", night, t_end, day);
+          }
+          if (id(oas_ring_status).state != buf) id(oas_ring_status).publish_state(buf);

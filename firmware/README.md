@@ -103,7 +103,7 @@ Once the device is on your WiFi, the on-device web dashboard is reachable at:
 The dashboard is **web_server v3** (modern post-2024 ESPHome UI) and supports:
 
 - Live sensor readings (CO2, PM, VOC, NOx, temperature, humidity, presence)
-- LED ring controls (brightness slider, effect picker, color picker)
+- LED ring controls (on/off, effect, colour, day/night brightness levels, night window, and a status line saying what the ring is doing)
 - Number entity sliders to adjust sensor calibration offsets in real time
 - Live log viewer
 - Read-only Prometheus metrics endpoint at `/metrics` for scraping
@@ -202,12 +202,10 @@ Alternatively, the **AP fallback** (`OAS-<device_id>-Setup` SSID, gated by `ap_p
 
 #### Light, numbers, selects, text, buttons, switches
 
-- `light.led_ring` — RGB addressable (7 LEDs); brightness / colour / effect controllable from HA
+- `light.ring` — the AQI ring (7 × SK6812-SIDE): on/off, effect (`AQI Breathing` default, `AQI Solid`, `Solid` = the picked colour, `Dot Chase`), colour. Keeps its state and effect across reboots and off → on
 - `number.temperature_offset` / `number.temperature_offset_tau` and `number.temperature_offset_slow` / `number.temperature_offset_slow_tau` — SEN66 STAR-Engine offset slots 0 and 1 (°C, s), written into the module at boot and on every change; RH follows automatically (see "SEN66 temperature compensation" below). `number.humidity_offset` (-20..+20 %RH), `number.co2_offset` (-100..+100 ppm) — ESPHome-side trims on the published value
 - `number.max_move_gate` / `number.max_still_gate` (2-8 gates × 0.75 m), `number.presence_timeout` (0-65535 s), `number.g<0-8>_move_threshold` / `number.g<0-8>_still_threshold` (0-100 per gate, 100 disables the gate; stored in the radar's own flash). Gate 0 (0-0.75 m) sees the SEN66 fan and the cover from inside the enclosure and flaps on the factory threshold, so the bring-up script disables it — see the note in `packages/presence.yaml`
-- `number.led_brightness_day` (0-255), `number.led_brightness_night` (0-15)
-- `select.led_mode` — Auto-AQI / Manual / Off / Test-Rainbow
-- `select.led_effect` — 8+ effects (active when `led_mode = Manual`)
+- `number.ring_day_brightness` (level 1-10), `number.ring_night_brightness` (level 0-10, 0 = off for the night), `time.ring_night_start` / `time.ring_night_end` (the night window), `text_sensor.ring_status` (what the ring is doing now) — see [LED ring](#led-ring) below
 - `button.restart` / `button.sen66_force_clean` / `button.ld2410_factory_reset`
 - `switch.bluetooth_proxy` (default on) / `switch.prevent_sleep`
 - `text_sensor.star_engine_state` — what the boot sequence sent to the SEN66 STAR-Engine and the I2C result; `text_sensor.reset_reason` — ESP32 reset reason (input for the cold/warm-start decision)
@@ -218,7 +216,7 @@ Inside the enclosure the SEN66 sits behind the regulators, the ESP32-C6 and the 
 
 - **Acceleration** (I2C 0x6100): the "Light / IAQM" preset from the app note (T1 100 s, T2 300 s, K 20, P 20). The command is idle-only and volatile, so the boot sequence stops the measurement, writes it and restarts; the component ignores the first 60 s of readings anyway.
 - **Offset slots** (I2C 0x60B2, volatile, additive to the factory self-heating compensation): slot 0 = the enclosure over-temperature with its warm-up time constant, slot 1 = an optional slower second exponential (foam gasket, enclosure). The values live in the `number.temperature_offset*` entities (NVS-persisted, defaults in `packages/air-quality.yaml`) and are re-sent at every boot: after a power-on reset they ramp in with their time constants, after any other reset (OTA, watchdog, brownout) the enclosure is still warm and they apply at once. The module recomputes RH from the corrected temperature, so RH needs no separate offset.
-- **Deriving the values** (app note §2.2, the "basic" recipe): two reference thermometers next to the unit, room steady, no air conditioning. Offset = T_reference − T_module averaged over the last hour of a steady state (negative when the unit reads warm). Tau = time from a cold power-on (unit off for at least 3–4 h) until the module temperature crosses 63 % of its final over-temperature. Set both offsets to 0 before the cold start so the recording is the bare module output, then enter the results in Home Assistant. The reference unit (AK-N-94, foam gasket on the SEN66, ring 25 %, BLE proxy on) came out at −3.4 K; any change to the heat budget shifts it, so re-check after hardware or power-state changes.
+- **Deriving the values** (app note §2.2, the "basic" recipe): two reference thermometers next to the unit, room steady, no air conditioning. Offset = T_reference − T_module averaged over the last hour of a steady state (negative when the unit reads warm). Tau = time from a cold power-on (unit off for at least 3–4 h) until the module temperature crosses 63 % of its final over-temperature. Set both offsets to 0 before the cold start so the recording is the bare module output, then enter the results in Home Assistant. The reference unit (AK-N-94, foam gasket on the SEN66, ring 25 % ≈ level 4-5, BLE proxy on) came out at −3.4 K; any change to the heat budget shifts it, so re-check after hardware or power-state changes.
 - **Slope** (offset vs room temperature) stays 0 until a second temperature level is measured — see the `TODO (winter)` note at the top of `packages/air-quality.yaml`.
 - There is no read-back command for either register, so verify against a reference thermometer, not the text sensor.
 
@@ -269,28 +267,47 @@ action:
 
 The 5-minute `for:` debounces brief CO₂ spikes (someone exhaling on the device).
 
-### LED ring AQI alert
+### LED ring
 
-The ring runs in **Auto-AQI** mode by default — colour reflects current AQI without any HA wiring. For stronger alerts, drop into Manual mode and apply an effect:
+The ring shows the air quality on its own, without any Home Assistant wiring: effect **AQI Breathing** (default, a slow swell) or **AQI Solid** (steady), green → yellow → orange → red → purple as the AQI rises. Its settings sit in the dashboard's *LED ring* card and under *Configuration* on the Home Assistant device page:
+
+| Setting | Range | What it does |
+|---|---|---|
+| **Ring Day Brightness** | 1-10 | Brightness outside the night window (default 5) |
+| **Ring Night Brightness** | 0-10 | Brightness inside the night window (default 1). **0 switches the ring off** for the night; it comes back on at night end (switched on by hand during that night, it starts at level 1) |
+| **Ring Night Start / End** | time | The night window (default 22:00 → 07:00, may wrap midnight). The same time twice means no night |
+| **Ring Status** | — | What the ring is doing and until when, e.g. `Day (level 5) until 22:00, then night (level 1)` |
+
+Why levels instead of the light's own 0-255 slider: on this ring most of that scale is unusable. The LEDs are 8-bit behind a 2.8 gamma, so the bottom ~16 % of the slider is one and the same dimmest glow, and the top half is many times brighter than the ring is ever run at. Each level is one visible step, about 1.6× brighter than the one below; level 1 is the dimmest glow the LEDs can make and level 10 is a hard ceiling — the light's own 100 % is capped to it, so nothing (dashboard, automation) can make the ring glare or heat the enclosure. The light's brightness slider still works as a temporary override that holds until the next day/night switch; on its scale level 1 = up to 26 %, level 5 = 44 %, level 10 = 100 %.
+
+When the air turns critical (AQI > 200 or CO₂ > 1500 ppm), a ring that is on turns solid red — at level 10 by day, at the night level at night, so it never lights up a sleeping room — and goes back to its effect when the air clears.
+
+The ring keeps its on/off state, effect and colour across reboots and OTA updates, and a plain turn-on (HA toggle, automation) brings the effect back. The schedule only ever switches on a ring it switched off itself (night level 0), so automations that turn the ring off stay in charge. Example — ring off while the room is empty:
 
 ```yaml
 trigger:
-  - platform: numeric_state
-    entity_id: sensor.oas_livingroom_co2
-    above: 1500
+  - platform: state
+    entity_id: binary_sensor.oas_livingroom_presence
+    to: "off"
+    for: "00:10:00"
+    id: empty
+  - platform: state
+    entity_id: binary_sensor.oas_livingroom_presence
+    to: "on"
+    id: occupied
 action:
-  - service: select.select_option
-    target: { entity_id: select.oas_livingroom_led_mode }
-    data: { option: Manual }
-  - service: select.select_option
-    target: { entity_id: select.oas_livingroom_led_effect }
-    data: { option: Pulse }
-  - service: light.turn_on
-    target: { entity_id: light.oas_livingroom_led_ring }
-    data: { rgb_color: [255, 0, 0], brightness: 255 }
+  - if:
+      - condition: trigger
+        id: occupied
+    then:
+      - service: light.turn_on
+        target: { entity_id: light.oas_livingroom_ring }
+    else:
+      - service: light.turn_off
+        target: { entity_id: light.oas_livingroom_ring }
 ```
 
-Pair with a recovery automation that switches back to Auto-AQI when CO₂ drops below 1000 ppm.
+Upgrading from firmware that had *Ring Max Brightness*, *Night Mode* and *Night Mode Start/End Hour*: those entities are gone — remove them from Home Assistant once they show as unavailable. The new settings start at their defaults.
 
 ### Bluetooth proxy
 

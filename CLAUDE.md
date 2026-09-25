@@ -222,6 +222,14 @@ Corollary on reading a scanner: JLCDFM's "Solder mask opening exposing trace" re
 
 ---
 
+## Lessons learned (v0.54 firmware)
+
+### 27. An LED brightness scale is only as fine as its 8-bit output AFTER gamma — design the scale and the effects in LED-output steps
+
+The ring ran at 25-30 % on the light's scale — LED output 5-9 of 255. Two complaints came from that one fact. (a) The 0-255 slider was "too big": ESPHome's gamma-2.8 table never returns 0 for a non-zero input, so light brightness 1..40 of 255 (the bottom 16 %) all land on output 1, while everything above ~60 % was 7-50x brighter than the ring is ever run at. "Ring Max Brightness" plus a hidden 5 % night multiplier on top of that scale was opaque — night mode resolved to output 1, which reads as "off" under room light. (b) "AQI Breathing" (colour × cosine envelope, left to the gamma table) had only ~5 distinct outputs between trough and peak — visible jumps — and its 15 % pre-gamma floor sat on the dimmest step for ~40 % of each cycle, so every swell seemed to start late. Fix: brightness in **levels matched to distinct LED outputs** (1, 2, 3, 4, 6, 10, 16, 25, 40, 64 — geometric, ~1.6x per step), each level's light brightness = the top of its output band computed against ESPHome's own integer pipeline (`esp_scale8_twice` + the uint16 gamma LUT + `color_correct`), a `color_correct` cap so the light's own 100 % IS level 10, and a breathing effect that computes final LED values itself: peak read back through the light's pipeline (`get_*_raw()`), a perceptually even envelope with a floor at 20 % of peak output (never below 1 step), **spatial dithering across the 7 LEDs** (1/7-step resolution behind the diffuser), written through an identity `ESPColorCorrection`. Rules: never offer a raw 0-255 control for a dim indicator; simulate the exact integer pipeline before choosing numbers; and when a smooth animation must run at a handful of output steps, dither across LEDs rather than trusting the gamma table.
+
+---
+
 ## 🔴 Public repository rules
 
 **This is a PUBLIC repository.** Every committed file MUST follow these rules. No exceptions.
@@ -370,7 +378,7 @@ No "hand-solder friendly" deviations remain anywhere in the design.
 
 Current firmware skeleton (added v0.40-post-order):
 - `firmware/esphome/oas.yaml` top-level + 5 packages in `packages/`: core, leds, air-quality, presence, bt-proxy.
-- 8+ LED effects with web_server-driven brightness / effect / mode (Auto-AQI / Manual / Off / Test-Rainbow). Day-night auto-dim.
+- LED ring (`packages/leds.yaml`): effects AQI Breathing (default) / AQI Solid / Solid / Dot Chase on the native light entity; brightness as **levels** — Ring Day Brightness 1-10, Ring Night Brightness 0-10 (0 = off for the night), night window as two `datetime` time entities (22:00 → 07:00), a Ring Status text line. A `color_correct` power cap makes the light's own 100 % equal level 10. The schedule writes brightness only at day/night switches and on level changes (hand-set brightness holds until then); critical air quality turns a lit ring solid red (level 10 by day, night level at night). See Lesson 27.
 - SEN66 sensor offsets (temperature, humidity, CO2) exposed as `number:` entities preserved across reboots.
 - STAR-Engine IAQM Light preset (T1=1000, T2=3000, K=200, P=200 raw I²C 16-bit, ×10 of post-scale display values) re-uploaded on every boot via `on_boot:` lambda (Sensirion params are volatile per datasheet).
 - LD2410 per-gate sensitivity, max-distance, and timeout exposed as `number:` / `select:` entities.

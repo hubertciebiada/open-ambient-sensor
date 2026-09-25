@@ -137,7 +137,8 @@ i2c_device:
 #     cold-start experiment splits the warm-up into the two components.
 #
 # Defaults = the reference unit: AK-N-94, two-tunnel foam gasket on the SEN66,
-# LED ring 25 %, BLE proxy on, radar Bluetooth off, two references 40 cm away
+# LED ring 25 % (LED output 5/255, between levels 4 and 5 of the 1-10 scale
+# in leds.yaml), BLE proxy on, radar Bluetooth off, two references 40 cm away
 # (offset -3.4 K = mean of -3.2 vs an SCD41 monitor and -3.55 vs an SHT31
 # logger, night steady state). Any change to the heat budget (ring brightness,
 # BLE proxy, gasket, enclosure) shifts the offset; re-derive per AN §2.2.
@@ -490,13 +491,13 @@ sensor:
       return (a > b) ? a : b;
 
 # ---------------------------------------------------------------------------
-# Critical-alert flag — referenced by packages/leds.yaml for the red blink
+# Critical-alert flag — read by packages/leds.yaml (solid-red ring override)
 # ---------------------------------------------------------------------------
 # Trips when EITHER axis crosses an unambiguously unhealthy threshold:
 #   - AQI > 200  (PM2.5 path: "Unhealthy" or worse)
 #   - CO2 > 1500 ppm (cognitive-impairment threshold)
-# Hysteresis is enforced in the LED package's `on_press` / `on_release`
-# triggers so the LED doesn't flicker around the boundary.
+# No hysteresis: a reading hovering at a threshold can flip the flag (and
+# the ring) on each 30 s SEN66 update.
 binary_sensor:
   - platform: template
     name: "Air Quality Critical"
