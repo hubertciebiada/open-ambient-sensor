@@ -39,13 +39,14 @@
 # Brightness steps: the LEDs are 8-bit behind ESPHome's gamma-2.8 table, so
 # the raw 0-255 scale is mostly unusable — its bottom ~16 % is one and the
 # same dimmest LED step, and each further slider step is a different size.
-# The ten levels are LED output 1, 2, 3, 6, 12, 22, 40, 74, 138, 255 (of 255)
-# on the brightest channel: each about 1.85x the one below, from the dimmest
-# glow the LEDs can make to full power. The units ran at 25-30 % of the old
-# slider (LED output 5-9), i.e. around level 4, the default. Heat: at level
+# The ten levels are LED output 1, 2, 3, 5, 10, 19, 36, 69, 133, 255 (of 255)
+# on the brightest channel: each about 1.9x the one below, from the dimmest
+# glow the LEDs can make to full power. Level 4, the default, is exactly the
+# old slider's 25 % (light brightness 64/255) — the ring setting of the
+# reference unit when the SEN66 temperature offset was calibrated. Heat: at level
 # 10 the ring dissipates ~0.2-0.35 W (AQI colours) / ~0.5 W (white) next to
 # the SEN66, which warms its temperature reading — the temperature offset in
-# air-quality.yaml is calibrated with the ring around level 4.
+# air-quality.yaml was calibrated with the ring at level 4.
 #
 # Critical air quality (`oas_air_quality_critical` in air-quality.yaml: AQI >
 # 200 or CO2 > 1500 ppm): a ring that is on turns solid red — at least level
@@ -129,7 +130,7 @@ light:
       # ---------------------------------------------------------------
       # AQI Breathing — the AQI colour swelling over ~4 s.
       # ---------------------------------------------------------------
-      # The ring runs at a few LED steps (level 4 peaks at 6 of 255), so a
+      # The ring runs at a few LED steps (level 4 peaks at 5 of 255), so a
       # breath computed as colour x envelope and left to the gamma table
       # comes out as a handful of visible jumps and then sits on the
       # dimmest step for most of its lower half — the start of each swell
@@ -444,9 +445,11 @@ interval:
       - lambda: |-
           if (!id(oas_ring_ready)) return;
           // Light brightness (0..255) of level 1..10 ([0] = off): the top of
-          // the brightness band that gives the level's LED output (1, 2, 3, 6,
-          // 12, 22, 40, 74, 138, 255 of 255) through ESPHome's gamma-2.8 table.
-          static const uint8_t LB[11] = {0, 40, 48, 55, 68, 86, 107, 132, 164, 205, 255};
+          // the brightness band that gives the level's LED output (1, 2, 3, 5,
+          // 10, 19, 36, 69, 133, 255 of 255) through ESPHome's gamma-2.8 table.
+          // Level 4 = 64 = the old slider's 25 %, the temperature-calibration
+          // setting (air-quality.yaml) — keep it when retuning the table.
+          static const uint8_t LB[11] = {0, 40, 48, 55, 64, 81, 101, 127, 160, 202, 255};
           auto *ring = id(oas_ring);
           auto level_of = [](float v, int lo, int hi, int dflt) -> int {
             return std::isnan(v) ? dflt : std::max(lo, std::min(hi, (int) lroundf(v)));

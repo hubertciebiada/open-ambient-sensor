@@ -137,8 +137,8 @@ i2c_device:
 #     cold-start experiment splits the warm-up into the two components.
 #
 # Defaults = the reference unit: AK-N-94, two-tunnel foam gasket on the SEN66,
-# LED ring 25 % (LED output 5/255, about Ring Brightness 4 in leds.yaml),
-# BLE proxy on, radar Bluetooth off, two references 40 cm away
+# LED ring 25 % (LED output 5/255 = Ring Brightness 4 in leds.yaml, the
+# default), BLE proxy on, radar Bluetooth off, two references 40 cm away
 # (offset -3.4 K = mean of -3.2 vs an SCD41 monitor and -3.55 vs an SHT31
 # logger, night steady state). Any change to the heat budget (ring brightness,
 # BLE proxy, gasket, enclosure) shifts the offset; re-derive per AN §2.2.
