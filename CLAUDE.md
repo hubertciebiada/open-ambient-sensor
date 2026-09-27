@@ -458,6 +458,7 @@ open-ambient-sensor/
 ├── CLAUDE.md                       # this file
 ├── GPLv3-LICENSE.md
 ├── .gitignore
+├── brag-output/                    # launch video (brag.mp4, README preview brag.webp, poster, contact sheet) + its generator (work/)
 ├── firmware/
 │   ├── README.md                   # flashing + Home Assistant integration
 │   ├── esphome/

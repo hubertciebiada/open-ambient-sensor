@@ -9,6 +9,12 @@
 [![Framework: ESPHome](https://img.shields.io/badge/Framework-ESPHome-orange?style=flat-square)](https://esphome.io)
 
 <p align="center">
+  <a href="./brag-output/brag.mp4"><img src="./brag-output/brag.webp" width="100%" alt="OAS launch video: the cover turns x-ray to show the board, the LED ring changes colour as CO2 rises, and the PCB draws itself while build.py passes 35/35 checks"></a>
+  <br>
+  <sub>20-second launch video, shown here as a silent looping preview. Full quality with sound: <a href="./brag-output/brag.mp4"><code>brag-output/brag.mp4</code></a>. How it was made: <a href="./brag-output/"><code>brag-output/</code></a>.</sub>
+</p>
+
+<p align="center">
   <img src="./hardware/photos/v0.54-mounted-led-ring.jpg" width="36%" alt="OAS mounted on a wall in the dark: the AQI ring glows green through the perforated AK-N-94 cover">
   &nbsp;
   <img src="./hardware/photos/v0.54-pcb-top.jpg" width="60%" alt="OAS v0.54 PCB after SMT assembly, THT parts hand-soldered, daughterboards not yet fitted">
@@ -88,6 +94,7 @@ open-ambient-sensor/
 ├── CLAUDE.md                       # design rationale, hard constraints, working conventions
 ├── GPLv3-LICENSE.md
 ├── .gitignore
+├── brag-output/                    # launch video (brag.mp4, README preview brag.webp) + its generator (work/)
 ├── firmware/
 │   ├── README.md                   # flashing + Home Assistant integration
 │   ├── esphome/
