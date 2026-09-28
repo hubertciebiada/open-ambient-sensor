@@ -1,29 +1,23 @@
-
-https://github.com/user-attachments/assets/951381e9-c975-49e6-be76-019ffe796b42
-# OAS — Open Ambient Sensor
-
-**DIY multi-sensor environmental monitor for indoor spaces.** Measures air quality and presence; mounts on a standard wall-recessed electrical box; runs ESPHome and integrates natively with Home Assistant.
-
-[![License: GPLv3](https://img.shields.io/badge/License-GPLv3-blue.svg?style=flat-square)](./GPLv3-LICENSE.md)
-[![Status: v0.54 built and validated](https://img.shields.io/badge/Status-v0.54%20built%20%26%20validated-green?style=flat-square)](#status)
-[![Release](https://img.shields.io/github/v/release/hubertciebiada/open-ambient-sensor?style=flat-square)](https://github.com/hubertciebiada/open-ambient-sensor/releases/latest)
-[![MCU: ESP32-C6](https://img.shields.io/badge/MCU-ESP32--C6-green?style=flat-square)](#hardware-overview)
-[![Framework: ESPHome](https://img.shields.io/badge/Framework-ESPHome-orange?style=flat-square)](https://esphome.io)
-
-
-
-https://github.com/user-attachments/assets/d60150c3-3ed5-4fff-b437-b9b54c48e413
-
-
+<h1 align="center">OAS — Open Ambient Sensor</h1>
 
 <p align="center">
-  <a href="./media/oas-promo.mp4"><img src="./media/oas-promo.webp" width="100%" alt="Open Ambient Sensor promo video"></a>
+  <b>DIY multi-sensor environmental monitor for indoor spaces.</b><br>
+  Measures air quality and presence; mounts on a standard wall-recessed electrical box; runs ESPHome and integrates natively with Home Assistant.
 </p>
 
 <p align="center">
-  <img src="./hardware/photos/v0.54-mounted-led-ring.jpg" width="36%" alt="OAS mounted on a wall in the dark: the AQI ring glows green through the perforated AK-N-94 cover">
-  &nbsp;
-  <img src="./hardware/photos/v0.54-pcb-top.jpg" width="60%" alt="OAS v0.54 PCB after SMT assembly, THT parts hand-soldered, daughterboards not yet fitted">
+  <a href="./GPLv3-LICENSE.md"><img src="https://img.shields.io/badge/License-GPLv3-blue.svg?style=flat-square" alt="License: GPLv3"></a>
+  <a href="#status"><img src="https://img.shields.io/badge/Status-v0.54%20built%20%26%20validated-green?style=flat-square" alt="Status: v0.54 built and validated"></a>
+  <a href="https://github.com/hubertciebiada/open-ambient-sensor/releases/latest"><img src="https://img.shields.io/github/v/release/hubertciebiada/open-ambient-sensor?style=flat-square" alt="Release"></a>
+  <a href="#hardware-overview"><img src="https://img.shields.io/badge/MCU-ESP32--C6-green?style=flat-square" alt="MCU: ESP32-C6"></a>
+  <a href="https://esphome.io"><img src="https://img.shields.io/badge/Framework-ESPHome-orange?style=flat-square" alt="Framework: ESPHome"></a>
+</p>
+
+https://github.com/user-attachments/assets/d60150c3-3ed5-4fff-b437-b9b54c48e413
+
+<p align="center">
+  <img src="./media/oas-mounted.webp" width="49%" alt="OAS mounted on a wall in the dark: the AQI ring glows green through the perforated AK-N-94 cover">
+  <img src="./media/oas-pcb.webp" width="49%" alt="OAS v0.54 PCB after SMT assembly, THT parts hand-soldered, daughterboards not yet fitted">
 </p>
 
 ---
@@ -100,7 +94,7 @@ open-ambient-sensor/
 ├── CLAUDE.md                       # design rationale, hard constraints, working conventions
 ├── GPLv3-LICENSE.md
 ├── .gitignore
-├── media/                          # promo video (oas-promo.mp4) + animated preview (oas-promo.webp)
+├── media/                          # promo video (oas-promo.mp4) + README photos (oas-*.webp)
 ├── firmware/
 │   ├── README.md                   # flashing + Home Assistant integration
 │   ├── esphome/

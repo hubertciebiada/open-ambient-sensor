@@ -458,7 +458,7 @@ open-ambient-sensor/
 ├── CLAUDE.md                       # this file
 ├── GPLv3-LICENSE.md
 ├── .gitignore
-├── media/                          # promo video (oas-promo.mp4) + animated preview (oas-promo.webp)
+├── media/                          # promo video (oas-promo.mp4) + README photos (oas-*.webp, graded from hardware/photos/)
 ├── firmware/
 │   ├── README.md                   # flashing + Home Assistant integration
 │   ├── esphome/
