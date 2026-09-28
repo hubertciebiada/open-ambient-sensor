@@ -8,6 +8,14 @@
 [![MCU: ESP32-C6](https://img.shields.io/badge/MCU-ESP32--C6-green?style=flat-square)](#hardware-overview)
 [![Framework: ESPHome](https://img.shields.io/badge/Framework-ESPHome-orange?style=flat-square)](https://esphome.io)
 
+<!--
+  PROMO VIDEO PLACEHOLDER: drop media/oas-promo.mp4 on the empty line right below this comment.
+  In GitHub's web editor (Edit README.md), click that empty line and drag the .mp4 in. GitHub uploads it
+  and inserts a github.com/user-attachments/assets/... link, which renders as a player with sound.
+  Then delete the preview <p> block underneath, and this comment.
+-->
+
+
 <p align="center">
   <a href="./media/oas-promo.mp4"><img src="./media/oas-promo.webp" width="100%" alt="Open Ambient Sensor promo video"></a>
 </p>
