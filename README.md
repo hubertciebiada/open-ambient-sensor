@@ -1,3 +1,5 @@
+
+https://github.com/user-attachments/assets/951381e9-c975-49e6-be76-019ffe796b42
 # OAS — Open Ambient Sensor
 
 **DIY multi-sensor environmental monitor for indoor spaces.** Measures air quality and presence; mounts on a standard wall-recessed electrical box; runs ESPHome and integrates natively with Home Assistant.
@@ -8,7 +10,11 @@
 [![MCU: ESP32-C6](https://img.shields.io/badge/MCU-ESP32--C6-green?style=flat-square)](#hardware-overview)
 [![Framework: ESPHome](https://img.shields.io/badge/Framework-ESPHome-orange?style=flat-square)](https://esphome.io)
 
-Uploading oas-promo.mp4…
+
+
+https://github.com/user-attachments/assets/d60150c3-3ed5-4fff-b437-b9b54c48e413
+
+
 
 <p align="center">
   <a href="./media/oas-promo.mp4"><img src="./media/oas-promo.webp" width="100%" alt="Open Ambient Sensor promo video"></a>
